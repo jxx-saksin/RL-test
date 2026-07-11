@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#16171b">
+<title>가치의 역전</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:oklch(0.120 0.005 264);}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  ::-webkit-scrollbar{width:0;height:0;}
+  @keyframes rlIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @keyframes rlSheet{from{transform:translateY(100%)}to{transform:none}}
+  @keyframes rlFade{from{opacity:0}to{opacity:1}}
+  @keyframes rlCharge{from{width:0}to{width:100%}}
+  @keyframes rlPunch{0%,84%{transform:scale(1)}92%{transform:scale(1.22)}100%{transform:scale(1)}}
+</style>
+</helmet>
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <rect width="100" height="100" fill="#16171b"/>
+    <rect x="34" y="28" width="32" height="44" rx="3" fill="none" stroke="#7fb2e6" stroke-width="2.5"/>
+    <line x1="40" y1="40" x2="60" y2="40" stroke="#c9542f" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="40" y1="48" x2="55" y2="48" stroke="#8a8f99" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="40" y1="56" x2="58" y2="56" stroke="#8a8f99" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>
+</template>
+<div style="min-height:100dvh;display:flex;align-items:center;justify-content:center;background:oklch(0.120 0.005 264);font-family:'IBM Plex Sans KR',sans-serif;">
+  {{ screenEl }}
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:402,&quot;height&quot;:874}}">
+const h = React.createElement;
+const T = {
+  void:'oklch(0.150 0.006 264)', bg:'oklch(0.185 0.006 264)', s1:'oklch(0.215 0.007 264)',
+  s2:'oklch(0.255 0.008 264)', s3:'oklch(0.300 0.009 264)', line:'oklch(0.340 0.008 264)',
+  line2:'oklch(0.420 0.010 264)', hi:'oklch(0.940 0.004 264)', mid:'oklch(0.740 0.006 264)',
+  lo:'oklch(0.550 0.008 264)', faint:'oklch(0.420 0.008 264)', danger:'oklch(0.620 0.120 28)',
+  warn:'oklch(0.740 0.085 72)', good:'oklch(0.720 0.078 148)', sato:'oklch(0.740 0.055 224)',
+  hp:'oklch(0.580 0.100 25)', sta:'oklch(0.720 0.075 74)', growth:'oklch(0.660 0.045 264)',
+  dur:'oklch(0.740 0.012 250)', bleed:'oklch(0.640 0.120 28)', stun:'oklch(0.800 0.090 88)',
+  pierce:'oklch(0.700 0.055 232)', rupture:'oklch(0.660 0.090 330)',
+  mono:"'IBM Plex Mono',monospace", sans:"'IBM Plex Sans KR',sans-serif"
+};
+const ATTR = { bleed:{kr:'출혈',c:T.bleed}, stun:{kr:'기절',c:T.stun}, pierce:{kr:'관통',c:T.pierce}, rupture:{kr:'파열',c:T.rupture}, sever:{kr:'절단',c:T.mid} };
+// safe lookup — items/monsters may carry an Attribute like "none" or a value absent from the map
+const AT = (x)=> (x && ATTR[x]) ? ATTR[x] : null;
+const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Quest:'퀘스트', Key:'키' };
+// tiny inline icons
+const ICON = {
+  home:'M3 11.5 12 4l9 7.5M5 10v10h14V10',
+  pkg:'M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7M12 11v10',
+  cross:'M12 3v4M12 17v4M3 12h4M17 12h4M12 8a4 4 0 100 8 4 4 0 000-8z',
+  user:'M12 12a4 4 0 100-8 4 4 0 000 8zM5 20c0-3.5 3-6 7-6s7 2.5 7 6',
+  gear:'M12 9a3 3 0 100 6 3 3 0 000-6zM19 12l1.5 1-1.5 2.6-1.8-.5-1.5.9-.4 1.9h-3l-.4-1.9-1.5-.9-1.8.5L5 15l1.5-1L6 12l-1.5-1L6 8.4l1.8.5 1.5-.9L9.7 6h3l.4 1.9 1.5.9 1.8-.5L18 8.4 16.5 10z',
+  wrench:'M14.6 6.3a3.5 3.5 0 0 0-4.8 4.6l-6 6 2.7 2.7 6-6a3.5 3.5 0 0 0 4.6-4.8l-2.2 2.2-2.3-.6-.6-2.3 2.6-2z'
+};
+const svg = (d,sz=20,c='currentColor',sw=1.6)=>h('svg',{width:sz,height:sz,viewBox:'0 0 24 24',fill:'none',stroke:c,strokeWidth:sw,strokeLinecap:'round',strokeLinejoin:'round'},h('path',{d}));
+
+class Component extends DCLogic {
+  state = { ready:false, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null };
+  async componentDidMount(){
+    try{
+      const eng = await import('./engine.js');
+      const loader = await import('./sheet-loader.js');
+      this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
+      await this.loadData();
+      this.newRun(true);
+      this.setState({ ready:true });
+    }catch(e){ console.error('engine load failed', e); this.setState({ ready:true, err:String(e) }); }
+  }
+  async loadData(){
+    try{
+      const rows = await this.loader.fetchAllTabs();
+      this.eng.setDATA(this.loader.shape(rows));
+      try{ localStorage.setItem('rl_sheet_cache', JSON.stringify(rows)); }catch(_){}
+      this.dataSrc = 'live'; return 'live';
+    }catch(e){
+      console.warn('live sheet fetch failed, falling back', e);
+      try{ const c = localStorage.getItem('rl_sheet_cache'); if(c){ this.eng.setDATA(this.loader.shape(JSON.parse(c))); this.dataSrc='cache'; return 'cache'; } }catch(_){}
+      this.dataSrc = 'bundled'; return 'bundled';
+    }
+  }
+  clearCache(){ let n=0; try{ if(localStorage.getItem('rl_sheet_cache')!=null){ localStorage.removeItem('rl_sheet_cache'); n++; } }catch(_){}
+    this.flash(n?'캐시 삭제 완료':'삭제할 캐시 없음'); this.forceUpdate(); }
+  async reloadSheet(){
+    this.flash('시트 불러오는 중…');
+    const src = await this.loadData();
+    this.newRun(true); this.combat=null; this.go('safehouse');
+    this.flash(src==='live'?'시트 반영 완료 — 새 캐릭터':src==='cache'?'연결 실패 · 캐시 사용':'번들 데이터 사용');
+  }
+  componentWillUnmount(){ if(this._t) clearInterval(this._t); }
+  componentDidUpdate(){ if(this.logRef){ this.logRef.scrollTop = this.logRef.scrollHeight; } }
+
+  newRun(fresh){
+    const gs = this.eng.startingState();
+    const full = this.eng.playerProfile(gs,false);
+    this.staMax = 10;
+    gs.maxHp = full.maxHp; gs.hp = full.maxHp; gs.sta = this.staMax;
+    this.gs = gs; this.combat = null;
+    // equipped gear is 'carried' — it lives in 소지품(bag), never in 금고(vault)
+    ['weapon','head','body'].forEach(s=>{ if(gs.equip[s]) this.moveToBag(gs.equip[s]); });
+  }
+  moveToBag(uid){ const i=this.gs.vault.findIndex(x=>x.uid===uid); if(i>=0){ const [it]=this.gs.vault.splice(i,1); this.gs.bag.push(it); } }
+  rest(){ const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=full.maxHp; this.gs.sta=this.staMax; }
+  go(screen){ if(this._t){clearInterval(this._t); this._t=null;} this.setState({ screen, modalZone:null, sel:null }); }
+  flash(msg){ this.setState({toast:msg}); clearTimeout(this._ft); this._ft=setTimeout(()=>this.setState({toast:null}),1600); }
+
+  // ---------- sortie / combat ----------
+  zonePool(zoneId){
+    const direct=this.eng.DATA.monsters.filter(m=>String(m.SpawnZones||'').split(',').map(s=>s.trim()).includes(zoneId));
+    if(direct.length) return direct;
+    // no explicit pool (e.g. hidden zone) -> auto-populate from the same city's monsters
+    const z=this.eng.byId.zone[zoneId];
+    if(z){ const pool=this.eng.DATA.monsters.filter(m=>String(m.SpawnZones||'').split(',').some(s=>{ const zz=this.eng.byId.zone[s.trim()]; return zz&&zz.CityID===z.CityID; })); if(pool.length) return pool; }
+    return this.eng.DATA.monsters;
+  }
+  hasItem(id){ return this.gs.vault.some(x=>x.id===id)||this.gs.bag.some(x=>x.id===id); }
+  consumeItem(id){ const dec=(arr)=>{ const i=arr.findIndex(x=>x.id===id); if(i<0) return false; if(arr[i].qty>1) arr[i].qty--; else arr.splice(i,1); return true; }; return dec(this.gs.bag)||dec(this.gs.vault); }
+  startSortie(zoneId){
+    const z=this.eng.byId.zone[zoneId];
+    if(z && this.eng.N(z.IsHidden)===1 && z.UnlockType==='item' && z.UnlockKey){ this.consumeItem(z.UnlockKey); this.flash('키카드 사용 — 봉쇄 해제'); }
+    this.rest();
+    this.combat = { zoneId, encounter:0, runLoot:[] };
+    this.setState({ screen:'combat', modalZone:null });
+    this.drawCards();
+  }
+  drawCards(){
+    const n = this.eng.N(this.eng.DATA.config.combat_card_count, 3);
+    const cards = this.eng.drawCards(this.combat.zoneId, n);
+    Object.assign(this.combat, { cards, picked:null, mProf:null, phase:'cards', res:null, revealed:0, loot:[], ups:[], cardFocus:Math.floor(n/2), flipped:false });
+    if(this._t){ clearInterval(this._t); this._t=null; }
+    this.forceUpdate();
+  }
+  pickCard(i){
+    const id=this.combat.cards[i]; const m=this.eng.byId.monster[id]; if(!m) return;
+    Object.assign(this.combat, { picked:i, mProf:this.eng.monsterProfile(m), phase:'preview' });
+    this.forceUpdate();
+  }
+  enterCombat(){
+    const mProf = this.combat.mProf;
+    this.gs.sta = Math.max(0, this.gs.sta - mProf.staminaCost);
+    const staZero = this.gs.sta <= 0;
+    const full = this.eng.playerProfile(this.gs,false);
+    const prof = this.eng.playerProfile(this.gs, staZero); prof.maxHp = full.maxHp;
+    const res = this.eng.simulateCombat(prof, mProf, this.gs.hp);
+    Object.assign(this.combat, { prof:full, res, revealed:1, phase:'fighting', staZero, encounter:this.combat.encounter+1 });
+    this.forceUpdate();
+    if(this._t) clearInterval(this._t);
+    this._t = setInterval(()=>this.tick(), 300);
+  }
+  tick(){
+    const c=this.combat;
+    if(c.revealed < c.res.log.length){ c.revealed++; this.forceUpdate(); }
+    else { clearInterval(this._t); this._t=null; this.finishCombat(); }
+  }
+  finishCombat(){
+    const c=this.combat, res=c.res;
+    this.gs.hp = res.playerHpEnd;
+    c.durChanges = this.eng.applyDurabilityWear(this.gs, res.triggers) || [];
+    if(res.winner==='player'){
+      const loot = this.eng.rollLoot(c.mProf.id);
+      // prototype drop: the police keycard can drop in 하람(city_01) if not already held
+      const z=this.eng.byId.zone[c.zoneId];
+      if(z && z.CityID==='city_01' && !this.hasItem('item_police_keycard') && Math.random()<0.25){ loot.push({id:'item_police_keycard', qty:1}); }
+      for(const l of loot){ this.addToBag(l.id, l.qty); c.runLoot.push(l); }
+      c.loot = loot;
+      c.ups = this.eng.applyGrowth(this.gs, res.triggers);
+      const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp;
+      c.phase='won';
+    } else if(res.winner==='monster'){ c.phase='dead'; }
+    else { c.phase='timeout'; }
+    this.forceUpdate();
+  }
+  addToBag(id, qty){
+    const src = this.eng.byId.item[id];
+    if(src && this.eng.N(src.MaxStack,1)>1){
+      const ex = this.gs.bag.find(x=>x.id===id);
+      if(ex){ ex.qty+=qty; return; }
+    }
+    for(let i=0;i<qty;i++){ const inst=this.eng.mkInstance(id,1); this.gs.bag.push(inst); if(this.eng.N((src||{}).MaxStack,1)>1){ inst.qty=qty; break; } }
+  }
+  extract(){ this.setState({ screen:'result' }); this.combat.result='extract'; if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate(); }
+  death(){
+    // 소지품(bag)은 전부 잃되, 착용 중인 장비는 유지된다
+    this.gs.bag = this.gs.bag.filter(x=>this.isEquipped(x.uid));
+    const eq = [this.gs.equip.weapon,this.gs.equip.head,this.gs.equip.body].filter(Boolean);
+    let broke=null;
+    if(eq.length){ const uid=eq[Math.floor(Math.random()*eq.length)]; const inst=this.eng.instById(this.gs,uid);
+      if(inst){ inst.maxDur=Math.max(0,(inst.maxDur||0)-this.eng.R.randInt(2,5)); inst.dur=Math.min(inst.dur||0,inst.maxDur); if(inst.maxDur<=0) inst.destroyed=true; broke=inst; } }
+    this.combat.result='death'; this.combat.broke=broke;
+    this.setState({ screen:'result' });
+  }
+  toSafehouse(){ this.rest(); this.gs.sorties++; this.combat=null; this.go('safehouse'); }
+
+  // ---------- inventory ----------
+  moveItem(uid){
+    const inV = this.gs.vault.findIndex(x=>x.uid===uid);
+    if(inV>=0){ const [it]=this.gs.vault.splice(inV,1); this.gs.bag.push(it); }
+    else { const inB=this.gs.bag.findIndex(x=>x.uid===uid); if(inB>=0){
+      // 착용 중인 장비는 금고로 보낼 수 없다 — 옮기면 자동 해제
+      if(this.isEquipped(uid)){ const e=this.gs.equip; ['weapon','head','body'].forEach(s=>{ if(e[s]===uid) e[s]=null; }); const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp); }
+      const [it]=this.gs.bag.splice(inB,1); this.gs.vault.push(it);
+    } }
+    this.forceUpdate();
+  }
+  // ---------- move / vendor helpers ----------
+  moveStack(uid, n){
+    const inVault=this.gs.vault.some(x=>x.uid===uid);
+    const src=inVault?this.gs.vault:this.gs.bag, dst=inVault?this.gs.bag:this.gs.vault;
+    const i=src.findIndex(x=>x.uid===uid); if(i<0) return;
+    const inst=src[i]; const total=inst.qty||1;
+    n=Math.max(1,Math.min(n||total,total));
+    if(n>=total){ this.moveItem(uid); return; }
+    inst.qty-=n;
+    const ex=dst.find(x=>x.id===inst.id);
+    if(ex){ ex.qty=(ex.qty||1)+n; } else { const ni=this.eng.mkInstance(inst.id,n); ni.qty=n; dst.push(ni); }
+    this.forceUpdate();
+  }
+  services(v){ return String((v&&v.Services)||'').split(',').map(s=>s.trim()).filter(Boolean); }
+  openVendor(id){ const v=this.eng.byId.vendor[id]; const svc=this.services(v); const first=svc.includes('Buy')?'buy':svc.includes('Repair')?'repair':'sell'; if(this._t){clearInterval(this._t);this._t=null;} this.setState({screen:'vendor',vendor:id,vtab:first,sel:null,repairSel:null,modalZone:null}); }
+  // ---------- shop ----------
+  buy(shopId, row){
+    const price=this.eng.N(row.BuyPrice);
+    const key=shopId+'|'+row.ItemID;
+    const stock = this.gs.shopStock[key]!=null ? this.gs.shopStock[key] : this.eng.N(row.StockMax,99);
+    if(this.gs.sato < price){ this.flash('사토가 부족하다'); return; }
+    if(stock<=0){ this.flash('재고 없음'); return; }
+    this.gs.sato -= price; this.gs.shopStock[key]=stock-1; this.addToVault(row.ItemID,1);
+    this.flash(row.ItemName_KR+' 구매'); this.forceUpdate();
+  }
+  addToVault(id,qty){ const src=this.eng.byId.item[id];
+    if(src && this.eng.N(src.MaxStack,1)>1){ const ex=this.gs.vault.find(x=>x.id===id); if(ex){ex.qty+=qty;return;} }
+    const inst=this.eng.mkInstance(id,qty); this.gs.vault.push(inst); }
+
+  // ================= RENDER =================
+  renderVals(){ let screenEl; try{ screenEl = this.state.ready ? this.renderApp() : this.loading(); }catch(e){ console.error('renderApp threw:', e); screenEl = this.loading(); } return { screenEl }; }
+  loading(){ return this.phone(h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:T.lo,fontFamily:T.mono,fontSize:13}}, this.state && this.state.err ? ('오류: '+this.state.err) : '불러오는 중…')); }
+  phone(...kids){ return h('div',{style:{width:'min(402px, 100vw)',height:'min(874px, 100dvh)',background:T.bg,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative',boxShadow:'0 24px 80px rgba(0,0,0,.6)',border:'1px solid '+T.line}}, ...kids); }
+
+  bar(label, val, max, color){
+    const pct = max>0 ? Math.max(0,Math.min(100,(val/max)*100)) : 0;
+    return h('div',{style:{flex:1}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',fontFamily:T.mono,fontSize:10,letterSpacing:'.05em',color:T.lo,marginBottom:4}}, h('span',null,label), h('span',{style:{color:T.mid}}, Math.round(val)+' / '+Math.round(max))),
+      h('div',{style:{height:6,background:T.s3,borderRadius:1,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:color}}))
+    );
+  }
+  chip(txt,color){ return h('span',{style:{fontFamily:T.mono,fontSize:10,fontWeight:500,letterSpacing:'.04em',color:color||T.mid,border:'1px solid '+T.line2,borderRadius:2,padding:'2px 6px',whiteSpace:'nowrap'}}, txt); }
+  header(){
+    const g=this.gs;
+    return h('div',{style:{padding:'16px 18px 12px',background:T.s1,borderBottom:'1px solid '+T.line,display:'flex',flexDirection:'column',gap:12,flex:'0 0 auto'}},
+      h('div',{style:{display:'flex',gap:12}}, this.bar('생명력',g.hp,g.maxHp,T.hp), this.bar('스태미너',g.sta,this.staMax,T.sta)),
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
+        h('div',{style:{fontFamily:T.mono,fontSize:11,color:T.faint,letterSpacing:'.06em'}}, '출정 '+g.sorties+'회'),
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,background:T.s2,border:'1px solid '+T.line,borderRadius:3,padding:'5px 10px'}},
+          this.chip('SATO',T.sato), h('span',{style:{fontFamily:T.mono,fontWeight:600,fontSize:15,color:T.hi}}, g.sato.toLocaleString())))
+    );
+  }
+  nav(){
+    const items=[['safehouse','안전가옥',ICON.home],['inventory','소지품',ICON.pkg],['zone','출정',ICON.cross],['character','캐릭터',ICON.user],['settings','설정',ICON.gear]];
+    return h('div',{style:{flex:'0 0 auto',display:'flex',background:T.s1,borderTop:'1px solid '+T.line}},
+      ...items.map(([k,label,d])=>{ const on=this.state.screen===k || (k==='zone'&&this.state.screen==='combat');
+        return h('button',{key:k,onClick:()=>this.go(k),style:{flex:1,background:'none',border:'none',cursor:'pointer',padding:'10px 0 12px',display:'flex',flexDirection:'column',alignItems:'center',gap:4,color:on?T.hi:T.faint}},
+          svg(d,21,'currentColor',on?1.8:1.5), h('span',{style:{fontFamily:T.sans,fontSize:10,fontWeight:on?600:400}},label)); })
+    );
+  }
+  screenTitle(kicker,title){ return h('div',{style:{padding:'18px 18px 14px',flex:'0 0 auto'}},
+    h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:T.faint,marginBottom:6}}, kicker),
+    h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:600,color:T.hi,letterSpacing:'-.01em'}}, title)); }
+  toastEl(){ if(!this.state.toast) return null; return h('div',{style:{position:'absolute',bottom:78,left:'50%',transform:'translateX(-50%)',background:T.s3,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.mono,fontSize:12,padding:'8px 16px',borderRadius:3,animation:'rlFade .2s',zIndex:20}}, this.state.toast); }
+
+  renderApp(){
+    const s=this.state.screen;
+    let body;
+    if(s==='safehouse') body=this.safehouse();
+    else if(s==='zone') body=this.zone();
+    else if(s==='combat') body=this.combatScreen();
+    else if(s==='result') body=this.result();
+    else if(s==='inventory') body=this.inventory();
+    else if(s==='character') body=this.character();
+    else if(s==='vendor') body=this.vendorScreen();
+    else if(s==='settings') body=this.settings();
+    const showNav = s!=='combat' && s!=='result' && s!=='vendor';
+    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.combatSheet?this.combatSheet():null);
+  }
+
+  // ---- safehouse ----
+  safehouse(){
+    const vendors=this.eng.DATA.vendors;
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      this.header(),
+      this.screenTitle('SAFEHOUSE · 하람','안전가옥'),
+      h('div',{style:{padding:'0 18px 20px',overflowY:'auto',flex:1}},
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 12px'}}, '상점'),
+        h('div',{style:{display:'flex',flexDirection:'column',gap:10}},
+          ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair'); const act=()=>this.openVendor(v.VendorID);
+            return h('button',{key:v.VendorID,disabled:!open,onClick:open?act:null,
+              style:{textAlign:'left',background:open?T.s1:T.bg,border:'1px solid '+(open?T.line2:T.line),borderRadius:4,padding:'14px 15px',cursor:open?'pointer':'default',opacity:open?1:.5,display:'flex',alignItems:'center',gap:12}},
+              h('div',{style:{flex:1}},
+                h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:4}},
+                  h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:600,color:T.hi}}, this.shopName(v.ShopID)),
+                  this.chip(v.ShopType, open?T.mid:T.faint)),
+                h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo}}, v.VendorName_KR)),
+              open? svg('M9 6l6 6-6 6',18,T.mid) : h('div',{style:{display:'flex',alignItems:'center',gap:5,color:T.faint,fontFamily:T.mono,fontSize:10}}, svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',15,T.faint,1.6),'잠금'));
+          })))
+      );
+  }
+  shopName(id){ const map={shop_clinic:'보건소',shop_hardware:'철물점',shop_canteen:'식당',shop_blackmarket:'암시장',shop_pawnshop:'전당포'}; return map[id]||id; }
+
+  // ---- zone select ----
+  zone(){
+    const zones=this.eng.DATA.zones.filter(z=>z.CityID==='city_01');
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      this.screenTitle('SORTIE · 하람 (TIER 1)','출정'),
+      h('div',{style:{overflowY:'auto',flex:1,paddingBottom:20}},
+        ...zones.map(z=>{ const hidden=this.eng.N(z.IsHidden)===1; const unlockable = hidden && z.UnlockType==='item' && this.hasItem(z.UnlockKey); const locked = hidden && !unlockable;
+          return h('button',{key:z.ZoneID,disabled:locked,onClick:locked?null:()=>this.setState({modalZone:z}),
+            style:{width:'100%',textAlign:'left',background:'none',border:'none',borderBottom:'1px solid '+T.line,padding:'15px 18px',cursor:locked?'default':'pointer',opacity:locked?.45:1,display:'flex',alignItems:'center',gap:12}},
+            h('div',{style:{flex:1}},
+              h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:4}},
+                h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:600,color:T.hi}}, z.ZoneName_KR),
+                hidden?this.chip(unlockable?'잠금 해제':'봉쇄', unlockable?T.good:T.faint):null),
+              h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo}}, '전리품: '+z.LootFocus)),
+            locked? h('div',{style:{display:'flex',alignItems:'center',gap:5,color:T.faint,fontFamily:T.mono,fontSize:10}}, svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',15,T.faint,1.6),'키 필요')
+              : (unlockable? h('div',{style:{display:'flex',alignItems:'center',gap:5,color:T.good,fontFamily:T.mono,fontSize:10}}, svg('M7 11V8a5 5 0 019.9-1M5 11h10v8H5z',15,T.good,1.6),'진입 가능') : svg('M9 6l6 6-6 6',18,T.faint)));
+        }))
+    );
+  }
+  zoneModal(){
+    const z=this.state.modalZone; const dist=this.eng.spawnDistribution(z.ZoneID); const pool=this.zonePool(z.ZoneID);
+    return h('div',{onClick:()=>this.setState({modalZone:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.66)',display:'flex',alignItems:'flex-end',zIndex:30,animation:'rlFade .18s'}},
+      h('div',{onClick:e=>e.stopPropagation(),style:{width:'100%',background:T.s1,borderTop:'1px solid '+T.line2,borderRadius:'10px 10px 0 0',padding:'10px 18px 22px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
+        h('div',{style:{width:34,height:4,background:T.line2,borderRadius:2,margin:'0 auto 16px'}}),
+        h('div',{style:{height:118,margin:'-2px -18px 16px',background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 7px, oklch(0.27 0.008 264) 7px 8px)',display:'flex',alignItems:'flex-end',padding:'12px 16px',position:'relative'}}, h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.faint,letterSpacing:'.12em'}}, 'ZONE · 지역 이미지')),
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:6}}, '침투 지역'),
+        h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:600,color:T.hi,marginBottom:6}}, z.ZoneName_KR),
+        h('div',{style:{fontFamily:T.sans,fontSize:13,color:T.mid,lineHeight:1.5,marginBottom:14}}, z.Description||('전리품 경향: '+z.LootFocus)),
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:T.faint,marginBottom:8}}, '출현 확률 · 카드 '+this.eng.N(this.eng.DATA.config.combat_card_count,3)+'장'),
+        h('div',{style:{display:'flex',flexWrap:'wrap',gap:6,marginBottom:20}}, ...(dist? dist.map(d=>{ const mm=this.eng.byId.monster[d.id]||{}; return this.chip((mm.MonsterName_KR||d.id)+' · '+d.chance+'%'+(d.base?' · 베이스':''), T.mid); }) : pool.map(m=>this.chip(m.MonsterName_KR+' · '+m.Grade, T.mid)))),
+        h('button',{onClick:()=>this.startSortie(z.ZoneID),style:{width:'100%',background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:15,fontWeight:600,padding:'15px',borderRadius:4,cursor:'pointer',letterSpacing:'.02em'}}, z.ZoneName_KR+' 출정'))
+    );
+  }
+
+  // ---- combat ----
+  combatHp(side){
+    const c=this.combat; const r=c.res.log.slice(0,c.revealed);
+    const last = r[r.length-1] || c.res.log[0];
+    if(!last) return side==='player'?c.prof.maxHp:c.mProf.maxHp;
+    return side==='player'?last.hpP:last.hpM;
+  }
+  miniCard(prof, isMonster){
+    const cur = this.combatHp(isMonster?'monster':'player');
+    return h('div',{style:{flex:1,background:T.s1,border:'1px solid '+T.line,borderRadius:4,padding:'11px 12px'}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:8}},
+        h('span',{style:{fontFamily:T.sans,fontSize:13,fontWeight:600,color:T.hi,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, prof.name),
+        prof.grade?this.chip(prof.grade,T.lo):null),
+      h('div',{style:{height:5,background:T.s3,borderRadius:1,overflow:'hidden',marginBottom:6}}, h('div',{style:{width:Math.max(0,Math.min(100,cur/prof.maxHp*100))+'%',height:'100%',background:T.hp}})),
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.mid}}, Math.round(cur)+'/'+prof.maxHp),
+        AT(prof.attribute)?h('span',{style:{fontFamily:T.mono,fontSize:9,color:ATTR[prof.attribute].c}}, ATTR[prof.attribute].kr):null));
+  }
+  fistSvg(sz){ return h('svg',{width:sz,height:sz,viewBox:'0 0 24 24',fill:'currentColor'},
+    h('rect',{x:6.4,y:6.6,width:2.6,height:5,rx:1.3}),h('rect',{x:9.4,y:5.6,width:2.6,height:6,rx:1.3}),h('rect',{x:12.4,y:5.8,width:2.6,height:5.8,rx:1.3}),h('rect',{x:15.3,y:7.2,width:2.5,height:4.4,rx:1.25}),h('rect',{x:5,y:10.4,width:13.2,height:8.4,rx:3}),h('rect',{x:3.7,y:11.8,width:3.2,height:2.8,rx:1.4})); }
+  primStatsRow(isMonster){
+    const p=isMonster?null:this.gs.primary;
+    const cell=(kr,k)=>h('span',{key:k},kr+' ',h('span',{style:{color:T.hi}}, p?String(p[k]):'—'));
+    return h('div',{style:{display:'flex',gap:14,fontFamily:T.mono,fontSize:10.5,color:T.lo}}, cell('힘','str'),cell('민첩','dex'),cell('체력','vit'),cell('의지','will'));
+  }
+  combatantCard(prof,isMonster,cur,animate){
+    const pct=Math.max(0,Math.min(100,cur/prof.maxHp*100));
+    const md=isMonster?(this.eng.byId.monster[prof.id]||{}):null;
+    return h('div',{onClick:()=>this.setState({combatSheet:isMonster?'monster':'player'}),style:{background:isMonster?T.s2:T.s1,border:'1px solid '+T.line,borderRadius:6,overflow:'hidden',cursor:'pointer'}},
+      isMonster? h('div',{style:{position:'relative',height:58,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}, h('div',{style:{position:'absolute',left:12,bottom:8,fontFamily:T.mono,fontSize:9,color:T.faint,letterSpacing:'.1em'}}, (md.Category||'')+' · 몬스터')) : null,
+      h('div',{style:{padding:'11px 13px'}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:7,marginBottom:8}},
+          h('span',{style:{fontFamily:T.sans,fontSize:13,fontWeight:600,color:T.hi,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, isMonster?prof.name:'나'),
+          prof.grade?this.chip(prof.grade,T.lo):null,
+          AT(prof.attribute)?h('span',{style:{fontFamily:T.mono,fontSize:9,color:ATTR[prof.attribute].c}}, ATTR[prof.attribute].kr):null,
+          h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint}}, '상세 ›')),
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
+          h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:T.hp}})),
+          h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.mid,minWidth:56,textAlign:'right'}}, Math.round(cur)+'/'+prof.maxHp)),
+        this.primStatsRow(isMonster)));
+  }
+  combatElapsed(){ const c=this.combat; if(!c||!c.res) return 0; const r=c.res.log.slice(0,c.revealed); const last=r[r.length-1]; return last?last.t:0; }
+  timeLimitBar(){ const c=this.combat; const lim=c.mProf.timeLimit||20; const rem=Math.max(0,lim-this.combatElapsed()); const pct=Math.max(0,Math.min(100,(rem/lim)*100));
+    return h('div',{style:{padding:'10px 0 2px'}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',fontFamily:T.mono,fontSize:9.5,color:T.faint,letterSpacing:'.08em',marginBottom:4}}, h('span',null,'제한시간'), h('span',{style:{color:T.warn}}, rem.toFixed(1)+'s / '+lim+'s')),
+      h('div',{style:{height:5,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:T.warn,transition:'width .3s linear'}})));
+  }
+  speedDuel(){
+    const c=this.combat; const animate=c.phase==='fighting';
+    const mSpd=c.mProf.atkSpeed||1, pSpd=(c.prof&&c.prof.atkSpeed)||1;
+    const mdur=(1/Math.max(0.1,mSpd)).toFixed(2), pdur=(1/Math.max(0.1,pSpd)).toFixed(2);
+    const lim=c.mProf.timeLimit||20; const rem=Math.max(0,lim-this.combatElapsed());
+    const mmss=Math.floor(rem/60)+':'+String(Math.floor(rem%60)).padStart(2,'0');
+    const fist=(spd)=>h('div',{style:{width:20,height:20,flex:'0 0 auto',borderRadius:99,background:T.s3,border:'1px solid '+T.line2,display:'flex',alignItems:'center',justifyContent:'center',color:T.mid,animation:animate?('rlPunch '+(1/Math.max(0.1,spd)).toFixed(2)+'s linear infinite'):'none'}}, this.fistSvg(12));
+    return h('div',{style:{display:'flex',alignItems:'center',gap:7,padding:'14px 0'}},
+      fist(mSpd),
+      h('div',{style:{flex:1,height:5,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{key:animate?'ma':'ms',style:{height:'100%',background:T.dur,width:animate?undefined:'0%',animation:animate?('rlCharge '+mdur+'s linear infinite'):'none'}})),
+      h('div',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:11,color:T.warn,border:'1px solid '+T.line2,borderRadius:3,padding:'3px 9px',minWidth:52,textAlign:'center'}}, mmss),
+      h('div',{style:{flex:1,height:5,background:T.s3,borderRadius:99,overflow:'hidden',display:'flex',justifyContent:'flex-end'}}, h('div',{key:animate?'pa':'ps',style:{height:'100%',background:T.dur,width:animate?undefined:'0%',animation:animate?('rlCharge '+pdur+'s linear infinite'):'none'}})),
+      fist(pSpd));
+  }
+  logColor(ln){
+    if(ln.type==='crit') return T.stun;
+    if(ln.type==='status'||ln.type==='dot') return (ATTR[this.combat.mProf.attribute]&&ln.who!=='player')?ATTR[this.combat.mProf.attribute].c: (AT(this.combat.prof.attribute)&&ln.who==='player'?ATTR[this.combat.prof.attribute].c:T.mid);
+    if(ln.type==='miss') return T.faint;
+    if(ln.type==='win') return T.good;
+    if(ln.type==='lose') return T.danger;
+    if(ln.type==='timeout') return T.warn;
+    if(ln.type==='start') return T.mid;
+    if(ln.type==='stun') return T.stun;
+    if(ln.who==='monster') return T.mid;
+    return T.hi;
+  }
+  combatScreen(){
+    const c=this.combat; if(!c) return this.phone();
+    if(c.phase==='cards') return this.cardScreen();
+    if(c.phase==='preview') return this.combatPreview();
+    if(!c.res) return this.phone();
+    const revealed=c.res.log.slice(0,c.revealed);
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      h('div',{style:{flex:'0 0 auto',background:T.s1,borderBottom:'1px solid '+T.line,padding:'12px 16px 12px'}},
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:8}}, 'COMBAT · '+(this.eng.byId.zone[c.zoneId]?this.eng.byId.zone[c.zoneId].ZoneName_KR:'')+' · '+c.encounter+'전'),
+        this.combatantCard(c.mProf,true,this.combatHp('monster'),c.phase==='fighting'),
+        this.speedDuel(),
+        this.combatantCard(c.prof,false,this.combatHp('player'),c.phase==='fighting')),
+      h('div',{ref:el=>this.logRef=el,style:{flex:1,overflowY:'auto',padding:'12px 16px',display:'flex',flexDirection:'column',gap:0,fontFamily:T.mono}},
+        ...revealed.map((ln,i)=> h('div',{key:i,style:{padding:'6px 0',borderBottom:'1px solid '+T.line,display:'flex',gap:10,animation:'rlIn .18s'}},
+          h('span',{style:{color:T.faint,fontSize:10,minWidth:34,paddingTop:1}}, ln.who==='sys'?'▪':(ln.t.toFixed(1)+'s')),
+          h('span',{style:{color:this.logColor(ln),fontSize:12.5,lineHeight:1.45,flex:1}}, ln.text)))),
+      this.combatControls()
+    );
+  }
+  combatControls(){
+    const c=this.combat;
+    const durLine=(c.durChanges&&c.durChanges.length)?h('div',{key:'dur',style:{marginBottom:10,fontFamily:T.mono,fontSize:11,color:T.dur}}, '내구도 소모 · '+c.durChanges.map(d=>this.eng.anyName(d.id)+' '+d.from+'→'+d.to+(d.broke?' (파손)':'')).join(' · ')):null;
+    if(c.phase==='fighting') return h('div',{style:{flex:'0 0 auto',padding:'12px 16px',borderTop:'1px solid '+T.line,background:T.s1,textAlign:'center',fontFamily:T.mono,fontSize:11,color:T.faint,letterSpacing:'.08em'}}, '교전 중…');
+    const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:600,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
+    let inner;
+    const useBtn=h('button',{key:'use',onClick:()=>this.setState({useOpen:true}),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.good,fontFamily:T.sans,fontSize:13,fontWeight:600,padding:'11px',borderRadius:4,cursor:'pointer',marginBottom:10}}, '회복 아이템 사용');
+    if(c.phase==='won'){
+      inner=[ c.loot.length?h('div',{key:'l',style:{marginBottom:10,fontFamily:T.mono,fontSize:11,color:T.good}}, '전리품 +'+c.loot.map(l=>this.eng.anyName(l.id)+(l.qty>1?'×'+l.qty:'')).join(', ')):h('div',{key:'l',style:{marginBottom:10,fontFamily:T.mono,fontSize:11,color:T.faint}},'전리품 없음'),
+        c.ups.length?h('div',{key:'u',style:{marginBottom:10,fontFamily:T.mono,fontSize:11,color:T.growth}}, '성장: '+c.ups.map(u=>({str:'힘',dex:'민첩',vit:'체력',will:'의지'}[u.stat]+' Lv'+u.to)).join(' · ')):null,
+        durLine,
+        useBtn,
+        h('div',{key:'b',style:{display:'flex',gap:10}}, btn('계속 진행',()=>this.drawCards()), btn('귀환하기',()=>this.extract(),false)) ];
+    } else if(c.phase==='timeout'){
+      inner=[ h('div',{key:'t',style:{marginBottom:10,fontFamily:T.mono,fontSize:11,color:T.warn}}, '시간 초과 — 적을 쓰러뜨리지 못했다'),
+        durLine,
+        useBtn,
+        h('div',{key:'b',style:{display:'flex',gap:10}}, btn('재교전',()=>this.drawCards()), btn('귀환하기',()=>this.extract())) ];
+    } else { // dead
+      inner=[ h('div',{key:'d',style:{marginBottom:10,fontFamily:T.mono,fontSize:12,color:T.danger,fontWeight:600}}, '사망'),
+        durLine,
+        btn('결과 확인',()=>this.death(),true) ];
+    }
+    return h('div',{style:{flex:'0 0 auto',padding:'14px 16px 16px',borderTop:'1px solid '+T.line,background:T.s1}}, ...inner);
+  }
+  // ---- monster card draw (S3 · 전투 진입) ----
+  focusCard(i){ if(this.combat.flipped) return; this.combat.cardFocus=i; this.forceUpdate(); }
+  flipCenter(){ const c=this.combat; if(c.flipped) return; const id=c.cards[c.cardFocus]; const m=this.eng.byId.monster[id]; if(!m) return; c.picked=c.cardFocus; c.flipped=true; c.mProf=this.eng.monsterProfile(m); this.forceUpdate(); }
+  monsterFront(m){
+    const md=this.eng.byId.monster[m.id]||{};
+    const rows=[['최대 공격력',Math.round(m.maxAtk)],['공격 속도',m.atkSpeed.toFixed(1)],['방어력',Math.round(m.defense)],['크리 저항',Math.round(m.critResist)],['상태이상', AT(m.attribute)?ATTR[m.attribute].kr:'없음'],['부여력',Math.round(m.potency)],['상태 저항',Math.round(m.statusResist)],['재질', md.Material&&md.Material!=='-'?md.Material:'—']];
+    return h('div',{style:{width:300,background:T.s1,border:'1px solid '+T.line,borderRadius:8,overflow:'hidden',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
+      h('div',{style:{position:'relative',height:140,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
+        h('div',{style:{position:'absolute',right:12,top:11,fontFamily:T.mono,fontSize:9,letterSpacing:'.1em',color:T.hi,background:'oklch(0.15 0.006 264 / .55)',border:'1px solid oklch(0.9 0 0 / .18)',borderRadius:3,padding:'2px 7px'}}, m.grade||'—'),
+        h('div',{style:{position:'absolute',left:13,bottom:10,fontFamily:T.mono,fontSize:9.5,color:T.lo,letterSpacing:'.1em'}}, (md.Category||'')+' · 몬스터')),
+      h('div',{style:{padding:'12px 15px 0'}},
+        h('div',{style:{fontFamily:T.sans,fontSize:16,fontWeight:600,color:T.hi}}, m.name),
+        h('div',{style:{display:'flex',alignItems:'center',gap:9,margin:'11px 0'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,color:T.lo,width:48}},'생명력'), h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{style:{width:'100%',height:'100%',background:T.hp}})), h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid,width:44,textAlign:'right'}}, Math.round(m.maxHp))),
+        h('div',{style:{fontFamily:T.mono,fontSize:10,color:T.faint,letterSpacing:'.12em',margin:'6px 0 2px'}}, '2차 스탯 · SECONDARY'),
+        h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}}, ...rows.map(([k,val])=>h('div',{key:k,style:{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid '+T.line,fontFamily:T.mono,fontSize:11.5}}, h('span',{style:{color:T.lo}},k), h('span',{style:{color:T.hi}},String(val)))))),
+      h('div',{style:{padding:'10px 15px',fontFamily:T.mono,fontSize:10,color:T.faint,borderTop:'1px solid '+T.line,marginTop:12}}, 'STA −'+m.staminaCost+' · 제한시간 '+m.timeLimit+'s'));
+  }
+  playerFront(prof){
+    const rows=[['공격력',Math.round(prof.minAtk)+'–'+Math.round(prof.maxAtk)],['방어력',String(Math.round(prof.defense))],['공격 속도',prof.atkSpeed.toFixed(2)],['적중률',Math.round(prof.accuracy)+'%'],['회피율',Math.round(prof.evasion)+'%'],['크리 확률',Math.round(prof.critChance)+'%'],['크리 저항',Math.round(prof.critResist)+'%'],['상태 저항',Math.round(prof.statusResist)+'%']];
+    return h('div',{style:{width:300,background:T.s1,border:'1px solid '+T.line,borderRadius:8,overflow:'hidden'}},
+      h('div',{style:{position:'relative',height:120,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
+        h('div',{style:{position:'absolute',left:13,bottom:10,fontFamily:T.mono,fontSize:9.5,color:T.lo,letterSpacing:'.1em'}}, 'OPERATOR · 캐릭터')),
+      h('div',{style:{padding:'12px 15px 0'}},
+        h('div',{style:{fontFamily:T.sans,fontSize:16,fontWeight:600,color:T.hi}}, '나'),
+        h('div',{style:{display:'flex',alignItems:'center',gap:9,margin:'11px 0'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,color:T.lo,width:48}},'생명력'), h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{style:{width:Math.max(0,Math.min(100,this.gs.hp/prof.maxHp*100))+'%',height:'100%',background:T.hp}})), h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid,width:64,textAlign:'right'}}, Math.round(this.gs.hp)+'/'+prof.maxHp)),
+        h('div',{style:{fontFamily:T.mono,fontSize:10,color:T.faint,letterSpacing:'.12em',margin:'6px 0 2px'}}, '2차 스탯 · SECONDARY'),
+        h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}}, ...rows.map(([k,val])=>h('div',{key:k,style:{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid '+T.line,fontFamily:T.mono,fontSize:11.5}}, h('span',{style:{color:T.lo}},k), h('span',{style:{color:T.hi}},String(val)))))),
+      h('div',{style:{height:14}}));
+  }
+  combatSheet(){
+    const c=this.combat; if(!c) return null;
+    const card = this.state.combatSheet==='monster'?this.monsterFront(c.mProf):this.playerFront(c.prof||this.eng.playerProfile(this.gs,false));
+    return h('div',{onClick:()=>this.setState({combatSheet:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.66)',display:'flex',alignItems:'flex-end',zIndex:34,animation:'rlFade .18s'}},
+      h('div',{onClick:e=>e.stopPropagation(),style:{width:'100%',background:T.s1,borderTop:'1px solid '+T.line2,borderRadius:'10px 10px 0 0',padding:'10px 18px 24px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)',display:'flex',flexDirection:'column',alignItems:'center'}},
+        h('div',{style:{width:34,height:4,background:T.line2,borderRadius:2,margin:'0 auto 16px'}}),
+        card));
+  }
+  cardControls(){
+    const g=this.gs;
+    return h('div',{style:{flex:'0 0 auto',padding:'12px 16px 16px',borderTop:'1px solid '+T.line,background:T.s1}},
+      h('div',{style:{display:'flex',gap:12,marginBottom:12}}, this.bar('생명력',g.hp,g.maxHp,T.hp), this.bar('스태미너',g.sta,this.staMax,T.sta)),
+      h('button',{onClick:()=>this.setState({useOpen:true}),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.good,fontFamily:T.sans,fontSize:13,fontWeight:600,padding:'11px',borderRadius:4,cursor:'pointer',marginBottom:10}}, '회복 아이템 사용'),
+      h('div',{style:{display:'flex',gap:10}},
+        h('button',{onClick:()=>this.attemptFlee(),style:{flex:'0 0 auto',padding:'14px 20px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:600,borderRadius:4,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}, h('span',null,'도망'), h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint}}, this.fleePct()+'%')),
+        h('button',{onClick:()=>this.enterCombat(),style:{flex:1,background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:15,fontWeight:700,padding:'14px',borderRadius:4,cursor:'pointer',letterSpacing:'.02em'}}, '전투 돌입')));
+  }
+  playerCompareCard(){
+    const prof=this.eng.playerProfile(this.gs,false); const g=this.gs;
+    const pct=Math.max(0,Math.min(100,g.hp/prof.maxHp*100));
+    return h('div',{onClick:()=>this.setState({combatSheet:'player'}),style:{background:T.s2,border:'1px solid '+T.line,borderRadius:6,padding:'11px 13px',cursor:'pointer'}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:7,marginBottom:8}},
+        h('span',{style:{fontFamily:T.sans,fontSize:13,fontWeight:600,color:T.hi,flex:1}}, '나'),
+        AT(prof.attribute)?h('span',{style:{fontFamily:T.mono,fontSize:9,color:ATTR[prof.attribute].c}}, ATTR[prof.attribute].kr):null,
+        h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint}}, '상세 ›')),
+      h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
+        h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:T.hp}})),
+        h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.mid,minWidth:64,textAlign:'right'}}, Math.round(g.hp)+'/'+prof.maxHp)),
+      this.primStatsRow(false));
+  }
+  cardScreen(){
+    const c=this.combat, g=this.gs;
+    const zoneName=this.eng.byId.zone[c.zoneId]?this.eng.byId.zone[c.zoneId].ZoneName_KR:'';
+    const flipped=c.flipped;
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      h('div',{style:{padding:'14px 18px 12px',background:T.s1,borderBottom:'1px solid '+T.line,flex:'0 0 auto'}},
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:5}}, 'ENCOUNTER · '+zoneName+' · '+(c.encounter+1)+'전 조우'),
+        h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:700,color:T.hi,letterSpacing:'-.01em'}}, flipped?c.mProf.name:'카드 한 장을 골라라')),
+      h('div',{onPointerDown:(e)=>{this._sx=e.clientX;this._moved=false;},onPointerMove:(e)=>{if(this._sx!=null&&Math.abs(e.clientX-this._sx)>8)this._moved=true;},onPointerUp:(e)=>{if(this._sx==null)return;const dx=e.clientX-this._sx;this._sx=null;if(this.combat.flipped)return;if(Math.abs(dx)>30){ if(dx<0)this.focusCard(Math.min(this.combat.cards.length-1,this.combat.cardFocus+1)); else this.focusCard(Math.max(0,this.combat.cardFocus-1)); }},style:{flex:1,position:'relative',overflow:'hidden'}},
+        flipped
+          ? h('div',{style:{position:'absolute',left:'50%',top:'44%',transform:'translate(-50%,-50%)'}}, this.monsterFront(c.mProf))
+          : c.cards.map((id,i)=>{ const off=i-c.cardFocus, abs=Math.abs(off); const x=off*250, s=off===0?1:0.9, o=off===0?1:0.5;
+              return h('button',{key:i,onClick:()=>{ if(this._moved) return; off===0?this.flipCenter():this.focusCard(i); },
+                style:{position:'absolute',left:'50%',top:'44%',width:300,height:404,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:10-abs,transition:'transform .3s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:'pointer',background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 8px, oklch(0.235 0.008 264) 8px 9px)',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}); })),
+      h('div',{style:{flex:'0 0 auto',background:T.s1,borderTop:'1px solid '+T.line,padding:'10px 16px 14px'}},
+        !flipped? h('div',{style:{display:'flex',justifyContent:'center',gap:7,marginBottom:10}}, ...c.cards.map((id,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===c.cardFocus?T.mid:T.s3}}))) : null,
+        h('div',{style:{fontFamily:T.mono,fontSize:9.5,color:T.faint,letterSpacing:'.12em',marginBottom:8}}, '내 캐릭터 · 비교'),
+        this.playerCompareCard(),
+        h('div',{style:{display:'flex',gap:10,marginTop:12}},
+          h('button',{disabled:!flipped,onClick:flipped?()=>this.attemptFlee():null,style:{flex:'0 0 auto',padding:'14px 18px',background:'transparent',border:'1px solid '+(flipped?T.line2:T.line),color:flipped?T.mid:T.faint,fontFamily:T.sans,fontSize:14,fontWeight:600,borderRadius:4,cursor:flipped?'pointer':'default'}}, '도망'),
+          h('button',{disabled:!flipped,onClick:flipped?()=>this.enterCombat():null,style:{flex:1,background:'transparent',border:'1px solid '+(flipped?T.danger:T.line),color:flipped?T.danger:T.faint,fontFamily:T.sans,fontSize:15,fontWeight:700,padding:'14px',borderRadius:4,cursor:flipped?'pointer':'default',letterSpacing:'.02em'}}, '전투 개시')),
+        !flipped? h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,textAlign:'center',marginTop:10}}, '가운데 카드를 눌러 뒤집어라 · 옆 카드를 눌러 이동') : null));
+  }
+  cardBack(i,n){
+    return h('button',{key:i,onClick:()=>this.pickCard(i),
+      style:{flex:1,minWidth:0,background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 7px, oklch(0.235 0.008 264) 7px 8px)',border:'1px solid '+T.line2,borderRadius:8,padding:'14px 8px',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'space-between',gap:8}},
+      h('div',{style:{fontFamily:T.mono,fontSize:9,letterSpacing:'.12em',color:T.faint,alignSelf:'stretch',textAlign:'center'}}, 'CARD '+('0'+(i+1))+'/'+('0'+n)),
+      h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}},
+        h('div',{style:{width:46,height:46,borderRadius:'50%',border:'1px solid '+T.line2,background:T.s1,display:'flex',alignItems:'center',justifyContent:'center',color:T.lo,fontFamily:T.mono,fontSize:22,fontWeight:500}}, '?')),
+      h('div',{style:{fontFamily:T.mono,fontSize:10,color:T.faint,letterSpacing:'.05em'}}, '정체 불명'),
+      h('div',{style:{fontFamily:T.sans,fontSize:11,fontWeight:600,color:T.mid,border:'1px solid '+T.line2,borderRadius:3,padding:'7px 0',alignSelf:'stretch',textAlign:'center',background:T.s1}}, '뒤집기'));
+  }
+  // ---- combat preview (before engaging) ----
+  combatPreview(){
+    const c=this.combat, m=c.mProf, g=this.gs;
+    const zoneName=this.eng.byId.zone[c.zoneId]?this.eng.byId.zone[c.zoneId].ZoneName_KR:'';
+    const md=this.eng.byId.monster[m.id]||{};
+    const row=(k,v,col)=>h('div',{key:k,style:{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid '+T.line}}, h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}},k), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col||T.hi}},v));
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      h('div',{style:{padding:'14px 18px 12px',background:T.s1,borderBottom:'1px solid '+T.line,flex:'0 0 auto'}},
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint}}, 'ENCOUNTER · '+zoneName+' · '+(c.encounter+1)+'전 조우')),
+      h('div',{style:{flex:1,overflowY:'auto',padding:'20px 18px'}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:9,flexWrap:'wrap'}}, this.chip(m.grade,T.lo), md.Category?this.chip(md.Category,T.lo):null, AT(m.attribute)?this.chip(ATTR[m.attribute].kr,ATTR[m.attribute].c):null),
+        h('div',{style:{fontFamily:T.sans,fontSize:27,fontWeight:700,color:T.hi,marginBottom:9,letterSpacing:'-.01em'}}, m.name),
+        md.Description?h('div',{style:{fontFamily:T.sans,fontSize:13,color:T.mid,lineHeight:1.55,marginBottom:18}}, md.Description):h('div',{style:{height:8}}),
+        h('div',{style:{background:T.s1,border:'1px solid '+T.line,borderRadius:4,padding:'4px 14px'}},
+          row('생명력', Math.round(m.maxHp), T.hp),
+          row('공격력', Math.round(m.minAtk)+'–'+Math.round(m.maxAtk)),
+          row('방어력', Math.round(m.defense)),
+          row('공격 속도', m.atkSpeed.toFixed(2)),
+          AT(m.attribute)?row('상태이상', ATTR[m.attribute].kr+' · 부여력 '+Math.round(m.potency)):null,
+          row('스태미너 소모', m.staminaCost, T.sta),
+          row('제한시간', m.timeLimit+'s', T.warn))),
+      h('div',{style:{flex:'0 0 auto',padding:'12px 16px 16px',borderTop:'1px solid '+T.line,background:T.s1}},
+        h('div',{style:{display:'flex',gap:12,marginBottom:12}}, this.bar('생명력',g.hp,g.maxHp,T.hp), this.bar('스태미너',g.sta,this.staMax,T.sta)),
+        h('button',{onClick:()=>this.setState({useOpen:true}),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.good,fontFamily:T.sans,fontSize:13,fontWeight:600,padding:'11px',borderRadius:4,cursor:'pointer',marginBottom:10}}, '회복 아이템 사용'),
+        h('div',{style:{display:'flex',gap:10}},
+          h('button',{onClick:()=>this.attemptFlee(),style:{flex:'0 0 auto',padding:'14px 20px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:600,borderRadius:4,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}, h('span',null,'도망'), h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint}}, this.fleePct()+'%')),
+          h('button',{onClick:()=>this.enterCombat(),style:{flex:1,background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:15,fontWeight:700,padding:'14px',borderRadius:4,cursor:'pointer',letterSpacing:'.02em'}}, '전투 돌입'))));
+  }
+  // ---- flee (pre-combat) : 90% success -> safehouse, fail -> forced combat ----
+  fleePct(){ return Math.round(this.eng.N(this.eng.DATA.config.flee_chance_base, 0.9) * 100); }
+  attemptFlee(){
+    const p = this.eng.N(this.eng.DATA.config.flee_chance_base, 0.9);
+    if(Math.random() < p){ this.flash('도망 성공'); this.toSafehouse(); }
+    else { this.flash('도망 실패 — 교전!'); this.enterCombat(); }
+  }
+  // ---- recovery-item use ----
+  consumables(){ return [...this.gs.bag, ...this.gs.vault].filter(inst=>{ const it=this.eng.byId.item[inst.id]; return it && (it.EffectType==='heal'||it.EffectType==='stamina'); }); }
+  useConsumable(inst){
+    const it=this.eng.byId.item[inst.id]||{}; const v=this.eng.N(it.EffectValue);
+    if(it.EffectType==='heal'){ this.gs.hp=Math.min(this.gs.maxHp,this.gs.hp+v); this.flash(it.ItemName_KR+' · 생명력 +'+v); }
+    else if(it.EffectType==='stamina'){ this.gs.sta=Math.min(this.staMax,this.gs.sta+v); this.flash(it.ItemName_KR+' · 스태미너 +'+v); }
+    const dec=(arr)=>{ const i=arr.findIndex(x=>x.uid===inst.uid); if(i<0) return false; if(arr[i].qty>1) arr[i].qty--; else arr.splice(i,1); return true; };
+    dec(this.gs.bag)||dec(this.gs.vault); this.forceUpdate();
+  }
+  useSheet(){
+    const items=this.consumables(); const g=this.gs;
+    return h('div',{onClick:()=>this.setState({useOpen:false}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.66)',display:'flex',alignItems:'flex-end',zIndex:32,animation:'rlFade .18s'}},
+      h('div',{onClick:e=>e.stopPropagation(),style:{width:'100%',background:T.s1,borderTop:'1px solid '+T.line2,borderRadius:'10px 10px 0 0',padding:'10px 18px 22px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)',maxHeight:'80%',overflowY:'auto'}},
+        h('div',{style:{width:34,height:4,background:T.line2,borderRadius:2,margin:'0 auto 14px'}}),
+        h('div',{style:{fontFamily:T.sans,fontSize:18,fontWeight:700,color:T.hi,marginBottom:12}}, '회복 아이템 사용'),
+        h('div',{style:{display:'flex',gap:12,marginBottom:16}}, this.bar('생명력',g.hp,g.maxHp,T.hp), this.bar('스태미너',g.sta,this.staMax,T.sta)),
+        items.length? h('div',{style:{display:'flex',flexDirection:'column'}},
+          ...items.map(inst=>{ const it=this.eng.byId.item[inst.id]||{}; const heal=it.EffectType==='heal';
+            return h('div',{key:inst.uid,style:{display:'flex',alignItems:'center',gap:10,padding:'12px 0',borderBottom:'1px solid '+T.line}},
+              this.chip(heal?'약품':'음식', heal?T.good:T.sta),
+              h('div',{style:{flex:1}}, h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, it.ItemName_KR+(inst.qty>1?' ×'+inst.qty:'')), h('div',{style:{fontFamily:T.mono,fontSize:11,color:T.lo}}, (heal?'생명력':'스태미너')+' +'+this.eng.N(it.EffectValue))),
+              h('button',{onClick:()=>this.useConsumable(inst),style:{background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:13,fontWeight:600,padding:'8px 16px',borderRadius:3,cursor:'pointer'}}, '사용')); }))
+          : h('div',{style:{fontFamily:T.sans,fontSize:13,color:T.faint,padding:'16px 0',textAlign:'center'}}, '사용할 수 있는 회복 아이템이 없다')));
+  }
+
+  // ---- result ----
+  result(){
+    const c=this.combat; const death=c.result==='death';
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',padding:'0 22px',justifyContent:'center',alignItems:'center',textAlign:'center',gap:0,background:death?'oklch(0.170 0.010 28)':T.bg}},
+      h('div',{style:{fontFamily:T.mono,fontSize:11,letterSpacing:'.2em',color:death?T.danger:T.good,marginBottom:14}}, death?'EXTRACTION FAILED':'EXTRACTION COMPLETE'),
+      h('div',{style:{fontFamily:T.sans,fontSize:30,fontWeight:700,color:T.hi,marginBottom:18,letterSpacing:'-.02em'}}, death?'복귀 — 손실':'귀환 성공'),
+      death
+        ? h('div',{style:{fontFamily:T.sans,fontSize:14,color:T.mid,lineHeight:1.6,marginBottom:8}}, '소지품의 모든 전리품·소모품을 잃었다.', h('br'), c.broke?('장비 손상: '+this.eng.anyName(c.broke.id)+' 최대 내구도 감소 ('+c.broke.maxDur+')'):'', h('br'), h('span',{style:{color:T.growth}},'1차 스탯 성장은 유지된다.'))
+        : h('div',{style:{width:'100%',maxWidth:280}},
+            h('div',{style:{fontFamily:T.mono,fontSize:11,color:T.faint,letterSpacing:'.1em',marginBottom:10}}, '이번 출정 전리품'),
+            (c.runLoot.length? this.aggLoot(c.runLoot).map((l,i)=>h('div',{key:i,style:{display:'flex',justifyContent:'space-between',padding:'9px 0',borderBottom:'1px solid '+T.line,fontFamily:T.sans,fontSize:14,color:T.hi}}, h('span',null,this.eng.anyName(l.id)), h('span',{style:{fontFamily:T.mono,color:T.mid}},'×'+l.qty)))
+              : h('div',{style:{fontFamily:T.sans,fontSize:13,color:T.lo,padding:'12px 0'}},'획득한 전리품이 없다.'))),
+      h('button',{onClick:()=>this.toSafehouse(),style:{marginTop:28,background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:15,fontWeight:600,padding:'14px 40px',borderRadius:4,cursor:'pointer'}}, '안전가옥으로')
+    );
+  }
+  aggLoot(list){ const m={}; for(const l of list){ m[l.id]=(m[l.id]||0)+l.qty; } return Object.entries(m).map(([id,qty])=>({id,qty})); }
+
+  // ---- inventory ----
+  inventory(){
+    const seg=this.state.seg, filter=this.state.filter;
+    const list=(seg==='vault'?this.gs.vault:this.gs.bag);
+    const cats=['전체','무기','갑옷','약품','음식','정크','퀘스트'];
+    const catOf=(inst)=>{ const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]; if(!s)return''; return CATKR[s.Category]||s.Category; };
+    const rows=list.filter(inst=>filter==='전체'||catOf(inst)===filter);
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      this.screenTitle('INVENTORY','인벤토리'),
+      // segmented
+      h('div',{style:{display:'flex',gap:0,margin:'14px 18px 0',border:'1px solid '+T.line2,borderRadius:4,overflow:'hidden'}},
+        ...[['bag','소지품 · 출정'],['vault','금고 · 안전']].map(([k,l])=>h('button',{key:k,onClick:()=>this.setState({seg:k}),style:{flex:1,background:seg===k?T.s2:'transparent',border:'none',color:seg===k?T.hi:T.lo,fontFamily:T.sans,fontSize:13,fontWeight:600,padding:'10px',cursor:'pointer'}},l))),
+      h('div',{style:{padding:'8px 18px 0',fontFamily:T.mono,fontSize:10,color:seg==='vault'?T.good:T.warn}}, seg==='vault'?'사망해도 잃지 않는다':'사망 시 전부 잃는다'),
+      // filters
+      h('div',{style:{display:'flex',gap:6,padding:'12px 18px',overflowX:'auto',flex:'0 0 auto'}},
+        ...cats.map(c=>h('button',{key:c,onClick:()=>this.setState({filter:c}),style:{background:filter===c?T.s2:'transparent',border:'1px solid '+(filter===c?T.line2:T.line),color:filter===c?T.hi:T.lo,fontFamily:T.mono,fontSize:11,padding:'5px 11px',borderRadius:2,cursor:'pointer',whiteSpace:'nowrap'}},c))),
+      // list
+      h('div',{style:{flex:1,overflowY:'auto',paddingBottom:16}},
+        rows.length? rows.map(inst=>this.invRow(inst,seg,catOf)) : h('div',{style:{padding:'30px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, '비어 있음'))
+    );
+  }
+  itemLabel(inst){ const base=this.eng.anyName(inst.id); if(!inst||!inst.affixes||!inst.affixes.length) return base; const pre=inst.affixes.find(a=>a.type==='prefix'); const suf=inst.affixes.find(a=>a.type==='suffix'); return (pre?pre.name+' ':'')+(suf?suf.name+' ':'')+base; }
+  invRow(inst,seg,catOf){
+    const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||{};
+    const name=this.itemLabel(inst);
+    const equippable = inst.kind==='weapon'||inst.kind==='armor';
+    const equipped = this.isEquipped(inst.uid);
+    const attr = s.Attribute;
+    const st = this.eng.itemState(inst);
+    const desc=s.Description|| (inst.kind!=='item'?('내구도 '+(inst.dur||0)+'/'+(inst.maxDur||0)):'');
+    return h('div',{key:inst.uid,onClick:()=>this.setState({sel:inst.uid,moveQty:null}),style:{display:'flex',alignItems:'flex-start',gap:10,padding:'13px 18px',borderBottom:'1px solid '+T.line,cursor:'pointer',background:equipped?'oklch(0.225 0.008 264)':'transparent'}},
+      h('div',{style:{flex:1,minWidth:0}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:3,flexWrap:'wrap'}},
+          this.chip(catOf(inst),T.lo),
+          h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, name),
+          inst.qty>1?h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid}}, '×'+inst.qty):null,
+          AT(attr)?this.chip(ATTR[attr].kr,ATTR[attr].c):null,
+          equipped?this.chip('착용 중',T.good):null,
+          st==='broken'?this.chip('파손',T.warn):st==='destroyed'?this.chip('파괴',T.danger):null),
+        desc?h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,lineHeight:1.4}}, desc):null),
+      h('div',{style:{display:'flex',alignItems:'center',gap:6,flex:'0 0 auto'}},
+        equippable?h('button',{onClick:(e)=>{e.stopPropagation();this.toggleEquip(inst);},style:{background:equipped?'transparent':T.s2,border:'1px solid '+(equipped?T.line2:T.line2),color:equipped?T.lo:T.hi,fontFamily:T.mono,fontSize:10,padding:'5px 9px',borderRadius:2,cursor:'pointer'}}, equipped?'해제':'착용'):null));
+  }
+  // ---- equip helpers ----
+  slotOf(inst){
+    if(inst.kind==='weapon') return 'weapon';
+    if(inst.kind==='armor'){ const a=this.eng.byId.armor[inst.id]; return a&&a.Category==='Head'?'head':'body'; }
+    return null;
+  }
+  isEquipped(uid){ const e=this.gs.equip; return e.weapon===uid||e.head===uid||e.body===uid; }
+  toggleEquip(inst){
+    const slot=this.slotOf(inst); if(!slot) return;
+    if(this.gs.equip[slot]===inst.uid){ this.gs.equip[slot]=null; this.flash('해제'); }
+    else { this.gs.equip[slot]=inst.uid; this.moveToBag(inst.uid); this.flash(this.eng.anyName(inst.id)+' 착용'); }
+    const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp);
+    this.forceUpdate();
+  }
+  itemDetailStats(inst){
+    const N=this.eng.N; const out=[];
+    if(inst.kind==='weapon'){ const w=this.eng.byId.weapon[inst.id]||{};
+      out.push(['공격력', (inst.minAtk ?? N(w.MinAtk_Low))+'–'+(inst.maxAtk ?? N(w.MaxAtk_High))], ['공격 속도', N(w.AttackSpeed).toFixed(2)], ['적중률', N(w.Accuracy)+'%'], ['크리티컬', N(w.CritChance)+'%'], ['재질', w.Material||'—'], ['내구도', (inst.dur||0)+'/'+(inst.maxDur||0)]);
+      if(AT(w.Attribute)) out.push(['상태이상', ATTR[w.Attribute].kr+' · 부여력 '+N(w.Potency)]);
+    } else if(inst.kind==='armor'){ const a=this.eng.byId.armor[inst.id]||{};
+      out.push(['방어력', String(inst.def ?? N(a.Def_Low))], ['회피율', N(a.Evasion)+'%'], ['상태이상 저항', N(a.StatusResist)+'%'], ['재질', a.Material||'—'], ['내구도', (inst.dur||0)+'/'+(inst.maxDur||0)]);
+    } else { const it=this.eng.byId.item[inst.id]||{};
+      const eff={heal:'생명력 회복',stamina:'스태미너 회복',buff:'버프',none:'—'}[it.EffectType]||it.EffectType;
+      if(it.EffectType&&it.EffectType!=='none') out.push(['효과', eff+(it.EffectValue?(' +'+it.EffectValue):'')]);
+      if(N(it.SellPrice)) out.push(['판매가', N(it.SellPrice)+' 사토']);
+      if(N(it.MaxStack)>1) out.push(['최대 스택', N(it.MaxStack)]);
+    }
+    if(inst.affixes){ for(const af of inst.affixes) out.push([(af.type==='prefix'?'접두':'접미')+' · '+af.name, (af.targetKr||af.target)+' '+(af.value>=0?'+':'')+af.value]); }
+    // growth tags
+    const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id];
+    if(src){ const tags=[['GrowthTag_Str','힘'],['GrowthTag_Dex','민첩'],['GrowthTag_Vit','체력'],['GrowthTag_Will','의지']].filter(([k])=>N(src[k])>0).map(([k,kr])=>kr+' ×'+N(src[k]));
+      if(tags.length) out.push(['성장 태그', tags.join(' · ')]); }
+    return out;
+  }
+  itemSheet(){
+    const inst=this.eng.instById(this.gs,this.state.sel); if(!inst){ return null; }
+    const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||{};
+    const name=this.itemLabel(inst);
+    const catOf=(CATKR[s.Category]||s.Category||'');
+    const equippable=inst.kind==='weapon'||inst.kind==='armor';
+    const equipped=this.isEquipped(inst.uid);
+    const attr=s.Attribute;
+    const st=this.eng.itemState(inst);
+    const stats=this.itemDetailStats(inst);
+    const inVault=this.gs.vault.some(x=>x.uid===inst.uid);
+    const stackable=(inst.qty||1)>1;
+    const q=Math.max(1,Math.min(this.state.moveQty ?? (inst.qty||1), inst.qty||1));
+    return h('div',{onClick:()=>this.setState({sel:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.66)',display:'flex',alignItems:'flex-end',zIndex:30,animation:'rlFade .18s'}},
+      h('div',{onClick:e=>e.stopPropagation(),style:{width:'100%',background:T.s1,borderTop:'1px solid '+T.line2,borderRadius:'10px 10px 0 0',padding:'10px 18px 22px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)',maxHeight:'80%',overflowY:'auto'}},
+        h('div',{style:{width:34,height:4,background:T.line2,borderRadius:2,margin:'0 auto 16px'}}),
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:6,flexWrap:'wrap'}},
+          this.chip(catOf,T.lo), AT(attr)?this.chip(ATTR[attr].kr,ATTR[attr].c):null, equipped?this.chip('착용 중',T.good):null, st==='broken'?this.chip('파손',T.warn):st==='destroyed'?this.chip('파괴',T.danger):null),
+        h('div',{style:{fontFamily:T.sans,fontSize:21,fontWeight:700,color:T.hi,marginBottom:6}}, name),
+        s.Description?h('div',{style:{fontFamily:T.sans,fontSize:13,color:T.mid,lineHeight:1.5,marginBottom:14}}, s.Description):h('div',{style:{height:6}}),
+        h('div',{style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'4px 14px',marginBottom:16}},
+          ...stats.map(([k,v],i)=>h('div',{key:k,style:{display:'flex',justifyContent:'space-between',padding:'9px 0',borderBottom:i<stats.length-1?'1px solid '+T.line:'none'}},
+            h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}}, k),
+            h('span',{style:{fontFamily:T.mono,fontSize:13,color:T.hi}}, v)))),
+        stackable? h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'8px 12px',marginBottom:10}},
+          h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}}, '보낼 갯수'),
+          h('div',{style:{display:'flex',alignItems:'center',gap:14}},
+            h('button',{onClick:()=>this.setState({moveQty:Math.max(1,q-1)}),style:{width:30,height:30,background:T.s2,border:'1px solid '+T.line2,borderRadius:3,color:T.hi,fontFamily:T.mono,fontSize:16,cursor:'pointer'}}, '−'),
+            h('span',{style:{fontFamily:T.mono,fontSize:15,color:T.hi,minWidth:44,textAlign:'center'}}, q+' / '+inst.qty),
+            h('button',{onClick:()=>this.setState({moveQty:Math.min(inst.qty,q+1)}),style:{width:30,height:30,background:T.s2,border:'1px solid '+T.line2,borderRadius:3,color:T.hi,fontFamily:T.mono,fontSize:16,cursor:'pointer'}}, '+'))) : null,
+        h('div',{style:{display:'flex',gap:10}},
+          equippable?h('button',{onClick:()=>{this.toggleEquip(inst);},style:{flex:1,background:equipped?'transparent':T.s2,border:'1px solid '+T.line2,color:equipped?T.lo:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:600,padding:'14px',borderRadius:4,cursor:'pointer'}}, equipped?'해제하기':'착용하기'):null,
+          h('button',{onClick:()=>{this.moveStack(inst.uid,q);this.setState({sel:null,moveQty:null});},style:{flex:equippable?'0 0 auto':1,padding:'14px 18px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:600,borderRadius:4,cursor:'pointer',whiteSpace:'nowrap'}}, (inVault?'소지품으로':'금고로')+(stackable?(' '+q+'개'):'')))));
+  }
+
+  // ---- character ----
+  character(){
+    const g=this.gs; const full=this.eng.playerProfile(g,false); const sec=full.sec;
+    const prim=[['str','힘'],['dex','민첩'],['vit','체력'],['will','의지']];
+    const bonus=full.primAdd||{str:0,dex:0,vit:0,will:0};
+    const secRows=[['sec_min_atk','최소 공격력'],['sec_max_atk','최대 공격력'],['sec_defense','방어력'],['sec_max_hp','최대 생명력'],['sec_atk_speed','공격 속도'],['sec_accuracy','적중률'],['sec_evasion','회피율'],['sec_status_resist','상태이상 저항'],['sec_crit_chance','크리티컬 확률'],['sec_crit_resist','크리티컬 저항']];
+    const secVal={ sec_min_atk:full.minAtk, sec_max_atk:full.maxAtk, sec_defense:full.defense, sec_max_hp:full.maxHp, sec_atk_speed:full.atkSpeed, sec_accuracy:full.accuracy, sec_evasion:full.evasion, sec_status_resist:full.statusResist, sec_crit_chance:full.critChance, sec_crit_resist:full.critResist };
+    const pct=(id)=>['sec_accuracy','sec_evasion','sec_status_resist','sec_crit_chance','sec_crit_resist'].includes(id);
+    const equipRows=[g.equip.weapon,g.equip.head,g.equip.body].filter(Boolean).map(uid=>this.eng.instById(g,uid)).filter(Boolean);
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      this.screenTitle('CHARACTER','캐릭터'),
+      h('div',{style:{flex:1,overflowY:'auto',padding:'0 18px 20px'}},
+        h('div',{style:{display:'flex',flexDirection:'column',gap:12,marginBottom:18}}, this.bar('생명력',g.hp,g.maxHp,T.hp), this.bar('스태미너',g.sta,this.staMax,T.sta)),
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:12}}, '1차 스탯 (성장형)'),
+        h('div',{style:{display:'flex',flexDirection:'column',gap:14,marginBottom:24}},
+          ...prim.map(([k,kr])=>{ const pv=this.eng.growthPct(g,k);
+            return h('div',{key:k},
+              h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:5}},
+                h('div',null, h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, kr), h('span',{style:{fontFamily:T.mono,fontSize:15,color:T.hi,marginLeft:8}}, g.growth[k].level), bonus[k]?h('span',{style:{fontFamily:T.mono,fontSize:12,color:T.good,marginLeft:4}}, '(+'+bonus[k]+')'):null),
+                h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.growth}}, pv.toFixed(1)+'%')),
+              h('div',{style:{height:5,background:T.s3,borderRadius:1,overflow:'hidden'}}, h('div',{style:{width:pv+'%',height:'100%',background:T.growth}}))); })),
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:10}}, '2차 스탯 (파생)'),
+        h('div',{style:{background:T.s1,border:'1px solid '+T.line,borderRadius:4,padding:'4px 14px',marginBottom:24}},
+          ...secRows.map(([id,kr],i)=>h('div',{key:id,style:{display:'flex',justifyContent:'space-between',padding:'9px 0',borderBottom:i<secRows.length-1?'1px solid '+T.line:'none'}},
+            h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}}, kr),
+            h('span',{style:{fontFamily:T.mono,fontSize:13,color:T.hi}}, pct(id)?(secVal[id].toFixed(1)+'%'):(id==='sec_atk_speed'?secVal[id].toFixed(2):Math.round(secVal[id])))))),
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:10}}, '착용 장비'),
+        h('div',{style:{display:'flex',flexDirection:'column',gap:0}},
+          equipRows.length? equipRows.map(inst=>{ const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||{}; const attr=src.Attribute;
+            return h('div',{key:inst.uid,onClick:()=>this.setState({sel:inst.uid}),style:{display:'flex',alignItems:'center',gap:8,padding:'11px 0',borderBottom:'1px solid '+T.line,cursor:'pointer'}},
+              this.chip(CATKR[src.Category]||src.Category,T.lo),
+              h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi,flex:1}}, this.itemLabel(inst)),
+              AT(attr)?this.chip(ATTR[attr].kr,ATTR[attr].c):null,
+              h('span',{style:{fontFamily:T.mono,fontSize:10,color:this.eng.itemState(inst)==='destroyed'?T.danger:this.eng.itemState(inst)==='broken'?T.warn:T.dur}}, (inst.dur||0)+'/'+(inst.maxDur||0))); })
+            : h('div',{style:{fontFamily:T.sans,fontSize:13,color:T.faint,padding:'8px 0'}}, '착용한 장비 없음'))
+      ));
+  }
+
+  // ---- shop (clinic) ----
+  shop(){
+    const rows=this.eng.DATA.shops.filter(r=>r.ShopID==='shop_clinic');
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      h('div',{style:{position:'relative',flex:'0 0 auto',height:150,background:T.s3,overflow:'hidden'}},
+        h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, oklch(0.28 0.01 264) 0%, oklch(0.19 0.008 264) 100%)'}}),
+        h('button',{onClick:()=>this.go('safehouse'),style:{position:'absolute',top:14,left:14,zIndex:2,background:'oklch(0.15 0.006 264 / .6)',border:'1px solid '+T.line2,borderRadius:3,width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}, svg('M15 6l-6 6 6 6',18,T.hi)),
+        h('div',{style:{position:'absolute',top:14,right:14,zIndex:2,display:'flex',alignItems:'center',gap:7,background:T.s2,border:'1px solid '+T.line,borderRadius:3,padding:'5px 10px'}}, this.chip('SATO',T.sato), h('span',{style:{fontFamily:T.mono,fontWeight:600,fontSize:14,color:T.hi}}, this.gs.sato.toLocaleString())),
+        h('div',{style:{position:'absolute',left:18,bottom:14,zIndex:2}},
+          h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:700,color:T.hi}}, '보건소'),
+          h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.mid}}, '유리 소콜로프 · 전직 군의관'))),
+      h('div',{style:{padding:'8px 18px 0',fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:T.faint,marginTop:8}}, '판매 · 약품만 취급'),
+      h('div',{style:{flex:1,overflowY:'auto',paddingBottom:20}},
+        ...rows.map(r=>{ const price=this.eng.N(r.BuyPrice); const key='shop_clinic|'+r.ItemID; const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(r.StockMax,99); const aff=this.gs.sato>=price&&stock>0; const src=this.eng.byId.item[r.ItemID]||{};
+          return h('div',{key:r.ItemID,style:{display:'flex',alignItems:'center',gap:10,padding:'14px 18px',borderBottom:'1px solid '+T.line,opacity:stock>0?1:.5}},
+            h('div',{style:{flex:1,minWidth:0}},
+              h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:3}}, this.chip('약품',T.lo), h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, r.ItemName_KR), h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.faint}}, '재고 '+stock)),
+              h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo}}, (src.Description||'')+ (src.EffectValue?(' · 회복 +'+src.EffectValue):''))),
+            h('button',{onClick:()=>this.buy('shop_clinic',r),disabled:!aff,style:{flex:'0 0 auto',background:aff?T.s2:'transparent',border:'1px solid '+(aff?T.line2:T.line),color:aff?T.hi:T.faint,fontFamily:T.mono,fontSize:12,fontWeight:600,padding:'8px 12px',borderRadius:3,cursor:aff?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',gap:1}},
+              h('span',{style:{color:T.sato}}, price.toLocaleString()), h('span',{style:{fontSize:9,color:aff?T.mid:T.faint}}, '구매'))); }))
+    );
+  }
+  // ---- repair (S9 · 철물점) ----
+  repairables(){ return [...this.gs.bag, ...this.gs.vault].filter(i=>i.kind==='weapon'||i.kind==='armor').sort((a,b)=>((b.maxDur-b.dur)-(a.maxDur-a.dur))); }
+  durBar(inst){ const pct=inst.maxDur>0?Math.max(0,Math.min(100,(inst.dur/inst.maxDur)*100)):0; const st=this.eng.itemState(inst); const col=st==='destroyed'?T.danger:st==='broken'?T.warn:(pct<35?T.warn:T.dur);
+    return h('div',{style:{height:5,background:T.s3,borderRadius:1,overflow:'hidden',marginTop:6}}, h('div',{style:{width:pct+'%',height:'100%',background:col}})); }
+  doRepair(inst){ const r=this.eng.repair(this.gs,inst);
+    if(!r.ok){ this.flash(r.reason==='sato'?'사토가 부족하다':r.reason==='full'?'수리할 필요 없음':'파괴됨 — 수리 불가'); this.setState({repairSel:null}); return; }
+    this.setState({repairSel:null});
+    this.flash('수리 완료 · 내구도 +'+r.restored+(r.fails?(' · 실패 '+r.fails+'회 (최대 −'+r.maxLoss+')'):' · 실패 없음')); this.forceUpdate(); }
+  repairScreen(){
+    const list=this.repairables();
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      h('div',{style:{padding:'16px 18px 12px',background:T.s1,borderBottom:'1px solid '+T.line,flex:'0 0 auto',display:'flex',alignItems:'center',gap:12}},
+        h('button',{onClick:()=>this.go('safehouse'),style:{background:'oklch(0.15 0.006 264 / .6)',border:'1px solid '+T.line2,borderRadius:3,width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flex:'0 0 auto'}}, svg('M15 6l-6 6 6 6',18,T.hi)),
+        h('div',{style:{flex:1}},
+          h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:3}}, 'REPAIR · 철물점'),
+          h('div',{style:{fontFamily:T.sans,fontSize:18,fontWeight:700,color:T.hi}}, '장비 수리')),
+        h('div',{style:{display:'flex',alignItems:'center',gap:7,background:T.s2,border:'1px solid '+T.line,borderRadius:3,padding:'5px 10px',flex:'0 0 auto'}}, this.chip('SATO',T.sato), h('span',{style:{fontFamily:T.mono,fontWeight:600,fontSize:14,color:T.hi}}, this.gs.sato.toLocaleString()))),
+      h('div',{style:{padding:'11px 18px 3px',fontFamily:T.sans,fontSize:11.5,color:T.warn,lineHeight:1.5}}, '수리는 닳은 내구도를 회복하되, 회복 1점마다 확률적으로 실패하며 실패한 만큼 최대 내구도가 영구히 감소합니다.'),
+      h('div',{style:{flex:1,overflowY:'auto',padding:'8px 0 20px'}},
+        list.length? list.map(inst=>this.repairRow(inst)) : h('div',{style:{padding:'40px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, '수리할 장비가 없다')));
+  }
+  repairRow(inst){
+    const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||{};
+    const st=this.eng.itemState(inst); const worn=Math.max(0,inst.maxDur-inst.dur); const cost=this.eng.repairCostPreview(inst);
+    const destroyed=st==='destroyed'; const canRepair=worn>0&&!destroyed;
+    const stChip=st==='destroyed'?this.chip('파괴',T.danger):st==='broken'?this.chip('파손',T.warn):null;
+    return h('div',{key:inst.uid,style:{padding:'13px 18px',borderBottom:'1px solid '+T.line,opacity:destroyed?.55:1}},
+      h('div',{style:{display:'flex',alignItems:'flex-start',gap:12}},
+        h('div',{style:{flex:1,minWidth:0}},
+          h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:2,flexWrap:'wrap'}},
+            this.chip(CATKR[src.Category]||src.Category,T.lo),
+            h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, this.itemLabel(inst)),
+            this.isEquipped(inst.uid)?this.chip('착용 중',T.good):null, stChip),
+          h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:5}},
+            h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.lo}}, '내구도'),
+            h('span',{style:{fontFamily:T.mono,fontSize:12,color:destroyed?T.danger:(st==='broken'?T.warn:T.mid)}}, inst.dur+' / '+inst.maxDur)),
+          this.durBar(inst)),
+        h('button',{disabled:!canRepair,onClick:canRepair?()=>this.setState({repairSel:inst.uid}):null,
+          style:{flex:'0 0 auto',alignSelf:'center',background:canRepair?T.s2:'transparent',border:'1px solid '+(canRepair?T.line2:T.line),color:canRepair?T.hi:T.faint,fontFamily:T.mono,fontSize:12,fontWeight:600,padding:'9px 12px',borderRadius:3,cursor:canRepair?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',gap:1,minWidth:64}},
+          destroyed?h('span',{style:{fontSize:10,color:T.faint}},'수리 불가'):worn<=0?h('span',{style:{fontSize:10,color:T.faint}},'양호'):[h('span',{key:'c',style:{color:T.sato}},cost.toLocaleString()),h('span',{key:'l',style:{fontSize:9,color:T.mid}},'수리')])));
+  }
+  repairConfirm(){
+    const inst=this.eng.instById(this.gs,this.state.repairSel); if(!inst) return null;
+    const worn=Math.max(0,inst.maxDur-inst.dur); const cost=this.eng.repairCostPreview(inst);
+    const p=Math.round(this.eng.N(this.eng.DATA.config.repair_fail_chance_per_point,0.06)*100); const expFail=worn*p/100; const aff=this.gs.sato>=cost;
+    const row=(k,v,col)=>h('div',{key:k,style:{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid '+T.line}}, h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}},k), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col||T.hi}},v));
+    return h('div',{onClick:()=>this.setState({repairSel:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.66)',display:'flex',alignItems:'flex-end',zIndex:34,animation:'rlFade .18s'}},
+      h('div',{onClick:e=>e.stopPropagation(),style:{width:'100%',background:T.s1,borderTop:'1px solid '+T.line2,borderRadius:'10px 10px 0 0',padding:'10px 18px 22px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
+        h('div',{style:{width:34,height:4,background:T.line2,borderRadius:2,margin:'0 auto 16px'}}),
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:6}}, '수리 확인'),
+        h('div',{style:{fontFamily:T.sans,fontSize:19,fontWeight:700,color:T.hi,marginBottom:14}}, this.itemLabel(inst)),
+        h('div',{style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'4px 14px',marginBottom:14}},
+          row('현재 내구도', inst.dur+' / '+inst.maxDur),
+          row('닳은 내구도', worn+'점', T.warn),
+          row('수리 비용', cost.toLocaleString()+' 사토', aff?T.sato:T.danger),
+          row('예상 실패', '≈ '+expFail.toFixed(1)+'점 ('+p+'%/점)', T.warn)),
+        h('div',{style:{display:'flex',gap:8,alignItems:'flex-start',fontFamily:T.sans,fontSize:12,color:T.warn,lineHeight:1.55,marginBottom:16}},
+          svg('M12 9v4M12 17h.01M10.3 4.3 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z',20,T.warn,1.7),
+          h('span',null,'수리 실패한 만큼 최대 내구도가 영구히 감소합니다. 되돌릴 수 없습니다.')),
+        h('div',{style:{display:'flex',gap:10}},
+          h('button',{onClick:()=>this.setState({repairSel:null}),style:{flex:'0 0 auto',padding:'14px 20px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:600,borderRadius:4,cursor:'pointer'}}, '취소'),
+          h('button',{disabled:!aff,onClick:()=>this.doRepair(inst),style:{flex:1,background:'transparent',border:'1px solid '+(aff?T.warn:T.line),color:aff?T.warn:T.faint,fontFamily:T.sans,fontSize:15,fontWeight:700,padding:'14px',borderRadius:4,cursor:aff?'pointer':'default',letterSpacing:'.02em'}}, aff?'수리 실행':'사토 부족'))));
+  }
+  // ---- vendor (구매/판매/수리 · Services 기반) ----
+  vendorScreen(){
+    const v=this.eng.byId.vendor[this.state.vendor]||{};
+    const svc=this.services(v);
+    const tabs=[]; if(svc.includes('Buy'))tabs.push(['buy','구매']); if(svc.includes('Sell'))tabs.push(['sell','판매']); if(svc.includes('Repair'))tabs.push(['repair','수리']);
+    let tab=this.state.vtab; if(!tabs.some(t=>t[0]===tab)) tab=(tabs[0]||['buy'])[0];
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      h('div',{style:{position:'relative',flex:'0 0 auto',height:118,background:T.s3,overflow:'hidden'}},
+        h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, oklch(0.28 0.01 264) 0%, oklch(0.19 0.008 264) 100%)'}}),
+        h('button',{onClick:()=>this.go('safehouse'),style:{position:'absolute',top:14,left:14,zIndex:2,background:'oklch(0.15 0.006 264 / .6)',border:'1px solid '+T.line2,borderRadius:3,width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}, svg('M15 6l-6 6 6 6',18,T.hi)),
+        h('div',{style:{position:'absolute',top:14,right:14,zIndex:2,display:'flex',alignItems:'center',gap:7,background:T.s2,border:'1px solid '+T.line,borderRadius:3,padding:'5px 10px'}}, this.chip('SATO',T.sato), h('span',{style:{fontFamily:T.mono,fontWeight:600,fontSize:14,color:T.hi}}, this.gs.sato.toLocaleString())),
+        h('div',{style:{position:'absolute',left:18,bottom:12,zIndex:2}},
+          h('div',{style:{fontFamily:T.sans,fontSize:21,fontWeight:700,color:T.hi}}, this.shopName(v.ShopID)),
+          h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.mid}}, v.VendorName_KR))),
+      tabs.length? h('div',{style:{display:'flex',flex:'0 0 auto',borderBottom:'1px solid '+T.line,background:T.s1}},
+        ...tabs.map(([k,l])=>{ const on=tab===k;
+          return h('button',{key:k,onClick:()=>this.setState({vtab:k}),style:{flex:1,background:'none',border:'none',borderBottom:'2px solid '+(on?T.hi:'transparent'),color:on?T.hi:T.lo,fontFamily:T.sans,fontSize:14,fontWeight:600,padding:'12px 0',cursor:'pointer'}}, l); })) : null,
+      tab==='buy'?this.vendorBuy(v):tab==='sell'?this.vendorSell(v):this.vendorRepair()
+    );
+  }
+  vendorBuy(v){
+    const rows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID);
+    return h('div',{style:{flex:1,overflowY:'auto',paddingBottom:20}},
+      rows.length? rows.map(r=>{ const price=this.eng.N(r.BuyPrice); const key=v.ShopID+'|'+r.ItemID; const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(r.StockMax,99); const aff=this.gs.sato>=price&&stock>0; const src=this.eng.byId.item[r.ItemID]||this.eng.byId.weapon[r.ItemID]||this.eng.byId.armor[r.ItemID]||{}; const cat=CATKR[src.Category]||src.Category||'';
+        return h('div',{key:r.ItemID,style:{display:'flex',alignItems:'center',gap:10,padding:'14px 18px',borderBottom:'1px solid '+T.line,opacity:stock>0?1:.5}},
+          h('div',{style:{flex:1,minWidth:0}},
+            h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:3,flexWrap:'wrap'}}, this.chip(cat,T.lo), h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, r.ItemName_KR||this.eng.anyName(r.ItemID)), h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.faint}}, '재고 '+stock)),
+            h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo}}, (src.Description||'')+(src.EffectValue?(' · 회복 +'+src.EffectValue):''))),
+          h('button',{onClick:()=>this.buy(v.ShopID,r),disabled:!aff,style:{flex:'0 0 auto',background:aff?T.s2:'transparent',border:'1px solid '+(aff?T.line2:T.line),color:aff?T.hi:T.faint,fontFamily:T.mono,fontSize:12,fontWeight:600,padding:'8px 12px',borderRadius:3,cursor:aff?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',gap:1}},
+            h('span',{style:{color:T.sato}}, price.toLocaleString()), h('span',{style:{fontSize:9,color:aff?T.mid:T.faint}}, '구매'))); })
+        : h('div',{style:{padding:'40px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, '판매 목록이 비어 있다'));
+  }
+  sellables(v){
+    const tc=String(v.TradeCategories||'').split(',').map(s=>s.trim());
+    const catOf=(inst)=>{ if(inst.kind==='weapon')return 'Weapon'; if(inst.kind==='armor'){const a=this.eng.byId.armor[inst.id];return a?a.Category:'Body';} const it=this.eng.byId.item[inst.id]; return it?it.Category:''; };
+    const match=(cat)=> tc.includes(cat) || ((cat==='Head'||cat==='Body')&&tc.includes('Armor'));
+    return [...this.gs.vault,...this.gs.bag].filter(inst=>match(catOf(inst)));
+  }
+  sellPrice(inst){ const it=this.eng.byId.item[inst.id]; return it?this.eng.N(it.SellPrice):0; }
+  sellItem(inst){ const p=this.sellPrice(inst); if(p<=0){this.flash('판매 불가');return;} if(this.isEquipped(inst.uid)){this.flash('착용 중 — 판매 불가');return;}
+    this.gs.sato+=p; const dec=(arr)=>{const i=arr.findIndex(x=>x.uid===inst.uid);if(i<0)return false; if((arr[i].qty||1)>1)arr[i].qty--; else arr.splice(i,1); return true;}; dec(this.gs.vault)||dec(this.gs.bag);
+    this.flash(this.eng.anyName(inst.id)+' 판매 +'+p); this.forceUpdate(); }
+  vendorSell(v){
+    const list=this.sellables(v);
+    return h('div',{style:{flex:1,overflowY:'auto',paddingBottom:20}},
+      h('div',{style:{padding:'10px 18px 2px',fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:T.faint}}, '거래 가능 · '+(v.TradeCategories||'—')),
+      list.length? list.map(inst=>{ const p=this.sellPrice(inst); const inVault=this.gs.vault.some(x=>x.uid===inst.uid); const can=p>0&&!this.isEquipped(inst.uid);
+        return h('div',{key:inst.uid,style:{display:'flex',alignItems:'center',gap:10,padding:'13px 18px',borderBottom:'1px solid '+T.line}},
+          h('div',{style:{flex:1,minWidth:0}},
+            h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:2,flexWrap:'wrap'}}, this.chip(inVault?'금고':'소지품', inVault?T.good:T.warn), h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, this.itemLabel(inst)), inst.qty>1?h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid}},'×'+inst.qty):null),
+            h('div',{style:{fontFamily:T.mono,fontSize:11,color:T.lo}}, p>0?('개당 '+p+' 사토'):'판매 불가')),
+          h('button',{onClick:()=>this.sellItem(inst),disabled:!can,style:{flex:'0 0 auto',background:can?T.s2:'transparent',border:'1px solid '+(can?T.line2:T.line),color:can?T.hi:T.faint,fontFamily:T.mono,fontSize:12,fontWeight:600,padding:'8px 12px',borderRadius:3,cursor:can?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}, h('span',{style:{color:can?T.sato:T.faint}}, p.toLocaleString()), h('span',{style:{fontSize:9,color:T.mid}},'판매'))); })
+        : h('div',{style:{padding:'40px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, '팔 수 있는 물건이 없다'));
+  }
+  vendorRepair(){
+    const list=this.repairables();
+    return h('div',{style:{flex:1,overflowY:'auto',paddingBottom:20}},
+      h('div',{style:{padding:'11px 18px 3px',fontFamily:T.sans,fontSize:11.5,color:T.warn,lineHeight:1.5}}, '수리는 닳은 내구도를 회복하되, 회복 1점마다 확률적으로 실패하며 실패한 만큼 최대 내구도가 영구히 감소합니다.'),
+      list.length? list.map(inst=>this.repairRow(inst)) : h('div',{style:{padding:'40px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, '수리할 장비가 없다'));
+  }
+  settings(){
+    const srcLabel = { live:'구글 시트 (실시간)', cache:'캐시 (연결 실패)', bundled:'번들 스냅샷' }[this.dataSrc]||'—';
+    const srcColor = this.dataSrc==='live'?T.good:(this.dataSrc==='cache'?T.warn:T.lo);
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      this.screenTitle('SETTINGS','설정'),
+      h('div',{style:{padding:'0 18px',overflowY:'auto'}},
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 10px'}}, '밸런스 데이터'),
+        h('div',{style:{background:T.s1,border:'1px solid '+T.line,borderRadius:4,padding:'13px 15px',marginBottom:12}},
+          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}},
+            h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}}, '데이터 소스'),
+            h('span',{style:{fontFamily:T.mono,fontSize:12,color:srcColor}}, srcLabel)),
+          h('div',{style:{fontFamily:T.sans,fontSize:11.5,color:T.lo,lineHeight:1.5}}, '구글 시트를 수정한 뒤 아래 버튼을 누르면 밸런스가 즉시 반영됩니다. 파일을 다시 보낼 필요 없음.')),
+        h('button',{onClick:()=>this.reloadSheet(),style:{width:'100%',background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:600,padding:'13px',borderRadius:4,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:26}},
+          svg('M4 12a8 8 0 018-8 8 8 0 016 2.7M20 12a8 8 0 01-8 8 8 8 0 01-6-2.7M18 4v3h-3M6 20v-3h3',18,T.hi,1.7),'시트 다시 불러오기'),
+        h('button',{onClick:()=>this.clearCache(),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:600,padding:'13px',borderRadius:4,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:8}},
+          svg('M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13M10 11v6M14 11v6',18,T.mid,1.6),'캐시 삭제'),
+        h('div',{style:{fontFamily:T.sans,fontSize:11.5,color:T.lo,lineHeight:1.5,marginBottom:26}}, '시트 스냅샷 캐시를 지웁니다. 데이터가 꼬였을 때 초기화 용도로 사용하세요. (다음 실행 시 시트에서 다시 받아옵니다.)'),
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 10px'}}, '앱'),
+        ...[['계정','로그인 / 로그아웃'],['언어','한국어'],['피드백','버그 신고 · 의견']].map(([a,b])=>h('div',{key:a,style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'15px 0',borderBottom:'1px solid '+T.line}}, h('span',{style:{fontFamily:T.sans,fontSize:14,color:T.hi}},a), h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.lo}},b))),
+        h('button',{onClick:()=>{this.newRun(true);this.setState({ready:true});this.go('safehouse');this.flash('새 캐릭터로 초기화');},style:{marginTop:22,width:'100%',background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:14,fontWeight:600,padding:'13px',borderRadius:4,cursor:'pointer',marginBottom:20}}, '진행 초기화 (테스트)'))
+    );
+  }
+}
+</script>
+</body>
+</html>
