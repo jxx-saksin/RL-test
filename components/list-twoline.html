@@ -1,0 +1,62 @@
+<!-- @dsCard group="Components" viewport="700x380" name="List — two-line items" subtitle="Category tag · name + count on line 1, description on line 2" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-void);color:var(--text-hi);font-family:var(--font-ui);padding:20px;display:flex;justify-content:center}
+  .list{width:390px;background:var(--surface-1);border:1px solid var(--line-1);border-radius:var(--r-card);overflow:hidden}
+  .sec{font-family:var(--font-mono);font-size:10.5px;color:var(--text-lo);letter-spacing:var(--tr-label);padding:11px 15px 7px;background:var(--bg-base)}
+  .row{display:flex;align-items:flex-start;gap:11px;min-height:58px;padding:11px 15px;border-top:1px solid var(--line-1)}
+  .row:first-of-type{border-top:0}
+  .cat{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:9.5px;color:var(--text-mid);background:var(--surface-2);border:1px solid var(--line-1);border-radius:var(--r-chip);padding:3px 7px;flex:0 0 auto;margin-top:2px}
+  .cat .dot{width:5px;height:5px;border-radius:var(--r-pill);background:var(--text-lo)}
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+  .line1{display:flex;align-items:baseline;gap:8px;min-width:0}
+  .nm{font-size:14px;color:var(--text-hi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stack{font-family:var(--font-mono);font-size:11px;color:var(--text-faint);flex:0 0 auto;font-variant-numeric:tabular-nums}
+  .desc{font-size:12px;color:var(--text-lo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .val{align-self:center;font-family:var(--font-mono);font-size:13px;color:var(--text-mid);font-variant-numeric:tabular-nums;flex:0 0 auto;text-align:right}
+  .val.asset{color:var(--sato)}
+</style>
+</head>
+<body>
+  <div class="list">
+    <div class="sec">인벤토리 · 24점</div>
+    <div class="row">
+      <span class="cat"><span class="dot"></span>무기</span>
+      <div class="main">
+        <div class="line1"><span class="nm">녹슨 기어 철퇴</span></div>
+        <div class="desc">고철에서 건져 올린 둔기. 무겁지만 확실하다.</div>
+      </div>
+      <span class="val">18–34</span>
+    </div>
+    <div class="row">
+      <span class="cat"><span class="dot"></span>약품</span>
+      <div class="main">
+        <div class="line1"><span class="nm">응급키트</span><span class="stack">×3</span></div>
+        <div class="desc">기본적인 응급 처치 도구. 체력을 회복한다.</div>
+      </div>
+      <span class="val">HP +40</span>
+    </div>
+    <div class="row">
+      <span class="cat"><span class="dot"></span>음식</span>
+      <div class="main">
+        <div class="line1"><span class="nm">비상식량</span><span class="stack">×4</span></div>
+        <div class="desc">맛은 없지만 배는 채운다. 스태미너 회복.</div>
+      </div>
+      <span class="val">STA +8</span>
+    </div>
+    <div class="row">
+      <span class="cat"><span class="dot"></span>정크</span>
+      <div class="main">
+        <div class="line1"><span class="nm">부러진 회로판</span></div>
+        <div class="desc">고물상 딘 카터에게 넘길 수 있다.</div>
+      </div>
+      <span class="val asset">24</span>
+    </div>
+  </div>
+</body>
+</html>

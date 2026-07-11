@@ -1,0 +1,35 @@
+<!-- @dsCard group="Components" viewport="700x330" name="List — finance/settings rows" subtitle="Section header, hairline dividers, trailing value/chevron, ≥44px" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-void);color:var(--text-hi);font-family:var(--font-ui);padding:20px;display:flex;justify-content:center}
+  .list{width:380px;background:var(--surface-1);border:1px solid var(--line-1);border-radius:var(--r-card);overflow:hidden}
+  .sec{font-family:var(--font-mono);font-size:10.5px;color:var(--text-lo);letter-spacing:var(--tr-label);padding:11px 15px 7px;background:var(--bg-base)}
+  .row{display:flex;align-items:center;gap:12px;min-height:48px;padding:8px 15px;border-top:1px solid var(--line-1)}
+  .row:first-of-type{border-top:0}
+  .row.press{background:var(--surface-2)}
+  .lead{display:flex;flex-direction:column;gap:2px}
+  .p{font-size:14px;color:var(--text-hi)}
+  .s{font-family:var(--font-mono);font-size:11px;color:var(--text-lo)}
+  .trail{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .val{font-family:var(--font-mono);font-size:13px;color:var(--text-mid);font-variant-numeric:tabular-nums}
+  .val.asset{color:var(--sato)}
+  .chev{color:var(--text-faint);font-size:16px;line-height:1}
+</style>
+</head>
+<body>
+  <div class="list">
+    <div class="sec">허브 · 안전가옥</div>
+    <div class="row"><div class="lead"><span class="p">사토 잔액</span><span class="s">SATO BALANCE</span></div><div class="trail"><span class="val asset">1,284</span></div></div>
+    <div class="row press"><div class="lead"><span class="p">상점 · 보건소</span><span class="s">약품 · 재고 리셋 3회 후</span></div><div class="trail"><span class="chev">›</span></div></div>
+    <div class="row"><div class="lead"><span class="p">장비 수리</span><span class="s">파이프 내구도 17/50</span></div><div class="trail"><span class="val" style="color:var(--warn)">−60</span><span class="chev">›</span></div></div>
+    <div class="sec">인벤토리 · 무기</div>
+    <div class="row"><div class="lead"><span class="p">녹슨 강철 파이프</span><span class="s">둔기 · 금속 · 착용중</span></div><div class="trail"><span class="val">18–34</span><span class="chev">›</span></div></div>
+    <div class="row"><div class="lead"><span class="p">깨진 유리 단도</span><span class="s">베기 · 유리</span></div><div class="trail"><span class="val">9–41</span><span class="chev">›</span></div></div>
+  </div>
+</body>
+</html>

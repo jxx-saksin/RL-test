@@ -1,0 +1,49 @@
+<!-- @dsCard group="Components" viewport="700x360" name="Confirm Dialog" subtitle="Irreversible-action confirm; blunt copy, destructive accent" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{margin:0;font-family:var(--font-ui);color:var(--text-hi)}
+  .scene{position:relative;height:320px;background:var(--bg-base);overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .scrim{position:absolute;inset:0;background:var(--scrim)}
+  .dialog{position:relative;width:330px;background:var(--surface-1);border:1px solid var(--line-2);border-radius:var(--r-sheet);box-shadow:var(--shadow-pop);overflow:hidden}
+  .body{padding:20px 20px 6px;display:flex;flex-direction:column;gap:12px}
+  .ic{width:34px;height:34px;border-radius:var(--r-input);background:var(--surface-3);border:1px solid var(--line-1);display:flex;align-items:center;justify-content:center;color:var(--text-mid)}
+  .ic svg{width:18px;height:18px;stroke-width:2}
+  .ttl{font-size:17px;font-weight:600}
+  .msg{font-size:14px;color:var(--text-mid);line-height:1.5}
+  .msg b{color:var(--warn);font-weight:600}
+  .facts{font-family:var(--font-mono);font-size:12px;color:var(--text-lo);background:var(--bg-base);border:1px solid var(--line-1);border-radius:var(--r-input);padding:9px 11px;display:flex;flex-direction:column;gap:3px;font-variant-numeric:tabular-nums}
+  .facts .r{display:flex;justify-content:space-between}
+  .facts .r span:last-child{color:var(--text-mid)}
+  .actions{display:flex;gap:0;border-top:1px solid var(--line-1);margin-top:12px}
+  .btn{flex:1;font-family:var(--font-ui);font-size:14px;font-weight:500;padding:14px;background:transparent;border:0;cursor:pointer}
+  .cancel{color:var(--text-mid);border-right:1px solid var(--line-1)}
+  .confirm{color:var(--danger);font-weight:600}
+</style>
+</head>
+<body>
+  <div class="scene">
+    <div class="scrim"></div>
+    <div class="dialog">
+      <div class="body">
+        <div class="ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
+        <div class="ttl">수리를 진행할까요?</div>
+        <div class="msg">수리 시 <b>최대 내구도가 영구히 감소</b>합니다. 되돌릴 수 없습니다.</div>
+        <div class="facts">
+          <div class="r"><span>수리 확률</span><span>92%</span></div>
+          <div class="r"><span>비용</span><span>사토 60</span></div>
+          <div class="r"><span>내구도</span><span>17/50 → 50/50</span></div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn cancel">취소</button>
+        <button class="btn confirm">수리 진행</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

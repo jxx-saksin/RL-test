@@ -1,0 +1,130 @@
+<!-- @dsCard group="Components" viewport="760x620" name="Item Card" subtitle="Same format for equipment & consumable — artwork on top, no rarity color" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-void);color:var(--text-hi);font-family:var(--font-ui);padding:20px;display:flex;gap:20px;justify-content:center;align-items:flex-start}
+  .card{width:340px;background:var(--surface-1);border:1px solid var(--line-1);border-radius:var(--r-card);overflow:hidden}
+
+  /* artwork */
+  .art{position:relative;height:190px;background:var(--surface-3)}
+  .art img{width:100%;height:100%;object-fit:cover;display:block}
+  .art .scrim{position:absolute;inset:auto 0 0 0;height:64px;background:linear-gradient(to bottom, transparent, var(--surface-1))}
+  .art .cat{position:absolute;left:14px;bottom:11px;font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:var(--tr-label);text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  .art .badge{position:absolute;right:14px;top:12px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:var(--tr-wide);background:oklch(0.15 0.006 264 / .55);backdrop-filter:blur(3px);border-radius:var(--r-chip);padding:3px 8px}
+  .badge.eq{color:var(--good);border:1px solid var(--good-dim)}
+  .badge.use{color:var(--text-mid);border:1px solid oklch(0.9 0 0 / .18)}
+
+  /* info */
+  .info{padding:13px 15px 0}
+  .nm{font-size:17px;font-weight:600;line-height:1.2}
+  .desc{font-size:13px;color:var(--text-mid);line-height:1.5;margin-top:8px}
+
+  .dur{display:flex;align-items:center;gap:10px;margin-top:12px}
+  .durl{font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:var(--tr-label);width:56px}
+  .trk{flex:1;height:var(--bar-h);background:var(--surface-3);border-radius:var(--r-pill);overflow:hidden}
+  .fl{height:100%;background:var(--durability);border-radius:var(--r-pill)}
+  .dv{font-family:var(--font-mono);font-size:11px;color:var(--text-mid);font-variant-numeric:tabular-nums;width:66px;text-align:right}
+
+  .sechd{font-family:var(--font-mono);font-size:10px;color:var(--text-faint);letter-spacing:var(--tr-label);margin:15px 0 2px}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;font-family:var(--font-mono);font-size:12px;font-variant-numeric:tabular-nums}
+  .stats.one{grid-template-columns:1fr}
+  .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line-1)}
+  .row .l{color:var(--text-lo)}
+  .row .v{color:var(--text-hi)}
+  .row .v.heal{color:var(--good)}
+  .stt{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:7px;height:7px;border-radius:var(--r-pill);background:var(--st-stun)}
+
+  .tagwrap{padding:12px 15px 0}
+  .tags{display:flex;gap:6px;flex-wrap:wrap}
+  .tag{font-family:var(--font-mono);font-size:10.5px;padding:3px 8px;border-radius:var(--r-chip);background:var(--surface-2);border:1px solid var(--line-1);color:var(--text-mid)}
+  .tag.grow{color:var(--text-hi)}
+
+  .affix{margin-top:2px;font-family:var(--font-mono);font-size:11.5px;font-variant-numeric:tabular-nums}
+  .affix .ah{font-size:10px;color:var(--text-faint);letter-spacing:var(--tr-label);margin-bottom:3px}
+  .ar{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line-1)}
+  .ar .al b{color:var(--text-lo);font-weight:500;margin-right:9px}
+  .ar .al{color:var(--text-mid)}
+  .ar .av{color:var(--text-hi)}
+
+  .meta{padding:11px 15px;font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint);border-top:1px solid var(--line-1);margin-top:13px}
+  .tagbottom{padding:12px 15px;border-top:1px solid var(--line-1);margin-top:13px}
+  .actions{display:flex;gap:9px;padding:12px 15px 15px;border-top:1px solid var(--line-1)}
+  .abtn{flex:1;text-align:center;font-size:13px;font-weight:500;padding:11px;border-radius:var(--r-input);border:1px solid var(--line-2);background:var(--surface-3);color:var(--text-hi)}
+  .abtn.ghost{background:transparent;color:var(--text-mid)}
+</style>
+</head>
+<body>
+
+  <!-- Equipment example -->
+  <div class="card">
+    <div class="art">
+      <img src="../assets/items/gear-mace.jpg" alt="녹슨 기어 철퇴 아트웍" style="object-position:center 42%">
+      <div class="scrim"></div>
+      <div class="badge eq">착용중</div>
+      <div class="cat">무기 · 둔기 · 금속</div>
+    </div>
+    <div class="info">
+      <div class="nm">녹슨 기어 철퇴</div>
+      <div class="dur"><span class="durl">내구도</span><div class="trk"><div class="fl" style="width:34%"></div></div><span class="dv">17/50</span></div>
+
+      <div class="sechd">기본 옵션 · STATS</div>
+      <div class="stats">
+        <div class="row"><span class="l">공격력</span><span class="v">18–34</span></div>
+        <div class="row"><span class="l">공격 속도</span><span class="v">0.8</span></div>
+        <div class="row"><span class="l">적중률</span><span class="v">+6%</span></div>
+        <div class="row"><span class="l">크리티컬</span><span class="v">+2%</span></div>
+        <div class="row"><span class="l">상태이상</span><span class="v stt"><span class="dot"></span>기절</span></div>
+        <div class="row"><span class="l">부여력</span><span class="v">62</span></div>
+      </div>
+    </div>
+    <div class="tagwrap">
+      <div class="affix">
+        <div class="ah">접두·접미 · AFFIX</div>
+        <div class="ar"><span class="al"><b>접두</b>억센</span><span class="av">힘 +2</span></div>
+        <div class="ar"><span class="al"><b>접미</b>곰의</span><span class="av">체력 +1</span></div>
+      </div>
+    </div>
+    <div class="tagbottom">
+      <div class="tags">
+        <span class="tag grow">성장 · 힘</span>
+        <span class="tag grow">성장 · 체력</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="abtn">해제</button>
+      <button class="abtn ghost">판매</button>
+    </div>
+  </div>
+
+  <!-- Consumable example -->
+  <div class="card">
+    <div class="art">
+      <img src="../assets/items/first-aid.jpg" alt="응급키트 아트웍" style="object-position:center 55%">
+      <div class="scrim"></div>
+      <div class="badge use">소모품</div>
+      <div class="cat">약품 · 소모품</div>
+    </div>
+    <div class="info">
+      <div class="nm">응급키트</div>
+      <div class="desc">기본적인 응급 처치 도구. 체력을 회복한다.</div>
+
+      <div class="sechd">효과 · EFFECT</div>
+      <div class="stats one">
+        <div class="row"><span class="l">체력 회복</span><span class="v heal">+40</span></div>
+      </div>
+    </div>
+    <div class="tagwrap">
+      <div class="tags">
+        <span class="tag">약품</span>
+      </div>
+    </div>
+    <div class="meta">전투 중 [회복하기]로만 사용 · 지참분 한정</div>
+  </div>
+
+</body>
+</html>

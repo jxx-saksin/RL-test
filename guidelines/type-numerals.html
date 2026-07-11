@@ -1,0 +1,36 @@
+<!-- @dsCard group="Type" viewport="700x200" name="Numerals — tabular ledger" subtitle="Mono, tabular-lining figures; numbers align like a statement" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-base);color:var(--text-hi);font-family:var(--font-ui);padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .card{background:var(--surface-1);border:1px solid var(--line-1);border-radius:var(--r-card);padding:14px}
+  .k{font-family:var(--font-mono);font-size:11px;color:var(--text-lo);letter-spacing:var(--tr-label);margin-bottom:10px}
+  .num{font-family:var(--font-mono);font-variant-numeric:tabular-nums lining-nums}
+  table{width:100%;border-collapse:collapse}
+  td{padding:5px 0;font-size:13px}
+  td.r{text-align:right;color:var(--text-hi)}
+  td.l{color:var(--text-mid)}
+  .big{font-size:26px;color:var(--sato);font-weight:500}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="k">잔액 · SATO BALANCE</div>
+    <div class="num big">1,284</div>
+    <div class="num" style="font-size:12px;color:var(--good);margin-top:6px">+240 판매 · −60 수리</div>
+  </div>
+  <div class="card">
+    <div class="k">STAT SHEET</div>
+    <table class="num">
+      <tr><td class="l">최대 공격력</td><td class="r">42</td></tr>
+      <tr><td class="l">방어력</td><td class="r">17</td></tr>
+      <tr><td class="l">적중률</td><td class="r">86%</td></tr>
+      <tr><td class="l">크리티컬</td><td class="r">9%</td></tr>
+    </table>
+  </div>
+</body>
+</html>

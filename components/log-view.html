@@ -1,0 +1,65 @@
+<!-- @dsCard group="Components" viewport="700x460" name="Log View — combat (hero)" subtitle="Turn-grouped mono combat log + between-fight decision UI" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-void);color:var(--text-hi);font-family:var(--font-ui);padding:20px;display:flex;justify-content:center}
+  .phone{width:360px;background:var(--bg-base);border:1px solid var(--line-1);border-radius:var(--r-card);overflow:hidden;display:flex;flex-direction:column;height:412px}
+
+  /* slim log header: context + player status readout (no monster info) */
+  .hdr{background:var(--surface-1);border-bottom:1px solid var(--line-1);padding:11px 14px;display:flex;align-items:center;gap:10px;flex:0 0 auto}
+  .kick{font-family:var(--font-mono);font-size:10.5px;color:var(--text-lo);letter-spacing:var(--tr-label);white-space:nowrap}
+  .status{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--text-mid);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .status .hp{color:var(--hp)}
+  .status .sta{color:var(--stamina)}
+  .status .sep{color:var(--text-faint);margin:0 6px}
+
+  /* log */
+  .log{flex:1 1 auto;overflow:hidden;padding:12px 14px;font-family:var(--font-mono);font-size:13px;line-height:var(--lh-log);color:var(--text-mid);display:flex;flex-direction:column;gap:1px}
+  .turn{color:var(--text-faint);margin-right:7px}
+  .hi{color:var(--text-hi)}
+  .crit{color:var(--st-stun)}
+  .dmg{color:var(--danger)}
+  .heal{color:var(--good)}
+  .bleed{color:var(--st-bleed)}
+  .rl{display:flex;align-items:center;gap:9px;color:var(--text-faint);font-size:10px;letter-spacing:var(--tr-label);margin:8px 0 6px}
+  .rl::before,.rl::after{content:"";flex:1;height:1px;background:var(--line-1)}
+  .now{color:var(--text-hi)}
+
+  /* decision */
+  .decide{flex:0 0 auto;border-top:1px solid var(--line-1);background:var(--surface-1);padding:10px 12px;display:flex;gap:8px}
+  .btn{flex:1;text-align:center;font-family:var(--font-ui);font-size:12px;font-weight:500;padding:11px 4px;border-radius:var(--r-input);border:1px solid var(--line-2);background:var(--surface-2);color:var(--text-hi)}
+  .btn.ghost{background:transparent;color:var(--text-mid);border-color:var(--line-1)}
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="hdr">
+      <span class="kick">3구역 하수도</span>
+      <span class="status"><span class="hp">HP 128/140</span><span class="sep">·</span><span class="sta">STA 9/20</span></span>
+    </div>
+    <div class="log">
+      <div><span class="turn">[01]</span>하수도에 진입했다. 물살을 가르며 무언가 다가온다.</div>
+      <div><span class="turn">[02]</span>강철 파이프 · 명중 · <span class="hi">14</span> 피해</div>
+      <div><span class="turn">[03]</span>회피 성공 <span class="hi">▸ 민첩 성장 +1</span></div>
+      <div><span class="turn">[04]</span>크리티컬 · <span class="crit">31</span> 피해 <span class="bleed">▸ 출혈 +1</span></div>
+      <div><span class="turn">[05]</span>출혈 · <span class="bleed">4</span> 지속 피해</div>
+      <div><span class="turn">[06]</span>피격 · <span class="dmg">12</span> 피해 <span class="hi">▸ 체력 성장 +1</span></div>
+      <div><span class="turn">[07]</span>관통 저항 성공</div>
+      <div><span class="turn">[08]</span>강철 파이프 · 명중 · <span class="hi">16</span> 피해</div>
+      <div class="rl">전투 종료 · 승리</div>
+      <div><span class="turn">▸</span>회복하기 — 지참품 사용</div>
+      <div><span class="turn">[09]</span>응급키트 사용 · 생명력 <span class="heal">+40</span></div>
+      <div class="now"><span class="turn">▸</span>다음 행동을 선택하세요.</div>
+    </div>
+    <div class="decide">
+      <button class="btn">다음 전투</button>
+      <button class="btn">회복하기</button>
+      <button class="btn ghost">귀환·도망</button>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!-- @dsCard group="Spacing" viewport="700x210" name="Spacing grid" subtitle="4px base · 16px gutter · ≥44px tap rows" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-base);color:var(--text-hi);font-family:var(--font-ui);padding:20px}
+  .row{display:flex;align-items:flex-end;gap:16px;height:70px}
+  .u{display:flex;flex-direction:column;align-items:center;gap:7px}
+  .box{background:var(--sato-dim);border-radius:2px;width:22px}
+  .t{font-family:var(--font-mono);font-size:10.5px;color:var(--text-lo)}
+  .note{font-family:var(--font-mono);font-size:11px;color:var(--text-lo);margin-top:16px;display:flex;gap:20px}
+  .note b{color:var(--text-mid);font-weight:500}
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="u"><div class="box" style="height:4px"></div><span class="t">4</span></div>
+    <div class="u"><div class="box" style="height:8px"></div><span class="t">8</span></div>
+    <div class="u"><div class="box" style="height:12px"></div><span class="t">12</span></div>
+    <div class="u"><div class="box" style="height:16px"></div><span class="t">16</span></div>
+    <div class="u"><div class="box" style="height:20px"></div><span class="t">20</span></div>
+    <div class="u"><div class="box" style="height:24px"></div><span class="t">24</span></div>
+    <div class="u"><div class="box" style="height:32px"></div><span class="t">32</span></div>
+    <div class="u"><div class="box" style="height:40px"></div><span class="t">40</span></div>
+  </div>
+  <div class="note"><span><b>--gutter</b> 16px</span><span><b>--row-min</b> 44px</span><span><b>--bar-h</b> 6px</span></div>
+</body>
+</html>

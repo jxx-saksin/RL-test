@@ -1,0 +1,39 @@
+<!-- @dsCard group="Colors" viewport="700x250" name="Resources & status tokens" subtitle="Life, stamina, growth, durability + 4 status effects" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-base);color:var(--text-hi);font-family:var(--font-ui);padding:20px;display:flex;flex-direction:column;gap:16px}
+  .bars{display:flex;flex-direction:column;gap:11px}
+  .bar{display:flex;align-items:center;gap:12px}
+  .lb{font-family:var(--font-mono);font-size:11px;color:var(--text-lo);letter-spacing:var(--tr-label);width:120px}
+  .track{flex:1;height:var(--bar-h);background:var(--surface-3);border-radius:var(--r-pill);overflow:hidden}
+  .fill{height:100%;border-radius:var(--r-pill)}
+  .val{font-family:var(--font-mono);font-size:12px;color:var(--text-mid);width:70px;text-align:right;font-variant-numeric:tabular-nums}
+  .st{display:flex;gap:8px;flex-wrap:wrap}
+  .tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;padding:4px 9px;border-radius:var(--r-chip);background:var(--surface-1);border:1px solid var(--line-1);color:var(--text-mid)}
+  .sd{width:8px;height:8px;border-radius:var(--r-pill)}
+  .cap{font-family:var(--font-mono);font-size:11px;color:var(--text-lo);letter-spacing:var(--tr-label)}
+</style>
+</head>
+<body>
+  <div class="bars">
+    <div class="bar"><span class="lb">생명력 HP</span><div class="track"><div class="fill" style="width:78%;background:var(--hp)"></div></div><span class="val">128/140</span></div>
+    <div class="bar"><span class="lb">스태미너 STA</span><div class="track"><div class="fill" style="width:45%;background:var(--stamina)"></div></div><span class="val">9/20</span></div>
+    <div class="bar"><span class="lb">성장 GROWTH</span><div class="track"><div class="fill" style="width:62%;background:var(--growth)"></div></div><span class="val">62%</span></div>
+    <div class="bar"><span class="lb">내구도 DUR</span><div class="track"><div class="fill" style="width:34%;background:var(--durability)"></div></div><span class="val">17/50</span></div>
+  </div>
+  <div>
+    <div class="cap" style="margin-bottom:9px">STATUS EFFECTS · 상태이상</div>
+    <div class="st">
+      <span class="tag"><span class="sd" style="background:var(--st-bleed)"></span>출혈 Bleed</span>
+      <span class="tag"><span class="sd" style="background:var(--st-stun)"></span>기절 Stun</span>
+      <span class="tag"><span class="sd" style="background:var(--st-pierce)"></span>관통 Pierce</span>
+      <span class="tag"><span class="sd" style="background:var(--st-rupture)"></span>파열 Rupture</span>
+    </div>
+  </div>
+</body>
+</html>

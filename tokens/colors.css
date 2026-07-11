@@ -1,0 +1,74 @@
+/* ============================================================
+   COLORS
+   A cold, near-black ledger. Neutral base with a whisper of blue
+   (hue ~264) so it reads as "cold / clinical", never warm-cozy.
+   Accents are muted ink, not neon — the apocalypse shows through
+   restraint and a few sharp semantic signals, never through
+   saturated "game" color. There is NO rarity color system:
+   items have no grades, so nothing is tinted by quality.
+   ============================================================ */
+:root {
+  /* --- Neutrals: elevation ladder (darkest → lightest) --- */
+  --bg-void:     oklch(0.150 0.006 264);  /* behind everything */
+  --bg-base:     oklch(0.185 0.006 264);  /* screen background */
+  --surface-1:   oklch(0.215 0.007 264);  /* cards, sheets, bars */
+  --surface-2:   oklch(0.255 0.008 264);  /* raised / row hover-press */
+  --surface-3:   oklch(0.300 0.009 264);  /* inputs, tracks, wells */
+
+  /* --- Hairlines & borders --- */
+  --line-1:      oklch(0.340 0.008 264);  /* hairline divider (log rhythm) */
+  --line-2:      oklch(0.420 0.010 264);  /* component border */
+
+  /* --- Text tiers --- */
+  --text-hi:     oklch(0.940 0.004 264);  /* primary (dimmed white) */
+  --text-mid:    oklch(0.740 0.006 264);  /* secondary */
+  --text-lo:     oklch(0.550 0.008 264);  /* labels, tertiary */
+  --text-faint:  oklch(0.420 0.008 264);  /* timestamps, disabled */
+
+  /* --- Semantic ink (muted) --- */
+  --danger:      oklch(0.620 0.120 28);   /* death, destroy, permanent loss */
+  --danger-dim:  oklch(0.400 0.070 28);   /* danger fill / track */
+  --warn:        oklch(0.740 0.085 72);   /* caution, durability warning */
+  --warn-dim:    oklch(0.460 0.050 72);
+  --good:        oklch(0.720 0.078 148);  /* success, recovery ok (greener) */
+  --good-dim:    oklch(0.440 0.048 148);
+  --sato:        oklch(0.740 0.055 224);  /* currency / asset (bluer) */
+  --sato-dim:    oklch(0.450 0.035 224);
+
+  /* --- Resource fills --- */
+  --hp:          oklch(0.580 0.100 25);   /* 생명력 (life) */
+  --stamina:     oklch(0.720 0.075 74);   /* 스태미너 (fatigue/food) */
+  --growth:      oklch(0.660 0.045 264);  /* 성장/경험 (permanent growth) */
+  --durability:  oklch(0.740 0.012 250);  /* 내구도 (brighter cool gray) */
+
+  /* --- Status-effect log tokens (4종) --- */
+  --st-bleed:    oklch(0.640 0.120 28);   /* 출혈 (slash) */
+  --st-stun:     oklch(0.800 0.090 88);   /* 기절 (blunt) */
+  --st-pierce:   oklch(0.700 0.055 232);  /* 관통 (thrust) */
+  --st-rupture:  oklch(0.660 0.090 330);  /* 파열 (strike) */
+
+  /* --- Utility --- */
+  --scrim:       oklch(0.100 0.005 264 / 0.66); /* dialog backdrop */
+  --focus:       oklch(0.760 0.050 196);        /* focus ring */
+
+  /* ========================================================
+     SEMANTIC ALIASES — reference these in product code.
+     ======================================================== */
+  --app-bg:            var(--bg-void);
+  --screen-bg:         var(--bg-base);
+  --surface-card:      var(--surface-1);
+  --surface-raised:    var(--surface-2);
+  --surface-well:      var(--surface-3);
+  --border-hair:       var(--line-1);
+  --border-strong:     var(--line-2);
+
+  --text-primary:      var(--text-hi);
+  --text-secondary:    var(--text-mid);
+  --text-label:        var(--text-lo);
+  --text-muted:        var(--text-faint);
+
+  --accent-asset:      var(--sato);      /* balances, prices, gains */
+  --accent-danger:     var(--danger);    /* destructive, death */
+  --accent-caution:    var(--warn);      /* irreversible warning */
+  --accent-positive:   var(--good);      /* heal / success */
+}

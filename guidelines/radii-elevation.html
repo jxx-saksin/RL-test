@@ -1,0 +1,30 @@
+<!-- @dsCard group="Spacing" viewport="700x180" name="Radii & elevation" subtitle="Restrained corners; shadow only for floating layers" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-base);color:var(--text-hi);font-family:var(--font-ui);padding:20px;display:flex;flex-direction:column;gap:18px}
+  .row{display:flex;gap:14px;align-items:center}
+  .r{background:var(--surface-2);border:1px solid var(--line-1);width:74px;height:52px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:5px}
+  .t{font-family:var(--font-mono);font-size:10px;color:var(--text-lo)}
+  .el{background:var(--surface-1);border:1px solid var(--line-1);border-radius:var(--r-card);width:120px;height:52px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:11px;color:var(--text-lo)}
+  .floating{box-shadow:var(--shadow-pop)}
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="r" style="border-radius:var(--r-chip)"><span class="t">chip 4</span></div>
+    <div class="r" style="border-radius:var(--r-input)"><span class="t">input 6</span></div>
+    <div class="r" style="border-radius:var(--r-card)"><span class="t">card 8</span></div>
+    <div class="r" style="border-radius:var(--r-sheet)"><span class="t">sheet 14</span></div>
+    <div class="r" style="border-radius:var(--r-pill);width:52px"><span class="t">pill</span></div>
+  </div>
+  <div class="row">
+    <div class="el">flat card · hairline</div>
+    <div class="el floating">floating · --shadow-pop</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,45 @@
+/* ============================================================
+   TYPOGRAPHY
+   Log readability is the center of the UX. Two families:
+     UI  (IBM Plex Sans KR) — labels, headings, body, buttons.
+     MONO(IBM Plex Mono)    — combat log, all numbers, stat values,
+                              timestamps, item stats, prices, IDs.
+   Rule of thumb: anything a player *reads as data* is mono &
+   tabular; anything they read as *language* is sans.
+   Mobile-first scale; nothing below 11px.
+   ============================================================ */
+:root {
+  --font-ui:   'IBM Plex Sans KR', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Weights */
+  --w-regular: 400;
+  --w-medium:  500;
+  --w-semibold:600;
+  --w-bold:    700;
+
+  /* Type scale (px) — mobile */
+  --fs-display:  24px;   /* screen title */
+  --fs-title:    19px;   /* section / sheet title */
+  --fs-heading:  16px;   /* card heading, list primary */
+  --fs-body:     15px;   /* body copy */
+  --fs-log:      14px;   /* combat log line (mono) */
+  --fs-value:    14px;   /* numeric stat value (mono) */
+  --fs-label:    12px;   /* mono kicker label / tag */
+  --fs-caption:  11px;   /* timestamp, footnote (mono) */
+
+  /* Line heights */
+  --lh-tight:  1.15;   /* display / titles */
+  --lh-snug:   1.35;   /* headings, list rows */
+  --lh-body:   1.55;   /* body copy */
+  --lh-log:    1.62;   /* log rhythm — deliberately open */
+
+  /* Tracking */
+  --tr-tight:   -0.01em;  /* large sans */
+  --tr-normal:   0em;
+  --tr-label:    0.08em;  /* mono kicker labels (KR can't uppercase) */
+  --tr-wide:     0.14em;  /* rare all-caps EN labels / grades */
+
+  /* Numerals — finance/ledger feel */
+  --numeric: "tnum" 1, "lnum" 1;  /* tabular lining figures */
+}

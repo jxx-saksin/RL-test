@@ -1,0 +1,31 @@
+/* ============================================================
+   SPACING & RADII
+   4px base grid. Mobile gutter is 16px. Tight, information-dense
+   like a productivity/finance app — generous whitespace is a
+   luxury this world doesn't have, but rows must stay ≥44px tappable.
+   ============================================================ */
+:root {
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;   /* screen gutter */
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-7:  32px;
+  --sp-8:  40px;
+
+  --gutter:     var(--sp-4);
+  --row-min:    44px;   /* min tap target */
+  --bar-h:      6px;    /* resource bar thickness (thin) */
+  --bar-h-lg:   8px;
+
+  /* Radii — restrained, not "gamey" bubbly */
+  --r-chip:   4px;    /* tags, small chips */
+  --r-input:  6px;    /* inputs, buttons */
+  --r-card:   8px;    /* cards */
+  --r-sheet:  14px;   /* dialogs, bottom sheets */
+  --r-pill:   999px;  /* bars, dots */
+
+  /* Hairline width */
+  --hair: 1px;
+}

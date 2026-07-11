@@ -1,0 +1,84 @@
+<!-- @dsCard group="Components" viewport="700x640" name="Item — bottom sheet" subtitle="Detail as a sheet rising from the bottom over a dimmed screen" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-void);font-family:var(--font-ui);color:var(--text-hi);padding:20px;display:flex;justify-content:center}
+  .phone{position:relative;width:360px;height:600px;background:var(--bg-base);border:1px solid var(--line-1);border-radius:20px;overflow:hidden}
+
+  /* dimmed background (inventory) */
+  .bg{padding:16px 15px}
+  .bgt{font-family:var(--font-mono);font-size:11px;color:var(--text-lo);letter-spacing:var(--tr-label);margin-bottom:10px}
+  .brow{display:flex;align-items:center;gap:10px;min-height:44px;border-top:1px solid var(--line-1)}
+  .brow:first-of-type{border-top:0}
+  .bcat{font-family:var(--font-mono);font-size:9.5px;color:var(--text-lo);width:38px}
+  .bnm{font-size:14px;color:var(--text-mid);flex:1}
+  .bval{font-family:var(--font-mono);font-size:12px;color:var(--text-faint)}
+
+  .scrim{position:absolute;inset:0;background:var(--scrim)}
+
+  /* bottom sheet */
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface-1);border-top:1px solid var(--line-2);border-radius:var(--r-sheet) var(--r-sheet) 0 0;box-shadow:var(--shadow-sheet);overflow:hidden}
+  .handle{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:38px;height:4px;border-radius:var(--r-pill);background:oklch(0.9 0 0 / .35);z-index:2}
+  .grip{height:26px;display:flex;align-items:center;justify-content:center;background:var(--surface-1);border-radius:var(--r-sheet) var(--r-sheet) 0 0}
+  .grip span{width:38px;height:4px;border-radius:var(--r-pill);background:oklch(0.9 0 0 / .3)}
+  .art{position:relative;height:150px;background:var(--surface-3);overflow:hidden}
+  .art img{width:100%;height:100%;object-fit:cover;object-position:center 30%;display:block}
+  .art .scr{position:absolute;inset:auto 0 0 0;height:56px;background:linear-gradient(to bottom,transparent,var(--surface-1))}
+  .art .cat{position:absolute;left:15px;bottom:10px;font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:var(--tr-label);text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  .art .eq{position:absolute;right:15px;top:14px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:var(--tr-wide);color:var(--good);background:oklch(0.15 0.006 264 / .55);backdrop-filter:blur(3px);border:1px solid var(--good-dim);border-radius:var(--r-chip);padding:3px 8px}
+
+  .info{padding:13px 16px 20px}
+  .nm{font-size:18px;font-weight:600}
+  .dur{display:flex;align-items:center;gap:10px;margin-top:11px}
+  .durl{font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:var(--tr-label);width:54px}
+  .trk{flex:1;height:var(--bar-h);background:var(--surface-3);border-radius:var(--r-pill);overflow:hidden}
+  .fl{height:100%;background:var(--durability);border-radius:var(--r-pill)}
+  .dv{font-family:var(--font-mono);font-size:11px;color:var(--text-mid);width:64px;text-align:right;font-variant-numeric:tabular-nums}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;margin-top:12px;font-family:var(--font-mono);font-size:12px;font-variant-numeric:tabular-nums}
+  .row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line-1)}
+  .row .l{color:var(--text-lo)}
+  .row .v{color:var(--text-hi)}
+  .stt{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:7px;height:7px;border-radius:var(--r-pill);background:var(--st-stun)}
+
+  .actions{display:flex;gap:9px;padding:14px 16px 18px}
+  .btn{flex:1;text-align:center;font-size:14px;font-weight:500;padding:12px;border-radius:var(--r-input);border:1px solid var(--line-2);background:var(--surface-3);color:var(--text-hi)}
+  .btn.ghost{background:transparent;color:var(--text-mid)}
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="bg">
+      <div class="bgt">인벤토리 · 무기</div>
+      <div class="brow"><span class="bcat">무기</span><span class="bnm">녹슨 기어 철퇴</span><span class="bval">18–34</span></div>
+      <div class="brow"><span class="bcat">무기</span><span class="bnm">깨진 유리 단도</span><span class="bval">9–41</span></div>
+      <div class="brow"><span class="bcat">갑옷</span><span class="bnm">방수 작업복</span><span class="bval">방어 12</span></div>
+    </div>
+    <div class="scrim"></div>
+
+    <div class="sheet">
+      <div class="grip"><span></span></div>
+      <div class="art">
+        <img src="../assets/items/gear-mace.jpg" alt="녹슨 기어 철퇴">
+        <div class="scr"></div>
+        <div class="eq">착용중</div>
+        <div class="cat">무기 · 둔기 · 금속</div>
+      </div>
+      <div class="info">
+        <div class="nm">녹슨 기어 철퇴</div>
+        <div class="dur"><span class="durl">내구도</span><div class="trk"><div class="fl" style="width:34%"></div></div><span class="dv">17/50</span></div>
+        <div class="stats">
+          <div class="row"><span class="l">공격력</span><span class="v">18–34</span></div>
+          <div class="row"><span class="l">공격 속도</span><span class="v">0.8</span></div>
+          <div class="row"><span class="l">적중률</span><span class="v">+6%</span></div>
+          <div class="row"><span class="l">상태이상</span><span class="v stt"><span class="dot"></span>기절</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

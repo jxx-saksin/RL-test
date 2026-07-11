@@ -1,0 +1,244 @@
+<!-- @dsCard group="Screens" viewport="430x800" name="S6 · 상점 (보건소)" subtitle="상점 이미지 헤더 · 구매/판매 리스트 + 수량 토스트 · NPC 대화" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-void);font-family:var(--font-ui);color:var(--text-hi);display:flex;justify-content:center;padding:16px}
+  .phone{position:relative;width:390px;background:var(--bg-base);border:1px solid var(--line-1);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;height:760px}
+
+  /* hero header */
+  .hero{position:relative;flex:0 0 auto;height:184px;background:var(--surface-3);overflow:hidden}
+  .hero img{width:100%;height:100%;object-fit:cover;object-position:50% 42%;display:block;transition:opacity var(--dur-base) var(--ease)}
+  .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom, oklch(0.15 0.006 264 / .35) 0%, transparent 30%, oklch(0.185 0.006 264 / .55) 70%, var(--bg-base) 100%)}
+  .hero.quest img{object-position:50% 14%}
+  .hero.quest .bal{display:none}
+  .htitle{position:absolute;left:18px;bottom:12px;z-index:2}
+  .htitle .t{font-size:20px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+  .htitle .npc{display:block;font-family:var(--font-mono);font-size:11px;color:var(--text-mid);margin-top:3px;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  .hero.quest .htitle .npc{display:block}
+
+  .topbar{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:center;padding:12px 14px}
+  .back{font-family:var(--font-mono);font-size:20px;color:var(--text-hi);cursor:pointer;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,.6);height:34px;display:flex;align-items:center}
+  .bal{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--surface-1);border:1px solid var(--line-1);border-radius:var(--r-input);padding:7px 10px}
+  .satochip{font-family:var(--font-mono);font-size:9px;letter-spacing:var(--tr-wide);color:var(--sato);border:1px solid var(--sato-dim);border-radius:var(--r-chip);padding:2px 6px}
+  .bal .v{font-family:var(--font-mono);font-size:16px;color:var(--sato);font-variant-numeric:tabular-nums}
+
+  .tabs{flex:0 0 auto;display:flex;gap:22px;padding:10px 18px 0;border-bottom:1px solid var(--line-1)}
+  .tab{font-size:14px;font-weight:500;color:var(--text-lo);background:none;border:0;padding:6px 0 12px;cursor:pointer;position:relative}
+  .tab.on{color:var(--text-hi)}
+  .tab.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--text-hi);border-radius:var(--r-pill)}
+
+  .view{flex:1 1 auto;overflow-y:auto;display:none}
+  .view.on{display:block}
+  .view::-webkit-scrollbar{display:none}
+  .gatenote{font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint);letter-spacing:var(--tr-label);padding:12px 18px 4px}
+
+  .row{display:flex;align-items:flex-start;gap:11px;min-height:58px;padding:11px 16px;border-top:1px solid var(--line-1);cursor:pointer}
+  .row:first-of-type{border-top:0}
+  .row:hover{background:var(--surface-1)}
+  .cat{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:9.5px;color:var(--text-mid);background:var(--surface-2);border:1px solid var(--line-1);border-radius:var(--r-chip);padding:3px 7px;flex:0 0 auto;margin-top:2px}
+  .cat .dot{width:5px;height:5px;border-radius:var(--r-pill);background:var(--text-lo)}
+  .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+  .line1{display:flex;align-items:baseline;gap:8px;min-width:0}
+  .nm{font-size:14px;color:var(--text-hi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stack{font-family:var(--font-mono);font-size:11px;color:var(--text-faint);flex:0 0 auto;font-variant-numeric:tabular-nums}
+  .sub2{font-size:12px;color:var(--text-lo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .price{align-self:center;font-family:var(--font-mono);font-size:13px;color:var(--sato);font-variant-numeric:tabular-nums;flex:0 0 auto}
+  .chev{align-self:center;color:var(--text-faint);font-size:16px;flex:0 0 auto}
+
+  /* quest chat */
+  #quest{padding:0;overflow:hidden}
+  #quest.on{display:flex;flex-direction:column}
+  .chat{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:16px 16px 10px}
+  .chat::-webkit-scrollbar{display:none}
+  .qchoices{flex:0 0 auto;display:flex;flex-direction:column;gap:8px;padding:12px 16px 18px;border-top:1px solid var(--line-1);background:var(--bg-base)}
+  .msg{max-width:82%;font-size:14px;line-height:1.55;padding:11px 13px;border-radius:var(--r-card)}
+  .msg.npc{align-self:flex-start;background:var(--surface-1);border:1px solid var(--line-1);color:var(--text-hi);border-top-left-radius:4px}
+  .msg.me{align-self:flex-end;background:var(--surface-3);color:var(--text-hi);border-top-right-radius:4px}
+  .choices{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+  .choice{text-align:left;font-size:14px;color:var(--text-hi);background:transparent;border:1px solid var(--line-2);border-radius:var(--r-input);padding:12px 14px;cursor:pointer}
+  .choice:hover{background:var(--surface-2)}
+  .wip{font-family:var(--font-mono);font-size:10.5px;color:var(--warn);letter-spacing:var(--tr-label);align-self:flex-start;margin-top:2px}
+
+  /* trade toast */
+  .toast{position:absolute;inset:0;display:none;align-items:flex-end;z-index:6}
+  .toast.open{display:flex}
+  .toast .scrim{position:absolute;inset:0;background:var(--scrim)}
+  .sheet{position:relative;width:100%;background:var(--surface-1);border-top:1px solid var(--line-2);border-radius:var(--r-sheet) var(--r-sheet) 0 0;box-shadow:var(--shadow-sheet);padding:0 18px 20px}
+  .grip{height:24px;display:flex;align-items:center;justify-content:center}
+  .grip span{width:38px;height:4px;border-radius:var(--r-pill);background:oklch(0.9 0 0 / .3)}
+  .tart{margin:4px -18px 14px;height:128px;position:relative;overflow:hidden;background:var(--surface-3)}
+  .tart img{width:100%;height:100%;object-fit:cover;display:block}
+  .tart .ph{width:100%;height:100%;background:repeating-linear-gradient(135deg, oklch(0.26 0.008 264) 0 9px, oklch(0.23 0.007 264) 9px 18px);display:flex;align-items:center;justify-content:center}
+  .tart .ph span{font-family:var(--font-mono);font-size:11px;color:var(--text-faint);letter-spacing:var(--tr-label)}
+  .tart::after{content:"";position:absolute;inset:auto 0 0 0;height:38px;background:linear-gradient(to bottom,transparent,var(--surface-1))}
+  .thead{display:flex;align-items:baseline;gap:8px;padding-bottom:4px}
+  .tnm{font-size:17px;font-weight:600}
+  .tunit{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--sato);font-variant-numeric:tabular-nums}
+  .tsub{font-family:var(--font-mono);font-size:11px;color:var(--text-lo);padding-bottom:14px}
+  .stepper{display:flex;align-items:center;gap:14px;justify-content:center;padding:6px 0 14px}
+  .step{width:40px;height:40px;border-radius:var(--r-input);border:1px solid var(--line-2);background:var(--surface-2);color:var(--text-hi);font-size:20px;cursor:pointer}
+  .step:disabled{color:var(--text-faint);cursor:not-allowed}
+  .qty{font-family:var(--font-mono);font-size:24px;min-width:54px;text-align:center;font-variant-numeric:tabular-nums}
+  .total{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-top:1px solid var(--line-1);font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+  .total .tl{font-size:12px;color:var(--text-lo);letter-spacing:var(--tr-label)}
+  .total .tv{font-size:18px;color:var(--sato)}
+  .confirm{width:100%;font-size:15px;font-weight:600;padding:14px;border-radius:var(--r-input);border:1px solid var(--line-2);background:var(--surface-3);color:var(--text-hi);cursor:pointer;margin-top:4px}
+  .confirm:disabled{color:var(--text-faint);background:var(--surface-1);cursor:not-allowed}
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="hero" id="hero">
+      <img id="heroimg" src="../../assets/shops/clinic.jpg" alt="보건소">
+      <div class="topbar">
+        <span class="back">‹</span>
+        <div class="bal"><span class="satochip">SATO</span><span class="v" id="bal">1,284</span></div>
+      </div>
+      <div class="htitle"><div class="t" id="h-t">보건소</div><div class="npc" id="h-npc">응급 처치·약품 조제</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab on" id="t-buy" onclick="tab('buy')">구매</button>
+      <button class="tab" id="t-sell" onclick="tab('sell')">판매</button>
+      <button class="tab" id="t-quest" onclick="tab('quest')">퀘스트</button>
+    </div>
+
+    <div class="view on" id="buy">
+      <div class="gatenote">보건소 · 약품 거래 — 재고는 출정 N회마다 리셋</div>
+      <div id="buy-list"></div>
+    </div>
+    <div class="view" id="sell">
+      <div class="gatenote">이 상점은 약품만 매입합니다 · 매입가는 아이템 기준값</div>
+      <div id="sell-list"></div>
+    </div>
+    <div class="view" id="quest">
+      <div class="chat" id="chat"></div>
+      <div class="qchoices" id="qchoices"></div>
+    </div>
+
+    <div class="toast" id="toast">
+      <div class="scrim" onclick="closeTrade()"></div>
+      <div class="sheet">
+        <div class="grip"><span></span></div>
+        <div class="tart" id="tr-art"></div>
+        <div class="thead"><span class="tnm" id="tr-nm"></span><span class="tunit" id="tr-unit"></span></div>
+        <div class="tsub" id="tr-sub"></div>
+        <div class="stepper">
+          <button class="step" id="tr-minus" onclick="stepQty(-1)">−</button>
+          <span class="qty" id="tr-qty">1</span>
+          <button class="step" id="tr-plus" onclick="stepQty(1)">+</button>
+        </div>
+        <div class="total"><span class="tl" id="tr-tl">합계</span><span class="tv" id="tr-total"></span></div>
+        <button class="confirm" id="tr-confirm" onclick="confirmTrade()"></button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let sato = 1284;
+    const setBal = () => document.getElementById('bal').textContent = sato.toLocaleString();
+
+    const buyItems = [
+      {id:'b1', img:'../../assets/items/first-aid.jpg', name:'응급키트', sub:'체력 +40', price:60, stock:5},
+      {id:'b2', img:'../../assets/items/first-aid.jpg', name:'붕대', sub:'체력 +15 · 지혈', price:25, stock:8},
+      {id:'b3', name:'해독제', sub:'상태이상 해제', price:80, stock:2},
+      {id:'b4', name:'진통제', sub:'체력 +20', price:40, stock:99},
+    ];
+    const sellItems = [
+      {id:'s1', img:'../../assets/items/first-aid.jpg', name:'응급키트', cat:'약품', qty:3, price:30},
+      {id:'s2', img:'../../assets/items/first-aid.jpg', name:'붕대', cat:'약품', qty:2, price:12},
+    ];
+
+    function tab(v){
+      ['buy','sell','quest'].forEach(k=>{
+        document.getElementById(k).classList.toggle('on', k===v);
+        document.getElementById('t-'+k).classList.toggle('on', k===v);
+      });
+      const hero = document.getElementById('hero');
+      const img = document.getElementById('heroimg');
+      if(v==='quest'){ hero.classList.add('quest'); img.src='../../assets/shops/sokolov.jpg'; document.getElementById('h-t').textContent='유리 소콜로프'; document.getElementById('h-npc').textContent='보건소 · 전직 군의관'; }
+      else { hero.classList.remove('quest'); img.src='../../assets/shops/clinic.jpg'; document.getElementById('h-t').textContent='보건소'; document.getElementById('h-npc').textContent='응급 처치·약품 조제'; }
+    }
+    function renderBuy(){
+      document.getElementById('buy-list').innerHTML = buyItems.map(it=>`
+        <div class="row" onclick="openTrade('buy','${it.id}')">
+          <span class="cat"><span class="dot"></span>약품</span>
+          <span class="info"><span class="line1"><span class="nm">${it.name}</span></span><span class="sub2">${it.sub} · 재고 ${it.stock>=99?'∞':it.stock}</span></span>
+          <span class="price">${it.price}</span><span class="chev">›</span>
+        </div>`).join('');
+    }
+    function renderSell(){
+      document.getElementById('sell-list').innerHTML = sellItems.map(it=>`
+        <div class="row" onclick="openTrade('sell','${it.id}')">
+          <span class="cat"><span class="dot"></span>${it.cat}</span>
+          <span class="info"><span class="line1"><span class="nm">${it.name}</span><span class="stack">×${it.qty}</span></span><span class="sub2">약품 거래 가능 · 매입가 개당 ${it.price}</span></span>
+          <span class="price">+${it.price}</span><span class="chev">›</span>
+        </div>`).join('');
+    }
+
+    let trade = null;
+    function openTrade(mode, id){
+      const it = (mode==='buy'?buyItems:sellItems).find(i=>i.id===id);
+      trade = {mode, it, n:1};
+      document.getElementById('tr-art').innerHTML = it.img ? `<img src="${it.img}" alt="">` : `<div class="ph"><span>약품 · IMAGE</span></div>`;
+      document.getElementById('tr-nm').textContent = it.name;
+      document.getElementById('tr-unit').textContent = (mode==='buy'?'개당 ':'매입 ') + it.price;
+      document.getElementById('tr-sub').textContent = mode==='buy'
+        ? `재고 ${it.stock>=99?'∞':it.stock} · 보유 사토 ${sato.toLocaleString()}`
+        : `보유 ${it.qty}개 · 약품 거래 가능`;
+      document.getElementById('tr-confirm').textContent = mode==='buy'?'구매':'판매';
+      syncTrade();
+      document.getElementById('toast').classList.add('open');
+    }
+    function maxN(){
+      if(!trade) return 1;
+      if(trade.mode==='buy') return Math.max(1, Math.min(trade.it.stock, Math.floor(sato/trade.it.price)) || 1);
+      return Math.max(1, trade.it.qty);
+    }
+    function stepQty(d){ if(!trade) return; trade.n = Math.min(maxN(), Math.max(1, trade.n+d)); syncTrade(); }
+    function syncTrade(){
+      const t = trade, tot = t.it.price*t.n;
+      document.getElementById('tr-qty').textContent = t.n;
+      document.getElementById('tr-total').textContent = (t.mode==='buy'?'−':'+') + tot;
+      document.getElementById('tr-tl').textContent = t.mode==='buy'?'지불 사토':'획득 사토';
+      document.getElementById('tr-minus').disabled = t.n<=1;
+      document.getElementById('tr-plus').disabled = t.n>=maxN();
+      const canBuy = t.mode==='buy' ? sato>=tot : true;
+      document.getElementById('tr-confirm').disabled = !canBuy;
+    }
+    function confirmTrade(){
+      const t = trade, tot = t.it.price*t.n;
+      if(t.mode==='buy'){ if(sato<tot) return; sato-=tot; if(t.it.stock<99) t.it.stock-=t.n; }
+      else { t.it.qty-=t.n; sato+=tot; }
+      setBal(); renderBuy(); renderSell(); closeTrade();
+    }
+    function closeTrade(){ document.getElementById('toast').classList.remove('open'); }
+
+    /* quest chat — temporary (WIP) */
+    const dialogue = {
+      start:{npc:'약이 필요한가, 아니면 다른 볼일인가. 말수는 아끼는 편이니 용건만.', choices:[{t:'일거리가 있소?',go:'job'},{t:'그냥 둘러보는 중이오',go:'idle'}]},
+      job:{me:'일거리가 있소?', npc:'지하 3구역 폐병원에 진통제 원료가 남아 있다더군. 살아 돌아오면 값은 쳐주지.', choices:[{t:'맡겠소',go:'accept'},{t:'다음에 하겠소',go:'idle'}]},
+      idle:{me:'그냥 둘러보는 중이오', npc:'…필요하면 말하게.', choices:[{t:'다시 말 걸기',go:'start'}]},
+      accept:{me:'맡겠소', npc:'살아서 오게. 시체는 약도 못 쓰니까.', wip:true, choices:[{t:'대화 종료',go:'start'}]},
+    };
+    let chatLog = [];
+    function say(key){
+      const d = dialogue[key];
+      if(key==='start') chatLog = [];
+      if(d.me) chatLog.push({who:'me', text:d.me});
+      chatLog.push({who:'npc', text:d.npc, wip:d.wip});
+      const chat = document.getElementById('chat');
+      chat.innerHTML = chatLog.map(m=>`<div class="msg ${m.who}">${m.text}</div>${m.wip?'<div class="wip">※ 퀘스트 시스템 미구현 — 대화·선택지 임시</div>':''}`).join('')
+        + `<div class="choices" id="qc-inline" style="display:none"></div>`;
+      document.getElementById('qchoices').innerHTML = d.choices.map(c=>`<button class="choice" onclick="say('${c.go}')">${c.t}</button>`).join('');
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    setBal(); renderBuy(); renderSell(); say('start');
+  </script>
+</body>
+</html>

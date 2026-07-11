@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RL Extraction — Design System 전체 보기</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-void);color:var(--text-hi);font-family:var(--font-ui);padding:0 0 80px}
+  .wrap{max-width:1480px;margin:0 auto;padding:0 32px}
+
+  /* cover */
+  .cover{padding:64px 0 40px;border-bottom:1px solid var(--line-1)}
+  .kick{font-family:var(--font-mono);font-size:12px;color:var(--text-lo);letter-spacing:var(--tr-wide);margin-bottom:18px}
+  .title{font-size:44px;font-weight:700;letter-spacing:var(--tr-tight);line-height:1.05}
+  .title .dim{color:var(--text-lo);font-weight:400}
+  .lede{max-width:640px;margin-top:20px;font-size:16px;color:var(--text-mid);line-height:1.6}
+  .lede b{color:var(--text-hi);font-weight:500}
+  .metarow{display:flex;gap:28px;flex-wrap:wrap;margin-top:26px;font-family:var(--font-mono);font-size:11.5px;color:var(--text-lo)}
+  .metarow b{color:var(--text-mid);font-weight:500;display:block;margin-bottom:3px;letter-spacing:var(--tr-label)}
+
+  /* sections */
+  section{padding:48px 0 8px}
+  .shead{display:flex;align-items:baseline;gap:16px;margin-bottom:24px}
+  .snum{font-family:var(--font-mono);font-size:12px;color:var(--sato);letter-spacing:var(--tr-wide)}
+  .stitle{font-size:24px;font-weight:600;letter-spacing:var(--tr-tight)}
+  .sdesc{font-family:var(--font-mono);font-size:11.5px;color:var(--text-lo);margin-left:auto;max-width:360px;text-align:right;line-height:1.5}
+
+  .gallery{display:flex;flex-wrap:wrap;gap:20px}
+  .card{display:flex;flex-direction:column;gap:9px}
+  .card .lbl{font-family:var(--font-mono);font-size:11px;color:var(--text-mid);letter-spacing:var(--tr-label)}
+  .card .lbl .s{color:var(--text-faint);margin-left:8px;letter-spacing:0}
+  iframe{border:1px solid var(--line-1);border-radius:var(--r-card);background:var(--bg-base);display:block}
+  iframe.screen{border-radius:22px;background:var(--bg-void)}
+
+  .footer{margin-top:56px;padding-top:24px;border-top:1px solid var(--line-1);font-family:var(--font-mono);font-size:11.5px;color:var(--text-faint);line-height:1.7}
+  .footer b{color:var(--warn)}
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <rect width="100" height="100" fill="#16171b"/>
+    <rect x="30" y="30" width="40" height="40" rx="4" fill="none" stroke="#7fb2e6" stroke-width="2.5"/>
+    <line x1="38" y1="44" x2="62" y2="44" stroke="#8a8f99" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="38" y1="52" x2="56" y2="52" stroke="#8a8f99" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="38" y1="60" x2="60" y2="60" stroke="#8a8f99" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>
+</template>
+<div class="wrap">
+
+  <div class="cover">
+    <div class="kick">RL EXTRACTION · 가치의 역전 · DESIGN SYSTEM v1</div>
+    <div class="title">RL 프로젝트</div>
+    <div class="metarow">
+      <div><b>BASE</b>near-black 중립 (hue 264)</div>
+      <div><b>TYPE</b>Sans=언어 · Mono=데이터</div>
+      <div><b>PLATFORM</b>모바일 우선 · 세로</div>
+      <div><b>ICONS</b>Lucide · thin line</div>
+      <div><b>FONTS</b>⚠ IBM Plex (임시)</div>
+    </div>
+  </div>
+
+  <section>
+    <div class="shead"><span class="snum">01</span><span class="stitle">Colors</span><span class="sdesc">근-블랙 중립 5단계 · 딤드 텍스트 4단계 · 뮤트 잉크 시맨틱 · 자원/상태이상 토큰</span></div>
+    <div class="gallery">
+      <div class="card"><span class="lbl">Surfaces <span class="s">elevation ladder</span></span><iframe src="guidelines/colors-surfaces.html" width="700" height="220" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Text tiers <span class="s">4 dimmed</span></span><iframe src="guidelines/colors-text.html" width="700" height="180" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Semantic ink <span class="s">asset·danger·caution·positive</span></span><iframe src="guidelines/colors-semantic.html" width="700" height="230" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Resources & status <span class="s">HP·STA·성장·내구도 + 상태이상</span></span><iframe src="guidelines/colors-resources.html" width="700" height="250" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Status-effect colors <span class="s">출혈·기절·관통·파열</span></span><iframe src="guidelines/colors-status.html" width="700" height="150" scrolling="no"></iframe></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead"><span class="snum">02</span><span class="stitle">Typography</span><span class="sdesc">언어=Sans, 데이터=Mono+tabular · 로그 가독성이 중심</span></div>
+    <div class="gallery">
+      <div class="card"><span class="lbl">Two families <span class="s">언어 vs 데이터</span></span><iframe src="guidelines/type-families.html" width="700" height="240" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Type scale <span class="s">≥11px</span></span><iframe src="guidelines/type-scale.html" width="700" height="300" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Numerals <span class="s">tabular ledger</span></span><iframe src="guidelines/type-numerals.html" width="700" height="200" scrolling="no"></iframe></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead"><span class="snum">03</span><span class="stitle">Spacing & Form</span><span class="sdesc">4px 그리드 · 16px 거터 · 절제된 라운드 · 부유 레이어만 그림자</span></div>
+    <div class="gallery">
+      <div class="card"><span class="lbl">Spacing grid <span class="s">4px base</span></span><iframe src="guidelines/spacing.html" width="700" height="210" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Radii & elevation</span><iframe src="guidelines/radii-elevation.html" width="700" height="180" scrolling="no"></iframe></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead"><span class="snum">04</span><span class="stitle">Components</span><span class="sdesc">로그 뷰(히어로) · 자원/스탯 바 · 아이템/몬스터 카드 · 카테고리 태그 · 리스트 · 탭 내비 · 다이얼로그 · 버튼</span></div>
+    <div class="gallery">
+      <div class="card"><span class="lbl">Log View <span class="s">전투 · hero</span></span><iframe src="components/log-view.html" width="700" height="460" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Resource / Stat Bars</span><iframe src="components/resource-bars.html" width="700" height="250" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Item Card <span class="s">장비 + 소모품 · 등급 색 없음</span></span><iframe src="components/item-card.html" width="760" height="700" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Monster Card <span class="s">고유 아트웍 + 2차 스탯</span></span><iframe src="components/monster-card.html" width="700" height="540" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Item · bottom sheet <span class="s">하단에서 올라오는 시트</span></span><iframe src="components/item-sheet.html" width="700" height="640" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Monster · bottom sheet <span class="s">하단에서 올라오는 시트</span></span><iframe src="components/monster-sheet.html" width="700" height="640" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Category Tags <span class="s">11종</span></span><iframe src="components/category-tags.html" width="700" height="240" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">List <span class="s">finance/settings rows</span></span><iframe src="components/list.html" width="700" height="440" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">List · single-line items <span class="s">한 줄 아이템 리스트</span></span><iframe src="components/list-items.html" width="700" height="400" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">List · two-line items <span class="s">태그 · 이름+갯수 · 설명</span></span><iframe src="components/list-twoline.html" width="700" height="380" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Tab Navigation</span><iframe src="components/tab-nav.html" width="700" height="180" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Confirm Dialog <span class="s">되돌릴 수 없는 행동</span></span><iframe src="components/dialog.html" width="700" height="360" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">Buttons</span><iframe src="components/buttons.html" width="700" height="220" scrolling="no"></iframe></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead"><span class="snum">05</span><span class="stitle">Screens</span><span class="sdesc">모바일 세로 · 토큰과 컴포넌트로 조립한 실제 화면</span></div>
+    <div class="gallery">
+      <div class="card"><span class="lbl">S2 · 안전가옥 (상점) <span class="s">상주 상인 리스트</span></span><iframe class="screen" src="ui_kits/game/S2-safehouse.html" width="422" height="792" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">S6 · 상점 (보건소) <span class="s">구매·판매·퀘스트 대화</span></span><iframe class="screen" src="ui_kits/game/S6-shop.html" width="422" height="792" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">S3 · 출정 (존 선택) <span class="s">가로 도시 카드</span></span><iframe class="screen" src="ui_kits/game/S3-zone-select.html" width="422" height="792" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">S4 · 전투 로그 <span class="s">the heart</span></span><iframe class="screen" src="ui_kits/game/S4-combat.html" width="422" height="792" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">S7 · 인벤토리 <span class="s">보관함 ↔ 가방 이동</span></span><iframe class="screen" src="ui_kits/game/S7-inventory.html" width="422" height="792" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">S8 · 캐릭터 <span class="s">1차 성장 바 · 2차 텍스트 · 착용</span></span><iframe class="screen" src="ui_kits/game/S8-character.html" width="422" height="792" scrolling="no"></iframe></div>
+      <div class="card"><span class="lbl">S11 · 설정 <span class="s">계정 · 언어 · 피드백</span></span><iframe class="screen" src="ui_kits/game/S11-settings.html" width="422" height="792" scrolling="no"></iframe></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="shead"><span class="snum">06</span><span class="stitle">Iconography</span><span class="sdesc">Lucide · thin line · monochrome · 내비·액션·카테고리 글리프 (총 17)</span></div>
+    <div class="gallery">
+      <div class="card"><span class="lbl">Icons in use <span class="s">내비 5 · 액션 6 · 카테고리 6</span></span><iframe src="guidelines/icons.html" width="700" height="520" scrolling="no"></iframe></div>
+    </div>
+  </section>
+
+  <div class="footer">
+    <b>⚠ 폰트는 임시 (IBM Plex Sans KR + IBM Plex Mono).</b> 실제 EN/숫자/한글 폰트 주시면 tokens/fonts.css 두 줄만 교체하면 됩니다.<br>
+    파일: styles.css · tokens/ · guidelines/ · components/ · ui_kits/game/ · readme.md · SKILL.md — 개별 카드는 Design System 탭에서도 볼 수 있습니다.
+  </div>
+
+</div>
+</body>
+</html>

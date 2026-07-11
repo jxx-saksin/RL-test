@@ -1,0 +1,197 @@
+<!-- @dsCard group="Screens" viewport="430x800" name="S7 · 인벤토리" subtitle="금고(안전) ↔ 소지품(출정) · 카테고리 필터 · 이동 · 상세 팝업" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-void);font-family:var(--font-ui);color:var(--text-hi);display:flex;justify-content:center;padding:16px}
+  .phone{position:relative;width:390px;background:var(--bg-base);border:1px solid var(--line-1);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;height:760px}
+
+  .top{flex:0 0 auto;padding:16px 18px 12px;display:flex;align-items:flex-start}
+  .h1{font-size:22px;font-weight:600;letter-spacing:var(--tr-tight)}
+  .h1 .sub{display:block;font-family:var(--font-mono);font-size:11px;color:var(--text-lo);letter-spacing:var(--tr-label);margin-top:4px;font-weight:400}
+  .bal{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--surface-1);border:1px solid var(--line-1);border-radius:var(--r-input);padding:7px 10px}
+  .satochip{font-family:var(--font-mono);font-size:9px;letter-spacing:var(--tr-wide);color:var(--sato);border:1px solid var(--sato-dim);border-radius:var(--r-chip);padding:2px 6px}
+  .bal .v{font-family:var(--font-mono);font-size:16px;color:var(--sato);font-variant-numeric:tabular-nums}
+
+  .seg{flex:0 0 auto;margin:0 16px;display:flex;gap:6px;background:var(--surface-1);border:1px solid var(--line-1);border-radius:var(--r-input);padding:4px}
+  .segbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;font-size:13px;font-weight:500;color:var(--text-lo);background:transparent;border:0;border-radius:var(--r-chip);padding:9px 6px;cursor:pointer}
+  .segbtn svg{width:15px;height:15px;stroke-width:1.75}
+  .segbtn.on{background:var(--surface-3);color:var(--text-hi)}
+  .segbtn .n{font-family:var(--font-mono);font-size:10px;color:var(--text-faint)}
+
+  /* category filter */
+  .filter{flex:0 0 auto;display:flex;gap:7px;overflow-x:auto;padding:12px 16px 4px;scrollbar-width:none}
+  .filter::-webkit-scrollbar{display:none}
+  .fchip{flex:0 0 auto;font-family:var(--font-mono);font-size:11px;color:var(--text-lo);background:var(--surface-1);border:1px solid var(--line-1);border-radius:var(--r-pill);padding:5px 11px;cursor:pointer}
+  .fchip.on{color:var(--text-hi);background:var(--surface-3);border-color:var(--line-2)}
+
+  .hint{flex:0 0 auto;padding:9px 20px 4px;font-family:var(--font-mono);font-size:10.5px;letter-spacing:var(--tr-label)}
+  .hint.safe{color:var(--good)}
+  .hint.risk{color:var(--warn)}
+
+  .list{flex:1 1 auto;overflow-y:auto;padding:0 16px}
+  .list::-webkit-scrollbar{display:none}
+  .row{display:flex;align-items:flex-start;gap:11px;min-height:58px;padding:11px 4px;border-top:1px solid var(--line-1);cursor:pointer}
+  .row:first-child{border-top:0}
+  .row:hover{background:var(--surface-1)}
+  .cat{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:9.5px;color:var(--text-mid);background:var(--surface-2);border:1px solid var(--line-1);border-radius:var(--r-chip);padding:3px 7px;flex:0 0 auto;margin-top:2px}
+  .cat .dot{width:5px;height:5px;border-radius:var(--r-pill);background:var(--text-lo)}
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+  .line1{display:flex;align-items:baseline;gap:8px;min-width:0}
+  .nm{font-size:14px;color:var(--text-hi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stack{font-family:var(--font-mono);font-size:11px;color:var(--text-faint);flex:0 0 auto;font-variant-numeric:tabular-nums}
+  .desc{font-size:12px;color:var(--text-lo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .move{align-self:center;flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:10.5px;color:var(--text-mid);background:transparent;border:1px solid var(--line-2);border-radius:var(--r-input);padding:7px 10px;cursor:pointer}
+  .move:hover{background:var(--surface-2);color:var(--text-hi)}
+  .move svg{width:12px;height:12px;stroke-width:2}
+  .empty{padding:40px 0;text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--text-faint)}
+
+  .nav{flex:0 0 auto;border-top:1px solid var(--line-1);background:var(--surface-1);display:flex;padding:8px 4px 10px}
+  .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px;color:var(--text-lo);position:relative}
+  .ni.on{color:var(--text-hi)}
+  .ni.on::before{content:"";position:absolute;top:0;width:20px;height:2px;border-radius:var(--r-pill);background:var(--text-hi)}
+  .ni svg{width:20px;height:20px;stroke-width:1.75}
+  .ni .lbl{font-size:10px;font-weight:500}
+
+  .pop{position:absolute;inset:0;display:none;align-items:flex-end;z-index:5}
+  .pop.open{display:flex}
+  .pop .scrim{position:absolute;inset:0;background:var(--scrim)}
+  .sheet{position:relative;width:100%;background:var(--surface-1);border-top:1px solid var(--line-2);border-radius:var(--r-sheet) var(--r-sheet) 0 0;box-shadow:var(--shadow-sheet);padding-bottom:20px}
+  .dart{position:relative;height:150px;background:var(--surface-3);overflow:hidden}
+  .dart img{width:100%;height:100%;object-fit:cover;display:block}
+  .dart .ph{width:100%;height:100%;background:repeating-linear-gradient(135deg, oklch(0.26 0.008 264) 0 9px, oklch(0.23 0.007 264) 9px 18px);display:flex;align-items:center;justify-content:center}
+  .dart .ph span{font-family:var(--font-mono);font-size:11px;color:var(--text-faint);letter-spacing:var(--tr-label)}
+  .dart::after{content:"";position:absolute;inset:auto 0 0 0;height:46px;background:linear-gradient(to bottom,transparent,var(--surface-1))}
+  .grip{height:24px;display:flex;align-items:center;justify-content:center}
+  .grip span{width:38px;height:4px;border-radius:var(--r-pill);background:oklch(0.9 0 0 / .3)}
+  .dhead{display:flex;align-items:center;gap:9px;padding:0 18px 12px}
+  .dnm{font-size:18px;font-weight:600}
+  .dcat{font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:var(--tr-label)}
+  .ddesc{padding:0 18px 12px;font-size:13px;color:var(--text-mid);line-height:1.55}
+  .dstats{padding:0 18px;font-family:var(--font-mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+  .drow{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line-1)}
+  .drow:first-child{border-top:0}
+  .drow .l{color:var(--text-lo)}
+  .drow .v{color:var(--text-hi)}
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="top">
+      <div class="h1">인벤토리<span class="sub">INVENTORY</span></div>
+      <div class="bal"><span class="satochip">SATO</span><span class="v">1,284</span></div>
+    </div>
+
+    <div class="seg">
+      <button class="segbtn on" id="seg-store" onclick="setSpace('store')">금고 <span class="n" id="n-store"></span></button>
+      <button class="segbtn" id="seg-bag" onclick="setSpace('bag')">소지품 <span class="n" id="n-bag"></span></button>
+    </div>
+
+    <div class="filter" id="filter"></div>
+    <div class="hint" id="hint"></div>
+    <div class="list" id="list"></div>
+
+    <div class="nav">
+      <div class="ni"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="lbl">안전가옥</span></div>
+      <div class="ni on"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg><span class="lbl">인벤토리</span></div>
+      <div class="ni"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/></svg><span class="lbl">출정</span></div>
+      <div class="ni"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="lbl">캐릭터</span></div>
+      <div class="ni"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span class="lbl">설정</span></div>
+    </div>
+
+    <div class="pop" id="pop">
+      <div class="scrim" onclick="closePop()"></div>
+      <div class="sheet">
+        <div class="grip"><span></span></div>
+        <div class="dart" id="d-art"></div>
+        <div class="dhead"><span class="dnm" id="d-nm"></span><span class="dcat" id="d-cat"></span></div>
+        <div class="ddesc" id="d-desc"></div>
+        <div class="dstats" id="d-stats"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const items = [
+      {id:1, img:'../../assets/items/gear-mace.jpg', cat:'무기', name:'녹슨 기어 철퇴', stack:'', space:'store', desc:'고철에서 건져 올린 둔기. 무겁지만 확실하다.', stats:[['공격력','18–34'],['공격 속도','0.8'],['상태이상','기절'],['내구도','17/50']]},
+      {id:9, cat:'아머', name:'방수 작업복', stack:'', space:'store', desc:'섬유 갑옷. 방어는 낮지만 회피에 유리하다.', stats:[['방어력','12'],['회피','+4%'],['재질','섬유'],['내구도','30/40']]},
+      {id:2, img:'../../assets/items/first-aid.jpg', cat:'약품', name:'응급키트', stack:'×3', space:'store', desc:'기본적인 응급 처치 도구. 체력을 회복한다.', stats:[['체력 회복','+40'],['보유','3']]},
+      {id:3, cat:'음식', name:'비상식량', stack:'×4', space:'store', desc:'맛은 없지만 배는 채운다. 스태미너 회복.', stats:[['스태미너 회복','+8'],['보유','4']]},
+      {id:4, cat:'퀘스트', name:'낡은 사진', stack:'×1', space:'store', desc:'누군가 애타게 찾던 물건. 팔 수 없다.', stats:[['용도','퀘스트']]},
+      {id:5, cat:'정크', name:'부러진 회로판', stack:'', space:'store', desc:'고물상 딘 카터에게 넘길 수 있다.', stats:[['판매가','사토 24']]},
+      {id:6, cat:'약품', name:'붕대', stack:'×2', space:'bag', desc:'출혈을 멎게 하고 체력을 조금 회복한다.', stats:[['체력 회복','+15'],['보유','2']]},
+      {id:7, cat:'음식', name:'통조림', stack:'×1', space:'bag', desc:'유통기한은 지났지만 그래도 먹을 만하다.', stats:[['스태미너 회복','+12'],['보유','1']]},
+      {id:8, cat:'키', name:'하수도 카드키', stack:'×1', space:'bag', desc:'봉쇄 구획의 잠금을 여는 카드키.', stats:[['용도','히든 존 해제']]},
+    ];
+    const BAG_CAP = 12;
+    const FILTERS = ['전체','무기','아머','약품','음식','정크','퀘스트'];
+    let cur = 'store';
+    let filter = '전체';
+
+    const arrow = (dir) => dir==='toBag'
+      ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>'
+      : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>';
+
+    function counts(){
+      document.getElementById('n-store').textContent = items.filter(i=>i.space==='store').length;
+      document.getElementById('n-bag').textContent = items.filter(i=>i.space==='bag').length + '/' + BAG_CAP;
+    }
+    function setSpace(sp){
+      cur = sp;
+      document.getElementById('seg-store').classList.toggle('on', sp==='store');
+      document.getElementById('seg-bag').classList.toggle('on', sp==='bag');
+      render();
+    }
+    function setFilter(f){ filter = f; render(); }
+    function move(id){
+      const it = items.find(i=>i.id===id);
+      it.space = it.space==='store' ? 'bag' : 'store';
+      render();
+    }
+    function detail(id){
+      const it = items.find(i=>i.id===id);
+      const art = document.getElementById('d-art');
+      art.innerHTML = it.img ? `<img src="${it.img}" alt="">` : `<div class="ph"><span>${it.cat} · IMAGE</span></div>`;
+      document.getElementById('d-nm').textContent = it.name;
+      document.getElementById('d-cat').textContent = it.cat + (it.stack ? ' · ' + it.stack : '');
+      document.getElementById('d-desc').textContent = it.desc;
+      document.getElementById('d-stats').innerHTML = it.stats.map(s=>
+        `<div class="drow"><span class="l">${s[0]}</span><span class="v">${s[1]}</span></div>`).join('');
+      document.getElementById('pop').classList.add('open');
+    }
+    function closePop(){ document.getElementById('pop').classList.remove('open'); }
+
+    function renderFilters(){
+      document.getElementById('filter').innerHTML = FILTERS.map(f=>
+        `<span class="fchip${f===filter?' on':''}" onclick="setFilter('${f}')">${f}</span>`).join('');
+    }
+    function render(){
+      counts();
+      renderFilters();
+      const hint = document.getElementById('hint');
+      if(cur==='store'){ hint.className='hint safe'; hint.textContent='금고 · 안전 자산 — 사망해도 잃지 않습니다'; }
+      else { hint.className='hint risk'; hint.textContent='소지품 · 출정 지참 — 사망 시 전리품·소모품 손실'; }
+
+      const list = items.filter(i=>i.space===cur && (filter==='전체' || i.cat===filter));
+      const el = document.getElementById('list');
+      if(!list.length){ el.innerHTML = '<div class="empty">해당 항목 없음</div>'; return; }
+      el.innerHTML = list.map(it=>{
+        const dir = cur==='store' ? 'toBag' : 'toStore';
+        const mvLabel = cur==='store' ? '소지품' : '금고';
+        return `<div class="row" onclick="detail(${it.id})">
+          <span class="cat"><span class="dot"></span>${it.cat}</span>
+          <div class="main">
+            <div class="line1"><span class="nm">${it.name}</span>${it.stack?`<span class="stack">${it.stack}</span>`:''}</div>
+            <div class="desc">${it.desc}</div>
+          </div>
+          <button class="move" onclick="event.stopPropagation();move(${it.id})">${arrow(dir)}${mvLabel}</button>
+        </div>`;
+      }).join('');
+    }
+    render();
+  </script>
+</body>
+</html>

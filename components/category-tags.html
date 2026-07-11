@@ -1,0 +1,43 @@
+<!-- @dsCard group="Components" viewport="700x240" name="Category Tags (11종)" subtitle="Neutral chips + tiny dot; no rarity color, no rainbow" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-base);color:var(--text-hi);font-family:var(--font-ui);padding:20px}
+  .cap{font-family:var(--font-mono);font-size:11px;color:var(--text-lo);letter-spacing:var(--tr-label);margin-bottom:14px}
+  .tags{display:flex;gap:9px;flex-wrap:wrap}
+  .tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-mono);font-size:12px;padding:6px 11px;border-radius:var(--r-chip);background:var(--surface-1);border:1px solid var(--line-1);color:var(--text-mid)}
+  .dot{width:7px;height:7px;border-radius:var(--r-pill);background:var(--text-lo)}
+  .tag svg{width:13px;height:13px;stroke-width:2}
+  .tag.time{color:var(--warn);border-color:var(--warn-dim);font-variant-numeric:tabular-nums}
+  .tag.sato-tag{color:var(--sato);border-color:var(--sato-dim);letter-spacing:var(--tr-wide)}
+  .tag.sel{background:var(--surface-2);border-color:var(--line-2);color:var(--text-hi)}
+  .tag.sel .dot{background:var(--sato)}
+  .note{font-family:var(--font-mono);font-size:11px;color:var(--text-faint);margin-top:16px}
+</style>
+</head>
+<body>
+  <div class="cap">CATEGORY · 카테고리 (정확히 1개)</div>
+  <div class="tags">
+    <span class="tag sel"><span class="dot"></span>무기</span>
+    <span class="tag"><span class="dot"></span>갑옷</span>
+    <span class="tag"><span class="dot"></span>투구</span>
+    <span class="tag"><span class="dot"></span>아티팩트·착장</span>
+    <span class="tag"><span class="dot"></span>아티팩트·소지</span>
+    <span class="tag"><span class="dot"></span>애장품</span>
+    <span class="tag"><span class="dot"></span>음식</span>
+    <span class="tag"><span class="dot"></span>약품</span>
+    <span class="tag"><span class="dot"></span>키</span>
+    <span class="tag"><span class="dot"></span>퀘스트</span>
+    <span class="tag"><span class="dot"></span>정크</span>
+  </div>
+  <div class="cap" style="margin-top:22px">SYSTEM · 시스템 태그</div>
+  <div class="tags">
+    <span class="tag time"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>00:23 · 전투 제한</span>
+    <span class="tag sato-tag"><span class="dot" style="background:var(--sato)"></span>SATO</span>
+  </div>
+  <div class="note">선택 상태는 채도가 아니라 명도·테두리·에셋 도트로 표현 — 등급 색 없음.</div></body>
+</html>

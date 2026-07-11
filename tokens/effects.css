@@ -1,0 +1,29 @@
+/* ============================================================
+   EFFECTS — elevation, shadow, motion
+   On a dark ledger, elevation is carried mostly by the surface
+   ladder + hairlines. Shadows are reserved for things that float
+   over content (dialogs, sheets, sticky bars). Motion is quiet:
+   short, eased, no bounce. Nothing celebratory.
+   ============================================================ */
+:root {
+  /* Shadows (only for floating layers) */
+  --shadow-pop:   0 6px 20px oklch(0.10 0.005 264 / 0.55);
+  --shadow-sheet: 0 -8px 28px oklch(0.08 0.004 264 / 0.55);
+  --shadow-sticky:0 4px 14px oklch(0.10 0.005 264 / 0.40);
+
+  /* Inset for wells / tracks */
+  --inset-well: inset 0 1px 0 oklch(0.10 0.004 264 / 0.5);
+
+  /* Focus ring */
+  --ring: 0 0 0 2px oklch(0.760 0.050 196 / 0.55);
+
+  /* Motion */
+  --ease:        cubic-bezier(0.2, 0, 0.2, 1);
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast:    120ms;
+  --dur-base:    180ms;
+  --dur-slow:    260ms;
+
+  /* Log line-appear stagger (used by combat log) */
+  --dur-logline: 220ms;
+}

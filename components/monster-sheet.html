@@ -1,0 +1,81 @@
+<!-- @dsCard group="Components" viewport="700x640" name="Monster — bottom sheet" subtitle="Monster detail rising from the bottom over a dimmed screen" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-void);font-family:var(--font-ui);color:var(--text-hi);padding:20px;display:flex;justify-content:center}
+  .phone{position:relative;width:360px;height:600px;background:var(--bg-base);border:1px solid var(--line-1);border-radius:20px;overflow:hidden}
+
+  /* dimmed background (zone list) */
+  .bg{padding:16px 15px}
+  .bgt{font-family:var(--font-mono);font-size:11px;color:var(--text-lo);letter-spacing:var(--tr-label);margin-bottom:10px}
+  .brow{display:flex;align-items:center;gap:10px;min-height:46px;border-top:1px solid var(--line-1)}
+  .brow:first-of-type{border-top:0}
+  .bnm{font-size:14px;color:var(--text-mid);flex:1}
+  .bval{font-family:var(--font-mono);font-size:11px;color:var(--text-faint)}
+
+  .scrim{position:absolute;inset:0;background:var(--scrim)}
+
+  /* bottom sheet */
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface-1);border-top:1px solid var(--line-2);border-radius:var(--r-sheet) var(--r-sheet) 0 0;box-shadow:var(--shadow-sheet);overflow:hidden}
+  .handle{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:38px;height:4px;border-radius:var(--r-pill);background:oklch(0.9 0 0 / .35);z-index:2}
+  .art{position:relative;height:160px;background:var(--surface-3);border-radius:var(--r-sheet) var(--r-sheet) 0 0;overflow:hidden}
+  .art img{width:100%;height:100%;object-fit:cover;object-position:center 28%;display:block}
+  .art .scr{position:absolute;inset:auto 0 0 0;height:58px;background:linear-gradient(to bottom,transparent,var(--surface-1))}
+  .art .cat{position:absolute;left:15px;bottom:10px;font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:var(--tr-label);text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  .art .grade{position:absolute;right:15px;top:14px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:var(--tr-wide);color:var(--text-hi);background:oklch(0.15 0.006 264 / .55);backdrop-filter:blur(3px);border:1px solid oklch(0.9 0 0 / .18);border-radius:var(--r-chip);padding:3px 8px}
+
+  .info{padding:13px 16px 20px}
+  .nm{font-size:18px;font-weight:600}
+  .hp{display:flex;align-items:center;gap:10px;margin-top:11px}
+  .hpl{font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:var(--tr-label);width:54px}
+  .trk{flex:1;height:var(--bar-h);background:var(--surface-3);border-radius:var(--r-pill);overflow:hidden}
+  .fl{height:100%;background:var(--danger);border-radius:var(--r-pill)}
+  .hv{font-family:var(--font-mono);font-size:11px;color:var(--text-mid);width:64px;text-align:right;font-variant-numeric:tabular-nums}
+  .sechd{font-family:var(--font-mono);font-size:10px;color:var(--text-faint);letter-spacing:var(--tr-label);margin:15px 0 2px}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;font-family:var(--font-mono);font-size:12px;font-variant-numeric:tabular-nums}
+  .row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line-1)}
+  .row .l{color:var(--text-lo)}
+  .row .v{color:var(--text-hi)}
+  .stt{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:7px;height:7px;border-radius:var(--r-pill);background:var(--st-pierce)}
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="bg">
+      <div class="bgt">3구역 하수도 · 출현 몬스터</div>
+      <div class="brow"><span class="bnm">감염된 배회자</span><span class="bval">UNIQUE</span></div>
+      <div class="brow"><span class="bnm">녹슨 순찰기</span><span class="bval">RARE</span></div>
+      <div class="brow"><span class="bnm">굶주린 들개</span><span class="bval">COMMON</span></div>
+    </div>
+    <div class="scrim"></div>
+
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="art">
+        <img src="../assets/monsters/wanderer.jpg" alt="감염된 배회자">
+        <div class="scr"></div>
+        <div class="grade">UNIQUE</div>
+        <div class="cat">INFECTED · 감염체</div>
+      </div>
+      <div class="info">
+        <div class="nm">감염된 배회자</div>
+        <div class="hp"><span class="hpl">생명력</span><div class="trk"><div class="fl" style="width:100%"></div></div><span class="hv">130</span></div>
+        <div class="sechd">2차 스탯 · SECONDARY</div>
+        <div class="stats">
+          <div class="row"><span class="l">최대 공격력</span><span class="v">28</span></div>
+          <div class="row"><span class="l">공격 속도</span><span class="v">1.1</span></div>
+          <div class="row"><span class="l">방어력</span><span class="v">12</span></div>
+          <div class="row"><span class="l">크리 저항</span><span class="v">31</span></div>
+          <div class="row"><span class="l">상태이상</span><span class="v stt"><span class="dot"></span>관통</span></div>
+          <div class="row"><span class="l">부여력</span><span class="v">55</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

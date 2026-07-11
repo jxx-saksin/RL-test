@@ -1,0 +1,27 @@
+<!-- @dsCard group="Colors" viewport="700x230" name="Semantic ink" subtitle="Muted signals — asset, danger, caution, positive" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-base);color:var(--text-hi);font-family:var(--font-ui);padding:20px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .cell{background:var(--surface-1);border:1px solid var(--line-1);border-radius:var(--r-card);padding:12px 13px;display:flex;flex-direction:column;gap:8px}
+  .top{display:flex;align-items:center;gap:9px}
+  .dot{width:12px;height:12px;border-radius:var(--r-pill)}
+  .nm{font-size:13px;font-weight:600}
+  .use{font-size:12px;color:var(--text-mid);line-height:1.4}
+  .tok{font-family:var(--font-mono);font-size:10.5px;color:var(--text-lo);margin-left:auto}
+</style>
+</head>
+<body>
+  <div class="grid">
+    <div class="cell"><div class="top"><span class="dot" style="background:var(--sato)"></span><span class="nm">Asset · 사토</span><span class="tok">--sato</span></div><div class="use">잔액 · 가격 · 수익. 유일한 "돈" 색.</div></div>
+    <div class="cell"><div class="top"><span class="dot" style="background:var(--danger)"></span><span class="nm">Danger · 위험</span><span class="tok">--danger</span></div><div class="use">사망 · 파괴 · 영구 손실. 파괴적 행동.</div></div>
+    <div class="cell"><div class="top"><span class="dot" style="background:var(--warn)"></span><span class="nm">Caution · 경고</span><span class="tok">--warn</span></div><div class="use">되돌릴 수 없는 경고(수리·잠금).</div></div>
+    <div class="cell"><div class="top"><span class="dot" style="background:var(--good)"></span><span class="nm">Positive · 회복</span><span class="tok">--good</span></div><div class="use">회복 · 성공. 절제해서만 사용.</div></div>
+  </div>
+</body>
+</html>

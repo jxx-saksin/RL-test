@@ -1,0 +1,67 @@
+<!-- @dsCard group="Components" viewport="700x540" name="Monster Card" subtitle="Unique artwork on top; monster info only — secondary stats, no player STA/log/buttons" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-void);color:var(--text-hi);font-family:var(--font-ui);padding:20px;display:flex;justify-content:center}
+  .card{width:340px;background:var(--surface-1);border:1px solid var(--line-1);border-radius:var(--r-card);overflow:hidden}
+
+  /* unique artwork */
+  .art{position:relative;height:190px;background:var(--surface-3)}
+  .art img{width:100%;height:100%;object-fit:cover;object-position:center 30%;display:block}
+  .art .scrim{position:absolute;inset:auto 0 0 0;height:64px;background:linear-gradient(to bottom, transparent, var(--surface-1))}
+  .art .cat{position:absolute;left:14px;bottom:11px;font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:var(--tr-label);text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  .art .grade{position:absolute;right:14px;top:12px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:var(--tr-wide);color:var(--text-hi);background:oklch(0.15 0.006 264 / .55);backdrop-filter:blur(3px);border:1px solid oklch(0.9 0 0 / .18);border-radius:var(--r-chip);padding:3px 8px}
+
+  /* info */
+  .info{padding:13px 15px 0}
+  .nm{font-size:17px;font-weight:600;line-height:1.2}
+
+  .hp{display:flex;align-items:center;gap:10px;margin-top:12px}
+  .hpl{font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:var(--tr-label);width:56px}
+  .trk{flex:1;height:var(--bar-h);background:var(--surface-3);border-radius:var(--r-pill);overflow:hidden}
+  .fl{height:100%;background:var(--danger);border-radius:var(--r-pill)}
+  .hv{font-family:var(--font-mono);font-size:11px;color:var(--text-mid);font-variant-numeric:tabular-nums;width:66px;text-align:right}
+
+  .sechd{font-family:var(--font-mono);font-size:10px;color:var(--text-faint);letter-spacing:var(--tr-label);margin:15px 0 2px}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;font-family:var(--font-mono);font-size:12px;font-variant-numeric:tabular-nums}
+  .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line-1)}
+  .row .l{color:var(--text-lo)}
+  .row .v{color:var(--text-hi)}
+  .stt{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:7px;height:7px;border-radius:var(--r-pill);background:var(--st-pierce)}
+
+  .meta{padding:11px 15px;font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint);border-top:1px solid var(--line-1);margin-top:13px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="art">
+      <img src="../assets/monsters/wanderer.jpg" alt="감염된 배회자 아트웍">
+      <div class="scrim"></div>
+      <div class="grade">UNIQUE</div>
+      <div class="cat">INFECTED · 감염체</div>
+    </div>
+    <div class="info">
+      <div class="nm">감염된 배회자</div>
+      <div class="hp"><span class="hpl">생명력</span><div class="trk"><div class="fl" style="width:100%"></div></div><span class="hv">130</span></div>
+
+      <div class="sechd">2차 스탯 · SECONDARY</div>
+      <div class="stats">
+        <div class="row"><span class="l">최대 공격력</span><span class="v">28</span></div>
+        <div class="row"><span class="l">공격 속도</span><span class="v">1.1</span></div>
+        <div class="row"><span class="l">방어력</span><span class="v">12</span></div>
+        <div class="row"><span class="l">크리 저항</span><span class="v">31</span></div>
+        <div class="row"><span class="l">상태이상</span><span class="v stt"><span class="dot"></span>관통</span></div>
+        <div class="row"><span class="l">부여력</span><span class="v">55</span></div>
+        <div class="row"><span class="l">상태 저항</span><span class="v">44</span></div>
+        <div class="row"><span class="l">재질</span><span class="v">섬유</span></div>
+      </div>
+    </div>
+    <div class="meta">등급 파생 · 전투 1회당 플레이어 스태미너 −3 · 제한시간 40s</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Text tiers" subtitle="Four dimmed tiers — never pure white" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-base);color:var(--text-hi);font-family:var(--font-ui);padding:20px;display:flex;flex-direction:column;gap:2px}
+  .line{display:flex;align-items:baseline;gap:14px;padding:9px 0;border-bottom:1px solid var(--line-1)}
+  .line:last-child{border-bottom:0}
+  .sample{width:280px}
+  .tok{font-family:var(--font-mono);font-size:11px;color:var(--text-lo)}
+</style>
+</head>
+<body>
+  <div class="line"><div class="sample" style="color:var(--text-hi);font-size:16px;font-weight:500">생명력 128 / 140</div><div class="tok">--text-hi · primary</div></div>
+  <div class="line"><div class="sample" style="color:var(--text-mid);font-size:15px">녹슨 파이프를 장착했다</div><div class="tok">--text-mid · secondary</div></div>
+  <div class="line"><div class="sample" style="color:var(--text-lo);font-size:12px;font-family:var(--font-mono);letter-spacing:var(--tr-label)">DURABILITY · 내구도</div><div class="tok">--text-lo · label</div></div>
+  <div class="line"><div class="sample" style="color:var(--text-faint);font-size:11px;font-family:var(--font-mono)">[03] 00:14</div><div class="tok">--text-faint · timestamp / disabled</div></div>
+</body>
+</html>

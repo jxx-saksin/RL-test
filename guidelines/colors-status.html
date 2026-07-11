@@ -1,0 +1,27 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Status-effect colors" subtitle="출혈 · 기절 · 관통 · 파열 — the 4 status-effect inks" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-base);color:var(--text-hi);font-family:var(--font-ui);padding:20px}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .sw{border:1px solid var(--line-1);border-radius:var(--r-card);overflow:hidden}
+  .chip{height:52px}
+  .meta{padding:8px 10px;background:var(--surface-1)}
+  .nm{font-size:12.5px;font-weight:500}
+  .en{font-family:var(--font-mono);font-size:10px;color:var(--text-lo)}
+  .tok{font-family:var(--font-mono);font-size:10.5px;color:var(--text-lo);margin-top:3px}
+</style>
+</head>
+<body>
+  <div class="grid">
+    <div class="sw"><div class="chip" style="background:var(--st-bleed)"></div><div class="meta"><div class="nm">출혈 <span class="en">Bleed</span></div><div class="tok">--st-bleed</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--st-stun)"></div><div class="meta"><div class="nm">기절 <span class="en">Stun</span></div><div class="tok">--st-stun</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--st-pierce)"></div><div class="meta"><div class="nm">관통 <span class="en">Pierce</span></div><div class="tok">--st-pierce</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--st-rupture)"></div><div class="meta"><div class="nm">파열 <span class="en">Rupture</span></div><div class="tok">--st-rupture</div></div></div>
+  </div>
+</body>
+</html>

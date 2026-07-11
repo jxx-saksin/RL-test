@@ -1,0 +1,13 @@
+/* ============================================================
+   FONTS — ⚠ TEMPORARY PLACEHOLDERS
+   The client will supply dedicated EN / number / KR fonts later.
+   Until then we stand in with IBM Plex:
+     - IBM Plex Sans KR  → UI / body / headings (has Hangul)
+     - IBM Plex Mono     → logs, numbers, ledger values, labels
+   Chosen because Plex reads as enterprise/productivity (not "game"),
+   has a true monospaced sibling for the log rhythm, tabular figures
+   for finance-style numerals, and native Korean support.
+   Swap the two @font-face families below when real fonts arrive;
+   nothing else in the system needs to change.
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap');

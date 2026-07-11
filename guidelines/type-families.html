@@ -1,0 +1,33 @@
+<!-- @dsCard group="Type" viewport="700x240" name="Two families — language vs data" subtitle="Sans KR for language, Mono for logs & numbers" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-base);color:var(--text-hi);padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .col{background:var(--surface-1);border:1px solid var(--line-1);border-radius:var(--r-card);padding:15px}
+  .k{font-family:var(--font-mono);font-size:11px;color:var(--text-lo);letter-spacing:var(--tr-label);margin-bottom:12px}
+  .ui{font-family:var(--font-ui)}
+  .mo{font-family:var(--font-mono)}
+</style>
+</head>
+<body>
+  <div class="col">
+    <div class="k">SANS · IBM Plex Sans KR — 언어</div>
+    <div class="ui" style="font-size:22px;font-weight:600;letter-spacing:var(--tr-tight);color:var(--text-hi)">안전가옥</div>
+    <div class="ui" style="font-size:15px;color:var(--text-mid);line-height:1.5;margin-top:8px">준비를 마치고 존을 선택해 출정한다. 돌아오지 못할 수도 있다.</div>
+    <div class="ui" style="font-size:12px;color:var(--text-lo);margin-top:10px">Headings · body · buttons · labels</div>
+  </div>
+  <div class="col">
+    <div class="k">MONO · IBM Plex Mono — 데이터</div>
+    <div class="mo" style="font-size:14px;line-height:1.62;color:var(--text-mid)">
+      [03] 명중 · <span style="color:var(--text-hi)">14</span> 피해<br>
+      [04] <span style="color:var(--st-stun)">기절</span> · 다음 공격 지연<br>
+      [05] 크리티컬 · <span style="color:var(--text-hi)">31</span> 피해
+    </div>
+    <div class="mo" style="font-size:12px;color:var(--text-lo);margin-top:10px">Log · numbers · stats · IDs · time</div>
+  </div>
+</body>
+</html>

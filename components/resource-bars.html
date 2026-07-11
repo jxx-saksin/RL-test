@@ -1,0 +1,42 @@
+<!-- @dsCard group="Components" viewport="700x250" name="Resource / Stat Bars" subtitle="Life, stamina, durability, growth — thin, labeled, tabular value" -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  html,body{margin:0}
+  body{background:var(--bg-void);color:var(--text-hi);font-family:var(--font-ui);padding:20px;display:flex;justify-content:center}
+  .wrap{width:400px;display:flex;flex-direction:column;gap:16px}
+  .card{background:var(--surface-1);border:1px solid var(--line-1);border-radius:var(--r-card);padding:14px 15px;display:flex;flex-direction:column;gap:12px}
+  .bar{display:flex;align-items:center;gap:11px}
+  .lb{font-family:var(--font-mono);font-size:10.5px;color:var(--text-lo);letter-spacing:var(--tr-label);width:96px}
+  .trk{flex:1;height:var(--bar-h);background:var(--surface-3);border-radius:var(--r-pill);overflow:hidden;box-shadow:var(--inset-well)}
+  .fl{height:100%;border-radius:var(--r-pill)}
+  .val{font-family:var(--font-mono);font-size:11.5px;color:var(--text-mid);width:62px;text-align:right;font-variant-numeric:tabular-nums}
+  .low .val{color:var(--danger)}
+  /* growth graph (matches character screen) */
+  .gwrap{position:relative;flex:1;height:6px;background:var(--surface-3);border-radius:var(--r-pill);overflow:hidden}
+  .gwrap .grid{position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 24px,oklch(0.15 0.006 264 / .6) 24px 25px)}
+  .gfill{height:100%;background:var(--growth);border-radius:var(--r-pill)}
+  .cap{font-family:var(--font-mono);font-size:10px;color:var(--text-lo);letter-spacing:var(--tr-label);margin-bottom:-4px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="cap">CONTINUOUS · 연속 자원</div>
+      <div class="bar"><span class="lb">생명력 HP</span><div class="trk"><div class="fl" style="width:78%;background:var(--hp)"></div></div><span class="val">128/140</span></div>
+      <div class="bar low"><span class="lb">스태미너 STA</span><div class="trk"><div class="fl" style="width:12%;background:var(--stamina)"></div></div><span class="val">2/20</span></div>
+      <div class="bar"><span class="lb">내구도 DUR</span><div class="trk"><div class="fl" style="width:34%;background:var(--durability)"></div></div><span class="val">17/50</span></div>
+    </div>
+    <div class="card">
+      <div class="cap">GROWTH · 성장 진행도 (힘)</div>
+      <div class="bar"><span class="lb">힘 성장</span>
+        <div class="gwrap"><div class="gfill" style="width:70%"></div><div class="grid"></div></div>
+        <span class="val">70.0%</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
