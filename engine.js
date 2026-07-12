@@ -44,13 +44,18 @@ export function startingState() {
   const vaultIds = String(C.start_vault_items || 'weapon_wooden_sword,armor_cloth_hood').split(',').map(s => s.trim()).filter(Boolean);
   const vault = vaultIds.map(id => mkInstance(id));
   // auto-equip the starting weapon + head/body if present in vault
-  const equip = { weapon: null, head: null, body: null };
+  const equip = { weapon: null, head: null, body: null, artifact1: null, artifact2: null };
   for (const it of vault) {
     if (it.kind === 'weapon' && !equip.weapon) equip.weapon = it.uid;
     else if (it.kind === 'armor') {
       const a = byId.armor[it.id];
       if (a && a.Category === 'Head' && !equip.head) equip.head = it.uid;
       if (a && a.Category === 'Body' && !equip.body) equip.body = it.uid;
+    }
+    else if (it.kind === 'artifact') {
+      const af = byId.artifact[it.id];
+      if (af && af.Category === 'Artifact_Carried' && !equip.artifact2) equip.artifact2 = it.uid;
+      else if (!equip.artifact1) equip.artifact1 = it.uid;
     }
   }
   return {
@@ -80,6 +85,9 @@ export function mkInstance(id, qty = 1) {
     if (inst.maxAtk < inst.minAtk) inst.maxAtk = inst.minAtk;
   } else if (a) {
     inst.def = randInt(N(a.Def_Low), N(a.Def_High));
+  } else if (af) {
+    inst.stat1 = randInt(N(af.Value1_Low), N(af.Value1_High));
+    if (af.Stat2 && af.Stat2 !== '-') inst.stat2 = randInt(N(af.Value2_Low), N(af.Value2_High));
   }
   // roll prefix + suffix affixes from the item's group pools
   if (w) inst.affixes = [rollAffix('weapon', w.PrefixGroups, 'prefix'), rollAffix('weapon', w.SuffixGroups, 'suffix')].filter(Boolean);
@@ -128,6 +136,14 @@ export function playerProfile(state, staminaZero = false) {
     if (!inst || !inst.affixes) continue;
     for (const af of inst.affixes) { const pk = PRIM[af.target]; if (pk) primAdd[pk] += af.value; else secAdd[af.target] = (secAdd[af.target] || 0) + af.value; }
   }
+  // equipped artifacts contribute Stat1/Stat2 (rolled per instance; may be negative)
+  for (const uid of [state.equip.artifact1, state.equip.artifact2]) {
+    if (!uid) continue; const inst = instById(state, uid); if (!inst) continue;
+    const ar = byId.artifact[inst.id]; if (!ar) continue;
+    const applyStat = (key, val) => { if (!key || key === '-' || val == null || val === '') return; const pk = PRIM[key]; if (pk) primAdd[pk] += N(val); else secAdd[key] = (secAdd[key] || 0) + N(val); };
+    applyStat(ar.Stat1, inst.stat1 != null ? inst.stat1 : N(ar.Value1_Low));
+    applyStat(ar.Stat2, inst.stat2 != null ? inst.stat2 : N(ar.Value2_Low));
+  }
   const p = { ...state.primary };
   if (staminaZero) { const k = 1 - N(C.stamina_penalty_rate, 0.5); p.str *= k; p.dex *= k; p.vit *= k; p.will *= k; }
   p.str += primAdd.str; p.dex += primAdd.dex; p.vit += primAdd.vit; p.will += primAdd.will;
@@ -175,10 +191,10 @@ export function instById(state, uid) {
 }
 
 // ---------- combat resolution helpers ----------
-function hitChance(acc, eva) { const s = acc + eva; return s <= 0 ? 0.85 : clamp(acc / s, 0.1, 0.95); }
+function hitChance(acc, eva) { const K = N(C.hit_soften, 10); return clamp((acc + K) / (acc + eva + K), N(C.hit_min, 0.1), N(C.hit_max, 0.95)); }
 function critChance(cc, cr) {
-  const s = cc + cr, ratio = s <= 0 ? 0.5 : cc / s;
-  return clamp(N(C.crit_proc_min, 0.05) + (N(C.crit_proc_max, 0.5) - N(C.crit_proc_min, 0.05)) * ratio, N(C.crit_proc_min), N(C.crit_proc_max));
+  const K = N(C.crit_soften, 100);
+  return clamp(cc / (cc + cr + K), N(C.crit_proc_min, 0.02), N(C.crit_proc_max, 0.45));
 }
 function statusChance(pot, res) {
   const s = pot + res, ratio = s <= 0 ? 0 : pot / s;

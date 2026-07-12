@@ -194,7 +194,7 @@ class Component extends DCLogic {
   death(){
     // 소지품(bag)은 전부 잃되, 착용 중인 장비는 유지된다
     this.gs.bag = this.gs.bag.filter(x=>this.isEquipped(x.uid));
-    const eq = [this.gs.equip.weapon,this.gs.equip.head,this.gs.equip.body].filter(Boolean);
+    const eq = [this.gs.equip.weapon,this.gs.equip.head,this.gs.equip.body,this.gs.equip.artifact1,this.gs.equip.artifact2].filter(Boolean);
     let broke=null;
     if(eq.length){ const uid=eq[Math.floor(Math.random()*eq.length)]; const inst=this.eng.instById(this.gs,uid);
       // 사망 시 장비는 '현재 내구도'만 손상된다 — 최대 내구도는 수리 실패로만 영구 감소한다
@@ -206,12 +206,13 @@ class Component extends DCLogic {
 
   // ---------- inventory ----------
   moveItem(uid){
+    const merge=(dst,inst)=>{ const src=this.eng.byId.item[inst.id]; if(src&&this.eng.N(src.MaxStack,1)>1){ const ex=dst.find(x=>x.id===inst.id); if(ex){ ex.qty=(ex.qty||1)+(inst.qty||1); return true; } } return false; };
     const inV = this.gs.vault.findIndex(x=>x.uid===uid);
-    if(inV>=0){ const [it]=this.gs.vault.splice(inV,1); this.gs.bag.push(it); }
+    if(inV>=0){ const [it]=this.gs.vault.splice(inV,1); if(!merge(this.gs.bag,it)) this.gs.bag.push(it); }
     else { const inB=this.gs.bag.findIndex(x=>x.uid===uid); if(inB>=0){
       // 착용 중인 장비는 금고로 보낼 수 없다 — 옮기면 자동 해제
-      if(this.isEquipped(uid)){ const e=this.gs.equip; ['weapon','head','body'].forEach(s=>{ if(e[s]===uid) e[s]=null; }); const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp); }
-      const [it]=this.gs.bag.splice(inB,1); this.gs.vault.push(it);
+      if(this.isEquipped(uid)){ const e=this.gs.equip; ['weapon','head','body','artifact1','artifact2'].forEach(s=>{ if(e[s]===uid) e[s]=null; }); const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp); }
+      const [it]=this.gs.bag.splice(inB,1); if(!merge(this.gs.vault,it)) this.gs.vault.push(it);
     } }
     this.forceUpdate();
   }
@@ -229,7 +230,7 @@ class Component extends DCLogic {
     this.forceUpdate();
   }
   services(v){ return String((v&&v.Services)||'').split(',').map(s=>s.trim()).filter(Boolean); }
-  openVendor(id){ const v=this.eng.byId.vendor[id]; const svc=this.services(v); const first=svc.includes('Buy')?'buy':svc.includes('Repair')?'repair':'sell'; if(this._t){clearInterval(this._t);this._t=null;} this.setState({screen:'vendor',vendor:id,vtab:first,sel:null,repairSel:null,modalZone:null}); }
+  openVendor(id){ const v=this.eng.byId.vendor[id]; const svc=this.services(v); const first=svc.includes('Buy')?'buy':svc.includes('Repair')?'repair':svc.includes('Heal')?'heal':'sell'; if(this._t){clearInterval(this._t);this._t=null;} this.setState({screen:'vendor',vendor:id,vtab:first,sel:null,repairSel:null,modalZone:null}); }
   // ---------- shop ----------
   buy(shopId, row){
     const price=this.eng.N(row.BuyPrice);
@@ -303,7 +304,7 @@ class Component extends DCLogic {
       h('div',{style:{padding:'0 18px 20px',overflowY:'auto',flex:1}},
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 12px'}}, '상점'),
         h('div',{style:{display:'flex',flexDirection:'column',gap:10}},
-          ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair'); const act=()=>this.openVendor(v.VendorID);
+          ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal'); const act=()=>this.openVendor(v.VendorID);
             return h('button',{key:v.VendorID,disabled:!open,onClick:open?act:null,
               style:{textAlign:'left',background:open?T.s1:T.bg,border:'1px solid '+(open?T.line2:T.line),borderRadius:6,padding:0,cursor:open?'pointer':'default',opacity:open?1:.5,display:'flex',flexDirection:'column',overflow:'hidden'}},
               h('div',{style:{position:'relative',height:96,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 7px, oklch(0.27 0.008 264) 7px 8px)'}},
@@ -433,13 +434,26 @@ class Component extends DCLogic {
     const last=lines[lines.length-1];
     return (last.who===applier && last.type==='status')?[{key:attr,count:1}]:[];
   }
+  statusChip(key){ const col=(ATTR[key]&&ATTR[key].c)||T.mid; return h('span',{style:{display:'inline-flex',alignItems:'center',gap:4,fontFamily:T.mono,fontSize:10,fontWeight:500,letterSpacing:'.04em',color:col,border:'1px solid '+T.line2,borderRadius:2,padding:'2px 6px',whiteSpace:'nowrap'}}, this.statusIcon(key,12), (ATTR[key]?ATTR[key].kr:key)); }
   statusIcons(side){ const list=this.activeStatuses(side); const out=[]; list.forEach(s=>{ const n=Math.min(s.count,8); for(let i=0;i<n;i++) out.push(h('span',{key:s.key+i,style:{display:'inline-flex'}}, this.statusIcon(s.key,15))); }); return out; }
   statLines(prof,isMonster){
     const md=isMonster?(this.eng.byId.monster[prof.id]||{}):null;
+    const c=this.combat, N=this.eng.N, C=this.eng.DATA.config;
+    const foe = c ? (isMonster ? (c.prof||this.eng.playerProfile(this.gs,false)) : c.mProf) : null;
+    const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+    const rel=(x)=>' ('+Math.round(x*100)+'%)';
+    let accV=String(Math.round(prof.accuracy||0)), evaV=Math.round(prof.evasion||0)+'%', critV=Math.round(prof.critChance||0)+'%';
+    if(foe){
+      const K=N(C.crit_soften,100), cmin=N(C.crit_proc_min,0.02), cmax=N(C.crit_proc_max,0.45);
+      const hit=clamp(((prof.accuracy||0)+N(C.hit_soften,10))/(((prof.accuracy||0)+(foe.evasion||0)+N(C.hit_soften,10))),N(C.hit_min,0.1),N(C.hit_max,0.95));
+      const dodge=1-clamp(((foe.accuracy||0)+N(C.hit_soften,10))/(((foe.accuracy||0)+(prof.evasion||0)+N(C.hit_soften,10))),N(C.hit_min,0.1),N(C.hit_max,0.95));
+      const crit=clamp((prof.critChance||0)/(((prof.critChance||0)+(foe.critResist||0)+K)),cmin,cmax);
+      accV+=rel(hit); evaV+=rel(dodge); critV+=rel(crit);
+    }
     const rows=[
       ['공격력', Math.round(prof.minAtk)+'~'+Math.round(prof.maxAtk), '방어력', String(Math.round(prof.defense))],
-      ['공격속도', (prof.atkSpeed!=null?prof.atkSpeed:1).toFixed(1), '적중률', String(Math.round(prof.accuracy||0))],
-      ['회피율', Math.round(prof.evasion||0)+'%', '크리 확률', Math.round(prof.critChance||0)+'%'],
+      ['공격속도', (prof.atkSpeed!=null?prof.atkSpeed:1).toFixed(1), '적중률', accV],
+      ['회피율', evaV, '크리 확률', critV],
       ['크리저항', Math.round(prof.critResist||0)+'%', '상태저항', Math.round(prof.statusResist||0)+'%'],
     ];
     if(isMonster) rows.push(['상태이상', AT(prof.attribute)?ATTR[prof.attribute].kr:'없음', '재질', (md&&md.Material&&md.Material!=='-')?md.Material:'—']);
@@ -461,7 +475,7 @@ class Component extends DCLogic {
           h('span',{style:{fontFamily:T.sans,fontSize:13,fontWeight:600,color:T.hi,flex:'0 1 auto',minWidth:0,maxWidth:'55%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, isMonster?prof.name:'나'),
           h('div',{style:{flex:1}}),
           ...this.statusIcons(isMonster?'monster':'player'),
-          AT(prof.attribute)?this.chip(ATTR[prof.attribute].kr,ATTR[prof.attribute].c):null),
+          AT(prof.attribute)?this.statusChip(prof.attribute):null),
         h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
           h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:T.hp}})),
           h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.mid,minWidth:56,textAlign:'right'}}, Math.round(cur)+'/'+prof.maxHp)),
@@ -564,8 +578,7 @@ class Component extends DCLogic {
       h('div',{style:{padding:'12px 15px 0'}},
         h('div',{style:{fontFamily:T.sans,fontSize:16,fontWeight:600,color:T.hi}}, '나'),
         h('div',{style:{display:'flex',alignItems:'center',gap:9,margin:'11px 0'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,color:T.lo,width:48}},'생명력'), h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{style:{width:Math.max(0,Math.min(100,this.gs.hp/prof.maxHp*100))+'%',height:'100%',background:T.hp}})), h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid,width:64,textAlign:'right'}}, Math.round(this.gs.hp)+'/'+prof.maxHp)),
-        h('div',{style:{fontFamily:T.mono,fontSize:10,color:T.faint,letterSpacing:'.12em',margin:'6px 0 2px'}}, '2차 스탯 · SECONDARY'),
-        h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}}, ...rows.map(([k,val])=>h('div',{key:k,style:{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid '+T.line,fontFamily:T.mono,fontSize:11.5}}, h('span',{style:{color:T.lo}},k), h('span',{style:{color:T.hi}},String(val)))))),
+        this.statLines(prof,false)),
       h('div',{style:{height:14}}));
   }
   combatSheet(){
@@ -614,7 +627,10 @@ class Component extends DCLogic {
         h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint}}, '상세 ›')),
       h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
         h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:T.hp}})),
-        h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.mid,minWidth:64,textAlign:'right'}}, Math.round(g.hp)+'/'+prof.maxHp)));
+        h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.mid,minWidth:64,textAlign:'right'}}, Math.round(g.hp)+'/'+prof.maxHp)),
+      h('div',{style:{display:'flex',alignItems:'center',gap:8}},
+        h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{style:{width:Math.max(0,Math.min(100,g.sta/this.staMax*100))+'%',height:'100%',background:T.sta}})),
+        h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.mid,minWidth:64,textAlign:'right'}}, Math.round(g.sta)+'/'+this.staMax)));
   }
   cardScreen(){
     const c=this.combat, g=this.gs;
@@ -750,15 +766,16 @@ class Component extends DCLogic {
         rows.length? rows.map(inst=>this.invRow(inst,seg,catOf)) : h('div',{style:{padding:'30px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, '비어 있음'))
     );
   }
+  durTxt(inst, sep){ sep=sep||'/'; const mx=this.eng.N(inst.maxDur), d=this.eng.N(inst.dur); return (mx>0&&d<=0)?('파손'+sep+mx):(d+sep+mx); }
   itemLabel(inst){ const base=this.eng.anyName(inst.id); if(!inst||!inst.affixes||!inst.affixes.length) return base; const pre=inst.affixes.find(a=>a.type==='prefix'); const suf=inst.affixes.find(a=>a.type==='suffix'); return (pre?pre.name+' ':'')+(suf?suf.name+' ':'')+base; }
   invRow(inst,seg,catOf){
     const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||{};
     const name=this.itemLabel(inst);
-    const equippable = inst.kind==='weapon'||inst.kind==='armor';
+    const equippable = inst.kind==='weapon'||inst.kind==='armor'||inst.kind==='artifact';
     const equipped = this.isEquipped(inst.uid);
     const attr = s.Attribute;
     const st = this.eng.itemState(inst);
-    const desc=s.Description|| (inst.kind!=='item'?('내구도 '+(inst.dur||0)+'/'+(inst.maxDur||0)):'');
+    const desc=s.Description|| (inst.kind!=='item'?('내구도 '+this.durTxt(inst)):'');
     return h('div',{key:inst.uid,
       onPointerDown:(e)=>{ if(equipped) return; this._sw={uid:inst.uid,x0:e.clientX,el:e.currentTarget,moved:false}; },
       onPointerMove:(e)=>{ if(!this._sw||this._sw.uid!==inst.uid) return; let dx=e.clientX-this._sw.x0; const allowR=seg==='bag',allowL=seg==='vault'; if((dx>0&&!allowR)||(dx<0&&!allowL)) dx=0; if(Math.abs(dx)>6)this._sw.moved=true; this._sw.el.style.transition='none'; this._sw.el.style.transform='translateX('+Math.max(-120,Math.min(120,dx))+'px)'; },
@@ -773,7 +790,7 @@ class Component extends DCLogic {
           inst.qty>1?h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid}}, '×'+inst.qty):null,
           AT(attr)?this.chip(ATTR[attr].kr,ATTR[attr].c):null,
           ...this.growthChips(inst),
-          st==='broken'?this.chip('파손',T.warn):st==='destroyed'?this.chip('파괴',T.danger):null),
+          st==='destroyed'?this.chip('파괴',T.danger):null),
         desc?h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,lineHeight:1.4}}, desc):null),
       h('div',{style:{display:'flex',alignItems:'center',gap:6,flex:'0 0 auto'}},
         equippable?(equipped
@@ -784,9 +801,10 @@ class Component extends DCLogic {
   slotOf(inst){
     if(inst.kind==='weapon') return 'weapon';
     if(inst.kind==='armor'){ const a=this.eng.byId.armor[inst.id]; return a&&a.Category==='Head'?'head':'body'; }
+    if(inst.kind==='artifact'){ const af=this.eng.byId.artifact[inst.id]; return af&&af.Category==='Artifact_Carried'?'artifact2':'artifact1'; }
     return null;
   }
-  isEquipped(uid){ const e=this.gs.equip; return e.weapon===uid||e.head===uid||e.body===uid; }
+  isEquipped(uid){ const e=this.gs.equip; return e.weapon===uid||e.head===uid||e.body===uid||e.artifact1===uid||e.artifact2===uid; }
   toggleEquip(inst){
     const slot=this.slotOf(inst); if(!slot) return;
     if(this.gs.equip[slot]===inst.uid){ this.gs.equip[slot]=null; this.flash('해제'); }
@@ -797,14 +815,16 @@ class Component extends DCLogic {
   itemDetailStats(inst){
     const N=this.eng.N; const out=[];
     if(inst.kind==='weapon'){ const w=this.eng.byId.weapon[inst.id]||{};
-      out.push(['공격력', (inst.minAtk ?? N(w.MinAtk_Low))+'–'+(inst.maxAtk ?? N(w.MaxAtk_High))], ['공격 속도', N(w.AttackSpeed).toFixed(2)], ['적중률', N(w.Accuracy)+'%'], ['크리티컬', N(w.CritChance)+'%'], ['재질', w.Material||'—'], ['내구도', (inst.dur||0)+'/'+(inst.maxDur||0)]);
+      out.push(['공격력', (inst.minAtk ?? N(w.MinAtk_Low))+'–'+(inst.maxAtk ?? N(w.MaxAtk_High))], ['공격 속도', N(w.AttackSpeed).toFixed(2)], ['적중률', N(w.Accuracy)+'%'], ['크리티컬', N(w.CritChance)+'%'], ['재질', w.Material||'—'], ['내구도', this.durTxt(inst)]);
       if(AT(w.Attribute)) out.push(['상태이상', ATTR[w.Attribute].kr+' · 부여력 '+N(w.Potency)]);
     } else if(inst.kind==='armor'){ const a=this.eng.byId.armor[inst.id]||{};
-      out.push(['방어력', String(inst.def ?? N(a.Def_Low))], ['회피율', N(a.Evasion)+'%'], ['상태이상 저항', N(a.StatusResist)+'%'], ['재질', a.Material||'—'], ['내구도', (inst.dur||0)+'/'+(inst.maxDur||0)]);
+      out.push(['방어력', String(inst.def ?? N(a.Def_Low))], ['회피율', N(a.Evasion)+'%'], ['상태이상 저항', N(a.StatusResist)+'%'], ['재질', a.Material||'—'], ['내구도', this.durTxt(inst)]);
     } else if(inst.kind==='artifact'){ const af=this.eng.byId.artifact[inst.id]||{};
-      const s1=(af.Stat1_KR&&af.Stat1_KR!=='-')?(af.Stat1_KR+' +'+af.Value1_Low+(af.Value1_High!=null&&af.Value1_High!==af.Value1_Low?('~'+af.Value1_High):'')):null;
+      const s1=(af.Stat1_KR&&af.Stat1_KR!=='-')?(af.Stat1_KR+' +'+(inst.stat1!=null?inst.stat1:af.Value1_Low)):null;
       if(s1) out.push(['효과', s1]);
-      out.push(['부위', af.Category==='Artifact_Carried'?'소지형':'착장형'], ['내구도', (inst.dur||0)+'/'+(inst.maxDur||0)]);
+      const s2v=(inst.stat2!=null?inst.stat2:this.eng.N(af.Value2_Low)); const s2=(af.Stat2_KR&&af.Stat2_KR!=='-')?(af.Stat2_KR+' '+(s2v>=0?'+':'')+s2v):null;
+      if(s2) out.push(['효과2', s2]);
+      out.push(['부위', af.Category==='Artifact_Carried'?'소지형':'착장형'], ['내구도', this.durTxt(inst)]);
     } else { const it=this.eng.byId.item[inst.id]||{};
       const eff={heal:'생명력 회복',stamina:'스태미너 회복',buff:'버프',none:'—'}[it.EffectType]||it.EffectType;
       if(it.EffectType&&it.EffectType!=='none') out.push(['효과', eff+(it.EffectValue?(' +'+it.EffectValue):'')]);
@@ -821,7 +841,7 @@ class Component extends DCLogic {
     const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||{};
     const name=this.itemLabel(inst);
     const catOf=(CATKR[s.Category]||s.Category||'');
-    const equippable=inst.kind==='weapon'||inst.kind==='armor';
+    const equippable=inst.kind==='weapon'||inst.kind==='armor'||inst.kind==='artifact';
     const equipped=this.isEquipped(inst.uid);
     const attr=s.Attribute;
     const st=this.eng.itemState(inst);
@@ -834,7 +854,7 @@ class Component extends DCLogic {
       h('div',{onClick:e=>e.stopPropagation(),style:{width:'100%',background:T.s1,borderTop:'1px solid '+T.line2,borderRadius:'10px 10px 0 0',padding:'10px 18px 22px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)',maxHeight:'80%',overflowY:'auto'}},
         h('div',{style:{width:34,height:4,background:T.line2,borderRadius:2,margin:'0 auto 16px'}}),
         h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:6,flexWrap:'wrap'}},
-          this.chip(catOf,T.lo), AT(attr)?this.chip(ATTR[attr].kr,ATTR[attr].c):null, ...this.growthChips(inst), equipped?this.chip('착용 중',T.good):null, st==='broken'?this.chip('파손',T.warn):st==='destroyed'?this.chip('파괴',T.danger):null),
+          this.chip(catOf,T.lo), AT(attr)?this.chip(ATTR[attr].kr,ATTR[attr].c):null, ...this.growthChips(inst), equipped?this.chip('착용 중',T.good):null, st==='destroyed'?this.chip('파괴',T.danger):null),
         h('div',{style:{fontFamily:T.sans,fontSize:21,fontWeight:700,color:T.hi,marginBottom:6}}, name),
         s.Description?h('div',{style:{fontFamily:T.sans,fontSize:13,color:T.mid,lineHeight:1.5,marginBottom:14}}, s.Description):h('div',{style:{height:6}}),
         h('div',{style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'4px 14px',marginBottom:16}},
@@ -881,13 +901,13 @@ class Component extends DCLogic {
               h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.faint,width:52,flex:'0 0 auto',letterSpacing:'.04em'}}, kr),
               inst? h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi,flex:1}}, this.itemLabel(inst)) : h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.faint,flex:1}}, '미착용'),
               (inst&&AT(attr))?this.chip(ATTR[attr].kr,ATTR[attr].c):null,
-              inst? h('span',{style:{fontFamily:T.mono,fontSize:10,color:this.eng.itemState(inst)==='destroyed'?T.danger:this.eng.itemState(inst)==='broken'?T.warn:T.dur}}, (inst.dur||0)+'/'+(inst.maxDur||0)):null); })),
+              inst? h('span',{style:{fontFamily:T.mono,fontSize:10,color:this.eng.itemState(inst)==='destroyed'?T.danger:this.eng.itemState(inst)==='broken'?T.warn:T.dur}}, this.durTxt(inst)):null); })),
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:12}}, '1차 스탯 (성장형)'),
         h('div',{style:{display:'flex',flexDirection:'column',gap:14,marginBottom:24}},
           ...prim.map(([k,kr])=>{ const pv=this.eng.growthPct(g,k);
             return h('div',{key:k},
               h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:5}},
-                h('div',null, h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, kr), h('span',{style:{fontFamily:T.mono,fontSize:15,color:T.hi,marginLeft:8}}, g.growth[k].level), bonus[k]?h('span',{style:{fontFamily:T.mono,fontSize:12,color:T.good,marginLeft:4}}, '(+'+bonus[k]+')'):null),
+                h('div',null, h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, kr), h('span',{style:{fontFamily:T.mono,fontSize:15,color:T.hi,marginLeft:8}}, (g.growth[k].level+(bonus[k]||0))), bonus[k]?h('span',{style:{fontFamily:T.mono,fontSize:12,color:bonus[k]>0?T.good:T.danger,marginLeft:4}}, '('+(bonus[k]>0?'+':'')+bonus[k]+')'):null),
                 h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.growth}}, pv.toFixed(1)+'%')),
               h('div',{style:{height:5,background:T.s3,borderRadius:1,overflow:'hidden'}}, h('div',{style:{width:pv+'%',height:'100%',background:T.growth}}))); })),
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:10}}, '2차 스탯 (파생)'),
@@ -965,7 +985,7 @@ class Component extends DCLogic {
   repairRow(inst){
     const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||{};
     const st=this.eng.itemState(inst); const worn=Math.max(0,inst.maxDur-inst.dur); const cost=this.eng.repairCostPreview(inst);
-    const stChip=st==='broken'?this.chip('파손',T.warn):null;
+    const stChip=null;
     return h('div',{key:inst.uid,onClick:()=>this.setState({repairSel:inst.uid}),style:{padding:'13px 18px',borderBottom:'1px solid '+T.line,cursor:'pointer',display:'flex',alignItems:'center',gap:12}},
       h('div',{style:{flex:1,minWidth:0}},
         h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:2,flexWrap:'wrap'}},
@@ -974,7 +994,7 @@ class Component extends DCLogic {
           this.isEquipped(inst.uid)?this.chip('착용 중',T.good):null, stChip),
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:5}},
           h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.lo}}, '내구도'),
-          h('span',{style:{fontFamily:T.mono,fontSize:12,color:st==='broken'?T.warn:T.mid}}, inst.dur+' / '+inst.maxDur)),
+          h('span',{style:{fontFamily:T.mono,fontSize:12,color:st==='broken'?T.warn:T.mid}}, this.durTxt(inst,' / '))),
         this.durBar(inst)),
       h('div',{style:{flex:'0 0 auto',display:'flex',flexDirection:'column',alignItems:'flex-end',gap:2}},
         h('span',{style:{fontFamily:T.mono,fontSize:12,fontWeight:600,color:T.sato}}, cost.toLocaleString()),
@@ -992,7 +1012,7 @@ class Component extends DCLogic {
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:6}}, '수리 확인'),
         h('div',{style:{fontFamily:T.sans,fontSize:19,fontWeight:700,color:T.hi,marginBottom:14}}, this.itemLabel(inst)),
         h('div',{style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'4px 14px',marginBottom:14}},
-          row('현재 내구도', inst.dur+' / '+inst.maxDur),
+          row('현재 내구도', this.durTxt(inst,' / ')),
           row('닳은 내구도', worn+'점', T.warn),
           h('div',{style:{display:'flex',justifyContent:'space-between',padding:'10px 0'}}, h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}},'수리 비용'), h('span',{style:{fontFamily:T.mono,fontSize:13,color:aff?T.sato:T.danger}}, cost.toLocaleString()+' 사토'))),
         h('div',{style:{display:'flex',gap:8,alignItems:'flex-start',fontFamily:T.sans,fontSize:12,color:T.warn,lineHeight:1.55,marginBottom:16}},
@@ -1006,7 +1026,7 @@ class Component extends DCLogic {
   vendorScreen(){
     const v=this.eng.byId.vendor[this.state.vendor]||{};
     const svc=this.services(v);
-    const tabs=[]; if(svc.includes('Buy'))tabs.push(['buy','구매']); if(svc.includes('Sell'))tabs.push(['sell','판매']); if(svc.includes('Repair'))tabs.push(['repair','수리']);
+    const tabs=[]; if(svc.includes('Buy'))tabs.push(['buy','구매']); if(svc.includes('Sell'))tabs.push(['sell','판매']); if(svc.includes('Repair'))tabs.push(['repair','수리']); if(svc.includes('Heal'))tabs.push(['heal','치료']);
     let tab=this.state.vtab; if(!tabs.some(t=>t[0]===tab)) tab=(tabs[0]||['buy'])[0];
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       h('div',{style:{position:'relative',flex:'0 0 auto',height:118,background:T.s3,overflow:'hidden'}},
@@ -1019,13 +1039,13 @@ class Component extends DCLogic {
       tabs.length? h('div',{style:{display:'flex',flex:'0 0 auto',borderBottom:'1px solid '+T.line,background:T.s1}},
         ...tabs.map(([k,l])=>{ const on=tab===k;
           return h('button',{key:k,onClick:()=>this.setState({vtab:k}),style:{flex:1,background:'none',border:'none',borderBottom:'2px solid '+(on?T.hi:'transparent'),color:on?T.hi:T.lo,fontFamily:T.sans,fontSize:14,fontWeight:600,padding:'12px 0',cursor:'pointer'}}, l); })) : null,
-      tab==='buy'?this.vendorBuy(v):tab==='sell'?this.vendorSell(v):this.vendorRepair()
+      tab==='buy'?this.vendorBuy(v):tab==='sell'?this.vendorSell(v):tab==='repair'?this.vendorRepair():this.vendorHeal(v)
     );
   }
   vendorBuy(v){
     const rows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID);
     return h('div',{style:{flex:1,overflowY:'auto',paddingBottom:20}},
-      rows.length? rows.map(r=>{ const price=this.eng.N(r.BuyPrice); const key=v.ShopID+'|'+r.ItemID; const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(r.StockMax,99); const aff=this.gs.sato>=price&&stock>0; const src=this.eng.byId.item[r.ItemID]||this.eng.byId.weapon[r.ItemID]||this.eng.byId.armor[r.ItemID]||{}; const cat=CATKR[src.Category]||src.Category||'';
+      rows.length? rows.map(r=>{ const price=this.eng.N(r.BuyPrice); const key=v.ShopID+'|'+r.ItemID; const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(r.StockMax,99); const aff=this.gs.sato>=price&&stock>0; const src=this.eng.byId.item[r.ItemID]||this.eng.byId.weapon[r.ItemID]||this.eng.byId.armor[r.ItemID]||this.eng.byId.artifact[r.ItemID]||{}; const cat=CATKR[src.Category]||src.Category||'';
         return h('div',{key:r.ItemID,style:{display:'flex',alignItems:'center',gap:10,padding:'14px 18px',borderBottom:'1px solid '+T.line,opacity:stock>0?1:.5}},
           h('div',{style:{flex:1,minWidth:0}},
             h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:3,flexWrap:'wrap'}}, this.chip(cat,T.lo), h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, r.ItemName_KR||this.eng.anyName(r.ItemID)), h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.faint}}, '재고 '+stock)),
@@ -1055,6 +1075,26 @@ class Component extends DCLogic {
             h('div',{style:{fontFamily:T.mono,fontSize:11,color:T.lo}}, p>0?('개당 '+p+' 사토'):'판매 불가')),
           h('button',{onClick:()=>this.sellItem(inst),disabled:!can,style:{flex:'0 0 auto',background:can?T.s2:'transparent',border:'1px solid '+(can?T.line2:T.line),color:can?T.hi:T.faint,fontFamily:T.mono,fontSize:12,fontWeight:600,padding:'8px 12px',borderRadius:3,cursor:can?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}, h('span',{style:{color:can?T.sato:T.faint}}, p.toLocaleString()), h('span',{style:{fontSize:9,color:T.mid}},'판매'))); })
         : h('div',{style:{padding:'40px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, '팔 수 있는 물건이 없다'));
+  }
+  healCooldown(){ return Math.max(1, this.eng.N(this.eng.DATA.config.heal_cooldown_sorties, 1)); }
+  healAvailAt(){ return (this.gs.lastHealSortie==null)?0:(this.gs.lastHealSortie + this.healCooldown()); }
+  healAvailable(){ return this.gs.sorties >= this.healAvailAt(); }
+  healCost(){ return Math.max(0, Math.ceil((this.gs.maxHp - this.gs.hp) * this.eng.N(this.eng.DATA.config.heal_cost_per_hp, 2))); }
+  doHeal(){ const g=this.gs; if(!this.healAvailable()){ this.flash('아직 치료를 받을 수 없다'); return; } if(g.hp>=g.maxHp){ this.flash('이미 완전하다'); return; } const cost=this.healCost(); if(g.sato<cost){ this.flash('사토가 부족하다'); return; } g.sato-=cost; g.hp=g.maxHp; g.lastHealSortie=g.sorties; this.flash('치료 완료 · 생명력 완전 회복'); this.forceUpdate(); }
+  vendorHeal(v){
+    const g=this.gs; const cost=this.healCost(); const avail=this.healAvailable(); const cd=this.healCooldown();
+    const full=g.hp>=g.maxHp; const aff=g.sato>=cost; const can=avail&&!full&&aff;
+    const nextIn=avail?0:(this.healAvailAt()-g.sorties);
+    const row=(k,val,col)=>h('div',{key:k,style:{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid '+T.line}}, h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}},k), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col||T.hi}},val));
+    return h('div',{style:{flex:1,overflowY:'auto',padding:'18px'}},
+      h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:T.faint,marginBottom:12}}, '치료 · 생명력 100% 회복'),
+      h('div',{style:{display:'flex',flexDirection:'column',gap:12,marginBottom:16}}, this.bar('생명력',g.hp,g.maxHp,T.hp)),
+      h('div',{style:{background:T.s1,border:'1px solid '+T.line,borderRadius:4,padding:'4px 14px',marginBottom:16}},
+        row('회복량','생명력 100% (+'+Math.round(g.maxHp-g.hp)+')', T.good),
+        row('치료 비용', cost.toLocaleString()+' 사토', aff?T.sato:T.danger),
+        row('이용 조건', cd+'출정당 1회', T.mid),
+        row('상태', avail?'이용 가능':(nextIn+'회 출정 후 가능'), avail?T.good:T.warn)),
+      h('button',{disabled:!can,onClick:can?()=>this.doHeal():null,style:{width:'100%',background:'transparent',border:'1px solid '+(can?T.good:T.line),color:can?T.good:T.faint,fontFamily:T.sans,fontSize:15,fontWeight:700,padding:'15px',borderRadius:4,cursor:can?'pointer':'default'}}, full?'이미 완전 회복됨':(!avail?(nextIn+'회 출정 후 가능'):(!aff?'사토 부족':'치료 받기'))));
   }
   vendorRepair(){
     const list=this.repairables();
