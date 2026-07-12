@@ -7,8 +7,8 @@ import { buildIndex } from './sheet-loader.js';
 export let DATA = FALLBACK;
 export let byId = buildIndex(FALLBACK).byId;
 let C = DATA.config;
-export function anyItem(id){ return byId.item[id] || byId.weapon[id] || byId.armor[id] || null; }
-export function anyName(id){ const o = anyItem(id); return o ? (o.ItemName_KR || o.WeaponName_KR || o.ArmorName_KR || id) : id; }
+export function anyItem(id){ return byId.item[id] || byId.weapon[id] || byId.armor[id] || byId.artifact[id] || null; }
+export function anyName(id){ const o = anyItem(id); return o ? (o.ItemName_KR || o.WeaponName_KR || o.ArmorName_KR || o.ArtifactName_KR || id) : id; }
 // swap the live data set (returns count summary)
 export function setDATA(newData){
   DATA = newData; C = DATA.config; byId = buildIndex(newData).byId;
@@ -66,12 +66,13 @@ export function startingState() {
 
 let _uid = 1;
 export function mkInstance(id, qty = 1) {
-  const w = byId.weapon[id], a = byId.armor[id], it = byId.item[id];
+  const w = byId.weapon[id], a = byId.armor[id], it = byId.item[id], af = byId.artifact[id];
   let kind = 'item', maxDur = 0;
   if (w) { kind = 'weapon'; maxDur = N(w.MaxDurability); }
   else if (a) { kind = 'armor'; maxDur = N(a.MaxDurability); }
+  else if (af) { kind = 'artifact'; maxDur = N(af.MaxDurability); }
   const inst = { uid: 'u' + (_uid++), id, kind, qty };
-  if (kind === 'weapon' || kind === 'armor') { inst.dur = maxDur; inst.maxDur = maxDur; }
+  if (kind === 'weapon' || kind === 'armor' || kind === 'artifact') { inst.dur = maxDur; inst.maxDur = maxDur; }
   // roll ranged stats once, fixed for the life of this instance
   if (w) {
     inst.minAtk = randInt(N(w.MinAtk_Low), N(w.MinAtk_High));
@@ -190,6 +191,32 @@ function defMitigate(dmg, def, pierceFrac = 0) {
 }
 const ATTR_KR = { bleed: '출혈', stun: '기절', pierce: '관통', rupture: '파열', sever: '절단' };
 
+// ---------- combat-log grammar (sheet-driven, CombatLog tab) ----------
+// Templates come from DATA.combatLog (live sheet); DEFAULT_TPL is the fallback
+// when the tab is missing or a row is blank. {Placeholders} are substituted.
+const DEFAULT_TPL = {
+  start: '{MonsterName} ({Grade}) 과(와) 조우. 제한시간 {TimeLimit}s.',
+  miss: '{Attacker} 공격 → {Target} 회피 (명중률 {HitPct}%)',
+  hit: '{Attacker} 공격 → {Target} −{Damage} · HP {TargetHP}/{TargetMaxHP}',
+  crit: '{Attacker} ⟪치명타⟫ 공격 → {Target} −{Damage} · HP {TargetHP}/{TargetMaxHP}',
+  pierce_suffix: ' (관통 −방어{PiercePct}%)',
+  status_bleed: '▶ {Target} 출혈 ({DmgPerTick}/tick, {Duration}s)',
+  status_stun: '▶ {Target} 기절 (+{Delay}s 지연)',
+  status_rupture: '▶ {Target} 파열 x{Stacks} (공격력↓)',
+  dot_bleed: '{Target} 출혈 피해 −{Damage} (HP {CurrentHP})',
+  stun_skip: '{Target} 기절 — 행동 지연',
+  win: '{MonsterName} 처치. ({Elapsed}s)',
+  lose: '쓰러졌다… ({Elapsed}s)',
+  timeout: '제한시간 초과 — {MonsterName} 을(를) 쓰러뜨리지 못했다.',
+  loot: '적에게서 무언가를 획득했다.',
+};
+export function logTpl(id, vars) {
+  const row = (DATA.combatLog || []).find(r => r.LineID === id);
+  const s = (row && row.Template != null && String(row.Template).trim()) ? String(row.Template) : DEFAULT_TPL[id];
+  if (s == null) return '';
+  return s.replace(/\{(\w+)\}/g, (m, k) => (vars && vars[k] != null) ? String(vars[k]) : '');
+}
+
 // ---------- one combat encounter ----------
 // returns { log:[{t,who,type,text}], winner:'player'|'monster'|'timeout', triggers, playerHpEnd }
 export function simulateCombat(pProf, mProf, playerHpStart) {
@@ -200,7 +227,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
   const limit = mProf.timeLimit;
   let t = 0, guard = 0;
   const push = (who, type, text) => log.push({ t: +t.toFixed(1), who, type, text, hpP: Math.max(0, Math.round(A.hp)), hpM: Math.max(0, Math.round(B.hp)) });
-  push('sys', 'start', `${mProf.name} (${mProf.grade}) 과(와) 조우. 제한시간 ${limit}s.`);
+  push('sys', 'start', logTpl('start', { MonsterName: mProf.name, Grade: mProf.grade, TimeLimit: limit }));
 
   function applyBleedTicks(actor, now) {
     actor.bleed = actor.bleed.filter(b => b.until > now);
@@ -225,7 +252,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     for (const b of actor.bleed) {
       while (b.nextTick <= t && b.until >= b.nextTick) {
         actor.hp -= b.dmg;
-        push(actor.side, 'dot', `${actor.side === 'player' ? '나' : actor.name} 출혈 피해 −${b.dmg.toFixed(0)} (HP ${Math.max(0, actor.hp).toFixed(0)})`);
+        push(actor.side, 'dot', logTpl('dot_bleed', { Target: actor.side === 'player' ? '나' : actor.name, Damage: b.dmg.toFixed(0), CurrentHP: Math.max(0, actor.hp).toFixed(0) }));
         b.nextTick += b.interval;
         if (actor.hp <= 0) break;
       }
@@ -234,7 +261,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     if (actor.hp <= 0) break;
 
     if (actor.stunUntil > t) { // stunned: skip, reschedule
-      push(actor.side, 'stun', `${actor.side === 'player' ? '나' : actor.name} 기절 — 행동 지연`);
+      push(actor.side, 'stun', logTpl('stun_skip', { Target: actor.side === 'player' ? '나' : actor.name }));
       actor.next = actor.stunUntil + 1 / actor.atkSpeed;
       continue;
     }
@@ -244,7 +271,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     const nm = actor.side === 'player' ? '나' : actor.name;
     const fnm = foe.side === 'player' ? '나' : foe.name;
     if (Math.random() > hc) {
-      push(actor.side, 'miss', `${nm} 공격 → ${fnm} 회피 (명중률 ${(hc * 100).toFixed(0)}%)`);
+      push(actor.side, 'miss', logTpl('miss', { Attacker: nm, Target: fnm, HitPct: (hc * 100).toFixed(0) }));
       if (foe.side === 'player') triggers.evades++;
       actor.next = t + 1 / actor.atkSpeed;
       continue;
@@ -262,10 +289,9 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     foe.hp -= final;
     if (actor.side === 'player') triggers.hitsLanded++;
     if (foe.side === 'player') triggers.hitsTaken++;
-    let tail = `공격 → ${fnm} −${final.toFixed(0)}`;
-    if (isCrit) tail = `⟪치명타⟫ ` + tail;
-    if (pierceFrac > 0) tail += ` (관통 −방어${(pierceFrac * 100).toFixed(0)}%)`;
-    push(actor.side, isCrit ? 'crit' : 'hit', `${nm} ${tail} · HP ${Math.max(0, foe.hp).toFixed(0)}/${foe.maxHp}`);
+    let text = logTpl(isCrit ? 'crit' : 'hit', { Attacker: nm, Target: fnm, Damage: final.toFixed(0), TargetHP: Math.max(0, foe.hp).toFixed(0), TargetMaxHP: foe.maxHp });
+    if (pierceFrac > 0) text += logTpl('pierce_suffix', { PiercePct: (pierceFrac * 100).toFixed(0) });
+    push(actor.side, isCrit ? 'crit' : 'hit', text);
 
     // status application (non-pierce)
     if (actor.attribute && actor.attribute !== 'pierce' && foe.hp > 0) {
@@ -278,17 +304,17 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
           const dur = N(s?.Duration, 4), iv = N(s?.TickInterval, 2);
           foe.bleed.push({ dmg: dmgPer, until: t + dur, nextTick: t + iv, interval: iv });
           if (foe.bleed.length > N(s?.MaxStack, 3)) foe.bleed.shift();
-          push(actor.side, 'status', `▶ ${fnm} 출혈 (${dmgPer.toFixed(0)}/tick, ${dur}s)`);
+          push(actor.side, 'status', logTpl('status_bleed', { Target: fnm, DmgPerTick: dmgPer.toFixed(0), Duration: dur }));
         } else if (eff === 'stun') {
           const s = byId.status.stun;
           const delay = (1 / actor.atkSpeed) * N(s?.Value, 0.5);
           foe.stunUntil = Math.max(foe.stunUntil, foe.next) + delay;
-          push(actor.side, 'status', `▶ ${fnm} 기절 (+${delay.toFixed(1)}s 지연)`);
+          push(actor.side, 'status', logTpl('status_stun', { Target: fnm, Delay: delay.toFixed(1) }));
         } else if (eff === 'rupture') {
           const s = byId.status.rupture;
           foe.ruptureStacks = Math.min(N(s?.MaxStack, 3), foe.ruptureStacks + 1);
           foe.ruptureUntil = t + N(s?.Duration, 3);
-          push(actor.side, 'status', `▶ ${fnm} 파열 x${foe.ruptureStacks} (공격력↓)`);
+          push(actor.side, 'status', logTpl('status_rupture', { Target: fnm, Stacks: foe.ruptureStacks }));
         }
       }
     }
@@ -298,9 +324,9 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
   let winner = 'timeout';
   if (B.hp <= 0) winner = 'player';
   else if (A.hp <= 0) winner = 'monster';
-  if (winner === 'player') push('sys', 'win', `${mProf.name} 처치. (${t.toFixed(1)}s)`);
-  else if (winner === 'monster') push('sys', 'lose', `쓰러졌다… (${t.toFixed(1)}s)`);
-  else push('sys', 'timeout', `제한시간 초과 — ${mProf.name} 을(를) 쓰러뜨리지 못했다.`);
+  if (winner === 'player') push('sys', 'win', logTpl('win', { MonsterName: mProf.name, Elapsed: t.toFixed(1) }));
+  else if (winner === 'monster') push('sys', 'lose', logTpl('lose', { Elapsed: t.toFixed(1) }));
+  else push('sys', 'timeout', logTpl('timeout', { MonsterName: mProf.name }));
   return { log, winner, triggers, playerHpEnd: Math.max(0, A.hp), elapsed: +t.toFixed(1) };
 }
 

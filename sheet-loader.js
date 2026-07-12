@@ -5,7 +5,7 @@
 
 export const SHEET_ID = '1d-LNhcuFo1dKO1zzszDNAXXT-zDqffatr1aCe3yB8ls';
 export const TABS = ['Config','PrimaryStat','SecondaryStat','StatusEffect','WeaponAttribute',
-  'Weapon','Armor','Item','Monster','City','Zone','Vendor','Shop','LootTable','Artifact','Affix','SpawnTable'];
+  'Weapon','Armor','Item','Monster','City','Zone','Vendor','Shop','LootTable','Artifact','Affix','SpawnTable','CombatLog'];
 
 // --- RFC4180-ish CSV parser (handles quoted commas + newlines) ---
 export function parseCSV(text) {
@@ -104,6 +104,7 @@ export function shape(rowsByTab) {
     spawnTable: toObjs(rowsByTab.SpawnTable || []).filter(r => String(r.ZoneID || '').startsWith('city_') && String(r.MonsterID || '').startsWith('monster_')),
     artifacts: toObjs(rowsByTab.Artifact || []),
     affixes: toObjs(rowsByTab.Affix || []).filter(r => String(r.AffixID || '').trim()),
+    combatLog: toObjs(rowsByTab.CombatLog || []).filter(r => String(r.LineID || '').trim()),
   };
 }
 
@@ -113,6 +114,7 @@ export function buildIndex(DATA) {
     weapon: Object.fromEntries(DATA.weapons.map(x => [x.WeaponID, x])),
     armor: Object.fromEntries(DATA.armor.map(x => [x.ArmorID, x])),
     monster: Object.fromEntries(DATA.monsters.map(x => [x.MonsterID, x])),
+    artifact: Object.fromEntries((DATA.artifacts || []).map(x => [x.ArtifactID, x])),
     zone: Object.fromEntries(DATA.zones.map(x => [x.ZoneID, x])),
     city: Object.fromEntries(DATA.cities.map(x => [x.CityID, x])),
     vendor: Object.fromEntries(DATA.vendors.map(x => [x.VendorID, x])),
