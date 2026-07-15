@@ -57,6 +57,10 @@ export function t(key){
   return (kr != null && kr !== '') ? String(kr) : String(en || key);
 }
 export function invalidateUi(){ _uiById = null; _uiByKr = null; }
+
+// affix name/target resolved lang-aware at display time (instances store affixId)
+export function affixName(af){ if(!af) return ''; const row = (DATA.affixes || []).find(x => x.AffixID === af.affixId); return row ? tr(row, 'AffixName') : (af.name || ''); }
+export function affixTarget(af){ if(!af) return ''; const row = (DATA.affixes || []).find(x => x.AffixID === af.affixId); return row ? tr(row, 'TargetStat') : (af.targetKr || af.target || ''); }
 const N = (v, d = 0) => (v === '' || v == null || isNaN(Number(v)) ? d : Number(v));
 const rand = (a, b) => a + Math.random() * (b - a);
 const randInt = (a, b) => Math.floor(rand(a, b + 1));
@@ -330,7 +334,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     for (const b of actor.bleed) {
       while (b.nextTick <= t && b.until >= b.nextTick) {
         actor.hp -= b.dmg;
-        push(actor.side, 'dot', logTpl('dot_bleed', { Target: actor.side === 'player' ? '나' : actor.name, Damage: b.dmg.toFixed(0), CurrentHP: Math.max(0, actor.hp).toFixed(0) }));
+        push(actor.side, 'dot', logTpl('dot_bleed', { Target: actor.side === 'player' ? (LANG==='en'?'You':'나') : actor.name, Damage: b.dmg.toFixed(0), CurrentHP: Math.max(0, actor.hp).toFixed(0) }));
         b.nextTick += b.interval;
         if (actor.hp <= 0) break;
       }
@@ -339,15 +343,15 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     if (actor.hp <= 0) break;
 
     if (actor.stunUntil > t) { // stunned: skip, reschedule
-      push(actor.side, 'stun', logTpl('stun_skip', { Target: actor.side === 'player' ? '나' : actor.name }));
+      push(actor.side, 'stun', logTpl('stun_skip', { Target: actor.side === 'player' ? (LANG==='en'?'You':'나') : actor.name }));
       actor.next = actor.stunUntil + 1 / actor.atkSpeed;
       continue;
     }
 
     // attempt hit
     const hc = hitChance(actor.accuracy, foe.evasion);
-    const nm = actor.side === 'player' ? '나' : actor.name;
-    const fnm = foe.side === 'player' ? '나' : foe.name;
+    const nm = actor.side === 'player' ? (LANG==='en'?'You':'나') : actor.name;
+    const fnm = foe.side === 'player' ? (LANG==='en'?'You':'나') : foe.name;
     if (Math.random() > hc) {
       push(actor.side, 'miss', logTpl('miss', { Attacker: nm, Target: fnm, HitPct: (hc * 100).toFixed(0) }));
       if (foe.side === 'player') triggers.evades++;
