@@ -6,9 +6,9 @@
 export const SHEET_ID = '1d-LNhcuFo1dKO1zzszDNAXXT-zDqffatr1aCe3yB8ls';
 export const TABS = ['Config','PrimaryStat','SecondaryStat','StatusEffect','WeaponAttribute',
   'Weapon','Armor','Item','Monster','City','Zone','Vendor','Shop','LootTable','Artifact','Affix','SpawnTable','CombatLog',
-  'USB','ColdData','NpcDialogue'];
+  'USB','ColdData','NpcDialogue','UIString'];
 // tabs that may not exist yet in older sheets — a failed fetch is non-fatal
-const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue']);
+const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString']);
 
 // --- RFC4180-ish CSV parser (handles quoted commas + newlines) ---
 export function parseCSV(text) {
@@ -113,6 +113,7 @@ export function shape(rowsByTab) {
     artifacts: toObjs(rowsByTab.Artifact || []),
     affixes: toObjs(rowsByTab.Affix || []).filter(r => String(r.AffixID || '').trim()),
     combatLog: toObjs(rowsByTab.CombatLog || []).filter(r => String(r.LineID || '').trim()),
+    ui: toObjs(rowsByTab.UIString || []).filter(r => String(r.StringID || '').trim()),
     usb: toObjs(rowsByTab.USB || []).filter(r => String(r.USBID || '').trim()),
     coldData: toObjs(rowsByTab.ColdData || []).filter(r => String(r.ColdDataID || r.ID || '').trim()),
     npcDialogue: toObjs(rowsByTab.NpcDialogue || []).filter(r => String(r.DialogueID || '').trim()),

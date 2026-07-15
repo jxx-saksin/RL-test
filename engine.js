@@ -19,7 +19,7 @@ export function anyName(id){
 }
 // swap the live data set (returns count summary)
 export function setDATA(newData){
-  DATA = newData; C = DATA.config; byId = buildIndex(newData).byId;
+  DATA = newData; C = DATA.config; byId = buildIndex(newData).byId; invalidateUi();
   return { monsters: DATA.monsters.length, items: DATA.items.length, zones: DATA.zones.length };
 }
 // ---------- language (KR/EN 시트 컬럼 스위칭) ----------
@@ -32,6 +32,31 @@ export function tr(row, base){
   if (LANG === 'en') return (en != null && en !== '') ? String(en) : (kr != null && kr !== '' ? String(kr) : '');
   return (kr != null && kr !== '') ? String(kr) : (en != null && en !== '' ? String(en) : '');
 }
+// pick(row,'Name') -> lang-appropriate Name_KR/Name_EN with KR fallback (alias of tr)
+export const pick = tr;
+
+// ---------- UI strings (UIString tab) ----------
+// t(key): key may be a StringID OR a raw KR literal (reverse-indexed). Returns
+// lang-appropriate Text; unknown keys pass through unchanged (dev safety).
+let _uiById = null, _uiByKr = null;
+function buildUiIndex(){
+  _uiById = {}; _uiByKr = {};
+  for (const r of (DATA.ui || [])){
+    if (!r || !r.StringID) continue;
+    _uiById[r.StringID] = r;
+    if (r.Text_KR) _uiByKr[String(r.Text_KR)] = r;
+  }
+}
+export function t(key){
+  if (key == null || key === '') return '';
+  if (!_uiById) buildUiIndex();
+  const row = _uiById[key] || _uiByKr[key];
+  if (!row) return String(key);
+  const en = row.Text_EN, kr = row.Text_KR;
+  if (LANG === 'en') return (en != null && en !== '') ? String(en) : String(kr || key);
+  return (kr != null && kr !== '') ? String(kr) : String(en || key);
+}
+export function invalidateUi(){ _uiById = null; _uiByKr = null; }
 const N = (v, d = 0) => (v === '' || v == null || isNaN(Number(v)) ? d : Number(v));
 const rand = (a, b) => a + Math.random() * (b - a);
 const randInt = (a, b) => Math.floor(rand(a, b + 1));
@@ -244,9 +269,28 @@ const DEFAULT_TPL = {
   timeout: '제한시간 초과 — {MonsterName} 을(를) 쓰러뜨리지 못했다.',
   loot: '적에게서 무언가를 획득했다.',
 };
+const DEFAULT_TPL_EN = {
+  start: 'Encountered {MonsterName} ({Grade}). Time limit {TimeLimit}s.',
+  miss: '{Attacker} attacks → {Target} evades (hit {HitPct}%)',
+  hit: '{Attacker} attacks → {Target} −{Damage} · HP {TargetHP}/{TargetMaxHP}',
+  crit: '{Attacker} ⟪CRIT⟫ → {Target} −{Damage} · HP {TargetHP}/{TargetMaxHP}',
+  pierce_suffix: ' (pierce −def {PiercePct}%)',
+  status_bleed: '▶ {Target} bleeding ({DmgPerTick}/tick, {Duration}s)',
+  status_stun: '▶ {Target} stunned (+{Delay}s delay)',
+  status_rupture: '▶ {Target} rupture x{Stacks} (attack↓)',
+  dot_bleed: '{Target} bleed damage −{Damage} (HP {CurrentHP})',
+  stun_skip: '{Target} stunned — action delayed',
+  win: '{MonsterName} defeated. ({Elapsed}s)',
+  lose: 'You collapsed… ({Elapsed}s)',
+  timeout: 'Time out — failed to bring down {MonsterName}.',
+  loot: 'Recovered something from the enemy.',
+};
 export function logTpl(id, vars) {
   const row = (DATA.combatLog || []).find(r => r.LineID === id);
-  const s = (row && row.Template != null && String(row.Template).trim()) ? String(row.Template) : DEFAULT_TPL[id];
+  const en = LANG === 'en';
+  const s = (en && row && row.Template_EN != null && String(row.Template_EN).trim()) ? String(row.Template_EN)
+          : (row && row.Template != null && String(row.Template).trim()) ? String(row.Template)
+          : (en ? DEFAULT_TPL_EN[id] : DEFAULT_TPL[id]);
   if (s == null) return '';
   return s.replace(/\{(\w+)\}/g, (m, k) => (vars && vars[k] != null) ? String(vars[k]) : '');
 }
