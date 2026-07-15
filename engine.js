@@ -8,11 +8,29 @@ export let DATA = FALLBACK;
 export let byId = buildIndex(FALLBACK).byId;
 let C = DATA.config;
 export function anyItem(id){ return byId.item[id] || byId.weapon[id] || byId.armor[id] || byId.artifact[id] || null; }
-export function anyName(id){ const o = anyItem(id); return o ? (o.ItemName_KR || o.WeaponName_KR || o.ArmorName_KR || o.ArtifactName_KR || id) : id; }
+export function anyName(id){
+  const o = anyItem(id);
+  if (o){
+    const base = o.ItemID ? 'ItemName' : o.WeaponID ? 'WeaponName' : o.ArmorID ? 'ArmorName' : 'ArtifactName';
+    return tr(o, base) || id;
+  }
+  const u = (DATA.usb || []).find(x => x.USBID === id);
+  return u ? (tr(u, 'Name') || id) : id;
+}
 // swap the live data set (returns count summary)
 export function setDATA(newData){
   DATA = newData; C = DATA.config; byId = buildIndex(newData).byId;
   return { monsters: DATA.monsters.length, items: DATA.items.length, zones: DATA.zones.length };
+}
+// ---------- language (KR/EN 시트 컬럼 스위칭) ----------
+export let LANG = 'kr';
+export function setLang(l){ LANG = (l === 'en' ? 'en' : 'kr'); }
+export function tr(row, base){
+  if (!row) return '';
+  const en = row[base + '_EN'];
+  const kr = (row[base + '_KR'] != null && row[base + '_KR'] !== '') ? row[base + '_KR'] : row[base];
+  if (LANG === 'en') return (en != null && en !== '') ? String(en) : (kr != null && kr !== '' ? String(kr) : '');
+  return (kr != null && kr !== '') ? String(kr) : (en != null && en !== '' ? String(en) : '');
 }
 const N = (v, d = 0) => (v === '' || v == null || isNaN(Number(v)) ? d : Number(v));
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -175,7 +193,7 @@ export function playerProfile(state, staminaZero = false) {
 
 export function monsterProfile(m) {
   return {
-    name: m.MonsterName_KR, id: m.MonsterID,
+    name: tr(m, 'MonsterName') || m.MonsterName_KR, id: m.MonsterID,
     maxHp: N(m.BaseHP), minAtk: N(m.MinATK), maxAtk: N(m.MaxATK),
     defense: N(m.Defense), atkSpeed: N(m.AttackSpeed, 1),
     accuracy: N(m.Accuracy), evasion: N(m.Evasion),
@@ -473,6 +491,143 @@ export function applyGrowth(state, triggers) {
 export function growthPct(state, stat) {
   const g = state.growth[stat];
   return clamp((g.points / growthReq(g.level)) * 100, 0, 100);
+}
+
+// ---------- USB growth (USB tab · vendor_usb_tech) ----------
+export function parseMaterials(json){
+  try{ const o = JSON.parse(String(json == null ? '{}' : json)); return Object.entries(o).map(([id, qty]) => ({ id, qty: N(qty, 1) })); }catch(_){ return []; }
+}
+export function countItem(state, id){ let n = 0; for (const arr of [state.bag, state.vault]) for (const it of arr) if (it.id === id) n += (it.qty || 1); return n; }
+export function consumeItems(state, id, qty){
+  let left = qty;
+  const dec = (arr) => { for (let i = arr.length - 1; i >= 0 && left > 0; i--){ if (arr[i].id !== id) continue; const take = Math.min(left, arr[i].qty || 1); if ((arr[i].qty || 1) > take) arr[i].qty -= take; else arr.splice(i, 1); left -= take; } };
+  dec(state.bag); dec(state.vault);
+  return left <= 0;
+}
+// GrantValue: 1.0 = 스탯 1레벨분. 정수부는 레벨, 소수부는 성장 포인트로 환산해 영구 적용.
+export function applyUsbGrant(state, grantStat, value){
+  const key = PRIM[grantStat]; if (!key) return null;
+  const g = state.growth[key]; const before = g.level;
+  const v = N(value, 1); const whole = Math.floor(v); const frac = v - whole;
+  g.level += whole;
+  if (frac > 0){ g.points += frac * growthReq(g.level); while (g.points >= growthReq(g.level)){ g.points -= growthReq(g.level); g.level++; } }
+  state.primary[key] = g.level;
+  return { stat: key, grantStat, from: before, to: g.level };
+}
+
+// ---------- NPC dialogue (NpcDialogue tab · usbload flow) ----------
+// fallback pool when the tab is missing — 미스터 박: 냉정·주술사적·클러리컬
+const USB_TPL = {
+  intro: ['저장매체를 갖고 있군. 해독이 필요하면 내놓아라.', '구 유물은 아무나 다루지 못한다. 볼일이 있으면 매체를 보여라.'],
+  request: ['{USB}. 해독에는 재료가 든다 — {MAT}. 있나.', '수신 준비에 {MAT}이(가) 필요하다.'],
+  insufficient: ['모자란다. {MAT}. 갖춰서 다시 와라.', '이걸로는 회로를 못 돌린다. {MAT}.'],
+  start: ['됐다. 이식을 시작한다. {MIN}분. 접속을 끊지 마라.', '수신 개시. {MIN}분간 유지해라.'],
+  uploading: ['수신 중이다. 끊지 마라.', '신호가 흐르고 있다. 기다려라.'],
+  complete: ['끝났다. {STAT}의 감각이 돌아왔을 거다.', '수신 완료. {STAT}이(가) 몸에 새겨졌다.'],
+  farewell: ['볼일이 끝났으면 가라.', '다음 매체를 구해 와라.'],
+};
+const STAT_KR_FALLBACK = { stat_str: '힘', stat_dex: '민첩', stat_vit: '체력', stat_will: '의지' };
+export function substUsbTokens(s, u){
+  s = String(s == null ? '' : s);
+  if (!u) return s.replace(/\{USB\}|\{MAT\}|\{STAT\}|\{MIN\}/g, '');
+  const mats = parseMaterials(u.RequiredMaterials).map(m => anyName(m.id) + ' ' + m.qty + '개').join(', ');
+  const sr = DATA.primaryStats.find(r => r.PrimaryStatID === u.GrantStat);
+  const statName = (sr && (tr(sr, 'StatName') || sr.Name_KR || sr.PrimaryStat_KR)) || STAT_KR_FALLBACK[u.GrantStat] || '';
+  return s.replace(/\{USB\}/g, tr(u, 'Name') || '').replace(/\{MAT\}/g, mats).replace(/\{STAT\}/g, statName).replace(/\{MIN\}/g, String(N(u.UploadMinutes, 1)));
+}
+export function usbLine(stage, usbRow){
+  const rows = (DATA.npcDialogue || []).filter(r => String(r.NPC) === 'vendor_usb_tech' && String(r.Flow) === 'usbload' && String(r.Stage) === stage);
+  let pool = rows.map(r => String(tr(r, 'Line') || '').trim()).filter(Boolean);
+  if (!pool.length) pool = USB_TPL[stage] || [''];
+  return substUsbTokens(pool[Math.floor(Math.random() * pool.length)], usbRow);
+}
+
+// ---------- ColdData (비대칭 PvP · DEV_HANDOFF §6-6) ----------
+const midVal = (a, b) => Math.round((N(a) + N(b)) / 2);
+// 장비 인스턴스 토큰: "베이스 / 접두 / 접미 / 현재내구 / 최대내구" ('-' = 빈 값)
+export function parseGearToken(token){
+  const parts = String(token == null ? '' : token).split('/').map(s => s.trim());
+  const id = parts[0];
+  if (!id || id === '-') return null;
+  const w = byId.weapon[id], a = byId.armor[id], af = byId.artifact[id];
+  const src = w || a || af || byId.item[id]; if (!src) return null;
+  const kind = w ? 'weapon' : a ? 'armor' : af ? 'artifact' : 'item';
+  const baseMax = N(src.MaxDurability);
+  const inst = { uid: 'u' + (_uid++), id, kind, qty: 1,
+    dur: (parts[3] && parts[3] !== '-') ? N(parts[3], baseMax) : baseMax,
+    maxDur: (parts[4] && parts[4] !== '-') ? N(parts[4], baseMax) : baseMax };
+  if (w){ inst.minAtk = midVal(w.MinAtk_Low, w.MinAtk_High); inst.maxAtk = midVal(w.MaxAtk_Low, w.MaxAtk_High); }
+  else if (a){ inst.def = midVal(a.Def_Low, a.Def_High); }
+  else if (af){ inst.stat1 = midVal(af.Value1_Low, af.Value1_High); if (af.Stat2 && af.Stat2 !== '-') inst.stat2 = midVal(af.Value2_Low, af.Value2_High); }
+  inst.affixes = [];
+  for (const [pos, type] of [[1, 'prefix'], [2, 'suffix']]){
+    const aid = parts[pos]; if (!aid || aid === '-') continue;
+    const row = (DATA.affixes || []).find(x => x.AffixID === aid); if (!row) continue;
+    inst.affixes.push({ affixId: row.AffixID, name: row.AffixName_KR, type, target: row.TargetStat, targetKr: row.TargetStat_KR, value: midVal(row.Value_Min, row.Value_Max) });
+  }
+  return inst;
+}
+export function coldGear(bot){
+  return { weapon: parseGearToken(bot.Weapon), head: parseGearToken(bot.Helmet), body: parseGearToken(bot.Armor), artifact1: parseGearToken(bot.Artifact1), artifact2: parseGearToken(bot.Artifact2) };
+}
+export function coldEquippedList(bot){ return Object.values(coldGear(bot)).filter(Boolean); }
+export function cloneGearInstance(inst){
+  const c = { ...inst, uid: 'u' + (_uid++) };
+  if (inst.affixes) c.affixes = inst.affixes.map(x => ({ ...x }));
+  return c;
+}
+// ColdData 봇의 전투 프로필 — playerProfile과 동일한 파생 경로 (1차 스탯 + 장비 + 접사 + 아티팩트)
+export function coldProfile(bot){
+  const gear = coldGear(bot);
+  const w = functional(gear.weapon) ? gear.weapon : null; const wd = w ? byId.weapon[w.id] : null;
+  const headI = functional(gear.head) ? gear.head : null, bodyI = functional(gear.body) ? gear.body : null;
+  const head = headI ? byId.armor[headI.id] : null, body = bodyI ? byId.armor[bodyI.id] : null;
+  const primAdd = { str: 0, dex: 0, vit: 0, will: 0 }; const secAdd = {};
+  for (const inst of [w, headI, bodyI]){
+    if (!inst || !inst.affixes) continue;
+    for (const x of inst.affixes){ const pk = PRIM[x.target]; if (pk) primAdd[pk] += x.value; else secAdd[x.target] = (secAdd[x.target] || 0) + x.value; }
+  }
+  for (const inst of [gear.artifact1, gear.artifact2]){
+    if (!inst) continue; const ar = byId.artifact[inst.id]; if (!ar) continue;
+    const applyStat = (key, val) => { if (!key || key === '-' || val == null || val === '') return; const pk = PRIM[key]; if (pk) primAdd[pk] += N(val); else secAdd[key] = (secAdd[key] || 0) + N(val); };
+    applyStat(ar.Stat1, inst.stat1); applyStat(ar.Stat2, inst.stat2);
+  }
+  const p = { str: N(bot.Str, 1) + primAdd.str, dex: N(bot.Dex, 1) + primAdd.dex, vit: N(bot.Vit, 1) + primAdd.vit, will: N(bot.Will, 1) + primAdd.will };
+  const sec = deriveSecondary(p);
+  const armorDef = (headI ? (headI.def ?? 0) : 0) + (bodyI ? (bodyI.def ?? 0) : 0);
+  const armorEva = (head ? N(head.Evasion) : 0) + (body ? N(body.Evasion) : 0);
+  const armorSR = (head ? N(head.StatusResist) : 0) + (body ? N(body.StatusResist) : 0);
+  const speedMult = clamp(1 + p.dex * 0.015, 0.3, 3);
+  const sa = k => secAdd[k] || 0;
+  return {
+    name: tr(bot, 'Name') || bot.ColdDataID || bot.ID, id: bot.ColdDataID || bot.ID, isUser: true, tier: bot.Tier, desc: tr(bot, 'Description'), gear,
+    maxHp: Math.round(sec.sec_max_hp + sa('sec_max_hp')),
+    minAtk: sec.sec_min_atk + (w ? w.minAtk : 0) + sa('sec_min_atk'),
+    maxAtk: sec.sec_max_atk + (w ? w.maxAtk : 1) + sa('sec_max_atk'),
+    defense: sec.sec_defense + armorDef + sa('sec_defense'),
+    atkSpeed: clamp((wd ? N(wd.AttackSpeed, 1) : 1) * speedMult, 0.2, 3),
+    accuracy: sec.sec_accuracy + (wd ? N(wd.Accuracy) : 0) + sa('sec_accuracy'),
+    evasion: sec.sec_evasion + armorEva + sa('sec_evasion'),
+    critChance: sec.sec_crit_chance + (wd ? N(wd.CritChance) : 0) + sa('sec_crit_chance'),
+    critResist: sec.sec_crit_resist + sa('sec_crit_resist'),
+    statusResist: sec.sec_status_resist + armorSR + sa('sec_status_resist'),
+    potency: wd ? N(wd.Potency) : 0,
+    attribute: (wd && wd.Attribute && wd.Attribute !== 'none') ? wd.Attribute : null,
+    weaponMaxDmg: w ? w.maxAtk : 2,
+    grade: '생존자', staminaCost: 1, timeLimit: N(C.pvp_time_limit, 20),
+  };
+}
+// 매칭: 순수 1차 스탯 총합 ±pvp_match_range, 같은 CityID. 범위 내 없으면 가장 가까운 후보로 폴백.
+export function pickColdOpponent(state, cityId){
+  let pool = (DATA.coldData || []).filter(b => String(b.CityID || '').trim() === String(cityId).trim());
+  if (!pool.length && (DATA.coldData || []).length){ console.warn('ColdData: no CityID match for', cityId, '— using full pool'); pool = DATA.coldData; }
+  if (!pool.length) return null;
+  const mySum = state.primary.str + state.primary.dex + state.primary.vit + state.primary.will;
+  const range = N(C.pvp_match_range, 10);
+  const sum = b => N(b.Str) + N(b.Dex) + N(b.Vit) + N(b.Will);
+  const fit = pool.filter(b => Math.abs(sum(b) - mySum) <= range);
+  const use = fit.length ? fit : pool.slice().sort((a, b) => Math.abs(sum(a) - mySum) - Math.abs(sum(b) - mySum)).slice(0, 2);
+  return use[Math.floor(Math.random() * use.length)];
 }
 
 export { ATTR_KR, N, C };

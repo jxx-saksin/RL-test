@@ -5,7 +5,10 @@
 
 export const SHEET_ID = '1d-LNhcuFo1dKO1zzszDNAXXT-zDqffatr1aCe3yB8ls';
 export const TABS = ['Config','PrimaryStat','SecondaryStat','StatusEffect','WeaponAttribute',
-  'Weapon','Armor','Item','Monster','City','Zone','Vendor','Shop','LootTable','Artifact','Affix','SpawnTable','CombatLog'];
+  'Weapon','Armor','Item','Monster','City','Zone','Vendor','Shop','LootTable','Artifact','Affix','SpawnTable','CombatLog',
+  'USB','ColdData','NpcDialogue'];
+// tabs that may not exist yet in older sheets — a failed fetch is non-fatal
+const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue']);
 
 // --- RFC4180-ish CSV parser (handles quoted commas + newlines) ---
 export function parseCSV(text) {
@@ -61,9 +64,14 @@ export async function fetchAllTabs(id = SHEET_ID) {
   await Promise.all(TABS.map(async tab => {
     const gid = gidMap[tab];
     if (gid == null) return;
-    const r = await fetch(tabUrl(id, gid), { mode: 'cors', cache: 'no-store' });
-    if (!r.ok) throw new Error(tab + ' HTTP ' + r.status);
-    out[tab] = parseCSV(await r.text());
+    try {
+      const r = await fetch(tabUrl(id, gid), { mode: 'cors', cache: 'no-store' });
+      if (!r.ok) throw new Error(tab + ' HTTP ' + r.status);
+      out[tab] = parseCSV(await r.text());
+    } catch (e) {
+      if (OPTIONAL_TABS.has(tab)) { console.warn('optional tab skipped:', tab, e); return; }
+      throw e;
+    }
   }));
   return out;
 }
@@ -105,6 +113,9 @@ export function shape(rowsByTab) {
     artifacts: toObjs(rowsByTab.Artifact || []),
     affixes: toObjs(rowsByTab.Affix || []).filter(r => String(r.AffixID || '').trim()),
     combatLog: toObjs(rowsByTab.CombatLog || []).filter(r => String(r.LineID || '').trim()),
+    usb: toObjs(rowsByTab.USB || []).filter(r => String(r.USBID || '').trim()),
+    coldData: toObjs(rowsByTab.ColdData || []).filter(r => String(r.ColdDataID || r.ID || '').trim()),
+    npcDialogue: toObjs(rowsByTab.NpcDialogue || []).filter(r => String(r.DialogueID || '').trim()),
   };
 }
 
@@ -119,6 +130,7 @@ export function buildIndex(DATA) {
     city: Object.fromEntries(DATA.cities.map(x => [x.CityID, x])),
     vendor: Object.fromEntries(DATA.vendors.map(x => [x.VendorID, x])),
     status: Object.fromEntries(DATA.statusEffects.map(x => [x.Attribute, x])),
+    usb: Object.fromEntries((DATA.usb || []).map(x => [x.USBID, x])),
   };
   return { byId };
 }
