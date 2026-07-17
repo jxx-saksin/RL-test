@@ -15,7 +15,12 @@ export function anyName(id){
     return tr(o, base) || id;
   }
   const u = (DATA.usb || []).find(x => x.USBID === id);
-  return u ? (tr(u, 'Name') || id) : id;
+  if (u) return tr(u, 'Name') || id;
+  const lq = byId.liquor && byId.liquor[id];
+  if (lq) return tr(lq, 'Name') || id;
+  const md = byId.module && byId.module[id];
+  if (md) return tr(md, 'ColorName') || id;
+  return id;
 }
 // swap the live data set (returns count summary)
 export function setDATA(newData){
@@ -51,11 +56,68 @@ export function t(key){
   if (key == null || key === '') return '';
   if (!_uiById) buildUiIndex();
   const row = _uiById[key] || _uiByKr[key];
-  if (!row) return String(key);
+  if (!row){
+    const f = V3_STRINGS[key];
+    if (f) return LANG === 'en' ? f[1] : f[0];
+    return String(key);
+  }
   const en = row.Text_EN, kr = row.Text_KR;
   if (LANG === 'en') return (en != null && en !== '') ? String(en) : String(kr || key);
   return (kr != null && kr !== '') ? String(kr) : String(en || key);
 }
+// v3 built-in fallbacks — used only when the UIString tab lacks the key (sheet wins).
+const V3_STRINGS = {
+  appraise_tab:['감정','Appraise'], module_tab:['모듈','Modules'],
+  appraise_unappraised:['미감정','Unappraised'],
+  appraise_pick_liquor:['감정에 쓸 술을 고른다','Pick a liquor to appraise with'],
+  appraise_uses:['감정 횟수','Uses'], appraise_proof_band:['도수 = 변동폭','Proof = variance'],
+  appraise_no_liquor:['감정용 술이 없다 — 몬스터가 드랍한다','No liquor — monsters drop it'],
+  appraise_pick_item:['감정할 아이템을 고른다','Pick an item to appraise'],
+  appraise_hidden_opts:['미감정 옵션','Hidden options'],
+  appraise_no_item:['감정할 미감정 아이템이 없다','No unappraised items'],
+  appraise_confirm:['감정 실행 — 1회 확정','Appraise — one shot, final'],
+  appraise_execute:['감정하기','Appraise'], appraise_revealed:['공개된 옵션','Revealed options'],
+  marta_intro:['미감정 원석은 술로 읽는다. 뭘 마실 텐가.','Raw goods read with liquor. What will you drink.'],
+  marta_pick:['어느 물건을 볼까. 한 번 열면 되돌릴 수 없다.','Which piece. Once opened, no take-backs.'],
+  marta_confirm:['도수만큼 흔들린다. 각오는 됐나.','It swings with the proof. Ready.'],
+  marta_done:['이게 자네가 들고 있던 물건의 정체다.','This is what you were carrying.'],
+  vendor_marta_label:['마르타 콜 · 전당포','Marta Cole · Pawnshop'],
+  module_intro:['소켓이 있는 장비를 가져와. 색을 박아주지.','Bring gear with sockets. I set the color.'],
+  module_pick_item:['모듈을 박을 장비','Gear to socket'],
+  module_no_socket_item:['소켓이 있는 장비가 없다','No gear with sockets'],
+  module_pick_socket:['소켓을 고르게.','Choose a socket.'],
+  module_sockets:['소켓','Sockets'], module_tap_socket:['소켓을 눌러 장착하거나 제거한다','Tap a socket to attach or remove'],
+  module_installed:['장착된 모듈','Installed module'],
+  module_remove_line:['빼면 부서진다. 그래도 하겠나.','Pull it and it breaks. Still.'],
+  module_remove_warn:['제거하면 모듈은 즉시 파괴된다','Removing destroys the module'],
+  module_remove_do:['제거 (파괴)','Remove (destroy)'],
+  module_pick_module:['박을 색을 고르게.','Pick a color.'],
+  module_owned:['보유 모듈','Owned modules'], module_no_owned:['맞는 모듈이 없다','No matching modules'],
+  module_bind_line:['한 번 박으면 그 장비의 것이 된다.','Once set, it belongs to that gear.'],
+  module_confirm:['장착 확인','Confirm attach'],
+  module_bind_warn:['장착 시 이 장비에 귀속 · 분리/재활용 불가','Binds to this gear · no reuse'],
+  module_attach_do:['장착','Attach'], module_attach_fail:['장착할 수 없는 소켓','Cannot attach here'],
+  module_hint_red:['공격·힘 계열','Attack·STR'], module_hint_green:['방어·저항 계열','Defense·Resist'],
+  module_hint_blue:['적중·민첩 계열','Accuracy·DEX'], module_hint_violet:['체력·생명 계열','Vitality·HP'],
+  item_slot_weapon:['무기','Weapon'], item_slot_armor:['방어구','Armor'],
+  loot_open_all:['한번에 뒤집기','Flip all'], loot_open_one:['하나씩','One by one'],
+  loot_carousel:['획득 — 카드를 뒤집어 확인','Loot — flip to reveal'], loot_tap_flip:['카드를 눌러 공개','Tap card to reveal'],
+  socket_label:['소켓','Socket'],
+  search_failed_title:['전리품 획득 실패','No loot found'],
+  search_failed_desc:['시체에서 아무것도 찾을 수 없었다.','Found nothing on the body.'],
+  search_failed_cat:['실패','FAILED'],
+  item_desc_label:['아이템 설명','Item description'],
+  item_head:['방어구','Head'], item_body:['갑옷','Body'], item_food:['음식','Food'],
+  item_junk:['정크','Junk'], item_quest:['퀘스트','Quest'], item_key:['키','Key'],
+  item_artifact:['아티팩트','Artifact'], item_material_type:['재질','Material'],
+  common_me:['나','Me'],
+  stat_max_dur:['최대 내구도','Max Durability'], stat_growth_tags:['성장 태그','Growth Tags'],
+  item_liquor:['술','Liquor'], item_module:['모듈','Module'], item_data:['데이터','Data'],
+  pvp_flee_fail_loss:['도주 실패 — 착용 장비 1개가 영구 소실됐다','Flee failed — one equipped item lost forever'],
+  pvp_flee_success:['도주 성공 — 무사히 벗어났다','Fled clean — got away safely'],
+  pvp_win_pick_tpl:['승리 — 카드 1장 선택 · 복제 확률 {Rate}%','Win — pick 1 card · copy chance {Rate}%'],
+  pvp_lose_pick_tpl:['패배 — 카드 1장 선택 · 도주 실패 확률 {Rate}%','Lose — pick 1 card · flee-fail chance {Rate}%'],
+};
 export function invalidateUi(){ _uiById = null; _uiByKr = null; }
 
 // affix name/target resolved lang-aware at display time (instances store affixId)
@@ -117,41 +179,121 @@ export function startingState() {
 }
 
 let _uid = 1;
-export function mkInstance(id, qty = 1) {
+export function nextUid(){ return 'u' + (_uid++); }
+
+// v3 appraisable option keys per kind (재질·소켓수·카테고리·상태이상종류·부여력종류 = 공개, 제외)
+export const APPRAISE_OPTS = {
+  weapon: ['minAtk','maxAtk','atkSpeed','accuracy','critChance','maxDur','potency'],
+  armor:  ['def','evasion','statusResist','maxDur'],
+};
+const OPT_KR = { minAtk:'최소 공격력', maxAtk:'최대 공격력', atkSpeed:'공격 속도', accuracy:'적중률', critChance:'크리티컬 확률', maxDur:'최대 내구도', potency:'부여력', def:'방어력', evasion:'회피율', statusResist:'상태이상 저항', growthTags:'성장 태그' };
+export function optKr(k){ return OPT_KR[k] || k; }
+const STAT_KEYS = ['str','dex','vit','will'];
+
+// seed the working (rolled) value for one option from the base def
+function seedOpt(kind, key, w, a){
+  switch(key){
+    case 'minAtk': return randInt(N(w.MinAtk_Low), N(w.MinAtk_High));
+    case 'maxAtk': return randInt(N(w.MaxAtk_Low), N(w.MaxAtk_High));
+    case 'atkSpeed': return N(w.AttackSpeed);
+    case 'accuracy': return N(w.Accuracy);
+    case 'critChance': return N(w.CritChance);
+    case 'potency': return N(w.Potency);
+    case 'def': return randInt(N(a.Def_Low), N(a.Def_High));
+    case 'evasion': return N(a.Evasion);
+    case 'statusResist': return N(a.StatusResist);
+    case 'maxDur': return N((w||a).MaxDurability);
+  }
+  return 0;
+}
+
+// v3 instance: 베이스ID · sockets[] · unappraised[] · rolls{} · growthTags[] · dur/maxDur
+export function mkInstance(id, qty = 1, opts = {}) {
   const w = byId.weapon[id], a = byId.armor[id], it = byId.item[id], af = byId.artifact[id];
   let kind = 'item', maxDur = 0;
   if (w) { kind = 'weapon'; maxDur = N(w.MaxDurability); }
   else if (a) { kind = 'armor'; maxDur = N(a.MaxDurability); }
   else if (af) { kind = 'artifact'; maxDur = N(af.MaxDurability); }
-  const inst = { uid: 'u' + (_uid++), id, kind, qty };
+  const inst = { uid: nextUid(), id, kind, qty };
   if (kind === 'weapon' || kind === 'armor' || kind === 'artifact') { inst.dur = maxDur; inst.maxDur = maxDur; }
-  // roll ranged stats once, fixed for the life of this instance
-  if (w) {
-    inst.minAtk = randInt(N(w.MinAtk_Low), N(w.MinAtk_High));
-    inst.maxAtk = randInt(N(w.MaxAtk_Low), N(w.MaxAtk_High));
-    if (inst.maxAtk < inst.minAtk) inst.maxAtk = inst.minAtk;
-  } else if (a) {
-    inst.def = randInt(N(a.Def_Low), N(a.Def_High));
-  } else if (af) {
+
+  if (af) { // artifacts: 소켓·감정 없음 (현행 유지)
     inst.stat1 = randInt(N(af.Value1_Low), N(af.Value1_High));
     if (af.Stat2 && af.Stat2 !== '-') inst.stat2 = randInt(N(af.Value2_Low), N(af.Value2_High));
+    return inst;
   }
-  // roll prefix + suffix affixes from the item's group pools
-  if (w) inst.affixes = [rollAffix('weapon', w.PrefixGroups, 'prefix'), rollAffix('weapon', w.SuffixGroups, 'suffix')].filter(Boolean);
-  else if (a) inst.affixes = [rollAffix('armor', a.PrefixGroups, 'prefix'), rollAffix('armor', a.SuffixGroups, 'suffix')].filter(Boolean);
+  if (!w && !a) {
+    const liq = byId.liquor[id];
+    if (liq) { inst.proof = liquorProof(liq); inst.volume = Math.max(1, N(liq.Volume, 1)); inst.usesLeft = inst.volume; }
+    return inst; // plain item / liquor / module chip
+  }
+
+  const src = w || a;
+  // 1) 소켓: 0~SocketMax 롤, 빈 슬롯 = null (감정 대상 아님·공개)
+  const socketMax = Math.max(0, N(src.SocketMax));
+  inst.socketMax = socketMax;
+  inst.sockets = Array.from({ length: randInt(0, socketMax) }, () => null);
+  // 2) 옵션 롤값 (미감정이어도 내부 작동)
+  inst.rolls = {}; for (const k of APPRAISE_OPTS[kind]) inst.rolls[k] = seedOpt(kind, k, w, a);
+  inst.maxDur = inst.rolls.maxDur; inst.dur = inst.rolls.maxDur;
+  // 3) 미감정 롤: 옵션마다 독립 · p = clamp(base × zoneMult, 0, 1) · growthTags 포함
+  const mult = N(opts.unappraisedMult, 1);
+  const p = clamp(N(C.unappraised_base_chance, 0.1) * mult, 0, 1);
+  const optPool = APPRAISE_OPTS[kind].concat(['growthTags']);
+  inst.unappraised = optPool.filter(() => Math.random() < p);
+  // 4) 성장 태그 결정 (미감정=1~2개 최소보장·중복허용 / 공개=0~1개). 활성 = growthTags 미감정 아님.
+  const gUnapp = inst.unappraised.includes('growthTags');
+  const two = clamp(N(C.growth_tag_2_chance, 0.2), 0, 1);
+  const nTags = gUnapp ? (Math.random() < two ? 2 : 1) : (Math.random() < 0.5 ? 1 : 0);
+  inst.growthTags = Array.from({ length: nTags }, () => STAT_KEYS[randInt(0, 3)]);
+  inst.appraised = inst.unappraised.length === 0;
   return inst;
 }
 
-// weighted-random one affix from the pools referenced by the item, of the given type
-function rollAffix(category, groupsStr, type) {
-  const groups = String(groupsStr || '').split(',').map(s => s.trim()).filter(Boolean);
-  if (!groups.length) return null;
-  const pool = DATA.affixes.filter(af => af.AffixType === type && (!af.Category || af.Category === category) && groups.includes(af.GroupID));
-  if (!pool.length) return null;
-  const total = pool.reduce((s, af) => s + Math.max(1, N(af.Weight, 1)), 0);
-  let r = Math.random() * total, pick = pool[pool.length - 1];
-  for (const af of pool) { r -= Math.max(1, N(af.Weight, 1)); if (r <= 0) { pick = af; break; } }
-  return { affixId: pick.AffixID, name: pick.AffixName_KR, type, target: pick.TargetStat, targetKr: pick.TargetStat_KR, value: randInt(N(pick.Value_Min), N(pick.Value_Max)) };
+// working value of an appraisable option (hidden ≠ inactive)
+export function instOpt(inst, key){ return (inst && inst.rolls && inst.rolls[key] != null) ? inst.rolls[key] : 0; }
+export function isHidden(inst, key){ return !!(inst && inst.unappraised && inst.unappraised.includes(key)); }
+export function growthTagsActive(inst){ return (inst && inst.growthTags && !isHidden(inst, 'growthTags')) ? inst.growthTags : []; }
+
+// ---------- appraisal (마르타 · 술) ----------
+// 술 도수 = 개체별 ± 변동폭. 각 미감정 옵션 독립 균일랜덤 ±proof%. 성장태그는 확정·활성만.
+export function liquorProof(liq){ return rand(N(liq.ProofMin), N(liq.ProofMax)); }
+export function appraise(inst, proofPct){
+  if (!inst || !inst.unappraised || !inst.unappraised.length) return [];
+  const changes = [];
+  const f = N(proofPct) / 100;
+  for (const key of inst.unappraised.slice()){
+    if (key === 'growthTags'){ changes.push({ key, growth: inst.growthTags.slice() }); continue; }
+    const before = inst.rolls[key];
+    const delta = before * rand(-f, f);
+    let after = before + delta;
+    if (key === 'maxDur') after = Math.max(1, after);
+    else if (['accuracy','critChance','evasion','statusResist'].includes(key)) after = clamp(after, 0, 100);
+    else after = Math.max(0, after);
+    inst.rolls[key] = after;
+    changes.push({ key, from: before, to: after });
+  }
+  if (inst.unappraised.includes('maxDur')) inst.dur = Math.min(inst.dur, inst.rolls.maxDur);
+  inst.unappraised = [];
+  inst.appraised = true;
+  return changes;
+}
+
+// ---------- modules (미스터 박 · 소켓) ----------
+export function moduleColorStat(mod){ return mod ? (mod.ColorFamily || '') : ''; }
+export function socketFilled(inst){ return (inst && inst.sockets) ? inst.sockets.filter(Boolean).length : 0; }
+export function attachModule(inst, socketIdx, moduleId){
+  const mod = byId.module[moduleId]; if (!inst || !mod || !inst.sockets) return false;
+  if (String(mod.Tag) !== inst.kind) return false;             // 무기/방어구 구분만
+  if (socketIdx < 0 || socketIdx >= inst.sockets.length) return false;
+  if (inst.sockets[socketIdx]) return false;
+  inst.sockets[socketIdx] = { moduleId, target: mod.TargetStat, value: randInt(N(mod.Value_Min), N(mod.Value_Max)) };
+  return true;
+}
+export function removeModule(inst, socketIdx){
+  if (!inst || !inst.sockets || !inst.sockets[socketIdx]) return false;
+  inst.sockets[socketIdx] = null;                              // 모듈 즉시 파괴
+  return true;
 }
 
 // ---------- stat derivation ----------
@@ -177,17 +319,19 @@ export function playerProfile(state, staminaZero = false) {
   const bodyInst = functional(bodyRaw) ? bodyRaw : null;
   const head = headInst ? byId.armor[headInst.id] : null;
   const body = bodyInst ? byId.armor[bodyInst.id] : null;
-  // gather affix bonuses from equipped gear (prefix/suffix rolled per instance)
+  // gather bonuses from equipped gear: v3 socket modules (+ legacy affixes for back-compat)
   const primAdd = { str: 0, dex: 0, vit: 0, will: 0 }; const secAdd = {};
+  const addStat = (key, val) => { const pk = PRIM[key]; if (pk) primAdd[pk] += N(val); else if (key) secAdd[key] = (secAdd[key] || 0) + N(val); };
   for (const inst of [w, headInst, bodyInst]) {
-    if (!inst || !inst.affixes) continue;
-    for (const af of inst.affixes) { const pk = PRIM[af.target]; if (pk) primAdd[pk] += af.value; else secAdd[af.target] = (secAdd[af.target] || 0) + af.value; }
+    if (!inst) continue;
+    if (inst.sockets) for (const s of inst.sockets) { if (s) addStat(s.target, s.value); }
+    if (inst.affixes) for (const af of inst.affixes) addStat(af.target, af.value);
   }
   // equipped artifacts contribute Stat1/Stat2 (rolled per instance; may be negative)
   for (const uid of [state.equip.artifact1, state.equip.artifact2]) {
     if (!uid) continue; const inst = instById(state, uid); if (!inst) continue;
     const ar = byId.artifact[inst.id]; if (!ar) continue;
-    const applyStat = (key, val) => { if (!key || key === '-' || val == null || val === '') return; const pk = PRIM[key]; if (pk) primAdd[pk] += N(val); else secAdd[key] = (secAdd[key] || 0) + N(val); };
+    const applyStat = (key, val) => { if (!key || key === '-' || val == null || val === '') return; addStat(key, val); };
     applyStat(ar.Stat1, inst.stat1 != null ? inst.stat1 : N(ar.Value1_Low));
     applyStat(ar.Stat2, inst.stat2 != null ? inst.stat2 : N(ar.Value2_Low));
   }
@@ -195,26 +339,29 @@ export function playerProfile(state, staminaZero = false) {
   if (staminaZero) { const k = 1 - N(C.stamina_penalty_rate, 0.5); p.str *= k; p.dex *= k; p.vit *= k; p.will *= k; }
   p.str += primAdd.str; p.dex += primAdd.dex; p.vit += primAdd.vit; p.will += primAdd.will;
   const sec = deriveSecondary(p);
-  const armorDef = (headInst ? (headInst.def ?? N(head.Def_Low)) : 0) + (bodyInst ? (bodyInst.def ?? N(body.Def_Low)) : 0);
-  const armorEva = (head ? N(head.Evasion) : 0) + (body ? N(body.Evasion) : 0);
-  const armorSR = (head ? N(head.StatusResist) : 0) + (body ? N(body.StatusResist) : 0);
+  // v3: appraisable stats read the per-instance rolled value (works even while hidden)
+  const wOpt = k => (w ? instOpt(w, k) : 0);
+  const armorOpt = k => (headInst ? instOpt(headInst, k) : 0) + (bodyInst ? instOpt(bodyInst, k) : 0);
+  const armorDef = armorOpt('def');
+  const armorEva = armorOpt('evasion');
+  const armorSR = armorOpt('statusResist');
   const speedMult = clamp(1 + p.dex * 0.015, 0.3, 3);
   const sa = k => secAdd[k] || 0;
   return {
-    name: '나',
+    name: t('common_me'),
     maxHp: Math.round(sec.sec_max_hp + sa('sec_max_hp')),
-    minAtk: sec.sec_min_atk + (w ? (w.minAtk ?? N(wd.MinAtk_Low)) : 0) + sa('sec_min_atk'),
-    maxAtk: sec.sec_max_atk + (w ? (w.maxAtk ?? N(wd.MaxAtk_High)) : 1) + sa('sec_max_atk'),
+    minAtk: sec.sec_min_atk + (w ? wOpt('minAtk') : 0) + sa('sec_min_atk'),
+    maxAtk: sec.sec_max_atk + (w ? wOpt('maxAtk') : 1) + sa('sec_max_atk'),
     defense: sec.sec_defense + armorDef + sa('sec_defense'),
-    atkSpeed: clamp((wd ? N(wd.AttackSpeed, 1) : 1) * speedMult, 0.2, 3),
-    accuracy: sec.sec_accuracy + (wd ? N(wd.Accuracy) : 0) + sa('sec_accuracy'),
+    atkSpeed: clamp((w ? wOpt('atkSpeed') || 1 : 1) * speedMult, 0.2, 3),
+    accuracy: sec.sec_accuracy + (w ? wOpt('accuracy') : 0) + sa('sec_accuracy'),
     evasion: sec.sec_evasion + armorEva + sa('sec_evasion'),
-    critChance: sec.sec_crit_chance + (wd ? N(wd.CritChance) : 0) + sa('sec_crit_chance'),
+    critChance: sec.sec_crit_chance + (w ? wOpt('critChance') : 0) + sa('sec_crit_chance'),
     critResist: sec.sec_crit_resist + sa('sec_crit_resist'),
     statusResist: sec.sec_status_resist + armorSR + sa('sec_status_resist'),
-    potency: wd ? N(wd.Potency) : 0,
+    potency: w ? wOpt('potency') : 0,
     attribute: wd ? wd.Attribute : null,
-    weaponMaxDmg: w ? (w.maxAtk ?? N(wd.MaxAtk_High)) : 2,
+    weaponMaxDmg: w ? wOpt('maxAtk') : 2,
     primAdd,
     sec,
   };
@@ -334,7 +481,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     for (const b of actor.bleed) {
       while (b.nextTick <= t && b.until >= b.nextTick) {
         actor.hp -= b.dmg;
-        push(actor.side, 'dot', logTpl('dot_bleed', { Target: actor.side === 'player' ? (LANG==='en'?'You':'나') : actor.name, Damage: b.dmg.toFixed(0), CurrentHP: Math.max(0, actor.hp).toFixed(0) }));
+        push(actor.side, 'dot', logTpl('dot_bleed', { Target: actor.side === 'player' ? t('common_me') : actor.name, Damage: b.dmg.toFixed(0), CurrentHP: Math.max(0, actor.hp).toFixed(0) }));
         b.nextTick += b.interval;
         if (actor.hp <= 0) break;
       }
@@ -343,15 +490,15 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     if (actor.hp <= 0) break;
 
     if (actor.stunUntil > t) { // stunned: skip, reschedule
-      push(actor.side, 'stun', logTpl('stun_skip', { Target: actor.side === 'player' ? (LANG==='en'?'You':'나') : actor.name }));
+      push(actor.side, 'stun', logTpl('stun_skip', { Target: actor.side === 'player' ? t('common_me') : actor.name }));
       actor.next = actor.stunUntil + 1 / actor.atkSpeed;
       continue;
     }
 
     // attempt hit
     const hc = hitChance(actor.accuracy, foe.evasion);
-    const nm = actor.side === 'player' ? (LANG==='en'?'You':'나') : actor.name;
-    const fnm = foe.side === 'player' ? (LANG==='en'?'You':'나') : foe.name;
+    const nm = actor.side === 'player' ? t('common_me') : actor.name;
+    const fnm = foe.side === 'player' ? t('common_me') : foe.name;
     if (Math.random() > hc) {
       push(actor.side, 'miss', logTpl('miss', { Attacker: nm, Target: fnm, HitPct: (hc * 100).toFixed(0) }));
       if (foe.side === 'player') triggers.evades++;
@@ -499,12 +646,24 @@ export function drawCards(zoneId, n) {
 }
 
 // ---------- loot ----------
-export function rollLoot(monsterId) {
+// resolve one loot row -> concrete item ids (그룹이면 LootGroupItem 균등추첨 · MinQty~MaxQty회 복원추출)
+function isGroupRef(r){ return String(r.ItemID || '').startsWith('group_') || /Group/i.test(String(r.Category || '')); }
+function groupMembers(groupId){ return (DATA.lootGroupItems || []).filter(m => m.GroupID === groupId); }
+export function rollLoot(monsterId, zoneId) {
+  const zone = zoneId ? byId.zone[zoneId] : null;
+  const mult = zone ? N(zone.UnappraisedMult, 1) : 1;
   const out = [];
+  const push = (id, n) => { const ex = out.find(o => o.id === id); if (ex) ex.qty += n; else out.push({ id, qty: n, unappraisedMult: mult }); };
   for (const r of DATA.lootTable) {
     if (r.MonsterID !== monsterId || !r.ItemID) continue;
-    if (Math.random() * 100 < N(r.DropRate)) {
-      out.push({ id: r.ItemID, qty: randInt(N(r.MinQty, 1), N(r.MaxQty, 1)) });
+    if (Math.random() * 100 >= N(r.DropRate)) continue;
+    const draws = randInt(N(r.MinQty, 1), N(r.MaxQty, 1));
+    if (isGroupRef(r)) {
+      const members = groupMembers(r.ItemID);
+      if (!members.length) { console.warn('empty loot group', r.ItemID); continue; }
+      for (let i = 0; i < draws; i++) push(members[randInt(0, members.length - 1)].MemberItemID, 1);
+    } else {
+      push(r.ItemID, draws);
     }
   }
   return out;
@@ -512,12 +671,10 @@ export function rollLoot(monsterId) {
 
 // ---------- growth ----------
 export function growthMultiplier(state, stat) {
-  const tagKey = { str: 'GrowthTag_Str', dex: 'GrowthTag_Dex', vit: 'GrowthTag_Vit', will: 'GrowthTag_Will' }[stat];
   let tags = 0;
   for (const uid of [state.equip.weapon, state.equip.head, state.equip.body]) {
     if (!uid) continue; const inst = instById(state, uid); if (!inst) continue;
-    const src = byId.weapon[inst.id] || byId.armor[inst.id];
-    if (src) tags += N(src[tagKey]);
+    tags += growthTagsActive(inst).filter(t => t === stat).length; // v3: 확정·활성 태그만
   }
   return N(C.growth_tag_mult_base, 0.25) + N(C.growth_tag_mult_step, 0.25) * tags;
 }

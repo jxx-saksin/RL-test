@@ -6,9 +6,10 @@
 export const SHEET_ID = '1d-LNhcuFo1dKO1zzszDNAXXT-zDqffatr1aCe3yB8ls';
 export const TABS = ['Config','PrimaryStat','SecondaryStat','StatusEffect','WeaponAttribute',
   'Weapon','Armor','Item','Monster','City','Zone','Vendor','Shop','LootTable','Artifact','Affix','SpawnTable','CombatLog',
-  'USB','ColdData','NpcDialogue','UIString'];
+  'USB','ColdData','NpcDialogue','UIString',
+  'Liquor','Module','LootGroup','LootGroupItem'];
 // tabs that may not exist yet in older sheets — a failed fetch is non-fatal
-const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString']);
+const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString','Liquor','Module','LootGroup','LootGroupItem']);
 
 // --- RFC4180-ish CSV parser (handles quoted commas + newlines) ---
 export function parseCSV(text) {
@@ -117,6 +118,10 @@ export function shape(rowsByTab) {
     usb: toObjs(rowsByTab.USB || []).filter(r => String(r.USBID || '').trim()),
     coldData: toObjs(rowsByTab.ColdData || []).filter(r => String(r.ColdDataID || r.ID || '').trim()),
     npcDialogue: toObjs(rowsByTab.NpcDialogue || []).filter(r => String(r.DialogueID || '').trim()),
+    liquor: toObjs(rowsByTab.Liquor || []).filter(r => String(r.LiquorID || '').trim()),
+    modules: toObjs(rowsByTab.Module || []).filter(r => String(r.ModuleID || '').trim()),
+    lootGroups: toObjs(rowsByTab.LootGroup || []).filter(r => String(r.GroupID || '').trim()),
+    lootGroupItems: toObjs(rowsByTab.LootGroupItem || []).filter(r => String(r.GroupID || '').trim() && String(r.MemberItemID || '').trim()),
   };
 }
 
@@ -132,6 +137,9 @@ export function buildIndex(DATA) {
     vendor: Object.fromEntries(DATA.vendors.map(x => [x.VendorID, x])),
     status: Object.fromEntries(DATA.statusEffects.map(x => [x.Attribute, x])),
     usb: Object.fromEntries((DATA.usb || []).map(x => [x.USBID, x])),
+    liquor: Object.fromEntries((DATA.liquor || []).map(x => [x.LiquorID, x])),
+    module: Object.fromEntries((DATA.modules || []).map(x => [x.ModuleID, x])),
+    lootGroup: Object.fromEntries((DATA.lootGroups || []).map(x => [x.GroupID, x])),
   };
   return { byId };
 }

@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#16171b">
-<title>가치의 역전</title>
+<title>404: 두 번째 불을 찾아서</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -63,7 +63,7 @@ const ICON = {
   pkg:'M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7M12 11v10',
   cross:'M12 3v4M12 17v4M3 12h4M17 12h4M12 8a4 4 0 100 8 4 4 0 000-8z',
   user:'M12 12a4 4 0 100-8 4 4 0 000 8zM5 20c0-3.5 3-6 7-6s7 2.5 7 6',
-  gear:'M12 9a3 3 0 100 6 3 3 0 000-6zM19 12l1.5 1-1.5 2.6-1.8-.5-1.5.9-.4 1.9h-3l-.4-1.9-1.5-.9-1.8.5L5 15l1.5-1L6 12l-1.5-1L6 8.4l1.8.5 1.5-.9L9.7 6h3l.4 1.9 1.5.9 1.8-.5L18 8.4 16.5 10z',
+  gear:'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 13a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 003.6 15a1.65 1.65 0 00-1.51-1H2a2 2 0 110-4h.09A1.65 1.65 0 003.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 008 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09A1.65 1.65 0 0015 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0020.4 9a1.65 1.65 0 001.51 1H22a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z',
   wrench:'M14.6 6.3a3.5 3.5 0 0 0-4.8 4.6l-6 6 2.7 2.7 6-6a3.5 3.5 0 0 0 4.6-4.8l-2.2 2.2-2.3-.6-.6-2.3 2.6-2z'
 };
 const svg = (d,sz=20,c='currentColor',sw=1.6)=>h('svg',{width:sz,height:sz,viewBox:'0 0 24 24',fill:'none',stroke:c,strokeWidth:sw,strokeLinecap:'round',strokeLinejoin:'round'},h('path',{d}));
@@ -80,7 +80,14 @@ class Component extends DCLogic {
       await this.loadData();
       this.newRun(true);
       this.setState({ ready:true });
+      this.bootFromQuery();
     }catch(e){ console.error('engine load failed', e); this.setState({ ready:true, err:String(e) }); }
+  }
+  bootFromQuery(){
+    let q; try{ q=new URLSearchParams(location.search); }catch(_){ return; }
+    const screen=q.get('screen'); if(!screen) return;
+    if(screen==='vendor'){ const id=q.get('vendor')||'vendor_clinic'; const vtab=q.get('vtab'); this.openVendor(id); if(vtab) this.setState({vtab}); }
+    else this.go(screen);
   }
   async loadData(){
     try{
@@ -133,7 +140,7 @@ class Component extends DCLogic {
   startSortie(zoneId){
     const z=this.eng.byId.zone[zoneId];
     if(z && this.eng.N(z.IsHidden)===1 && z.UnlockType==='item' && z.UnlockKey){ this.consumeItem(z.UnlockKey); this.flash(this.t('zone_keycard_used')); }
-    this.combat = { zoneId, encounter:0, runLoot:[] };
+    this.combat = { zoneId, encounter:0, runLoot:[], runLootInsts:[] };
     // 귀환 화면 성장 그래프용 — 출정 시작 시점 스냅샷
     this.combat.gSnap = Object.fromEntries(['str','dex','vit','will'].map(k=>[k,{ level:this.gs.growth[k].level, pct:this.eng.growthPct(this.gs,k) }]));
     this.setState({ screen:'combat', modalZone:null });
@@ -194,10 +201,11 @@ class Component extends DCLogic {
       this.forceUpdate(); return;
     }
     if(res.winner==='player'){
-      const loot = this.eng.rollLoot(c.mProf.id);
+      const loot = this.eng.rollLoot(c.mProf.id, c.zoneId);
       // quest drop: the police keycard is carried by 하람의 파수꾼 (assigned drop, not a global roll)
       if(c.mProf.id==='monster_haram_warden' && !this.hasItem('item_police_keycard') && Math.random()<0.35){ loot.push({id:'item_police_keycard', qty:1}); }
-      for(const l of loot){ this.addToBag(l.id, l.qty); c.runLoot.push(l); }
+      c.lootInsts=[];
+      for(const l of loot){ const made=this.addToBag(l.id, l.qty, {unappraisedMult:l.unappraisedMult})||[]; c.runLoot.push(l); for(const mi of made){ c.lootInsts.push(mi.uid); (c.runLootInsts||(c.runLootInsts=[])).push(mi.uid); } }
       c.loot = loot;
       if(loot.length){ c.res.log.push({t:res.elapsed||0, who:'sys', type:'win', text:this.eng.logTpl('loot',{}), hpP:res.playerHpEnd, hpM:0}); c.revealed=c.res.log.length; }
       c.ups = this.eng.applyGrowth(this.gs, res.triggers);
@@ -207,13 +215,14 @@ class Component extends DCLogic {
     else { c.phase='timeout'; }
     this.forceUpdate();
   }
-  addToBag(id, qty){
-    const src = this.eng.byId.item[id];
+  addToBag(id, qty, opts){
+    const src = this.eng.byId.item[id]; const made=[];
     if(src && this.eng.N(src.MaxStack,1)>1){
       const ex = this.gs.bag.find(x=>x.id===id);
-      if(ex){ ex.qty+=qty; return; }
+      if(ex){ ex.qty+=qty; return [ex]; }
     }
-    for(let i=0;i<qty;i++){ const inst=this.eng.mkInstance(id,1); this.gs.bag.push(inst); if(this.eng.N((src||{}).MaxStack,1)>1){ inst.qty=qty; break; } }
+    for(let i=0;i<qty;i++){ const inst=this.eng.mkInstance(id,1,opts||{}); this.gs.bag.push(inst); made.push(inst); if(this.eng.N((src||{}).MaxStack,1)>1){ inst.qty=qty; break; } }
+    return made;
   }
   extract(){ this.setState({ screen:'result' }); this.combat.result='extract'; if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate(); }
   death(){
@@ -254,20 +263,20 @@ class Component extends DCLogic {
     if(ex){ ex.qty=(ex.qty||1)+n; } else { const ni=this.eng.mkInstance(inst.id,n); ni.qty=n; dst.push(ni); }
     this.forceUpdate();
   }
-  services(v){ return String((v&&v.Services)||'').split(',').map(s=>s.trim()).filter(Boolean); }
+  services(v){ const list=String((v&&v.Services)||'').split(',').map(s=>s.trim()).filter(Boolean); if(v&&String(v.ShopType||'')==='DataTech'&&!list.includes('Module')) list.push('Module'); return list; }
   tx(row,base){ return this.eng?this.eng.tr(row,base):''; }
   t(k){ return this.eng?this.eng.t(k):k; }
   en(){ return !!this.eng && this.eng.LANG==='en'; }
   isPvpZone(z){ if(!z) return false; const v=String(z.IsPvP==null?'':z.IsPvP).trim().toLowerCase(); return v==='1'||v==='true'||v==='y'||v==='yes'; }
   setLang(l){ this.lang=l; this.eng.setLang(l); try{localStorage.setItem('rl_lang',l);}catch(_){} this.forceUpdate(); }
-  openVendor(id){ const v=this.eng.byId.vendor[id]; const svc=this.services(v); const first=svc.includes('Buy')?'buy':svc.includes('Repair')?'repair':svc.includes('Heal')?'heal':svc.includes('Load')?'load':'sell'; if(this._t){clearInterval(this._t);this._t=null;}
+  openVendor(id){ const v=this.eng.byId.vendor[id]; const svc=this.services(v); const first=svc.includes('Buy')?'buy':svc.includes('Repair')?'repair':svc.includes('Heal')?'heal':svc.includes('Load')?'load':svc.includes('Appraisal')?'appraise':svc.includes('Module')?'module':'sell'; if(this._t){clearInterval(this._t);this._t=null;}
     if(svc.includes('Load')){
       const up=this.gs.usbUpload;
       if(up&&Date.now()>=up.endsAt){ this.usb={stage:'uploading',row:this.usbRowFor(up.usbId)}; this.completeUpload(); }
       else if(up){ this.usb={stage:'uploading',row:this.usbRowFor(up.usbId)}; this.usb.line=this.eng.usbLine('uploading',this.usb.row); }
       else { this.usb={stage:'intro',row:null,line:this.eng.usbLine('intro',null)}; }
     }
-    this.setState({screen:'vendor',vendor:id,vtab:first,sel:null,repairSel:null,modalZone:null}); }
+    this.setState({screen:'vendor',vendor:id,vtab:first,sel:null,repairSel:null,modalZone:null,apr:null,mod:null}); }
   // ---------- shop ----------
   buy(shopId, row){
     const price=this.eng.N(row.BuyPrice);
@@ -295,6 +304,9 @@ class Component extends DCLogic {
     );
   }
   chip(txt,color){ return h('span',{style:{fontFamily:T.mono,fontSize:10,fontWeight:500,letterSpacing:'.04em',color:color||T.mid,border:'1px solid '+T.line2,borderRadius:2,padding:'2px 6px',whiteSpace:'nowrap'}}, this.eng.t(txt)); }
+  catChip(txt,on){ const G='rgb(131,178,137)'; return h('span',{style:{display:'inline-flex',alignItems:'center',gap:5,borderRadius:4,background:'rgb(33,35,39)',border:'1px solid '+(on?G:'rgb(54,56,60)'),padding:'3px 7px',boxSizing:'border-box'}}, h('span',{style:{width:5,height:5,borderRadius:999,background:on?G:'rgb(111,114,118)'}}), h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:on?G:'rgb(169,171,175)',whiteSpace:'nowrap'}}, this.eng.t(txt))); }
+  subTag(txt){ return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgb(33,35,39)',border:'1px solid rgb(54,56,60)',padding:'3px 7px',boxSizing:'border-box',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:'rgb(169,171,175)',whiteSpace:'nowrap'}}, this.eng.t(txt)); }
+  unappTag(){ return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgb(33,35,39)',border:'1px solid rgb(118,131,243)',padding:'3px 7px',boxSizing:'border-box',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:'rgb(118,131,243)',whiteSpace:'nowrap'}}, this.t('appraise_unappraised')); }
   header(){
     const g=this.gs;
     return h('div',{style:{padding:'16px 18px 12px',background:T.s1,borderBottom:'1px solid '+T.line,display:'flex',flexDirection:'column',gap:12,flex:'0 0 auto'}},
@@ -310,12 +322,12 @@ class Component extends DCLogic {
     return h('div',{style:{flex:'0 0 auto',display:'flex',background:T.s1,borderTop:'1px solid '+T.line}},
       ...items.map(([k,label,d])=>{ const on=this.state.screen===k || (k==='zone'&&this.state.screen==='combat');
         return h('button',{key:k,onClick:()=>this.go(k),style:{flex:1,background:'none',border:'none',cursor:'pointer',padding:'10px 0 12px',display:'flex',flexDirection:'column',alignItems:'center',gap:4,color:on?T.hi:T.faint}},
-          svg(d,21,'currentColor',on?1.8:1.5), h('span',{style:{fontFamily:T.sans,fontSize:10,fontWeight:on?600:400}},this.eng.t(label))); })
+          svg(d,21,'currentColor',on?1.8:1.5), h('span',{style:{fontFamily:T.sans,fontSize:10,fontWeight:on?500:400}},this.eng.t(label))); })
     );
   }
   screenTitle(kicker,title){ return h('div',{style:{padding:'18px 18px 14px',flex:'0 0 auto'}},
     h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:T.faint,marginBottom:6}}, this.eng.t(kicker)),
-    h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:600,color:T.hi,letterSpacing:'-.01em'}}, this.eng.t(title))); }
+    h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:400,color:T.hi,letterSpacing:'-.01em'}}, this.eng.t(title))); }
   toastEl(){ if(!this.state.toast) return null; return h('div',{style:{position:'absolute',bottom:78,left:'50%',transform:'translateX(-50%)',background:T.s3,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.mono,fontSize:12,padding:'8px 16px',borderRadius:3,animation:'rlFade .2s',zIndex:20}}, this.eng.t(this.state.toast)); }
 
   renderApp(){
@@ -336,31 +348,37 @@ class Component extends DCLogic {
   // ---- safehouse ----
   safehouse(){
     // 오픈 상점(보건소→철물점→데이터기술소→기타) 먼저, 미오픈은 아래로
-    const isOpen=(v)=>{ const svc=this.services(v); return this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID)||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Load'); };
+    const isOpen=(v)=>{ const svc=this.services(v); return this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID)||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Module')||svc.includes('Buy')||svc.includes('Sell'); };
     const pri=(v)=>{ if(v.ShopID==='shop_clinic')return 0; if(v.ShopID==='shop_hardware')return 1; if(v.ShopID==='shop_datatech'||String(v.ShopType||'')==='DataTech')return 2; return 3; };
     const vendors=this.eng.DATA.vendors.slice().sort((a,b)=>{ const oa=isOpen(a)?0:1, ob=isOpen(b)?0:1; if(oa!==ob) return oa-ob; return pri(a)-pri(b); });
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       this.screenTitle(this.t('kicker_safehouse'),'안전가옥'),
-      h('div',{style:{padding:'0 18px 20px',overflowY:'auto',flex:1}},
-        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 12px'}}, this.t('nav_shop')),
-        h('div',{style:{display:'flex',flexDirection:'column',gap:10}},
-          ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Load'); const act=()=>this.openVendor(v.VendorID);
+      h('div',{style:{padding:'20px 16px 24px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:16}},
+        ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Module')||svc.includes('Sell'); const act=()=>this.openVendor(v.VendorID);
+            const img=this.shopImg(v.ShopID);
+            const tc=String(v.TradeCategories||'').split(',').map(s=>s.trim()).filter(Boolean); const cat=tc.length?(CATKR[tc[0]]||tc[0]):'';
+            const SL={Buy:this.t('shop_buy'),Sell:this.t('shop_sell'),Repair:this.t('nav_repair'),Heal:this.t('heal_treat'),Load:this.t('usb_decode'),Appraisal:this.t('appraise_tab'),Module:this.t('module_tab'),Quest:(this.en()?'Quest':'퀵스트')};
+            const svcTxt=['Buy','Sell','Repair','Heal','Load','Appraisal','Module','Quest'].filter(s=>svc.includes(s)).map(s=>SL[s]).join(' · ');
             return h('button',{key:v.VendorID,disabled:!open,onClick:open?act:null,
-              style:{textAlign:'left',background:open?T.s1:T.bg,border:'1px solid '+(open?T.line2:T.line),borderRadius:6,padding:0,cursor:open?'pointer':'default',opacity:open?1:.5,display:'flex',flexDirection:'column',overflow:'hidden'}},
-              h('div',{style:{position:'relative',height:96,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 7px, oklch(0.27 0.008 264) 7px 8px)'}},
-                h('div',{style:{position:'absolute',left:13,bottom:9,fontFamily:T.mono,fontSize:9,color:T.faint,letterSpacing:'.1em'}}, this.t('kicker_shop_img')),
-                open?null:h('div',{style:{position:'absolute',right:12,top:11,display:'flex',alignItems:'center',gap:5,color:T.faint,fontFamily:T.mono,fontSize:10,background:'oklch(0.15 0.006 264 / .55)',border:'1px solid '+T.line2,borderRadius:3,padding:'3px 8px'}}, svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',13,T.faint,1.6),this.t('common_locked'))),
-              h('div',{style:{padding:'12px 15px 14px'}},
-                h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:4}},
-                  h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:600,color:T.hi}}, this.shopName(v.ShopID,v)),
-                  this.chip(v.ShopType, open?T.mid:T.faint)),
-                h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo}}, this.tx(v,'VendorName')),
-                h('div',{style:{height:1,background:T.line,margin:'11px 0'}}),
-                h('div',{style:{fontFamily:T.sans,fontSize:12.5,color:T.mid,lineHeight:1.5}}, this.tx(v,'Description')||this.shopDesc(v.ShopID))));
-          })))
+              style:{textAlign:'left',background:'rgb(24,25,29)',border:'1px solid rgb(54,56,60)',borderRadius:8,padding:0,cursor:open?'pointer':'default',opacity:open?1:.5,display:'flex',flexDirection:'column',overflow:'hidden',flexShrink:0}},
+              h('div',{style:{position:'relative',height:110,background:img?('rgb(43,46,50) url('+img+') center / cover no-repeat'):'rgb(43,46,50)',flexShrink:0}},
+                h('div',{style:{position:'absolute',left:0,right:0,bottom:0,height:44,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgb(24,25,29) 100%)'}}),
+                open?null:h('div',{style:{position:'absolute',right:12,top:11,display:'flex',alignItems:'center',gap:5,color:T.faint,fontFamily:T.mono,fontSize:10,background:'rgba(10,11,14,0.55)',border:'1px solid '+T.line2,borderRadius:3,padding:'3px 8px'}}, svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',13,T.faint,1.6),this.t('common_locked'))),
+              h('div',{style:{padding:'12px 15px',display:'flex',flexDirection:'column'}},
+                h('div',{style:{display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start',gap:10}},
+                  h('div',{style:{display:'flex',flexDirection:'column',gap:2}},
+                    h('div',{style:{fontFamily:T.sans,fontSize:16,fontWeight:500,color:'rgb(234,235,238)'}}, this.shopName(v.ShopID,v)),
+                    h('div',{style:{fontFamily:T.mono,fontSize:11,color:'rgb(111,114,118)'}}, this.tx(v,'VendorName'))),
+                  cat?this.catChip(cat,false):null),
+                h('div',{style:{padding:'11px 0',fontFamily:T.sans,fontSize:13,lineHeight:'20.15px',color:'rgb(169,171,175)'}}, this.tx(v,'Description')||this.shopDesc(v.ShopID)),
+                h('div',{style:{padding:'12px 0 0'}},
+                  h('div',{style:{borderTop:'1px solid rgb(54,56,60)',padding:'11px 0 0',fontFamily:T.mono,fontSize:10.5,letterSpacing:'0.84px',color:'rgb(111,114,118)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, svcTxt))));
+          }))
       );
   }
-  shopName(id,v){ const map={shop_clinic:'vendor_clinic',shop_hardware:'vendor_hardware',shop_canteen:'vendor_canteen',shop_blackmarket:'vendor_blackmarket',shop_pawnshop:'vendor_pawnshop',shop_datatech:'vendor_datatech'}; if(map[id]) return this.t(map[id]); if(v&&String(v.ShopType||'')==='DataTech') return this.t('vendor_datatech'); return id; }
+  shopImg(id){ return ({shop_clinic:'assets/shop-clinic.jpg',shop_hardware:'assets/shop-hardware.jpg'})[id]||''; }
+  shopName(id,v){ return this.tx(v,'ShopName') || id; }
+  optStatKey(k){ return ({minAtk:'stat_atk_min',maxAtk:'stat_atk_max',atkSpeed:'stat_atk_speed',accuracy:'stat_accuracy',critChance:'stat_crit_chance',potency:'stat_potency',def:'stat_def',evasion:'stat_evasion',statusResist:'stat_status_resist',maxDur:'stat_max_dur',growthTags:'stat_growth_tags'})[k] || k; }
   shopDesc(id){ const map={shop_clinic:'vendor_clinic_desc',shop_hardware:'vendor_hardware_desc',shop_canteen:'vendor_canteen_desc',shop_blackmarket:'vendor_blackmarket_desc',shop_pawnshop:'vendor_pawnshop_desc'}; return map[id]?this.t(map[id]):''; }
 
   // ---- zone select ----
@@ -373,7 +391,7 @@ class Component extends DCLogic {
     const selTier=citySlots.indexOf(selSlot)+1;
     const zones=this.eng.DATA.zones.filter(z=>z.CityID===sel);
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-      this.screenTitle('SORTIE · '+selSlot.name+' (TIER '+selTier+')','출정'),
+      this.screenTitle('SORTIE · '+selSlot.name+' (TIER '+selTier+')','nav_sortie'),
       // ---- city carousel ----
       h('div',{style:{display:'flex',gap:12,overflowX:'auto',padding:'2px 18px 16px',flex:'0 0 auto',scrollSnapType:'x mandatory'}},
         ...citySlots.map((sc,i)=>{ const active=sc.id===sel && !sc.locked;
@@ -382,7 +400,7 @@ class Component extends DCLogic {
             h('div',{style:{height:92,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 7px, oklch(0.27 0.008 264) 7px 8px)',display:'flex',alignItems:'flex-end',padding:'10px 12px'}}, h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint,letterSpacing:'.12em'}}, 'CITY 0'+(i+1))),
             h('div',{style:{padding:'11px 13px'}},
               h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:4}},
-                h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:700,color:sc.locked?T.mid:T.hi}}, sc.name),
+                h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:400,color:sc.locked?T.mid:T.hi}}, sc.name),
                 sc.locked?this.chip(this.t('zone_locked'),T.faint):(active?this.chip(this.t('common_selected'),T.good):null)),
               h('div',{style:{fontFamily:T.mono,fontSize:10,color:T.faint,letterSpacing:'.06em'}}, 'TIER '+(i+1))),
             sc.locked?h('div',{style:{position:'absolute',top:10,right:10}}, svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',15,T.faint,1.6)):null); })),
@@ -394,7 +412,7 @@ class Component extends DCLogic {
             style:{width:'100%',textAlign:'left',background:'none',border:'none',borderBottom:'1px solid '+T.line,padding:'15px 18px',cursor:locked?'default':'pointer',opacity:locked?.45:1,display:'flex',alignItems:'center',gap:12}},
             h('div',{style:{flex:1}},
               h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:4}},
-                h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:600,color:T.hi}}, this.tx(z,'ZoneName')),
+                h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:500,color:T.hi}}, this.tx(z,'ZoneName')),
                 this.isPvpZone(z)?this.chip('PvP',T.danger):null,
                 hidden?this.chip(unlockable?this.t('common_unlock'):this.t('zone_locked'), unlockable?T.good:T.faint):null),
               h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo}}, (this.eng.pick(z,'LootFocus')))),
@@ -410,13 +428,13 @@ class Component extends DCLogic {
         h('div',{style:{width:34,height:4,background:T.line2,borderRadius:2,margin:'0 auto 16px'}}),
         h('div',{style:{height:118,margin:'-2px -18px 16px',background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 7px, oklch(0.27 0.008 264) 7px 8px)',display:'flex',alignItems:'flex-end',padding:'12px 16px',position:'relative'}}, h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.faint,letterSpacing:'.12em'}}, this.t('kicker_zone_img'))),
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:6}}, this.t('zone_infiltration')),
-        h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:600,color:T.hi,marginBottom:6}}, this.tx(z,'ZoneName')),
+        h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:500,color:T.hi,marginBottom:6}}, this.tx(z,'ZoneName')),
         h('div',{style:{fontFamily:T.sans,fontSize:13,color:T.mid,lineHeight:1.5,marginBottom:14}}, this.tx(z,'Description')||((this.t('frag_loot_tendency')+' ')+(this.eng.pick(z,'LootFocus')))),
         this.isPvpZone(z)? h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12,fontFamily:T.mono,fontSize:11,color:T.danger}}, this.chip('PvP',T.danger), h('span',{style:{color:T.mid,fontFamily:T.sans,fontSize:12}}, (this.t('frag_encounter_chance')+' ')+this.eng.N(z.UserDataChance)+('%'+' '+this.t('frag_lose_on_defeat').replace(/^%/,'')))) : null,
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:T.faint,marginBottom:8}}, this.t('zone_monsters')),
         h('div',{style:{display:'flex',flexWrap:'wrap',gap:6,marginBottom:20}}, ...(dist? dist.map(d=>{ const mm=this.eng.byId.monster[d.id]||{}; return this.chip(this.tx(mm,'MonsterName')||d.id, T.mid); }) : pool.map(m=>this.chip(this.tx(m,'MonsterName'), T.mid)))),
-        (this.gs.hp<=0? h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontFamily:T.sans,fontSize:12.5,fontWeight:600,color:T.danger}}, svg('M12 9v4M12 17h.01M10.3 4.3 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z',18,T.danger,1.7), this.t('heal_restore_first')) : null),
-        h('button',{disabled:this.gs.hp<=0,onClick:this.gs.hp<=0?null:()=>this.startSortie(z.ZoneID),style:{width:'100%',background:'transparent',border:'1px solid '+(this.gs.hp<=0?T.line:T.danger),color:this.gs.hp<=0?T.faint:T.danger,fontFamily:T.sans,fontSize:15,fontWeight:600,padding:'15px',borderRadius:4,cursor:this.gs.hp<=0?'default':'pointer',letterSpacing:'.02em'}}, this.t('nav_sortie')))
+        (this.gs.hp<=0? h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontFamily:T.sans,fontSize:12.5,fontWeight:500,color:T.danger}}, svg('M12 9v4M12 17h.01M10.3 4.3 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z',18,T.danger,1.7), this.t('heal_restore_first')) : null),
+        h('button',{disabled:this.gs.hp<=0,onClick:this.gs.hp<=0?null:()=>this.startSortie(z.ZoneID),style:{width:'100%',background:'transparent',border:'1px solid '+(this.gs.hp<=0?T.line:T.danger),color:this.gs.hp<=0?T.faint:T.danger,fontFamily:T.sans,fontSize:15,fontWeight:500,padding:'15px',borderRadius:4,cursor:this.gs.hp<=0?'default':'pointer',letterSpacing:'.02em'}}, this.t('nav_sortie')))
     );
   }
 
@@ -431,7 +449,7 @@ class Component extends DCLogic {
     const cur = this.combatHp(isMonster?'monster':'player');
     return h('div',{style:{flex:1,background:T.s1,border:'1px solid '+T.line,borderRadius:4,padding:'11px 12px'}},
       h('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:8}},
-        h('span',{style:{fontFamily:T.sans,fontSize:13,fontWeight:600,color:T.hi,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, prof.name),
+        h('span',{style:{fontFamily:T.sans,fontSize:13,fontWeight:500,color:T.hi,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, prof.name),
         prof.grade?this.chip(prof.grade,T.lo):null),
       h('div',{style:{height:5,background:T.s3,borderRadius:1,overflow:'hidden',marginBottom:6}}, h('div',{style:{width:Math.max(0,Math.min(100,cur/prof.maxHp*100))+'%',height:'100%',background:T.hp}})),
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
@@ -492,15 +510,18 @@ class Component extends DCLogic {
       const crit=clamp((prof.critChance||0)/(((prof.critChance||0)+(foe.critResist||0)+K)),cmin,cmax);
       accV+=rel(hit); evaV+=rel(dodge); critV+=rel(crit);
     }
+    const attrCol = AT(prof.attribute)?((ATTR[prof.attribute]&&ATTR[prof.attribute].c)||T.hi):null;
     const rows=[
-      [this.t('stat_atk'), Math.round(prof.minAtk)+'~'+Math.round(prof.maxAtk), this.t('stat_def'), String(Math.round(prof.defense))],
-      [this.t('stat_atk_speed'), (prof.atkSpeed!=null?prof.atkSpeed:1).toFixed(1), this.t('stat_accuracy'), accV],
-      [this.t('stat_evasion'), evaV, this.t('stat_crit_chance'), critV],
-      [this.t('stat_crit_resist'), Math.round(prof.critResist||0)+'%', this.t('stat_status_resist'), Math.round(prof.statusResist||0)+'%'],
+      [this.t('stat_atk'), Math.round(prof.minAtk)+'~'+Math.round(prof.maxAtk), null, this.t('stat_def'), String(Math.round(prof.defense)), null],
+      [this.t('stat_atk_speed'), (prof.atkSpeed!=null?prof.atkSpeed:1).toFixed(1), null, this.t('stat_accuracy'), accV, null],
+      [this.t('stat_evasion'), evaV, null, this.t('stat_crit_chance'), critV, null],
+      [this.t('stat_crit_resist'), Math.round(prof.critResist||0)+'%', null, this.t('stat_status_resist'), Math.round(prof.statusResist||0)+'%', null],
+      [this.t('status_effect'), AT(prof.attribute)?this.t('status_'+prof.attribute):this.t('common_none'), attrCol, this.t('item_material_type'), (md&&md.Material&&md.Material!=='-')?md.Material:'—', null],
     ];
-    if(isMonster) rows.push([this.t('status_effect'), AT(prof.attribute)?this.t('status_'+prof.attribute):this.t('common_none'), this.t('item_material_type'), (md&&md.Material&&md.Material!=='-')?md.Material:'—']);
-    const cell=(k,v)=>h('div',{style:{flex:1,display:'flex',justifyContent:'space-between',gap:8,minWidth:0}}, h('span',{style:{color:T.lo}},k), h('span',{style:{color:T.hi}},v));
-    return h('div',{style:{display:'flex',flexDirection:'column',gap:6,fontFamily:T.mono,fontSize:11}}, ...rows.map((r,i)=>h('div',{key:i,style:{display:'flex',gap:18}}, cell(r[0],r[1]), cell(r[2],r[3]))));
+    const cell=(k,v,col)=>h('div',{style:{flex:1,display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:8,minWidth:0,padding:'6px 0',borderBottom:'1px solid '+T.line}}, h('span',{style:{color:T.lo}},k), h('span',{style:{color:col||T.hi,fontWeight:col?600:400,textAlign:'right'}},v));
+    return h('div',{style:{fontFamily:T.mono,fontSize:11}},
+      h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:T.faint,margin:'2px 0'}}, 'STAT'),
+      ...rows.map((r,i)=>h('div',{key:i,style:{display:'flex',gap:16}}, cell(r[0],r[1],r[2]), cell(r[3],r[4],r[5]))));
   }
   combatStats(prof){
     const cell=(k,v)=>h('div',{style:{flex:1,display:'flex',justifyContent:'space-between',gap:8,minWidth:0}}, h('span',{style:{color:T.lo}},k), h('span',{style:{color:T.hi}},v));
@@ -514,7 +535,7 @@ class Component extends DCLogic {
       isMonster? h('div',{style:{position:'relative',height:58,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}, h('div',{style:{position:'absolute',left:12,bottom:8,fontFamily:T.mono,fontSize:9,color:prof.isUser?T.sato:T.faint,letterSpacing:'.1em'}}, prof.isUser?this.t('kicker_userdata'):((md.Category||'')+''+this.t('kicker_dot_monsters'))), prof.grade?h('div',{style:{position:'absolute',right:10,top:10,fontFamily:T.mono,fontSize:9,letterSpacing:'.1em',color:T.hi,background:'oklch(0.15 0.006 264 / .55)',border:'1px solid oklch(0.9 0 0 / .18)',borderRadius:3,padding:'2px 7px'}}, prof.grade):null) : null,
       h('div',{style:{padding:'11px 13px'}},
         h('div',{style:{display:'flex',alignItems:'center',gap:7,marginBottom:8}},
-          h('span',{style:{fontFamily:T.sans,fontSize:13,fontWeight:600,color:T.hi,flex:'0 1 auto',minWidth:0,maxWidth:'55%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, isMonster?prof.name:this.t('common_me')),
+          h('span',{style:{fontFamily:T.sans,fontSize:13,fontWeight:500,color:T.hi,flex:'0 1 auto',minWidth:0,maxWidth:'55%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, isMonster?prof.name:this.t('common_me')),
           h('div',{style:{flex:1}}),
           ...this.statusIcons(isMonster?'monster':'player'),
           AT(prof.attribute)?this.statusChip(prof.attribute):null),
@@ -563,7 +584,7 @@ class Component extends DCLogic {
     if(!c.res) return this.phone();
     const revealed=c.res.log.slice(0,c.revealed);
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-      h('div',{style:{flex:'0 0 auto',background:T.s1,borderBottom:'1px solid '+T.line,padding:'12px 16px 12px'}},
+      h('div',{style:{flex:'0 0 auto',background:T.s1,borderBottom:'1px solid '+T.line,padding:'12px 16px 18px'}},
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:8}}, 'COMBAT · '+(this.eng.byId.zone[c.zoneId]?this.tx(this.eng.byId.zone[c.zoneId],'ZoneName'):'')+' · '+c.encounter+'전'),
         this.combatantCard(c.mProf,true,this.combatHp('monster'),c.phase==='fighting'),
         this.speedDuel(),
@@ -579,10 +600,10 @@ class Component extends DCLogic {
     const c=this.combat;
     const durLine=null;
     if(c.phase==='fighting') return h('div',{style:{flex:'0 0 auto',padding:'12px 16px',borderTop:'1px solid '+T.line,background:T.s1,textAlign:'center',fontFamily:T.mono,fontSize:11,color:T.faint,letterSpacing:'.08em'}}, this.t('combat_fighting'));
-    const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:600,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
+    const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
     if(c.phase==='pvpWin'||c.phase==='pvpLose') return this.pvpControls();
     let inner;
-    const useBtn=h('button',{key:'use',onClick:()=>this.setState({useOpen:true}),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.good,fontFamily:T.sans,fontSize:13,fontWeight:600,padding:'11px',borderRadius:4,cursor:'pointer',marginBottom:10}}, this.t('heal_use_item'));
+    const useBtn=h('button',{key:'use',onClick:()=>this.setState({useOpen:true}),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.good,fontFamily:T.sans,fontSize:13,fontWeight:500,padding:'11px',borderRadius:4,cursor:'pointer',marginBottom:10}}, this.t('heal_use_item'));
     if(c.phase==='won'){
       inner=[ c.ups.length?h('div',{key:'u',style:{marginBottom:10,fontFamily:T.mono,fontSize:11,color:T.growth}}, (this.t('frag_growth')+' ')+c.ups.map(u=>({str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')}[u.stat]+' Lv'+u.to)).join(' · ')):null,
         durLine,
@@ -594,7 +615,7 @@ class Component extends DCLogic {
         useBtn,
         h('div',{key:'b',style:{display:'flex',gap:10}}, btn(this.t('combat_reengage'),()=>this.drawCards()), btn(this.t('btn_return'),()=>this.extract())) ];
     } else { // dead
-      inner=[ h('div',{key:'d',style:{marginBottom:10,fontFamily:T.mono,fontSize:12,color:T.danger,fontWeight:600}}, this.t('combat_death')),
+      inner=[ h('div',{key:'d',style:{marginBottom:10,fontFamily:T.mono,fontSize:12,color:T.danger,fontWeight:500}}, this.t('combat_death')),
         durLine,
         h('div',{key:'b',style:{display:'flex',gap:10}}, btn(this.t('btn_confirm_result'),()=>this.death(),true)) ];
     }
@@ -608,27 +629,84 @@ class Component extends DCLogic {
     c.picked=c.cardFocus; c.flipped=true; this.forceUpdate(); }
   monsterFront(m){
     const md=this.eng.byId.monster[m.id]||{};
-    const rows=[[this.t('stat_atk_max'),Math.round(m.maxAtk)],[this.t('stat_atk_speed'),m.atkSpeed.toFixed(1)],[this.t('stat_def'),Math.round(m.defense)],[this.t('stat_crit_resist'),Math.round(m.critResist)],[this.t('status_effect'), AT(m.attribute)?this.t('status_'+m.attribute):this.t('common_none')],[this.t('stat_potency'),Math.round(m.potency)],[this.t('stat_status_resist'),Math.round(m.statusResist)],[this.t('item_material_type'), md.Material&&md.Material!=='-'?md.Material:'—']];
-    return h('div',{style:{width:300,background:T.s1,border:'1px solid '+T.line,borderRadius:8,overflow:'hidden',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
-      h('div',{style:{position:'relative',height:140,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
-        h('div',{style:{position:'absolute',right:12,top:11,fontFamily:T.mono,fontSize:9,letterSpacing:'.1em',color:T.hi,background:'oklch(0.15 0.006 264 / .55)',border:'1px solid oklch(0.9 0 0 / .18)',borderRadius:3,padding:'2px 7px'}}, m.grade||'—'),
-        h('div',{style:{position:'absolute',left:13,bottom:10,fontFamily:T.mono,fontSize:9.5,color:T.lo,letterSpacing:'.1em'}}, (md.Category||'')+''+this.t('kicker_dot_monsters'))),
-      h('div',{style:{padding:'12px 15px 0'}},
-        h('div',{style:{fontFamily:T.sans,fontSize:16,fontWeight:600,color:T.hi}}, m.name),
-        h('div',{style:{display:'flex',alignItems:'center',gap:9,margin:'11px 0'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,color:T.lo,width:48}},this.t('stat_hp')), h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{style:{width:'100%',height:'100%',background:T.hp}})), h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid,width:44,textAlign:'right'}}, Math.round(m.maxHp))),
-        this.statLines(m,true)),
-      h('div',{style:{padding:'10px 15px',fontFamily:T.mono,fontSize:10,color:T.faint,borderTop:'1px solid '+T.line,marginTop:12}}, 'STA −'+m.staminaCost+(' '+this.t('frag_dot_timelimit')+' ')+m.timeLimit+'s'));
+    const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', MID='rgb(169,171,175)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', HPC='rgb(196,103,93)';
+    const attrCol=AT(m.attribute)?((ATTR[m.attribute]&&ATTR[m.attribute].c)||'rgb(124,165,187)'):HI;
+    const stats=[
+      [this.t('stat_atk_max'), String(Math.round(m.maxAtk)), HI],
+      [this.t('stat_atk_speed'), (m.atkSpeed!=null?m.atkSpeed:1).toFixed(1), HI],
+      [this.t('stat_def'), String(Math.round(m.defense)), HI],
+      [this.t('stat_crit_resist'), String(Math.round(m.critResist)), HI],
+      [this.t('status_effect'), AT(m.attribute)?this.t('status_'+m.attribute):'-', attrCol],
+      [this.t('stat_potency'), String(Math.round(m.potency)), HI],
+      [this.t('stat_status_resist'), String(Math.round(m.statusResist)), HI],
+      [this.t('item_material_type'), (md.Material&&md.Material!=='-')?md.Material:'-', HI],
+    ];
+    const cell=(k,v,vc,i)=>h('div',{key:i,style:{borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'7px 0',justifyContent:'space-between',alignItems:'flex-start',boxSizing:'border-box'}},
+      h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:LO,whiteSpace:'nowrap'}}, k),
+      h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:vc||HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
+    const desc=md.Description?this.tx(md,'Description'):(this.tx(md,'Flavor')||'');
+    return h('div',{style:{width:342,height:442,boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
+      // ART 190
+      h('div',{style:{position:'relative',height:190,alignSelf:'stretch',flexShrink:0,background:ART}},
+        h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
+        h('div',{style:{position:'absolute',left:0,top:110,width:340,height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
+        h('div',{style:{position:'absolute',right:17,top:12,width:59,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',justifyContent:'flex-start',padding:'0 8px'}},
+          h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:HI,whiteSpace:'nowrap'}}, String(m.grade||'UNIQUE').toUpperCase())),
+        h('span',{style:{position:'absolute',left:14,top:166,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, md.Category||''),
+        h('span',{style:{position:'absolute',right:15,top:165,fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:SUB,whiteSpace:'nowrap'}}, 'STA −'+m.staminaCost+' · '+this.t('combat_time_limit')+' '+m.timeLimit+'s')),
+      // BODY 214
+      h('div',{style:{height:214,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
+        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0}}, h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, m.name)),
+        h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
+          h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('stat_hp')),
+          h('div',{style:{height:6,flexGrow:1,borderRadius:999,overflow:'hidden',background:ART}}, h('div',{style:{height:6,borderRadius:999,background:HPC,width:'100%'}})),
+          h('span',{style:{width:50,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:'100%',color:MID,flexShrink:0}}, Math.round(m.maxHp))),
+        h('div',{style:{height:28,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'15px 0',display:'flex',alignItems:'flex-start'}},
+          h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:MUT}}, 'STAT')),
+        h('div',{style:{height:126,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'2px 0'}},
+          h('div',{style:{height:124,display:'grid',gridTemplateRows:'31px 31px 31px 31px',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}},
+            ...stats.map((s2,i)=>cell(s2[0],s2[1],s2[2],i))))),
+      // FOOTER 36
+      h('div',{style:{width:340,height:36,flexShrink:0}},
+        h('div',{style:{height:36,alignSelf:'stretch',boxSizing:'border-box',padding:'11px 15px',display:'flex',alignItems:'flex-start'}},
+          h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:MUT,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, desc||this.t('item_desc_label')))));
   }
   playerFront(prof){
-    return h('div',{style:{width:300,background:T.s1,border:'1px solid '+T.line,borderRadius:8,overflow:'hidden',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
-      h('div',{style:{position:'relative',height:140,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
-        h('div',{style:{position:'absolute',right:12,top:11,fontFamily:T.mono,fontSize:9,letterSpacing:'.1em',color:T.hi,background:'oklch(0.15 0.006 264 / .55)',border:'1px solid oklch(0.9 0 0 / .18)',borderRadius:3,padding:'2px 7px'}}, 'USER'),
-        h('div',{style:{position:'absolute',left:13,bottom:10,fontFamily:T.mono,fontSize:9.5,color:T.lo,letterSpacing:'.1em'}}, this.t('kicker_user_img'))),
-      h('div',{style:{padding:'12px 15px 0'}},
-        h('div',{style:{fontFamily:T.sans,fontSize:16,fontWeight:600,color:T.hi}}, this.t('common_me')),
-        h('div',{style:{display:'flex',alignItems:'center',gap:9,margin:'11px 0'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,color:T.lo,width:48}},this.t('stat_hp')), h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{style:{width:Math.max(0,Math.min(100,this.gs.hp/prof.maxHp*100))+'%',height:'100%',background:T.hp}})), h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid,width:64,textAlign:'right'}}, Math.round(this.gs.hp)+'/'+prof.maxHp)),
-        this.statLines(prof,false)),
-      h('div',{style:{height:14}}));
+    const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', MID='rgb(169,171,175)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', HPC='rgb(196,103,93)';
+    const attrCol=AT(prof.attribute)?((ATTR[prof.attribute]&&ATTR[prof.attribute].c)||'rgb(124,165,187)'):HI;
+    const stats=[
+      [this.t('stat_atk_max'), String(Math.round(prof.maxAtk)), HI],
+      [this.t('stat_atk_speed'), (prof.atkSpeed!=null?prof.atkSpeed:1).toFixed(1), HI],
+      [this.t('stat_def'), String(Math.round(prof.defense)), HI],
+      [this.t('stat_crit_resist'), String(Math.round(prof.critResist)), HI],
+      [this.t('status_effect'), AT(prof.attribute)?this.t('status_'+prof.attribute):'-', attrCol],
+      [this.t('stat_potency'), String(Math.round(prof.potency||0)), HI],
+      [this.t('stat_status_resist'), String(Math.round(prof.statusResist)), HI],
+      [this.t('item_material_type'), '-', HI],
+    ];
+    const cell=(k,v,vc,i)=>h('div',{key:i,style:{borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'7px 0',justifyContent:'space-between',alignItems:'flex-start',boxSizing:'border-box'}},
+      h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:LO,whiteSpace:'nowrap'}}, k),
+      h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:vc||HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
+    const pct=Math.max(0,Math.min(100,this.gs.hp/prof.maxHp*100));
+    return h('div',{style:{width:342,height:442,boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
+      h('div',{style:{position:'relative',height:190,alignSelf:'stretch',flexShrink:0,background:ART}},
+        h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
+        h('div',{style:{position:'absolute',left:0,top:110,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
+        h('div',{style:{position:'absolute',right:17,top:12,width:59,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',padding:'0 8px'}},
+          h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:HI,whiteSpace:'nowrap'}}, 'USER')),
+        h('span',{style:{position:'absolute',left:14,top:166,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, this.t('common_me'))),
+      h('div',{style:{height:214,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
+        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0}}, h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.t('common_me'))),
+        h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
+          h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('stat_hp')),
+          h('div',{style:{height:6,flexGrow:1,borderRadius:999,overflow:'hidden',background:ART}}, h('div',{style:{height:6,borderRadius:999,background:HPC,width:pct+'%'}})),
+          h('span',{style:{width:64,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:'100%',color:MID,flexShrink:0}}, Math.round(this.gs.hp)+'/'+prof.maxHp)),
+        h('div',{style:{height:28,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'15px 0',display:'flex',alignItems:'flex-start'}},
+          h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:MUT}}, 'STAT')),
+        h('div',{style:{height:126,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'2px 0'}},
+          h('div',{style:{height:124,display:'grid',gridTemplateRows:'31px 31px 31px 31px',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}},
+            ...stats.map((s2,i)=>cell(s2[0],s2[1],s2[2],i))))),
+      h('div',{style:{width:340,height:36,flexShrink:0,boxSizing:'border-box',borderRight:'1px solid '+LN,borderBottom:'1px solid '+LN,borderLeft:'1px solid '+LN}}));
   }
   combatSheet(){
     const c=this.combat; if(!c) return null;
@@ -639,20 +717,6 @@ class Component extends DCLogic {
     const rows = isM
       ? [[this.t('stat_atk'),Math.round(prof.minAtk)+'–'+Math.round(prof.maxAtk)],[this.t('stat_def'),String(Math.round(prof.defense))],[this.t('stat_atk_speed'),prof.atkSpeed.toFixed(2)],[this.t('stat_crit_resist'),Math.round(prof.critResist)],[this.t('stat_status_resist'),Math.round(prof.statusResist)],[this.t('stat_potency'),Math.round(prof.potency)],[this.t('item_material_type'), md.Material&&md.Material!=='-'?md.Material:'—'],[this.t('combat_time_limit'), prof.timeLimit+'s']]
       : [[this.t('stat_atk'),Math.round(prof.minAtk)+'–'+Math.round(prof.maxAtk)],[this.t('stat_def'),String(Math.round(prof.defense))],[this.t('stat_atk_speed'),prof.atkSpeed.toFixed(2)],[this.t('stat_accuracy'),Math.round(prof.accuracy)+'%'],[this.t('stat_evasion'),Math.round(prof.evasion)+'%'],[this.t('stat_crit_chance'),Math.round(prof.critChance)+'%'],[this.t('stat_crit_resist'),Math.round(prof.critResist)+'%'],[this.t('stat_status_resist'),Math.round(prof.statusResist)+'%']];
-    const curHp = isM?(c.res?this.combatHp('monster'):prof.maxHp):this.gs.hp;
-    const cardsPhase = c.phase==='cards';
-    if(cardsPhase){
-      const curHp = isM?(c.res?this.combatHp('monster'):prof.maxHp):this.gs.hp;
-      return h('div',{onClick:()=>this.setState({combatSheet:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.66)',display:'flex',alignItems:'flex-end',zIndex:34,animation:'rlFade .18s'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{width:'100%',background:T.s1,borderTop:'1px solid '+T.line2,borderRadius:'12px 12px 0 0',padding:'10px 18px 24px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)',maxHeight:'86%',overflowY:'auto'}},
-          h('div',{style:{width:34,height:4,background:T.line2,borderRadius:2,margin:'0 auto 16px'}}),
-          h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12,flexWrap:'wrap'}},
-            h('span',{style:{fontFamily:T.sans,fontSize:19,fontWeight:700,color:T.hi}}, isM?prof.name:this.t('common_me')),
-            (isM&&prof.grade)?this.chip(prof.grade,T.lo):null,
-            AT(prof.attribute)?this.chip(this.t('status_'+prof.attribute),ATTR[prof.attribute].c):null),
-          h('div',{style:{display:'flex',alignItems:'center',gap:9,marginBottom:14}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,color:T.lo,width:44}},this.t('stat_hp')), h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{style:{width:Math.max(0,Math.min(100,curHp/prof.maxHp*100))+'%',height:'100%',background:T.hp}})), h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid,minWidth:56,textAlign:'right'}}, Math.round(curHp)+'/'+prof.maxHp)),
-          this.statLines(prof,isM)));
-    }
     const card = isM? (c.pvp? this.userFront(prof) : this.monsterFront(prof)) : this.playerFront(prof);
     return h('div',{onClick:()=>this.setState({combatSheet:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',zIndex:34,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{maxHeight:'90%',overflowY:'auto',animation:'rlIn .22s cubic-bezier(.2,.8,.2,1)'}}, card));
@@ -661,17 +725,17 @@ class Component extends DCLogic {
     const g=this.gs;
     return h('div',{style:{flex:'0 0 auto',padding:'12px 16px 16px',borderTop:'1px solid '+T.line,background:T.s1}},
       h('div',{style:{display:'flex',gap:12,marginBottom:12}}, this.bar(this.t('stat_hp'),g.hp,g.maxHp,T.hp), this.bar(this.t('stat_stamina'),g.sta,this.staMax,T.sta)),
-      h('button',{onClick:()=>this.setState({useOpen:true}),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.good,fontFamily:T.sans,fontSize:13,fontWeight:600,padding:'11px',borderRadius:4,cursor:'pointer',marginBottom:10}}, this.t('heal_use_item')),
+      h('button',{onClick:()=>this.setState({useOpen:true}),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.good,fontFamily:T.sans,fontSize:13,fontWeight:500,padding:'11px',borderRadius:4,cursor:'pointer',marginBottom:10}}, this.t('heal_use_item')),
       h('div',{style:{display:'flex',gap:10}},
-        h('button',{onClick:()=>this.attemptFlee(),style:{flex:'0 0 auto',padding:'14px 20px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:600,borderRadius:4,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}, h('span',null,this.t('combat_flee')), h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint}}, this.fleePct()+'%')),
-        h('button',{onClick:()=>this.enterCombat(),style:{flex:1,background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:15,fontWeight:700,padding:'14px',borderRadius:4,cursor:'pointer',letterSpacing:'.02em'}}, this.t('combat_start'))));
+        h('button',{onClick:()=>this.attemptFlee(),style:{flex:'0 0 auto',padding:'14px 20px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:500,borderRadius:4,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}, h('span',null,this.t('combat_flee')), h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint}}, this.fleePct()+'%')),
+        h('button',{onClick:()=>this.enterCombat(),style:{flex:1,background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:15,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer',letterSpacing:'.02em'}}, this.t('combat_start'))));
   }
   playerCompareCard(){
     const prof=this.eng.playerProfile(this.gs,false); const g=this.gs;
     const pct=Math.max(0,Math.min(100,g.hp/prof.maxHp*100));
     return h('div',{onClick:()=>this.setState({combatSheet:'player'}),style:{background:T.s2,border:'1px solid '+T.line,borderRadius:6,padding:'11px 13px',cursor:'pointer'}},
       h('div',{style:{display:'flex',alignItems:'center',gap:7,marginBottom:8}},
-        h('span',{style:{fontFamily:T.sans,fontSize:13,fontWeight:600,color:T.hi,flex:1}}, this.t('common_me')),
+        h('span',{style:{fontFamily:T.sans,fontSize:13,fontWeight:500,color:T.hi,flex:1}}, this.t('common_me')),
         AT(prof.attribute)?h('span',{style:{fontFamily:T.mono,fontSize:9,color:ATTR[prof.attribute].c}}, this.t('status_'+prof.attribute)):null,
         h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint}}, this.t('btn_detail'))),
       h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
@@ -692,21 +756,22 @@ class Component extends DCLogic {
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       h('div',{style:{padding:'14px 18px 12px',background:T.s1,borderBottom:'1px solid '+T.line,flex:'0 0 auto'}},
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:5}}, 'ENCOUNTER · '+zoneName+' · '+(this.en()?('Encounter #'+(c.encounter+1)):((c.encounter+1)+'전 조우'))),
-        h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:700,color:T.hi,letterSpacing:'-.01em'}}, placeTitle)),
+        h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:T.hi,letterSpacing:'-.01em'}}, placeTitle)),
       h('div',{onPointerDown:(e)=>{this._sx=e.clientX;this._moved=false;},onPointerMove:(e)=>{if(this._sx!=null&&Math.abs(e.clientX-this._sx)>8)this._moved=true;},onPointerUp:(e)=>{if(this._sx==null)return;const dx=e.clientX-this._sx;this._sx=null;if(this.combat.flipped)return;if(Math.abs(dx)>30){ if(dx<0)this.focusCard(Math.min(this.combat.cards.length-1,this.combat.cardFocus+1)); else this.focusCard(Math.max(0,this.combat.cardFocus-1)); }},style:{flex:1,position:'relative',overflow:'hidden'}},
         c.cards.map((id,i)=>{ const off=i-c.cardFocus, abs=Math.abs(off); const isCenter=off===0; const x=off*250, s=isCenter?1:0.9; let o=isCenter?1:0.5; if(flipped&&!isCenter) o=0; const rot=(flipped&&isCenter)?180:0;
               return h('div',{key:i,onClick:()=>{ if(this._moved||flipped) return; isCenter?this.flipCenter():this.focusCard(i); },
-                style:{position:'absolute',left:'50%',top:'50%',width:300,height:'min(360px, calc(100% - 8px))',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isCenter?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',perspective:'1200px',pointerEvents:(flipped&&!isCenter)?'none':'auto'}},
+                style:{position:'absolute',left:'50%',top:'50%',width:342,height:442,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isCenter?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',perspective:'1200px',pointerEvents:(flipped&&!isCenter)?'none':'auto'}},
                 h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
                   h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 8px, oklch(0.235 0.008 264) 8px 9px)',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
-                  isCenter? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'auto'}}, flipped?(c.pvp?this.userFront(c.mProf):this.monsterFront(c.mProf)):null):null)); })),
+                  isCenter? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'hidden'}}, flipped?(c.pvp?this.userFront(c.mProf):this.monsterFront(c.mProf)):null):null)); })),
       !flipped? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 12px'}}, ...c.cards.map((id,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===c.cardFocus?T.mid:T.s3}}))) : null,
-      h('div',{style:{flex:'0 0 auto',background:T.s1,borderTop:'1px solid '+T.line,padding:'10px 16px 14px'}},
-        h('div',{style:{fontFamily:T.mono,fontSize:9.5,color:T.faint,letterSpacing:'.12em',marginBottom:8}}, this.t('pvp_compare')),
-        this.playerCompareCard(),
-        h('div',{style:{display:'flex',gap:10,marginTop:12}},
-          h('button',{disabled:!flipped,onClick:flipped?()=>this.attemptFlee():null,style:{flex:'0 0 auto',padding:'14px 18px',background:'transparent',border:'1px solid '+(flipped?T.line2:T.line),color:flipped?T.mid:T.faint,fontFamily:T.sans,fontSize:14,fontWeight:600,borderRadius:4,cursor:flipped?'pointer':'default'}}, this.t('combat_flee')),
-          h('button',{disabled:!flipped,onClick:flipped?()=>this.enterCombat():null,style:{flex:1,background:'transparent',border:'1px solid '+(flipped?T.danger:T.line),color:flipped?T.danger:T.faint,fontFamily:T.sans,fontSize:15,fontWeight:700,padding:'14px',borderRadius:4,cursor:flipped?'pointer':'default',letterSpacing:'.02em'}}, this.t('combat_start')))));
+      h('div',{style:{flex:'0 0 auto',background:T.s1,borderTop:'1px solid '+T.line,padding:'9px 16px 13px'}},
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,fontFamily:T.mono,fontSize:10.5,color:T.lo,marginBottom:2}},
+          h('span',{style:{color:T.faint,letterSpacing:'.1em'}}, this.t('common_me')),
+          h('span',null, this.t('stat_hp')+' '+Math.round(this.gs.hp)+'/'+Math.round(this.gs.maxHp)+'   ·   STA '+Math.round(this.gs.sta)+'/'+this.staMax)),
+        h('div',{style:{display:'flex',gap:10,marginTop:10}},
+          h('button',{disabled:!flipped,onClick:flipped?()=>this.attemptFlee():null,style:{flex:'0 0 auto',padding:'14px 18px',background:'transparent',border:'1px solid '+(flipped?T.line2:T.line),color:flipped?T.mid:T.faint,fontFamily:T.sans,fontSize:14,fontWeight:500,borderRadius:4,cursor:flipped?'pointer':'default'}}, this.t('combat_flee')),
+          h('button',{disabled:!flipped,onClick:flipped?()=>this.enterCombat():null,style:{flex:1,background:'transparent',border:'1px solid '+(flipped?T.danger:T.line),color:flipped?T.danger:T.faint,fontFamily:T.sans,fontSize:15,fontWeight:400,padding:'14px',borderRadius:4,cursor:flipped?'pointer':'default',letterSpacing:'.02em'}}, this.t('combat_start')))));
   }
   cardBack(i,n){
     return h('button',{key:i,onClick:()=>this.pickCard(i),
@@ -715,7 +780,7 @@ class Component extends DCLogic {
       h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}},
         h('div',{style:{width:46,height:46,borderRadius:'50%',border:'1px solid '+T.line2,background:T.s1,display:'flex',alignItems:'center',justifyContent:'center',color:T.lo,fontFamily:T.mono,fontSize:22,fontWeight:500}}, '?')),
       h('div',{style:{fontFamily:T.mono,fontSize:10,color:T.faint,letterSpacing:'.05em'}}, this.t('common_unknown')),
-      h('div',{style:{fontFamily:T.sans,fontSize:11,fontWeight:600,color:T.mid,border:'1px solid '+T.line2,borderRadius:3,padding:'7px 0',alignSelf:'stretch',textAlign:'center',background:T.s1}}, this.t('btn_flip')));
+      h('div',{style:{fontFamily:T.sans,fontSize:11,fontWeight:500,color:T.mid,border:'1px solid '+T.line2,borderRadius:3,padding:'7px 0',alignSelf:'stretch',textAlign:'center',background:T.s1}}, this.t('btn_flip')));
   }
   // ---- combat preview (before engaging) ----
   combatPreview(){
@@ -728,7 +793,7 @@ class Component extends DCLogic {
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint}}, 'ENCOUNTER · '+zoneName+' · '+(this.en()?('Encounter #'+(c.encounter+1)):((c.encounter+1)+'전 조우')))),
       h('div',{style:{flex:1,overflowY:'auto',padding:'20px 18px'}},
         h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:9,flexWrap:'wrap'}}, this.chip(m.grade,T.lo), md.Category?this.chip(md.Category,T.lo):null, AT(m.attribute)?this.chip(this.t('status_'+m.attribute),ATTR[m.attribute].c):null),
-        h('div',{style:{fontFamily:T.sans,fontSize:27,fontWeight:700,color:T.hi,marginBottom:9,letterSpacing:'-.01em'}}, m.name),
+        h('div',{style:{fontFamily:T.sans,fontSize:27,fontWeight:400,color:T.hi,marginBottom:9,letterSpacing:'-.01em'}}, m.name),
         this.tx(md,'Description')?h('div',{style:{fontFamily:T.sans,fontSize:13,color:T.mid,lineHeight:1.55,marginBottom:18}}, this.tx(md,'Description')):h('div',{style:{height:8}}),
         h('div',{style:{background:T.s1,border:'1px solid '+T.line,borderRadius:4,padding:'4px 14px'}},
           row(this.t('stat_hp'), Math.round(m.maxHp), T.hp),
@@ -740,10 +805,10 @@ class Component extends DCLogic {
           row(this.t('combat_time_limit'), m.timeLimit+'s', T.warn))),
       h('div',{style:{flex:'0 0 auto',padding:'12px 16px 16px',borderTop:'1px solid '+T.line,background:T.s1}},
         h('div',{style:{display:'flex',gap:12,marginBottom:12}}, this.bar(this.t('stat_hp'),g.hp,g.maxHp,T.hp), this.bar(this.t('stat_stamina'),g.sta,this.staMax,T.sta)),
-        h('button',{onClick:()=>this.setState({useOpen:true}),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.good,fontFamily:T.sans,fontSize:13,fontWeight:600,padding:'11px',borderRadius:4,cursor:'pointer',marginBottom:10}}, this.t('heal_use_item')),
+        h('button',{onClick:()=>this.setState({useOpen:true}),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.good,fontFamily:T.sans,fontSize:13,fontWeight:500,padding:'11px',borderRadius:4,cursor:'pointer',marginBottom:10}}, this.t('heal_use_item')),
         h('div',{style:{display:'flex',gap:10}},
-          h('button',{onClick:()=>this.attemptFlee(),style:{flex:'0 0 auto',padding:'14px 20px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:600,borderRadius:4,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}, h('span',null,this.t('combat_flee')), h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint}}, this.fleePct()+'%')),
-          h('button',{onClick:()=>this.enterCombat(),style:{flex:1,background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:15,fontWeight:700,padding:'14px',borderRadius:4,cursor:'pointer',letterSpacing:'.02em'}}, this.t('combat_start')))));
+          h('button',{onClick:()=>this.attemptFlee(),style:{flex:'0 0 auto',padding:'14px 20px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:500,borderRadius:4,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}, h('span',null,this.t('combat_flee')), h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint}}, this.fleePct()+'%')),
+          h('button',{onClick:()=>this.enterCombat(),style:{flex:1,background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:15,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer',letterSpacing:'.02em'}}, this.t('combat_start')))));
   }
   // ---- flee (pre-combat) : 90% success -> safehouse, fail -> forced combat ----
   fleePct(){ return Math.round(this.eng.N(this.eng.DATA.config.flee_chance_base, 0.9) * 100); }
@@ -766,14 +831,14 @@ class Component extends DCLogic {
     return h('div',{onClick:()=>this.setState({useOpen:false}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.66)',display:'flex',alignItems:'flex-end',zIndex:32,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{width:'100%',background:T.s1,borderTop:'1px solid '+T.line2,borderRadius:'10px 10px 0 0',padding:'10px 18px 22px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)',maxHeight:'80%',overflowY:'auto'}},
         h('div',{style:{width:34,height:4,background:T.line2,borderRadius:2,margin:'0 auto 14px'}}),
-        h('div',{style:{fontFamily:T.sans,fontSize:18,fontWeight:700,color:T.hi,marginBottom:12}}, this.t('heal_use_item')),
+        h('div',{style:{fontFamily:T.sans,fontSize:18,fontWeight:400,color:T.hi,marginBottom:12}}, this.t('heal_use_item')),
         h('div',{style:{display:'flex',gap:12,marginBottom:16}}, this.bar(this.t('stat_hp'),g.hp,g.maxHp,T.hp), this.bar(this.t('stat_stamina'),g.sta,this.staMax,T.sta)),
         items.length? h('div',{style:{display:'flex',flexDirection:'column'}},
           ...items.map(inst=>{ const it=this.eng.byId.item[inst.id]||{}; const heal=it.EffectType==='heal';
             return h('div',{key:inst.uid,style:{display:'flex',alignItems:'center',gap:10,padding:'12px 0',borderBottom:'1px solid '+T.line}},
               this.chip(heal?this.t('item_medicine'):'음식', heal?T.good:T.sta),
-              h('div',{style:{flex:1}}, h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, this.tx(it,'ItemName')+(inst.qty>1?' ×'+inst.qty:'')), h('div',{style:{fontFamily:T.mono,fontSize:11,color:T.lo}}, (heal?this.t('stat_hp'):this.t('stat_stamina'))+' +'+this.eng.N(it.EffectValue))),
-              h('button',{onClick:()=>this.useConsumable(inst),style:{background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:13,fontWeight:600,padding:'8px 16px',borderRadius:3,cursor:'pointer'}}, '사용')); }))
+              h('div',{style:{flex:1}}, h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:500,color:T.hi}}, this.tx(it,'ItemName')+(inst.qty>1?' ×'+inst.qty:'')), h('div',{style:{fontFamily:T.mono,fontSize:11,color:T.lo}}, (heal?this.t('stat_hp'):this.t('stat_stamina'))+' +'+this.eng.N(it.EffectValue))),
+              h('button',{onClick:()=>this.useConsumable(inst),style:{background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:13,fontWeight:500,padding:'8px 16px',borderRadius:3,cursor:'pointer'}}, '사용')); }))
           : h('div',{style:{fontFamily:T.sans,fontSize:13,color:T.faint,padding:'16px 0',textAlign:'center'}}, this.t('heal_no_item'))));
   }
 
@@ -786,13 +851,13 @@ class Component extends DCLogic {
   userFront(m){
     const bot=this.combat.pvp||{};
     const gear=this.eng.coldEquippedList(bot);
-    return h('div',{style:{width:300,background:T.s1,border:'1px solid '+T.line,borderRadius:8,overflow:'hidden',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
+    return h('div',{style:{width:342,background:T.s1,border:'1px solid '+T.line,borderRadius:8,overflow:'hidden',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
       h('div',{style:{position:'relative',height:140,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
         h('div',{style:{position:'absolute',right:12,top:11,fontFamily:T.mono,fontSize:9,letterSpacing:'.1em',color:T.sato,background:'oklch(0.15 0.006 264 / .55)',border:'1px solid oklch(0.9 0 0 / .18)',borderRadius:3,padding:'2px 7px'}}, 'TIER '+(bot.Tier!=null&&bot.Tier!==''?bot.Tier:'—')),
         h('div',{style:{position:'absolute',left:13,bottom:10,fontFamily:T.mono,fontSize:9.5,color:T.sato,letterSpacing:'.1em'}}, this.t('kicker_userdata'))),
       h('div',{style:{padding:'12px 15px 0'}},
         h('div',{style:{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}},
-          h('span',{style:{fontFamily:T.sans,fontSize:16,fontWeight:600,color:T.hi}}, m.name),
+          h('span',{style:{fontFamily:T.sans,fontSize:16,fontWeight:500,color:T.hi}}, m.name),
           this.chip('콜드데이터',T.sato)),
         m.desc?h('div',{style:{fontFamily:T.sans,fontSize:11.5,color:T.lo,lineHeight:1.5,marginTop:5}}, m.desc):null,
         h('div',{style:{display:'flex',alignItems:'center',gap:9,margin:'11px 0'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,color:T.lo,width:48}},this.t('stat_hp')), h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,overflow:'hidden',backgroundImage:'repeating-linear-gradient(45deg, transparent 0 5px, oklch(0.30 0.009 264) 5px 6px)'}}), h('span',{style:{fontFamily:T.mono,fontSize:12,color:T.lo,width:44,textAlign:'right',letterSpacing:'.06em'}}, '???')),
@@ -847,7 +912,7 @@ class Component extends DCLogic {
         }
         return h('button',{key:i,disabled:revealed,onClick:()=>this.pickPvpCard(i),
           style:{flex:1,minWidth:0,minHeight:96,background:picked?T.s1:T.s2,backgroundImage:picked?'none':'repeating-linear-gradient(45deg, transparent 0 7px, oklch(0.235 0.008 264) 7px 8px)',border:'1px solid '+(picked?face.col:T.line2),borderRadius:8,cursor:revealed?'default':'pointer',opacity:revealed&&!picked?0.35:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,padding:8,transition:'opacity .3s'}},
-          picked? [h('div',{key:'l',style:{fontFamily:T.mono,fontSize:11,fontWeight:600,color:face.col}},face.label), h('div',{key:'s',style:{fontFamily:T.sans,fontSize:11,color:T.mid,textAlign:'center',lineHeight:1.4,wordBreak:'keep-all'}},face.sub)]
+          picked? [h('div',{key:'l',style:{fontFamily:T.mono,fontSize:11,fontWeight:500,color:face.col}},face.label), h('div',{key:'s',style:{fontFamily:T.sans,fontSize:11,color:T.mid,textAlign:'center',lineHeight:1.4,wordBreak:'keep-all'}},face.sub)]
           : h('div',{style:{width:34,height:34,borderRadius:'50%',border:'1px solid '+T.line2,background:T.s1,display:'flex',alignItems:'center',justifyContent:'center',color:T.lo,fontFamily:T.mono,fontSize:16}},'?'));
       }));
   }
@@ -859,47 +924,61 @@ class Component extends DCLogic {
     let label,sub,col;
     if(win){ if(i===pc.hit&&pc.got){ label=this.t('pvp_copy_success'); sub=this.itemLabel(pc.got); col=T.good; } else { label=this.t('pvp_no_echo'); sub=this.t('result_acquire_fail'); col=T.faint; } }
     else { if(i===pc.hit&&pc.lossUid){ label=this.t('combat_flee_fail'); sub=(pc.lost?this.itemLabel(pc.lost):'장비')+' 소실'; col=T.danger; } else { label=this.t('combat_flee_success'); sub=this.t('combat_escaped'); col=T.good; } }
-    return h('div',{style:{width:300,height:'100%',background:T.s1,border:'1px solid '+col,borderRadius:8,overflow:'hidden',boxShadow:'0 14px 44px rgba(0,0,0,.5)',display:'flex',flexDirection:'column'}},
+    return h('div',{style:{width:342,height:'100%',background:T.s1,border:'1px solid '+col,borderRadius:8,overflow:'hidden',boxShadow:'0 14px 44px rgba(0,0,0,.5)',display:'flex',flexDirection:'column'}},
       h('div',{style:{position:'relative',height:150,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)',display:'flex',alignItems:'flex-end',padding:'12px 15px'}},
         h('span',{style:{fontFamily:T.mono,fontSize:9.5,color:col,letterSpacing:'.1em'}}, win?this.t('kicker_reward'):this.t('kicker_escape'))),
       h('div',{style:{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:'20px 16px',textAlign:'center'}},
-        h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:700,color:col}}, label),
+        h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:500,color:col}}, label),
         h('div',{style:{fontFamily:T.sans,fontSize:13,color:T.mid,lineHeight:1.5,wordBreak:'keep-all'}}, sub)));
   }
+  pvpCardHeight(){ const pc=this.combat.pvpCards; if(pc&&pc.kind==='win'&&pc.got) return this.lootCardH(pc.got); return 442; }
+  // card-action-Search-Failed (.fig 2163:8068) — PvP 전리품 획득 실패
+  searchFailedCard(){
+    const C1='rgb(24,25,29)', LN='rgb(54,56,60)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', PVP='rgb(196,103,93)';
+    return h('div',{style:{width:342,height:442,boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
+      h('div',{style:{position:'relative',height:317,alignSelf:'stretch',flexShrink:0,background:'#0f1013',backgroundImage:'url(components/cards/search-failed.png)',backgroundSize:'cover',backgroundPosition:'center'}},
+        h('div',{style:{position:'absolute',right:17,top:15,width:38,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',padding:'0 8px'}},
+          h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:PVP,whiteSpace:'nowrap'}}, 'PVP')),
+        h('div',{style:{position:'absolute',left:0,top:237,width:340,height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
+        h('span',{style:{position:'absolute',left:15,top:294,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, this.t('search_failed_cat'))),
+      h('div',{style:{height:64,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
+        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.t('search_failed_title'))),
+        h('div',{style:{height:30,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'8px 0',display:'flex',alignItems:'center'}}, h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:MUT,whiteSpace:'nowrap'}}, this.t('search_failed_desc')))),
+      h('div',{style:{width:340,height:60,flexShrink:0,boxSizing:'border-box',borderRight:'1px solid '+LN,borderBottom:'1px solid '+LN,borderLeft:'1px solid '+LN}}));
+  }
+  pvpResultCardFace(i){ const pc=this.combat.pvpCards; if(pc.kind==='win'&&i===pc.hit&&pc.got) return this.lootCardBig(pc.got); if(pc.kind==='win') return this.searchFailedCard(); return this.pvpResultCard(i); }
   pvpResultScreen(){
     const c=this.combat, pc=c.pvpCards, win=pc.kind==='win';
     const zoneName=this.eng.byId.zone[c.zoneId]?this.tx(this.eng.byId.zone[c.zoneId],'ZoneName'):'';
     const msg=win?this.t('pvp_win_msg'):this.t('combat_escape_urge_msg');
     const focus=c.pvpFocus!=null?c.pvpFocus:Math.floor(pc.n/2);
     const done=pc.picked!=null;
-    const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:15,fontWeight:600,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
+    const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:15,fontWeight:500,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       h('div',{style:{padding:'14px 18px 13px',background:T.s1,borderBottom:'1px solid '+T.line,flex:'0 0 auto'}},
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:win?T.good:T.warn,marginBottom:6}}, (win?'VICTORY · ':'DEFEAT · ')+zoneName),
-        h('div',{style:{fontFamily:T.sans,fontSize:19,fontWeight:700,color:T.hi,letterSpacing:'-.01em',lineHeight:1.35,wordBreak:'keep-all'}}, msg),
+        h('div',{style:{fontFamily:T.sans,fontSize:19,fontWeight:400,color:T.hi,letterSpacing:'-.01em',lineHeight:1.35,wordBreak:'keep-all'}}, msg),
         (win&&c.ups.length)?h('div',{style:{marginTop:8,fontFamily:T.mono,fontSize:11,color:T.growth}}, (this.t('frag_growth')+' ')+c.ups.map(u=>({str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')}[u.stat]+' Lv'+u.to)).join(' · ')):null),
-      h('div',{style:{flex:'0 0 auto',padding:'8px 18px 2px',fontFamily:T.mono,fontSize:9.5,color:T.faint,letterSpacing:'.08em'}}, done?'':(win?('카드 1장 선택 · 복제 확률 '+Math.round(this.eng.N(this.eng.DATA.config.pvp_win_reward_rate,0.33)*100)+'%'):('카드 1장 선택 · 도주 실패 '+Math.round(this.eng.N(this.eng.DATA.config.pvp_flee_fail_rate,0.33)*100)+'%'))),
-      h('div',{onPointerDown:(e)=>{this._px=e.clientX;this._pmoved=false;},onPointerMove:(e)=>{if(this._px!=null&&Math.abs(e.clientX-this._px)>8)this._pmoved=true;},onPointerUp:(e)=>{if(this._px==null)return;const dx=e.clientX-this._px;this._px=null;if(pc.picked!=null)return;if(Math.abs(dx)>30){ if(dx<0)this.focusPvp(focus+1); else this.focusPvp(focus-1); }},style:{flex:1,position:'relative',overflow:'hidden'}},
-        Array.from({length:pc.n}).map((_,i)=>{ const off=i-focus, abs=Math.abs(off); const isCenter=off===0; const x=off*250, s=isCenter?1:0.9; let o=isCenter?1:0.5; const flippedThis=done&&i===pc.picked; if(done&&!flippedThis) o=0; const rot=flippedThis?180:0;
+      h('div',{style:{flex:'0 0 auto',padding:'8px 18px 2px',fontFamily:T.mono,fontSize:9.5,color:T.faint,letterSpacing:'.08em'}}, done?'':(win?this.t('pvp_win_pick_tpl').replace('{Rate}',Math.round(this.eng.N(this.eng.DATA.config.pvp_win_reward_rate,0.33)*100)):this.t('pvp_lose_pick_tpl').replace('{Rate}',Math.round(this.eng.N(this.eng.DATA.config.pvp_flee_fail_rate,0.33)*100)))),
+      h('div',{ref:(el)=>{ if(el&&el.clientHeight&&el.clientHeight!==this._pvpStageH){ this._pvpStageH=el.clientHeight; this.forceUpdate(); } },onPointerDown:(e)=>{this._px=e.clientX;this._pmoved=false;},onPointerMove:(e)=>{if(this._px!=null&&Math.abs(e.clientX-this._px)>8)this._pmoved=true;},onPointerUp:(e)=>{if(this._px==null)return;const dx=e.clientX-this._px;this._px=null;if(pc.picked!=null)return;if(Math.abs(dx)>30){ if(dx<0)this.focusPvp(focus+1); else this.focusPvp(focus-1); }},style:{flex:1,position:'relative',overflow:'hidden'}},
+        Array.from({length:pc.n}).map((_,i)=>{ const off=i-focus, abs=Math.abs(off); const isCenter=off===0; const ch=(done&&i===pc.picked)?this.pvpCardHeight():442; const fit=Math.min(1,(this._pvpStageH?this._pvpStageH-16:ch)/ch); const x=off*250*fit, s=(isCenter?1:0.9)*fit; let o=isCenter?1:0.5; const flippedThis=done&&i===pc.picked; if(done&&!flippedThis) o=0; const rot=flippedThis?180:0;
             return h('div',{key:i,onClick:()=>{ if(this._pmoved||pc.picked!=null) return; isCenter?this.flipPvp():this.focusPvp(i); },
-              style:{position:'absolute',left:'50%',top:'50%',width:300,height:'min(340px, calc(100% - 8px))',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isCenter?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:pc.picked!=null?'default':'pointer',perspective:'1200px',pointerEvents:(done&&!flippedThis)?'none':'auto'}},
+              style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isCenter?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:pc.picked!=null?'default':'pointer',perspective:'1200px',pointerEvents:(done&&!flippedThis)?'none':'auto'}},
               h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
-                h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 8px, oklch(0.235 0.008 264) 8px 9px)',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10}},
-                  h('div',{style:{width:46,height:46,borderRadius:'50%',border:'1px solid '+T.line2,background:T.s1,display:'flex',alignItems:'center',justifyContent:'center',color:T.lo,fontFamily:T.mono,fontSize:22}},'?'),
-                  h('div',{style:{fontFamily:T.mono,fontSize:10,color:T.faint,letterSpacing:'.05em'}}, isCenter&&pc.picked==null?this.t('btn_flip'):this.t('common_unknown'))),
-                flippedThis? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'hidden'}}, this.pvpResultCard(i)):null)); })),
+                h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 8px, oklch(0.235 0.008 264) 8px 9px)',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
+                flippedThis? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'hidden'}}, this.pvpResultCardFace(i)):null)); })),
       !done? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 14px'}}, ...Array.from({length:pc.n}).map((_,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===focus?T.mid:T.s3}}))) : null,
       done? h('div',{style:{flex:'0 0 auto',padding:'12px 16px 16px',borderTop:'1px solid '+T.line,background:T.s1,display:'flex',gap:10}},
         win?btn(this.t('btn_continue'),()=>this.drawCards()):null, btn(this.t('btn_return'),()=>this.extract(),!win)) : null);
   }
   pvpControls(){
     const c=this.combat, pc=c.pvpCards;
-    const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:600,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
+    const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
     const done=pc.picked!=null, win=pc.kind==='win';
     const rate=win?this.eng.N(this.eng.DATA.config.pvp_win_reward_rate,0.33):this.eng.N(this.eng.DATA.config.pvp_flee_fail_rate,0.33);
     let msg,col;
-    if(win){ msg=done?(pc.got?'상대 장비 데이터를 복제했다 — 상대는 아무것도 잃지 않는다':'데이터 잔향이 없었다 — 획득 실패'):('승리 — 카드 1장 선택 · 복제 확률 '+Math.round(rate*100)+'%'); col=done?(pc.got?T.good:T.faint):T.good; }
-    else { msg=done?(pc.lost?'도주 실패 — 착용 장비 1개가 영구 소실됐다':'도주 성공 — 무사히 벗어났다'):('패배 — 카드 1장 선택 · 도주 실패 확률 '+Math.round(rate*100)+'%'); col=done?(pc.lost?T.danger:T.good):T.warn; }
+    if(win){ msg=done?(pc.got?this.t('pvp_copy_note'):this.t('pvp_no_echo_msg')):this.t('pvp_win_pick_tpl').replace('{Rate}',Math.round(rate*100)); col=done?(pc.got?T.good:T.faint):T.good; }
+    else { msg=done?(pc.lost?this.t('pvp_flee_fail_loss'):this.t('pvp_flee_success')):this.t('pvp_lose_pick_tpl').replace('{Rate}',Math.round(rate*100)); col=done?(pc.lost?T.danger:T.good):T.warn; }
     return h('div',{style:{flex:'0 0 auto',padding:'14px 16px 16px',borderTop:'1px solid '+T.line,background:T.s1}},
       h('div',{style:{marginBottom:10,fontFamily:T.mono,fontSize:11,color:col,lineHeight:1.5}}, msg),
       (win&&c.ups.length)?h('div',{style:{marginBottom:10,fontFamily:T.mono,fontSize:11,color:T.growth}}, (this.t('frag_growth')+' ')+c.ups.map(u=>({str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')}[u.stat]+' Lv'+u.to)).join(' · ')):null,
@@ -950,8 +1029,8 @@ class Component extends DCLogic {
       this._ut=setInterval(()=>{ const up=this.gs.usbUpload; if(up&&Date.now()>=up.endsAt){ clearInterval(this._ut); this._ut=null; this.completeUpload(); } else this.forceUpdate(); },500);
     }
     const label=(t)=>h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 10px'}}, t);
-    const primBtn=(t,onClick,disabled)=>h('button',{disabled,onClick:disabled?null:onClick,style:{width:'100%',background:'transparent',border:'1px solid '+(disabled?T.line:T.sato),color:disabled?T.faint:T.sato,fontFamily:T.sans,fontSize:15,fontWeight:700,padding:'14px',borderRadius:4,cursor:disabled?'default':'pointer',letterSpacing:'.02em'}}, t);
-    const ghostBtn=(t,onClick)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:13,fontWeight:600,padding:'11px',borderRadius:4,cursor:'pointer'}}, t);
+    const primBtn=(t,onClick,disabled)=>h('button',{disabled,onClick:disabled?null:onClick,style:{width:'100%',background:'transparent',border:'1px solid '+(disabled?T.line:T.sato),color:disabled?T.faint:T.sato,fontFamily:T.sans,fontSize:15,fontWeight:400,padding:'14px',borderRadius:4,cursor:disabled?'default':'pointer',letterSpacing:'.02em'}}, t);
+    const ghostBtn=(t,onClick)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:13,fontWeight:500,padding:'11px',borderRadius:4,cursor:'pointer'}}, t);
     let body=[];
     if(u.stage==='intro'){
       const list=this.usbOwned();
@@ -960,9 +1039,9 @@ class Component extends DCLogic {
           return h('div',{key:inst.uid,style:{display:'flex',alignItems:'center',gap:10,padding:'12px 0',borderBottom:'1px solid '+T.line}},
             this.chip('USB',T.sato),
             h('div',{style:{flex:1,minWidth:0}},
-              h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, this.eng.anyName(inst.id)+((inst.qty||1)>1?' ×'+inst.qty:'')),
+              h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:500,color:T.hi}}, this.eng.anyName(inst.id)+((inst.qty||1)>1?' ×'+inst.qty:'')),
               row?h('div',{style:{fontFamily:T.mono,fontSize:10.5,color:T.lo,marginTop:2}}, this.eng.substUsbTokens(this.t('usb_grant_line'),row)):null),
-            h('button',{onClick:()=>this.selectUsb(inst),style:{background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:13,fontWeight:600,padding:'8px 14px',borderRadius:3,cursor:'pointer'}}, this.t('usb_decode_request'))); }))
+            h('button',{onClick:()=>this.selectUsb(inst),style:{background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:13,fontWeight:500,padding:'8px 14px',borderRadius:3,cursor:'pointer'}}, this.t('usb_decode_request'))); }))
         : h('div',{key:'e',style:{fontFamily:T.sans,fontSize:13,color:T.faint,padding:'18px 0',textAlign:'center'}}, this.t('usb_none_msg')) ];
     } else if(u.stage==='request'||u.stage==='insufficient'){
       const mats=this.eng.parseMaterials(u.row.RequiredMaterials);
@@ -999,7 +1078,7 @@ class Component extends DCLogic {
       body=[ label(this.t('usb_permanent_growth')),
         h('div',{key:'g',style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'16px 14px',marginBottom:14}},
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:8}},
-            h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:700,color:T.hi}}, kr),
+            h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:400,color:T.hi}}, kr),
             h('span',{style:{fontFamily:T.mono,fontSize:14,color:T.growth}}, 'Lv '+gr.from+' → '+gr.to)),
           h('div',{ref:(el)=>{ if(el&&!el._an){ el._an=1; const inner=el.firstChild; if(inner){ inner.style.width=fromPct+'%'; requestAnimationFrame(()=>requestAnimationFrame(()=>{ inner.style.transition='width 1.1s cubic-bezier(.2,.8,.2,1)'; inner.style.width='100%'; })); } } },style:{height:12,background:T.s3,borderRadius:2,overflow:'hidden'}},
             h('div',{style:{width:fromPct+'%',height:'100%',background:T.growth}})),
@@ -1012,6 +1091,150 @@ class Component extends DCLogic {
     const showDialogue = !(u.stage==='intro' && this.usbOwned().length===0);
     return h('div',{style:{flex:1,overflowY:'auto',padding:'16px 18px 20px'}}, showDialogue?this.usbDialogueEl():null, ...body);
   }
+
+  // ================= v3 shared: sockets · 미감정 배지 =================
+  moduleColor(id){ const m=this.eng.byId.module[id]; return m?m.HexCode:T.line2; }
+  socketRow(inst, opt){ opt=opt||{}; const sz=opt.size||18; if(!inst||!inst.sockets||!inst.sockets.length) return null;
+    return h('div',{style:{display:'flex',gap:5,alignItems:'center',flexWrap:'wrap'}}, ...inst.sockets.map((s,i)=>{
+      const filled=!!s; const col=filled?this.moduleColor(s.moduleId):null;
+      return h('div',{key:i,onClick:opt.onPick?()=>opt.onPick(i):null,title:filled?this.eng.tr(this.eng.byId.module[s.moduleId],'ColorName'):'',
+        style:{width:sz,height:sz,borderRadius:'50%',border:'1.5px solid '+(filled?col:T.line2),background:filled?col:'transparent',cursor:opt.onPick?'pointer':'default',boxShadow:filled?'0 0 6px '+col:'none',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.mono,fontSize:sz*0.5,color:T.faint,boxSizing:'border-box',flex:'0 0 auto'}},
+        ''); })); }
+  unappBadge(sz){ return h('span',{style:{display:'inline-flex',alignItems:'center',gap:3,fontFamily:T.mono,fontSize:sz||9.5,fontWeight:500,letterSpacing:'.05em',color:T.warn,border:'1px solid '+T.warn,borderRadius:2,padding:'1px 5px',whiteSpace:'nowrap'}}, '◇ '+this.t('appraise_unappraised')); }
+  ownedBy(pred){ return [...this.gs.bag,...this.gs.vault].filter(pred); }
+  ownedLiquor(){ return this.ownedBy(x=>this.eng.byId.liquor&&this.eng.byId.liquor[x.id]); }
+  ownedModules(kind){ return this.ownedBy(x=>{ const m=this.eng.byId.module&&this.eng.byId.module[x.id]; return m&&String(m.Tag)===kind; }); }
+  unappItems(){ return this.ownedBy(x=>(x.kind==='weapon'||x.kind==='armor')&&x.unappraised&&x.unappraised.length>0); }
+  socketItems(){ const eq=['weapon','head','body'].map(s=>this.gs.equip[s]).filter(Boolean).map(u=>this.eng.instById(this.gs,u)).filter(Boolean);
+    const inv=this.ownedBy(x=>(x.kind==='weapon'||x.kind==='armor')&&x.sockets&&x.sockets.length>0);
+    const seen=new Set(); return [...eq,...inv].filter(x=>x&&x.sockets&&x.sockets.length>0&&!seen.has(x.uid)&&seen.add(x.uid)); }
+  consumeInst(uid){ const dec=(arr)=>{ const i=arr.findIndex(x=>x.uid===uid); if(i<0)return false; if((arr[i].qty||1)>1)arr[i].qty--; else arr.splice(i,1); return true; }; return dec(this.gs.bag)||dec(this.gs.vault); }
+
+  // ================= 감정 (마르타 콜 · 전당포) =================
+  aprDialogue(line){ return h('div',{style:{background:T.s1,border:'1px solid '+T.line,borderRadius:6,padding:'13px 15px',marginBottom:16}},
+    h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:7}}, this.t('vendor_marta_label')),
+    h('div',{style:{fontFamily:T.sans,fontSize:14,color:T.hi,lineHeight:1.65,wordBreak:'keep-all'}}, '"'+line+'"')); }
+  runAppraise(){ const a=this.state.apr; const liq=this.eng.instById(this.gs,a.liquorUid), item=this.eng.instById(this.gs,a.itemUid); if(!liq||!item) return;
+    const cost=this.eng.N(this.eng.DATA.config.appraise_cost,0);
+    if(this.gs.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
+    const proof=liq.proof; const changes=this.eng.appraise(item,proof);
+    this.gs.sato-=cost; liq.usesLeft=(liq.usesLeft||1)-1; if(liq.usesLeft<=0) this.consumeInst(liq.uid);
+    const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp);
+    this.setState({apr:{...a,results:changes,proof}}); }
+  aprValFmt(k,v){ if(k==='growthTags') return ''; if(['accuracy','critChance','evasion','statusResist','atkSpeed','minAtk','maxAtk','def','maxDur','potency'].includes(k)) return Number(v).toFixed(2); return Number(v).toFixed(2); }
+  vendorAppraise(v){
+    const a=this.state.apr||{}; const step=a.results?'result':(!a.liquorUid?'liquor':(!a.itemUid?'item':'confirm'));
+    const label=(t)=>h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 10px'}}, t);
+    const card=(sel,onClick,inner)=>h('div',{onClick,style:{border:'1px solid '+(sel?T.line2:T.line),background:sel?T.s2:T.s1,borderRadius:6,padding:'12px 14px',cursor:'pointer',marginBottom:8}}, inner);
+    const primBtn=(t,onClick,disabled)=>h('button',{disabled,onClick:disabled?null:onClick,style:{width:'100%',background:'transparent',border:'1px solid '+(disabled?T.line:T.hi),color:disabled?T.faint:T.hi,fontFamily:T.sans,fontSize:15,fontWeight:400,padding:'14px',borderRadius:4,cursor:disabled?'default':'pointer'}}, t);
+    const ghost=(t,onClick)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:13,fontWeight:500,padding:'11px',borderRadius:4,cursor:'pointer',marginTop:8}}, t);
+    let body=[], line;
+    if(step==='liquor'){ line=this.t('marta_intro'); const list=this.ownedLiquor();
+      body=[label(this.t('appraise_pick_liquor')), ...(list.length?list.map(inst=>{ const lq=this.eng.byId.liquor[inst.id];
+        return card(false,()=>this.setState({apr:{liquorUid:inst.uid}}), h('div',null,
+          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline'}},
+            h('span',{style:{fontFamily:T.sans,fontSize:14.5,fontWeight:500,color:T.hi}}, this.eng.anyName(inst.id)),
+            h('span',{style:{fontFamily:T.mono,fontSize:13,color:T.sato}}, '±'+Number(inst.proof).toFixed(2)+'%')),
+          h('div',{style:{fontFamily:T.mono,fontSize:10.5,color:T.lo,marginTop:3}}, this.t('appraise_uses')+' '+(inst.usesLeft!=null?inst.usesLeft:inst.volume)+'/'+inst.volume+' · '+this.t('appraise_proof_band')))); })
+        : [h('div',{key:'e',style:{fontFamily:T.sans,fontSize:13,color:T.faint,padding:'18px 0',textAlign:'center'}}, this.t('appraise_no_liquor'))])];
+    } else if(step==='item'){ line=this.t('marta_pick'); const liq=this.eng.instById(this.gs,a.liquorUid); const list=this.unappItems();
+      body=[label(this.t('appraise_pick_item')+' · ±'+Number(liq.proof).toFixed(2)+'%'), ...(list.length?list.map(inst=>
+        card(false,()=>this.setState({apr:{...a,itemUid:inst.uid}}), h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}},
+          h('div',null, h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:500,color:T.hi}}, this.itemLabel(inst)),
+            h('div',{style:{fontFamily:T.mono,fontSize:10.5,color:T.warn,marginTop:3}}, '◇ '+this.t('appraise_hidden_opts')+' '+inst.unappraised.length)),
+          this.unappBadge())))
+        : [h('div',{key:'e',style:{fontFamily:T.sans,fontSize:13,color:T.faint,padding:'18px 0',textAlign:'center'}}, this.t('appraise_no_item'))]),
+        ghost(this.t('btn_back'),()=>this.setState({apr:{}}))];
+    } else if(step==='confirm'){ line=this.t('marta_confirm'); const liq=this.eng.instById(this.gs,a.liquorUid), item=this.eng.instById(this.gs,a.itemUid);
+      const cost=this.eng.N(this.eng.DATA.config.appraise_cost,0);
+      body=[label(this.t('appraise_confirm')),
+        h('div',{key:'s',style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'14px',marginBottom:14}},
+          h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8}}, h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}}, this.itemLabel(item)), h('span',{style:{fontFamily:T.mono,fontSize:12,color:T.warn}}, '◇×'+item.unappraised.length)),
+          h('div',{style:{display:'flex',justifyContent:'space-between'}}, h('span',{style:{fontFamily:T.sans,fontSize:12.5,color:T.lo}}, this.eng.anyName(liq.id)), h('span',{style:{fontFamily:T.mono,fontSize:12,color:T.sato}}, '±'+Number(liq.proof).toFixed(2)+'%'+(cost>0?' · '+cost+' '+this.t('currency_sato'):'')))),
+        primBtn(this.t('appraise_execute'),()=>this.runAppraise()),
+        ghost(this.t('btn_back'),()=>this.setState({apr:{liquorUid:a.liquorUid}}))];
+    } else { line=this.t('marta_done'); const item=this.eng.instById(this.gs,a.itemUid); const rs=a.results||[];
+      body=[label(this.t('appraise_revealed')),
+        h('div',{key:'r',style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'6px 14px',marginBottom:14}},
+          ...rs.map((r,i)=>h('div',{key:i,style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',padding:'9px 0',borderBottom:i<rs.length-1?'1px solid '+T.line:'none'}},
+            h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}}, this.t(this.optStatKey(r.key))),
+            r.key==='growthTags'
+              ? h('span',{style:{fontFamily:T.mono,fontSize:12.5,color:T.growth}}, (r.growth&&r.growth.length?r.growth.map(g=>({str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')}[g])).join(' · '):'—'))
+              : h('span',{style:{fontFamily:T.mono,fontSize:12.5}}, h('span',{style:{color:T.faint}}, this.aprValFmt(r.key,r.from)), h('span',{style:{color:T.lo,margin:'0 6px'}},'→'), h('span',{style:{color:r.to>=r.from?T.good:T.danger,fontWeight:500}}, this.aprValFmt(r.key,r.to)))))),
+        primBtn(this.t('btn_confirm'),()=>this.setState({apr:{}}))];
+    }
+    return h('div',{style:{flex:1,overflowY:'auto',padding:'16px 18px 20px'}}, this.aprDialogue(line), ...body);
+  }
+
+  // ================= 모듈 (미스터 박 · 소켓) =================
+  attachModuleNow(){ const m=this.state.mod; const item=this.eng.instById(this.gs,m.itemUid); const cost=this.eng.N(this.eng.DATA.config.module_attach_cost,500);
+    if(this.gs.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
+    if(!this.eng.attachModule(item,m.socketIdx,m.moduleId)){ this.flash(this.t('module_attach_fail')); return; }
+    this.gs.sato-=cost; this.consumeInst(this.moduleInvUid(m.moduleId));
+    const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp;
+    this.setState({mod:{itemUid:m.itemUid}}); }
+  removeModuleNow(){ const m=this.state.mod; const item=this.eng.instById(this.gs,m.itemUid); const cost=this.eng.N(this.eng.DATA.config.module_remove_cost,300);
+    if(this.gs.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
+    this.eng.removeModule(item,m.socketIdx); this.gs.sato-=cost;
+    const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp;
+    this.setState({mod:{itemUid:m.itemUid}}); }
+  moduleInvUid(moduleId){ const inst=this.ownedBy(x=>x.id===moduleId)[0]; return inst?inst.uid:null; }
+  vendorModule(v){
+    const m=this.state.mod||{}; const item=m.itemUid?this.eng.instById(this.gs,m.itemUid):null;
+    const label=(t)=>h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 10px'}}, t);
+    const dlg=(line)=>h('div',{style:{background:T.s1,border:'1px solid '+T.line,borderRadius:6,padding:'13px 15px',marginBottom:16}},
+      h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:7}}, this.t('vendor_park_label')),
+      h('div',{style:{fontFamily:T.sans,fontSize:14,color:T.hi,lineHeight:1.65,wordBreak:'keep-all'}}, '"'+line+'"'));
+    const ghost=(t,onClick)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:13,fontWeight:500,padding:'11px',borderRadius:4,cursor:'pointer',marginTop:8}}, t);
+    const primBtn=(t,onClick,col)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+(col||T.hi),color:col||T.hi,fontFamily:T.sans,fontSize:15,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer'}}, t);
+    let body=[], line;
+    if(!item){ line=this.t('module_intro'); const list=this.socketItems();
+      body=[label(this.t('module_pick_item')), ...(list.length?list.map(inst=>
+        h('div',{key:inst.uid,onClick:()=>this.setState({mod:{itemUid:inst.uid}}),style:{border:'1px solid '+T.line,background:T.s1,borderRadius:6,padding:'12px 14px',cursor:'pointer',marginBottom:8}},
+          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:9}},
+            h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:500,color:T.hi}}, this.itemLabel(inst)),
+            h('span',{style:{fontFamily:T.mono,fontSize:10.5,color:T.lo}}, this.eng.socketFilled(inst)+'/'+inst.sockets.length)),
+          this.socketRow(inst)))
+        : [h('div',{key:'e',style:{fontFamily:T.sans,fontSize:13,color:T.faint,padding:'18px 0',textAlign:'center'}}, this.t('module_no_socket_item'))])];
+    } else if(m.socketIdx==null){ line=this.t('module_pick_socket');
+      body=[label(this.t('module_sockets')+' — '+this.itemLabel(item)),
+        h('div',{key:'sr',style:{display:'flex',justifyContent:'center',padding:'18px 0 22px'}}, this.socketRow(item,{size:40,onPick:(i)=>this.setState({mod:{...m,socketIdx:i,moduleId:null}})})),
+        h('div',{key:'h',style:{fontFamily:T.sans,fontSize:12,color:T.lo,textAlign:'center',lineHeight:1.6}}, this.t('module_tap_socket')),
+        ghost(this.t('btn_back'),()=>this.setState({mod:{}}))];
+    } else { const socket=item.sockets[m.socketIdx];
+      if(socket){ line=this.t('module_remove_line'); const mod=this.eng.byId.module[socket.moduleId]; const cost=this.eng.N(this.eng.DATA.config.module_remove_cost,300);
+        body=[label(this.t('module_installed')),
+          h('div',{key:'c',style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'14px',marginBottom:14,display:'flex',alignItems:'center',gap:11}},
+            h('div',{style:{width:26,height:26,borderRadius:'50%',background:mod.HexCode,boxShadow:'0 0 8px '+mod.HexCode,flex:'0 0 auto'}}),
+            h('div',null, h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:500,color:T.hi}}, this.eng.tr(mod,'ColorName')),
+              h('div',{style:{fontFamily:T.mono,fontSize:10.5,color:T.lo,marginTop:2}}, this.eng.tr(mod,'TargetStat')+' +'+socket.value))),
+          h('div',{key:'w',style:{fontFamily:T.sans,fontSize:12,color:T.danger,lineHeight:1.55,marginBottom:12}}, this.t('module_remove_warn')+' · '+cost+' '+this.t('currency_sato')),
+          primBtn(this.t('module_remove_do'),()=>this.removeModuleNow(),T.danger),
+          ghost(this.t('btn_back'),()=>this.setState({mod:{itemUid:item.uid}}))];
+      } else { line=this.t('module_pick_module'); const mods=this.ownedModules(item.kind); const cost=this.eng.N(this.eng.DATA.config.module_attach_cost,500);
+        if(!m.moduleId){ body=[label(this.t('module_owned')+' ('+(item.kind==='weapon'?this.t('item_slot_weapon'):this.t('item_slot_armor'))+')'),
+          ...(mods.length?mods.map(inst=>{ const mod=this.eng.byId.module[inst.id];
+            return h('div',{key:inst.uid,onClick:()=>this.setState({mod:{...m,moduleId:inst.id}}),style:{border:'1px solid '+T.line,background:T.s1,borderRadius:6,padding:'11px 13px',cursor:'pointer',marginBottom:8,display:'flex',alignItems:'center',gap:11}},
+              h('div',{style:{width:22,height:22,borderRadius:'50%',background:mod.HexCode,boxShadow:'0 0 7px '+mod.HexCode,flex:'0 0 auto'}}),
+              h('div',{style:{flex:1,minWidth:0}}, h('div',{style:{fontFamily:T.sans,fontSize:13.5,fontWeight:500,color:T.hi}}, this.eng.tr(mod,'ColorName')),
+                h('div',{style:{fontFamily:T.mono,fontSize:10,color:T.lo,marginTop:2}}, this.moduleHint(mod)+' · '+this.eng.tr(mod,'TargetStat')+' +'+mod.Value_Min+'~'+mod.Value_Max))); })
+            : [h('div',{key:'e',style:{fontFamily:T.sans,fontSize:13,color:T.faint,padding:'18px 0',textAlign:'center'}}, this.t('module_no_owned'))]),
+          ghost(this.t('btn_back'),()=>this.setState({mod:{itemUid:item.uid}}))];
+        } else { const mod=this.eng.byId.module[m.moduleId]; line=this.t('module_bind_line');
+          body=[label(this.t('module_confirm')),
+            h('div',{key:'c',style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'14px',marginBottom:12,display:'flex',alignItems:'center',gap:11}},
+              h('div',{style:{width:26,height:26,borderRadius:'50%',background:mod.HexCode,boxShadow:'0 0 8px '+mod.HexCode,flex:'0 0 auto'}}),
+              h('div',null, h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:500,color:T.hi}}, this.eng.tr(mod,'ColorName')),
+                h('div',{style:{fontFamily:T.mono,fontSize:10.5,color:T.lo,marginTop:2}}, this.eng.tr(mod,'TargetStat')+' +'+mod.Value_Min+'~'+mod.Value_Max))),
+            h('div',{key:'w',style:{fontFamily:T.sans,fontSize:12,color:T.warn,lineHeight:1.55,marginBottom:12}}, this.t('module_bind_warn')+' · '+cost+' '+this.t('currency_sato')),
+            primBtn(this.t('module_attach_do'),()=>this.attachModuleNow()),
+            ghost(this.t('btn_back'),()=>this.setState({mod:{itemUid:item.uid,socketIdx:m.socketIdx}}))];
+        }
+      }
+    }
+    return h('div',{style:{flex:1,overflowY:'auto',padding:'16px 18px 20px'}}, dlg(line), ...body);
+  }
+  moduleHint(mod){ const fam=String(mod.ColorFamily||''); const map={Red:this.t('module_hint_red'),Green:this.t('module_hint_green'),Blue:this.t('module_hint_blue'),Violet:this.t('module_hint_violet')}; return map[fam]||fam; }
 
   // ---- result ----
   resultGrowth(){
@@ -1028,7 +1251,7 @@ class Component extends DCLogic {
         return h('div',{key:k,style:{marginBottom:13,textAlign:'left'}},
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:5}},
             h('span',null,
-              h('span',{style:{fontFamily:T.sans,fontSize:12.5,fontWeight:600,color:T.hi}}, kr),
+              h('span',{style:{fontFamily:T.sans,fontSize:12.5,fontWeight:500,color:T.hi}}, kr),
               h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid,marginLeft:7}}, 'Lv '+g.level),
               lvUp>0?h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.good,marginLeft:4}}, '+'+lvUp):null),
             h('span',{style:{fontFamily:T.mono,fontSize:10.5,color:(lvUp>0||gainPct>0.005)?T.growth:T.faint}}, pct.toFixed(2)+'%'+((lvUp===0&&gainPct>0.005)?' (+'+gainPct.toFixed(2)+'%p)':''))),
@@ -1039,72 +1262,178 @@ class Component extends DCLogic {
   }
   result(){
     const c=this.combat; const death=c.result==='death';
-    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',padding:'36px 22px 28px',justifyContent:'flex-start',alignItems:'center',textAlign:'center',gap:0,overflowY:'auto',background:death?'oklch(0.170 0.010 28)':T.bg}},
-      h('div',{style:{fontFamily:T.mono,fontSize:11,letterSpacing:'.2em',color:death?T.danger:T.good,marginBottom:14}}, death?'EXTRACTION FAILED':'EXTRACTION COMPLETE'),
-      h('div',{style:{fontFamily:T.sans,fontSize:death?24:30,fontWeight:700,color:T.hi,marginBottom:18,letterSpacing:'-.02em',lineHeight:1.3}}, death?this.t('combat_defeat_msg'):this.t('combat_return_success')),
-      death
-        ? h('div',{style:{fontFamily:T.sans,fontSize:14,color:T.mid,lineHeight:1.6,marginBottom:8}}, this.t('combat_rescued_msg'))
-        : h('div',{style:{width:'100%',maxWidth:280}},
-            h('div',{style:{fontFamily:T.mono,fontSize:11,color:T.faint,letterSpacing:'.1em',marginBottom:10}}, this.t('result_loot')),
-            (c.runLoot.length? this.aggLoot(c.runLoot).map((l,i)=>h('div',{key:i,style:{display:'flex',justifyContent:'space-between',padding:'9px 0',borderBottom:'1px solid '+T.line,fontFamily:T.sans,fontSize:14,color:T.hi}}, h('span',null,this.eng.anyName(l.id)), h('span',{style:{fontFamily:T.mono,color:T.mid}},'×'+l.qty)))
-              : h('div',{style:{fontFamily:T.sans,fontSize:13,color:T.lo,padding:'12px 0'}},this.t('result_no_loot')))),
-      this.resultGrowth(),
-      h('button',{onClick:()=>this.toSafehouse(),style:{marginTop:28,background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:15,fontWeight:600,padding:'14px 40px',borderRadius:4,cursor:'pointer'}}, this.t('btn_to_safehouse'))
-    );
+    if(death){
+      return h('div',{style:{flex:1,display:'flex',flexDirection:'column',padding:'36px 22px 28px',justifyContent:'flex-start',alignItems:'center',textAlign:'center',overflowY:'auto',background:'oklch(0.170 0.010 28)'}},
+        h('div',{style:{fontFamily:T.mono,fontSize:11,letterSpacing:'.2em',color:T.danger,marginBottom:14}}, 'EXTRACTION FAILED'),
+        h('div',{style:{fontFamily:T.sans,fontSize:24,fontWeight:400,color:T.hi,marginBottom:18,letterSpacing:'-.02em',lineHeight:1.3}}, this.t('combat_defeat_msg')),
+        h('div',{style:{fontFamily:T.sans,fontSize:14,color:T.mid,lineHeight:1.6,marginBottom:8}}, this.t('combat_rescued_msg')),
+        this.resultGrowth(),
+        h('button',{onClick:()=>this.toSafehouse(),style:{marginTop:28,background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:15,fontWeight:500,padding:'14px 40px',borderRadius:4,cursor:'pointer'}}, this.t('btn_to_safehouse')));
+    }
+    const uids=this.lootUids();
+    const open=c.lootOpen||(c.lootOpen=new Set());
+    const allOpen=uids.every((_,i)=>open.has(i));
+    const stage=c.resultStage||(uids.length?'loot':'growth');
+    if(stage==='growth'){
+      return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:T.bg}},
+        h('div',{style:{padding:'16px 20px 10px',flex:'0 0 auto',textAlign:'center'}},
+          h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.2em',color:T.good,marginBottom:6}}, 'EXTRACTION COMPLETE'),
+          h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:400,color:T.hi,letterSpacing:'-.02em'}}, this.t('combat_return_success'))),
+        h('div',{style:{flex:1,overflowY:'auto',padding:'8px 22px 16px',display:'flex',justifyContent:'center'}}, this.resultGrowth()),
+        h('div',{style:{flex:'0 0 auto',background:T.s1,borderTop:'1px solid '+T.line,padding:'12px 16px 14px',display:'flex',gap:10}},
+          h('button',{onClick:()=>this.toSafehouse(),style:{flex:1,background:'transparent',border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:15,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer'}}, this.t('btn_to_safehouse'))));
+    }
+    // loot 카드 개봉 — 전투 진입 몬스터 카드 화면과 동일 (성장 정보 없음)
+    const focus=c.lootFocusIdx||0;
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:T.bg}},
+      h('div',{style:{padding:'14px 18px 12px',background:T.s1,borderBottom:'1px solid '+T.line,flex:'0 0 auto'}},
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.good,marginBottom:5}}, 'EXTRACTION COMPLETE · '+this.t('loot_carousel')+' '+uids.filter((_,i)=>open.has(i)).length+'/'+uids.length),
+        h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:T.hi,letterSpacing:'-.01em'}}, this.t('combat_return_success'))),
+      h('div',{ref:(el)=>{ if(el&&el.clientHeight&&el.clientHeight!==this._lootStageH){ this._lootStageH=el.clientHeight; this.forceUpdate(); } },onPointerDown:(e)=>{this._lx=e.clientX;this._lmoved=false;},onPointerMove:(e)=>{if(this._lx!=null&&Math.abs(e.clientX-this._lx)>8)this._lmoved=true;},onPointerUp:(e)=>{if(this._lx==null)return;const dx=e.clientX-this._lx;this._lx=null;if(Math.abs(dx)>30){ if(dx<0)this.lootFocus(focus+1); else this.lootFocus(focus-1); }},style:{flex:1,position:'relative',overflow:'hidden'}},
+        uids.map((uid,i)=>{ const inst=this.eng.instById(this.gs,uid); if(!inst) return null;
+          const off=i-focus, abs=Math.abs(off), isCenter=off===0, flipped=open.has(i);
+          const x=off*250, o=abs>1?0:(isCenter?1:0.5), rot=flipped?180:0, ch=flipped?this.lootCardH(inst):442;
+          const fit=Math.min(1,(this._lootStageH?this._lootStageH-16:ch)/ch);
+          const s=(isCenter?1:0.9)*fit;
+          return h('div',{key:uid,onClick:()=>{ if(this._lmoved) return; if(!isCenter){ this.lootFocus(i); return; } if(!flipped) this.lootFlipOne(i); },
+            style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+(x*fit)+'px), -50%) scale('+s+')',opacity:o,zIndex:isCenter?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:'pointer',perspective:'1200px',pointerEvents:abs>1?'none':'auto'}},
+            h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
+              h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 8px, oklch(0.235 0.008 264) 8px 9px)',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
+              h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'auto'}}, flipped?this.lootCardBig(inst):null))); })),
+      !allOpen? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 10px'}}, ...uids.map((_,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===focus?T.mid:(open.has(i)?T.line2:T.s3)}}))) : null,
+      h('div',{style:{flex:'0 0 auto',background:T.s1,borderTop:'1px solid '+T.line,padding:'12px 16px 14px',display:'flex',gap:10}},
+        !allOpen? h('button',{onClick:()=>this.lootFlipAll(),style:{flex:'0 0 auto',padding:'14px 18px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:500,borderRadius:4,cursor:'pointer',whiteSpace:'nowrap'}}, this.t('loot_open_all')):null,
+        h('button',{onClick:()=>{ this.combat.resultStage='growth'; this.forceUpdate(); },style:{flex:1,background:'transparent',border:'1px solid '+(allOpen?T.hi:T.line2),color:allOpen?T.hi:T.mid,fontFamily:T.sans,fontSize:15,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer'}}, this.t('btn_continue'))));
   }
   aggLoot(list){ const m={}; for(const l of list){ m[l.id]=(m[l.id]||0)+l.qty; } return Object.entries(m).map(([id,qty])=>({id,qty})); }
+  // 전투 후 전리품 개봉 — 몬스터 조우 카드와 동일한 중앙 캐러셀 · 탭하면 플립 (§5 공용 카드)
+  lootUids(){ const c=this.combat; const raw=(c.runLootInsts&&c.runLootInsts.length?c.runLootInsts:c.lootInsts)||[]; const seen=new Set(); return raw.filter(u=>{ if(seen.has(u))return false; if(!this.eng.instById(this.gs,u))return false; seen.add(u); return true; }); }
+  lootFocus(i){ const c=this.combat; c.lootFocusIdx=Math.max(0,Math.min(this.lootUids().length-1,i)); this.forceUpdate(); }
+  lootFlipAll(){ const c=this.combat; c.lootOpen=new Set(this.lootUids().map((_,i)=>i)); this.forceUpdate(); }
+  lootFlipOne(i){ const c=this.combat; if(!c.lootOpen) c.lootOpen=new Set(); c.lootOpen.add(i); this.forceUpdate(); }
+  // 아이템 카드 높이 (fig 스펙) — 소켓 있는 장비만 길어짐
+  lootCardH(inst){
+    const isGear=inst.kind==='weapon'||inst.kind==='armor';
+    const n=(isGear&&inst.sockets)?inst.sockets.length:0;
+    if(isGear&&n>0) return 440 + 34 + n*37;   // MODULE 라벨+행+여백 포함
+    return 442;
+  }
+  lootCardBig(inst){
+    const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||{};
+    const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id];
+    const md=this.eng.byId.module&&this.eng.byId.module[inst.id];
+    const isGear=inst.kind==='weapon'||inst.kind==='armor';
+    const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', MID='rgb(169,171,175)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', UNC='rgb(124,165,187)';
+    const UNW=this.t('appraise_unappraised');
+    const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id];
+    const cat=liq?this.t('appraise_tab'):md?this.t('module_tab'):usb?this.t('usb_decode'):(CATKR[s.Category]?this.t(this.catKey(s.Category)):(s.Category||''));
+    const allStats=usb?[[this.t('usb_permanent_growth'),this.eng.substUsbTokens('{STAT}',usb)],[this.t('combat_time_limit'),this.eng.N(usb.UploadMinutes,1)+(this.en()?'m':'분')]]:((isGear||liq||md||s.Category==='Medicine'||s.Category==='Food')?this.itemDetailStats(inst):[]);
+    const stats=allStats.filter(([k])=>k!==this.t('item_durability'));
+    const desc=this.tx(s,'Description')||(liq&&this.tx(this.eng.byId.liquor[inst.id],'Notes'))||(usb&&this.tx(usb,'Description'))||'';
+    const hasSockets=isGear&&inst.sockets&&inst.sockets.length;
+    const abbr={str:'STR',dex:'DEX',vit:'VIT',will:'WILL'};
+    const gtags=this.eng.growthTagsActive(inst);
+    // fig 스탯 셀: 147 · 하단 헤어라인 · 라벨 mono12 rgb(111,114,118) · 값 mono12 rgb(234,235,238)
+    const cell=(k,v,key)=>h('div',{key:key,style:{borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'7px 0',justifyContent:'space-between',alignItems:'flex-start',boxSizing:'border-box'}},
+      h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:LO,whiteSpace:'nowrap'}}, k),
+      h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:v===UNW?UNC:HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
+    const secLabel=(t)=>h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:MUT}}, t);
+    const nRows=Math.max(1,Math.ceil(stats.length/2));
+    return h('div',{style:{width:342,height:'100%',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
+      // ART 190
+      h('div',{style:{position:'relative',height:190,alignSelf:'stretch',flexShrink:0,background:md?md.HexCode:ART}},
+        md?null:h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
+        h('div',{style:{position:'absolute',left:0,top:118,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
+        gtags.length?h('div',{style:{position:'absolute',right:15,top:15,display:'flex',flexDirection:'row-reverse',gap:7}},
+          ...gtags.map((tg,i)=>h('div',{key:i,style:{height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'0 8px',display:'flex',alignItems:'center'}},
+            h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:HI,whiteSpace:'nowrap'}}, abbr[tg]||tg)))):null,
+        h('span',{style:{position:'absolute',left:15,top:167,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:md?'#fff':SUB,whiteSpace:'nowrap'}}, cat)),
+      // BODY
+      h('div',{style:{alignSelf:'stretch',flexGrow:1,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start',minHeight:0}},
+        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center'}},
+          h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.itemLabel(inst)+((inst.qty||1)>1?' ×'+inst.qty:'')),
+          hasSockets?this.socketRow(inst,{size:13}):null),
+        (!isGear&&desc)?h('div',{style:{alignSelf:'stretch',flexShrink:0,padding:'8px 0 2px',fontFamily:T.sans,fontSize:12.5,lineHeight:1.5,color:SUB}}, desc):null,
+        isGear?h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
+          h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('item_durability')),
+          h('div',{style:{height:6,flexGrow:1,borderRadius:999,overflow:'hidden',background:ART}}, h('div',{style:{height:6,borderRadius:999,background:inst.dur<=0?'rgb(196,103,93)':SUB,width:(inst.maxDur?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0)+'%'}})),
+          h('span',{style:{width:50,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:'100%',color:MID,flexShrink:0}}, this.durTxt(inst))):null,
+        stats.length?h('div',{style:{height:28,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'15px 0',display:'flex',alignItems:'flex-start'}}, secLabel(liq?'EFFECT':'STAT')):null,
+        stats.length?h('div',{style:{alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'2px 0'}},
+          h('div',{style:{display:'grid',gridTemplateRows:('31px '.repeat(isGear?nRows:stats.length)).trim(),gridTemplateColumns:isGear?'1fr 1fr':'1fr',gap:'0 16px'}},
+            ...stats.map((st,i)=>cell(st[0],st[1],i)))):null,
+        hasSockets?h('div',{style:{height:29,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'15px 0 2px',display:'flex',alignItems:'flex-start'}}, secLabel('MODULE')):null,
+        hasSockets?h('div',{style:{alignSelf:'stretch',flexShrink:0}}, ...inst.sockets.map((sk,i)=>{ const mo=sk?this.eng.byId.module[sk.moduleId]:null;
+          return h('div',{key:i,style:{height:33,boxSizing:'border-box',borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'6px 0 11px',justifyContent:'space-between',alignItems:'flex-start'}},
+            h('span',{style:{whiteSpace:'nowrap'}}, h('span',{style:{fontFamily:T.mono,fontSize:11.5,fontWeight:500,lineHeight:'100%',color:LO}}, this.t('socket_label')), h('span',{style:{fontFamily:T.mono,fontSize:11.5,lineHeight:'100%',color:sk?MID:MUT}}, '  '+(sk?this.eng.tr(mo,'ColorName'):this.t('common_empty')))),
+            h('span',{style:{fontFamily:T.mono,fontSize:11.5,lineHeight:'100%',color:HI,textAlign:'right',whiteSpace:'nowrap'}}, sk?(this.eng.tr(mo,'TargetStat')+' +'+sk.value):'-')); })):null,
+        h('div',{style:{flexGrow:1,minHeight:12}})),
+      // FOOTER — 장비만 (소모품/정크/모듈/술은 설명이 제목 아래로 이동)
+      isGear?h('div',{style:{alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px 12px',display:'flex',alignItems:'flex-start'}},
+        h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:desc?SUB:MUT,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'}}, desc||this.t('item_desc_label'))):null);
+  }
+  catKey(cat){ const map={Weapon:'item_slot_weapon',Head:'item_head',Body:'item_body',Medicine:'item_medicine',Food:'item_food',Junk:'item_junk',Quest:'item_quest',Key:'item_key',Artifact:'item_artifact',USB:'usb_decode',Material:'item_material_type'}; return map[cat]||cat; }
 
   // ---- inventory ----
   inventory(){
     const seg=this.state.seg, filter=this.state.filter;
     const list=(seg==='vault'?this.gs.vault:this.gs.bag);
-    const cats=['전체','무기','갑옷',this.t('item_medicine'),'음식','정크','아티팩트','USB','퀘스트'];
-    const catOf=(inst)=>{ const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]; if(!s) return (this.eng.byId.usb&&this.eng.byId.usb[inst.id])?'USB':''; return CATKR[s.Category]||s.Category; };
+    const cats=[['전체','common_all'],['무기','item_weapon'],['갑옷','item_armor_body'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['아티팩트','item_artifact'],['술','item_liquor'],['모듈','item_module'],['데이터','item_data'],['퀘스트','item_quest']];
+    const catOf=(inst)=>{ if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]) return '술'; if(this.eng.byId.module&&this.eng.byId.module[inst.id]) return '모듈'; if(this.eng.byId.usb&&this.eng.byId.usb[inst.id]) return '데이터'; const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]; if(!s) return ''; return CATKR[s.Category]||s.Category; };
     const rows=list.filter(inst=>filter==='전체'||catOf(inst)===filter).sort((a,b)=>(this.isEquipped(b.uid)?1:0)-(this.isEquipped(a.uid)?1:0));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-      this.screenTitle('INVENTORY','인벤토리'),
+      h('div',{style:{padding:'16px 18px 12px',flex:'0 0 auto',display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start'}},
+        h('div',{style:{display:'flex',flexDirection:'column'}},
+          h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:400,letterSpacing:'-0.22px',color:'rgb(234,235,238)'}}, this.t('nav_inventory')),
+          h('div',{style:{fontFamily:T.mono,fontSize:11,letterSpacing:'0.88px',color:'rgb(111,114,118)',padding:'4px 0'}}, 'INVENTORY')),
+        h('div',{style:{display:'flex',flexDirection:'row',gap:8,alignItems:'center',borderRadius:6,background:'rgb(24,25,29)',border:'1px solid rgb(54,56,60)',padding:'7px 10px'}},
+          h('div',{style:{borderRadius:4,border:'1px solid rgb(64,90,100)',padding:'2px 6px'}}, h('span',{style:{fontFamily:T.mono,fontSize:9,letterSpacing:'1.26px',color:'rgb(133,179,197)'}},'SATO')),
+          h('span',{style:{fontFamily:T.mono,fontSize:16,lineHeight:'100%',color:'rgb(133,179,197)'}}, this.gs.sato.toLocaleString()))),
       // segmented
       h('div',{style:{display:'flex',gap:0,margin:'14px 18px 0',border:'1px solid '+T.line2,borderRadius:4,overflow:'hidden'}},
-        ...[['bag',(this.t('nav_belongings')+' · '+this.t('nav_sortie'))],['vault',(this.t('nav_vault')+' · '+(this.en()?'Safe':'안전'))]].map(([k,l])=>h('button',{key:k,onClick:()=>this.setState({seg:k}),style:{flex:1,background:seg===k?T.s2:'transparent',border:'none',color:seg===k?T.hi:T.lo,fontFamily:T.sans,fontSize:13,fontWeight:600,padding:'10px',cursor:'pointer'}},l))),
+        ...[['bag',(this.t('nav_belongings')+' · '+this.t('nav_sortie'))],['vault',(this.t('nav_vault')+' · '+(this.en()?'Safe':'안전'))]].map(([k,l])=>h('button',{key:k,onClick:()=>this.setState({seg:k}),style:{flex:1,background:seg===k?T.s2:'transparent',border:'none',color:seg===k?T.hi:T.lo,fontFamily:T.sans,fontSize:13,fontWeight:500,padding:'10px',cursor:'pointer'}},l))),
       h('div',{style:{padding:'8px 18px 0',fontFamily:T.mono,fontSize:10,color:seg==='vault'?T.good:T.warn}}, seg==='vault'?this.t('vault_keep_hint'):this.t('belongings_lose_hint')),
       // filters
       h('div',{style:{display:'flex',gap:6,padding:'12px 18px',overflowX:'auto',flex:'0 0 auto'}},
-        ...cats.map(c=>h('button',{key:c,onClick:()=>this.setState({filter:c}),style:{flex:'0 0 auto',background:filter===c?T.s2:'transparent',border:'1px solid '+(filter===c?T.line2:T.line),color:filter===c?T.hi:T.lo,fontFamily:T.mono,fontSize:11,padding:'5px 11px',borderRadius:2,cursor:'pointer',whiteSpace:'nowrap'}},this.t(c)))),
+        ...cats.map(([id,lk])=>h('button',{key:id,onClick:()=>this.setState({filter:id}),style:{flex:'0 0 auto',background:filter===id?'rgb(43,46,50)':'transparent',border:'1px solid '+(filter===id?'rgb(74,77,83)':'rgb(54,56,60)'),color:filter===id?'rgb(234,235,238)':'rgb(111,114,118)',fontFamily:T.mono,fontSize:11,padding:'5px 11px',borderRadius:999,cursor:'pointer',whiteSpace:'nowrap'}},this.t(lk)))),
       // list
       h('div',{style:{flex:1,overflowY:'auto',paddingBottom:16}},
         rows.length? rows.map(inst=>this.invRow(inst,seg,catOf)) : h('div',{style:{padding:'30px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, this.t('common_empty')))
     );
   }
-  durTxt(inst, sep){ sep=sep||'/'; const mx=this.eng.N(inst.maxDur), d=this.eng.N(inst.dur); return (mx>0&&d<=0)?(this.t('item_damaged')+sep+mx):(d+sep+mx); }
+  durTxt(inst, sep){ sep=sep||'/'; const mx=Math.round(this.eng.N(inst.maxDur)), d=Math.round(this.eng.N(inst.dur)); return (this.eng.N(inst.maxDur)>0&&this.eng.N(inst.dur)<=0)?(this.t('item_damaged')+sep+mx):(d+sep+mx); }
   itemLabel(inst){ const base=this.eng.anyName(inst.id); if(!inst||!inst.affixes||!inst.affixes.length) return base; const pre=inst.affixes.find(a=>a.type==='prefix'); const suf=inst.affixes.find(a=>a.type==='suffix'); return (pre?this.eng.affixName(pre)+' ':'')+(suf?this.eng.affixName(suf)+' ':'')+base; }
   invRow(inst,seg,catOf){
     const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||{};
+    const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id];
+    const md=this.eng.byId.module&&this.eng.byId.module[inst.id];
     const name=this.itemLabel(inst);
     const equippable = inst.kind==='weapon'||inst.kind==='armor'||inst.kind==='artifact';
     const equipped = this.isEquipped(inst.uid);
     const attr = s.Attribute;
     const st = this.eng.itemState(inst);
-    const desc=this.tx(s,'Description')|| (inst.kind!=='item'?((this.t('item_durability')+' ')+this.durTxt(inst)):'');
+    const desc=this.tx(s,'Description')||(liq&&this.tx(this.eng.byId.liquor[inst.id],'Notes'))||(md&&(this.eng.tr(md,'TargetStat')+' +'+md.Value_Min+'~'+md.Value_Max))||'';
     return h('div',{key:inst.uid,
       onPointerDown:(e)=>{ if(equipped) return; this._sw={uid:inst.uid,x0:e.clientX,el:e.currentTarget,moved:false}; },
       onPointerMove:(e)=>{ if(!this._sw||this._sw.uid!==inst.uid) return; let dx=e.clientX-this._sw.x0; const allowR=seg==='bag',allowL=seg==='vault'; if((dx>0&&!allowR)||(dx<0&&!allowL)) dx=0; if(Math.abs(dx)>6)this._sw.moved=true; this._sw.el.style.transition='none'; this._sw.el.style.transform='translateX('+Math.max(-120,Math.min(120,dx))+'px)'; },
       onPointerUp:(e)=>{ if(!this._sw||this._sw.uid!==inst.uid) return; const dx=e.clientX-this._sw.x0,el=this._sw.el,moved=this._sw.moved; el.style.transition='transform .2s'; el.style.transform='none'; const trig=(seg==='bag'&&dx>72)||(seg==='vault'&&dx<-72); this._sw=null; this._lastMoved=moved; if(trig){ this.flash(seg==='bag'?this.t('btn_to_vault'):this.t('btn_to_belongings')); this.moveItem(inst.uid); } },
       onPointerCancel:()=>{ if(this._sw){ this._sw.el.style.transition='transform .2s'; this._sw.el.style.transform='none'; this._sw=null; } },
       onClick:()=>{ if(this._lastMoved){ this._lastMoved=false; return; } this.setState({sel:inst.uid,moveQty:null}); },
-      style:{display:'flex',alignItems:'flex-start',gap:10,padding:'13px 18px',borderBottom:'1px solid '+T.line,cursor:'pointer',background:equipped?'oklch(0.225 0.008 264)':'transparent',touchAction:'pan-y'}},
-      h('div',{style:{flex:1,minWidth:0}},
-        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:3,flexWrap:'wrap'}},
-          this.chip(catOf(inst),T.lo),
-          h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, name),
-          inst.qty>1?h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid}}, '×'+inst.qty):null,
-          AT(attr)?this.chip(ATTR[attr].kr,ATTR[attr].c):null,
+      style:{display:'flex',flexDirection:'column',gap:10,padding:'17px 18px',borderBottom:'1px solid '+T.line,cursor:'pointer',background:equipped?'oklch(0.225 0.008 264)':'transparent',touchAction:'pan-y'}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,alignSelf:'stretch'}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',minWidth:0}},
+          this.catChip(catOf(inst),equipped),
+          (inst.unappraised&&inst.unappraised.length)?this.unappTag():null,
+          AT(attr)?this.subTag('status_'+attr):null,
           ...this.growthChips(inst),
-          st==='destroyed'?this.chip(this.t('item_destroyed'),T.danger):null),
-        desc?h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,lineHeight:1.4}}, desc):null),
-      h('div',{style:{display:'flex',alignItems:'center',gap:6,flex:'0 0 auto'}},
-        equippable?(equipped
-          ? h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.good,border:'1px solid '+T.line2,borderRadius:2,padding:'5px 9px',whiteSpace:'nowrap'}}, this.t('equip_worn'))
-          : h('button',{onClick:(e)=>{e.stopPropagation();this.toggleEquip(inst);},style:{background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.mono,fontSize:10,padding:'5px 9px',borderRadius:2,cursor:'pointer'}}, this.t('equip_equip'))):null));
+          st==='destroyed'?this.subTag(this.t('item_destroyed')):null),
+        equippable?h('button',{onClick:(e)=>{e.stopPropagation();this.toggleEquip(inst);},
+          style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,cursor:'pointer',whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',color:'rgb(169,171,175)'}}, equipped?(this.en()?'Unequip':'해제'):(this.en()?'Equip':'착용')):null),
+      h('div',{style:{display:'flex',alignItems:'center',gap:8,alignSelf:'stretch',flexWrap:'wrap'}},
+        h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:400,color:T.hi}}, name),
+        inst.qty>1?h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid}}, '×'+inst.qty):null,
+        (inst.sockets&&inst.sockets.length)?this.socketRow(inst,{size:9}):null),
+      desc?h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,lineHeight:1.4}}, desc):null);
   }
   // ---- equip helpers ----
   slotOf(inst){
@@ -1122,12 +1451,28 @@ class Component extends DCLogic {
     this.forceUpdate();
   }
   itemDetailStats(inst){
-    const N=this.eng.N; const out=[];
-    if(inst.kind==='weapon'){ const w=this.eng.byId.weapon[inst.id]||{};
-      out.push([this.t('stat_atk'), (inst.minAtk ?? N(w.MinAtk_Low))+'–'+(inst.maxAtk ?? N(w.MaxAtk_High))], [this.t('stat_atk_speed'), N(w.AttackSpeed).toFixed(2)], [this.t('stat_accuracy'), N(w.Accuracy)+'%'], [this.t('combat_crit'), N(w.CritChance)+'%'], [this.t('item_material_type'), w.Material||'—'], [this.t('item_durability'), this.durTxt(inst)]);
-      if(AT(w.Attribute)) out.push([this.t('status_effect'), this.t('status_'+w.Attribute)+(' '+this.t('frag_dot_potency')+' ')+N(w.Potency)]);
-    } else if(inst.kind==='armor'){ const a=this.eng.byId.armor[inst.id]||{};
-      out.push([this.t('stat_def'), String(inst.def ?? N(a.Def_Low))], [this.t('stat_evasion'), N(a.Evasion)+'%'], [this.t('stat_status_resist'), N(a.StatusResist)+'%'], [this.t('item_material_type'), a.Material||'—'], [this.t('item_durability'), this.durTxt(inst)]);
+    const N=this.eng.N; const out=[]; const HID=this.t('appraise_unappraised');
+    const opt=(inst2,k)=>this.eng.isHidden(inst2,k);
+    if(inst.kind==='weapon'){ const w=this.eng.byId.weapon[inst.id]||{}; const r=inst.rolls||{};
+      const atkHidden=opt(inst,'minAtk')||opt(inst,'maxAtk');
+      const atk=atkHidden?HID:(Number(r.minAtk??N(w.MinAtk_Low)).toFixed(2)+'–'+Number(r.maxAtk??N(w.MaxAtk_High)).toFixed(2));
+      out.push([this.t('stat_atk'), atk],
+        [this.t('stat_atk_speed'), opt(inst,'atkSpeed')?HID:Number(r.atkSpeed??N(w.AttackSpeed)).toFixed(2)],
+        [this.t('stat_accuracy'), opt(inst,'accuracy')?HID:Number(r.accuracy??N(w.Accuracy)).toFixed(2)+'%'],
+        [this.t('combat_crit'), opt(inst,'critChance')?HID:Number(r.critChance??N(w.CritChance)).toFixed(2)+'%']);
+      if(AT(w.Attribute)){ out.push([this.t('status_effect'), this.t('status_'+w.Attribute)], [this.t('stat_potency'), opt(inst,'potency')?HID:Number(r.potency??N(w.Potency)).toFixed(2)]); }
+      out.push([this.t('item_material_type'), w.Material||'—'],
+        [this.t('item_durability'), opt(inst,'maxDur')?(this.eng.N(inst.dur)+'/'+HID):this.durTxt(inst)]);
+    } else if(inst.kind==='armor'){ const a=this.eng.byId.armor[inst.id]||{}; const r=inst.rolls||{};
+      out.push([this.t('stat_def'), opt(inst,'def')?HID:Number(r.def??N(a.Def_Low)).toFixed(2)],
+        [this.t('stat_evasion'), opt(inst,'evasion')?HID:Number(r.evasion??N(a.Evasion)).toFixed(2)+'%'],
+        [this.t('stat_status_resist'), opt(inst,'statusResist')?HID:Number(r.statusResist??N(a.StatusResist)).toFixed(2)+'%'],
+        [this.t('item_material_type'), a.Material||'—'],
+        [this.t('item_durability'), opt(inst,'maxDur')?(this.eng.N(inst.dur)+'/'+HID):this.durTxt(inst)]);
+    } else if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]){ const lq=this.eng.byId.liquor[inst.id];
+      out.push([this.en()?'Proof':'도수', Math.round(Number(inst.proof))+'%'], [this.en()?'Volume':'용량', (inst.usesLeft!=null?inst.usesLeft:inst.volume)+'/'+inst.volume]);
+    } else if(this.eng.byId.module&&this.eng.byId.module[inst.id]){ const md=this.eng.byId.module[inst.id];
+      out.push([this.t('module_tab'), this.eng.tr(md,'ColorName')], [this.eng.tr(md,'TargetStat'), '+'+md.Value_Min+'~'+md.Value_Max], [this.t('item_slot'), md.Tag==='weapon'?this.t('item_slot_weapon'):this.t('item_slot_armor')]);
     } else if(inst.kind==='artifact'){ const af=this.eng.byId.artifact[inst.id]||{};
       const s1=(af.Stat1_KR&&af.Stat1_KR!=='-')?(af.Stat1_KR+' +'+(inst.stat1!=null?inst.stat1:af.Value1_Low)):null;
       if(s1) out.push([this.t('item_effect'), s1]);
@@ -1142,8 +1487,7 @@ class Component extends DCLogic {
     }
     return out;
   }
-  growthChips(inst){ const N=this.eng.N; const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.artifact[inst.id]; if(!src) return [];
-    return [['GrowthTag_Str',this.t('stat_str')],['GrowthTag_Dex',this.t('stat_dex')],['GrowthTag_Vit',this.t('stat_vit')],['GrowthTag_Will',this.t('stat_will')]].filter(([k])=>N(src[k])>0).map(([k,kr])=>this.chip(kr+(N(src[k])>1?(' ×'+N(src[k])):''),T.growth)); }
+  growthChips(inst){ const active=this.eng.growthTagsActive(inst); if(!active||!active.length) return []; const kr={str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')}; const cnt={}; active.forEach(t=>cnt[t]=(cnt[t]||0)+1); return Object.entries(cnt).map(([k,n])=>this.subTag(kr[k]+(n>1?(' ×'+n):''))); }
   affixList(inst){ if(!inst||!inst.affixes) return []; return inst.affixes.map(af=>({label:(af.type==='prefix'?this.t('affix_prefix'):this.t('affix_suffix'))+' · '+this.eng.affixName(af), val:this.eng.affixTarget(af)+' '+(af.value>=0?'+':'')+af.value})); }
   itemSheet(){
     const inst=this.eng.instById(this.gs,this.state.sel); if(!inst){ return null; }
@@ -1160,35 +1504,26 @@ class Component extends DCLogic {
     const inVault=this.gs.vault.some(x=>x.uid===inst.uid);
     const stackable=(inst.qty||1)>1;
     const q=Math.max(1,Math.min(this.state.moveQty ?? (inst.qty||1), inst.qty||1));
-    return h('div',{onClick:()=>this.setState({sel:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.66)',display:'flex',alignItems:'flex-end',zIndex:30,animation:'rlFade .18s'}},
-      h('div',{onClick:e=>e.stopPropagation(),style:{width:'100%',background:T.s1,borderTop:'1px solid '+T.line2,borderRadius:'10px 10px 0 0',padding:'10px 18px 22px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)',maxHeight:'80%',overflowY:'auto'}},
-        h('div',{style:{width:34,height:4,background:T.line2,borderRadius:2,margin:'0 auto 16px'}}),
-        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:6,flexWrap:'wrap'}},
-          this.chip(catOf,T.lo), AT(attr)?this.chip(ATTR[attr].kr,ATTR[attr].c):null, ...this.growthChips(inst), equipped?this.chip(this.t('equip_worn'),T.good):null, st==='destroyed'?this.chip(this.t('item_destroyed'),T.danger):null),
-        h('div',{style:{fontFamily:T.sans,fontSize:21,fontWeight:700,color:T.hi,marginBottom:6}}, name),
-        this.tx(s,'Description')?h('div',{style:{fontFamily:T.sans,fontSize:13,color:T.mid,lineHeight:1.5,marginBottom:14}}, this.tx(s,'Description')):h('div',{style:{height:6}}),
-        h('div',{style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'4px 14px',marginBottom:16}},
-          ...stats.map(([k,v],i)=>h('div',{key:k,style:{display:'flex',justifyContent:'space-between',padding:'9px 0',borderBottom:i<stats.length-1?'1px solid '+T.line:'none'}},
-            h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}}, k),
-            h('span',{style:{fontFamily:T.mono,fontSize:13,color:T.hi}}, v)))),
-        affixes.length? h('div',{style:{marginBottom:16}},
-          h('div',{style:{height:1,background:T.line,margin:'2px 0 12px'}}),
-          h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:6}}, this.t('affix_prefix_suffix')),
-          h('div',{style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'4px 14px'}},
-            ...affixes.map((a,i)=>h('div',{key:i,style:{display:'flex',justifyContent:'space-between',padding:'9px 0',borderBottom:i<affixes.length-1?'1px solid '+T.line:'none'}},
-              h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}}, a.label),
-              h('span',{style:{fontFamily:T.mono,fontSize:13,color:T.hi}}, a.val))))) : null,
+    const isConsum=inst.kind==='item'&&(s.EffectType==='heal'||s.EffectType==='stamina');
+    const ch=this.lootCardH(inst);
+    return h('div',{onClick:()=>this.setState({sel:null,moveQty:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
+      // 업데이트된 카드 (전리품 카드와 동일)
+      h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,height:ch,maxHeight:'100%'}}, this.lootCardBig(inst))),
+      // 하단 토스트 모달 — 버튼만
+      h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',background:T.s1,borderTop:'1px solid '+T.line2,borderRadius:'12px 12px 0 0',padding:'12px 18px 22px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
+        h('div',{style:{width:34,height:4,background:T.line2,borderRadius:2,margin:'0 auto 14px'}}),
         stackable? h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'8px 12px',marginBottom:10}},
           h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}}, this.t('usb_submit_qty')),
           h('div',{style:{display:'flex',alignItems:'center',gap:14}},
             h('button',{onClick:()=>this.setState({moveQty:Math.max(1,q-1)}),style:{width:30,height:30,background:T.s2,border:'1px solid '+T.line2,borderRadius:3,color:T.hi,fontFamily:T.mono,fontSize:16,cursor:'pointer'}}, '−'),
             h('span',{style:{fontFamily:T.mono,fontSize:15,color:T.hi,minWidth:44,textAlign:'center'}}, q+' / '+inst.qty),
             h('button',{onClick:()=>this.setState({moveQty:Math.min(inst.qty,q+1)}),style:{width:30,height:30,background:T.s2,border:'1px solid '+T.line2,borderRadius:3,color:T.hi,fontFamily:T.mono,fontSize:16,cursor:'pointer'}}, '+'))) : null,
-        (inst.kind==='item'&&(s.EffectType==='heal'||s.EffectType==='stamina'))?h('div',{style:{display:'flex',gap:12,marginBottom:12}}, this.bar(this.t('stat_hp'),this.gs.hp,this.gs.maxHp,T.hp), this.bar(this.t('stat_stamina'),this.gs.sta,this.staMax,T.sta)):null,
+        isConsum?h('div',{style:{display:'flex',gap:12,marginBottom:12}}, this.bar(this.t('stat_hp'),this.gs.hp,this.gs.maxHp,T.hp), this.bar(this.t('stat_stamina'),this.gs.sta,this.staMax,T.sta)):null,
         h('div',{style:{display:'flex',gap:10}},
-          (inst.kind==='item'&&(s.EffectType==='heal'||s.EffectType==='stamina'))?h('button',{onClick:()=>{this.useConsumable(inst);},style:{flex:1,background:T.s2,border:'1px solid '+T.line2,color:T.good,fontFamily:T.sans,fontSize:14,fontWeight:600,padding:'14px',borderRadius:4,cursor:'pointer'}}, '사용'):null,
-          equippable?h('button',{onClick:()=>{this.toggleEquip(inst);},style:{flex:1,background:equipped?'transparent':T.s2,border:'1px solid '+T.line2,color:equipped?T.lo:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:600,padding:'14px',borderRadius:4,cursor:'pointer'}}, equipped?this.t('equip_unequip'):this.t('equip_equip')):null,
-          h('button',{onClick:()=>{this.moveStack(inst.uid,q);this.setState({sel:null,moveQty:null});},style:{flex:equippable?'0 0 auto':1,padding:'14px 18px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:600,borderRadius:4,cursor:'pointer',whiteSpace:'nowrap'}}, (inVault?this.t('btn_to_belongings'):this.t('btn_to_vault'))+(stackable?(' '+q+(this.en()?'':this.t('frag_count'))):'')))));
+          isConsum?h('button',{onClick:()=>{this.useConsumable(inst);},style:{flex:1,background:T.s2,border:'1px solid '+T.line2,color:T.good,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'14px',borderRadius:4,cursor:'pointer'}}, this.t('heal_use_item')):null,
+          equippable?h('button',{onClick:()=>{this.toggleEquip(inst);},style:{flex:1,background:equipped?'transparent':T.s2,border:'1px solid '+T.line2,color:equipped?T.lo:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'14px',borderRadius:4,cursor:'pointer'}}, equipped?this.t('equip_unequip'):this.t('equip_equip')):null,
+          h('button',{onClick:()=>{this.moveStack(inst.uid,q);this.setState({sel:null,moveQty:null});},style:{flex:equippable||isConsum?'0 0 auto':1,padding:'14px 18px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:500,borderRadius:4,cursor:'pointer',whiteSpace:'nowrap'}}, (inVault?this.t('btn_to_belongings'):this.t('btn_to_vault'))+(stackable?(' '+q+(this.en()?'':this.t('frag_count'))):'')))));
   }
 
   // ---- character ----
@@ -1201,7 +1536,7 @@ class Component extends DCLogic {
     const pct=(id)=>['sec_accuracy','sec_evasion','sec_status_resist','sec_crit_chance','sec_crit_resist'].includes(id);
     const slotDefs=[['weapon','무기'],['body','갑옷'],['head','투구'],['artifact1','아티팩트'],['artifact2','아티팩트']];
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-      this.screenTitle('CHARACTER','캐릭터'),
+      this.screenTitle('CHARACTER','nav_character'),
       h('div',{style:{flex:1,overflowY:'auto',padding:'0 18px 20px'}},
         h('div',{style:{display:'flex',flexDirection:'column',gap:12,marginBottom:18}}, this.bar(this.t('stat_hp'),g.hp,g.maxHp,T.hp), this.bar(this.t('stat_stamina'),g.sta,this.staMax,T.sta)),
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:10}}, this.t('equip_gear')),
@@ -1209,15 +1544,15 @@ class Component extends DCLogic {
           ...slotDefs.map(([slot,kr])=>{ const uid=g.equip[slot]; const inst=uid?this.eng.instById(g,uid):null; const src=inst?(this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||{}):null; const attr=src?src.Attribute:null;
             return h('div',{key:slot,onClick:inst?()=>this.setState({sel:inst.uid}):null,style:{display:'flex',alignItems:'center',gap:8,padding:'11px 0',borderBottom:'1px solid '+T.line,cursor:inst?'pointer':'default',opacity:inst?1:.55}},
               h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.faint,width:52,flex:'0 0 auto',letterSpacing:'.04em'}}, kr),
-              inst? h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi,flex:1}}, this.itemLabel(inst)) : h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.faint,flex:1}}, this.t('equip_unequipped')),
-              (inst&&AT(attr))?this.chip(ATTR[attr].kr,ATTR[attr].c):null,
+              inst? h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:500,color:T.hi,flex:1}}, this.itemLabel(inst)) : h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.faint,flex:1}}, this.t('equip_unequipped')),
+              (inst&&AT(attr))?this.chip('status_'+attr,ATTR[attr].c):null,
               inst? h('span',{style:{fontFamily:T.mono,fontSize:10,color:this.eng.itemState(inst)==='destroyed'?T.danger:this.eng.itemState(inst)==='broken'?T.warn:T.dur}}, this.durTxt(inst)):null); })),
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:12}}, this.t('char_primary_stats')),
         h('div',{style:{display:'flex',flexDirection:'column',gap:14,marginBottom:24}},
           ...prim.map(([k,kr])=>{ const pv=this.eng.growthPct(g,k);
             return h('div',{key:k},
               h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:5}},
-                h('div',null, h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, kr), h('span',{style:{fontFamily:T.mono,fontSize:15,color:T.hi,marginLeft:8}}, (g.growth[k].level+(bonus[k]||0))), bonus[k]?h('span',{style:{fontFamily:T.mono,fontSize:12,color:bonus[k]>0?T.good:T.danger,marginLeft:4}}, '('+(bonus[k]>0?'+':'')+bonus[k]+')'):null),
+                h('div',null, h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:500,color:T.hi}}, kr), h('span',{style:{fontFamily:T.mono,fontSize:15,color:T.hi,marginLeft:8}}, (g.growth[k].level+(bonus[k]||0))), bonus[k]?h('span',{style:{fontFamily:T.mono,fontSize:12,color:bonus[k]>0?T.good:T.danger,marginLeft:4}}, '('+(bonus[k]>0?'+':'')+bonus[k]+')'):null),
                 h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.growth}}, pv.toFixed(2)+'%')),
               h('div',{style:{height:5,background:T.s3,borderRadius:1,overflow:'hidden'}}, h('div',{style:{width:pv+'%',height:'100%',background:T.growth}}))); })),
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:10}}, this.t('char_secondary_stats')),
@@ -1235,18 +1570,18 @@ class Component extends DCLogic {
       h('div',{style:{position:'relative',flex:'0 0 auto',height:150,background:T.s3,overflow:'hidden'}},
         h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, oklch(0.28 0.01 264) 0%, oklch(0.19 0.008 264) 100%)'}}),
         h('button',{onClick:()=>this.go('safehouse'),style:{position:'absolute',top:14,left:14,zIndex:2,background:'oklch(0.15 0.006 264 / .6)',border:'1px solid '+T.line2,borderRadius:3,width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}, svg('M15 6l-6 6 6 6',18,T.hi)),
-        h('div',{style:{position:'absolute',top:14,right:14,zIndex:2,display:'flex',alignItems:'center',gap:7,background:T.s2,border:'1px solid '+T.line,borderRadius:3,padding:'5px 10px'}}, this.chip('SATO',T.sato), h('span',{style:{fontFamily:T.mono,fontWeight:600,fontSize:14,color:T.hi}}, this.gs.sato.toLocaleString())),
+        h('div',{style:{position:'absolute',top:14,right:14,zIndex:2,display:'flex',alignItems:'center',gap:7,background:T.s2,border:'1px solid '+T.line,borderRadius:3,padding:'5px 10px'}}, this.chip('SATO',T.sato), h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:14,color:T.hi}}, this.gs.sato.toLocaleString())),
         h('div',{style:{position:'absolute',left:18,bottom:14,zIndex:2}},
-          h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:700,color:T.hi}}, '보건소'),
+          h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:400,color:T.hi}}, '보건소'),
           h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.mid}}, this.t('vendor_yuri_label')))),
       h('div',{style:{padding:'8px 18px 0',fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:T.faint,marginTop:8}}, this.t('shop_medicine_only')),
       h('div',{style:{flex:1,overflowY:'auto',paddingBottom:20}},
         ...rows.map(r=>{ const price=this.eng.N(r.BuyPrice); const key='shop_clinic|'+r.ItemID; const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(r.StockMax,99); const aff=this.gs.sato>=price&&stock>0; const src=this.eng.byId.item[r.ItemID]||{};
           return h('div',{key:r.ItemID,style:{display:'flex',alignItems:'center',gap:10,padding:'14px 18px',borderBottom:'1px solid '+T.line,opacity:stock>0?1:.5}},
             h('div',{style:{flex:1,minWidth:0}},
-              h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:3}}, this.chip(this.t('item_medicine'),T.lo), h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, this.tx(r,'ItemName')||this.eng.anyName(r.ItemID)), h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.faint}}, (this.t('frag_stock')+' ')+stock)),
+              h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:3}}, this.chip(this.t('item_medicine'),T.lo), h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:500,color:T.hi}}, this.tx(r,'ItemName')||this.eng.anyName(r.ItemID)), h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.faint}}, (this.t('frag_stock')+' ')+stock)),
               h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo}}, (this.tx(src,'Description')||'')+ (src.EffectValue?((' '+this.t('frag_dot_heal'))+src.EffectValue):''))),
-            h('button',{onClick:()=>this.buy('shop_clinic',r),disabled:!aff,style:{flex:'0 0 auto',background:aff?T.s2:'transparent',border:'1px solid '+(aff?T.line2:T.line),color:aff?T.hi:T.faint,fontFamily:T.mono,fontSize:12,fontWeight:600,padding:'8px 12px',borderRadius:3,cursor:aff?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',gap:1}},
+            h('button',{onClick:()=>this.buy('shop_clinic',r),disabled:!aff,style:{flex:'0 0 auto',background:aff?T.s2:'transparent',border:'1px solid '+(aff?T.line2:T.line),color:aff?T.hi:T.faint,fontFamily:T.mono,fontSize:12,fontWeight:500,padding:'8px 12px',borderRadius:3,cursor:aff?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',gap:1}},
               h('span',{style:{color:T.sato}}, price.toLocaleString()), h('span',{style:{fontSize:9,color:aff?T.mid:T.faint}}, this.t('shop_buy')))); }))
     );
   }
@@ -1266,7 +1601,7 @@ class Component extends DCLogic {
     return h('div',{onClick:()=>this.setState({repairResult:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.66)',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 24px',zIndex:36,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{width:'100%',background:T.s1,border:'1px solid '+T.line2,borderRadius:10,padding:'22px 20px',animation:'rlIn .2s'}},
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:failed?T.warn:T.good,marginBottom:8}}, failed?this.t('kicker_repairing'):this.t('kicker_repairing')),
-        h('div',{style:{fontFamily:T.sans,fontSize:19,fontWeight:700,color:T.hi,marginBottom:16}}, r.name),
+        h('div',{style:{fontFamily:T.sans,fontSize:19,fontWeight:400,color:T.hi,marginBottom:16}}, r.name),
         h('div',{style:{marginBottom:16}},
           h('div',{style:{display:'flex',justifyContent:'space-between',fontFamily:T.mono,fontSize:10,color:T.lo,marginBottom:6}}, h('span',null,this.t('item_durability')), h('span',{style:{color:T.hi}}, r.dur+' / '+r.maxDur)),
           h('div',{ref:(el)=>{ if(el&&!el._an){ el._an=1; const inner=el.firstChild; if(inner){ inner.style.width=fromPct+'%'; requestAnimationFrame(()=>requestAnimationFrame(()=>{ inner.style.transition='width 1.1s cubic-bezier(.2,.8,.2,1)'; inner.style.width=toPct+'%'; })); } } },style:{height:12,background:T.s3,borderRadius:2,overflow:'hidden'}},
@@ -1277,7 +1612,7 @@ class Component extends DCLogic {
           failed?row(this.t('repair_maxdur_loss'), '−'+r.maxLoss+this.t('frag_point'), T.danger):null,
           row(this.t('btn_pay'), r.cost.toLocaleString()+(' '+this.t('currency_sato')), T.sato, true)),
         failed?h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.warn,lineHeight:1.5,marginBottom:16}}, this.t('repair_fail_msg')):null,
-        h('button',{onClick:()=>this.setState({repairResult:null}),style:{width:'100%',background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:15,fontWeight:600,padding:'14px',borderRadius:4,cursor:'pointer'}}, this.t('btn_confirm'))));
+        h('button',{onClick:()=>this.setState({repairResult:null}),style:{width:'100%',background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:15,fontWeight:500,padding:'14px',borderRadius:4,cursor:'pointer'}}, this.t('btn_confirm'))));
   }
   repairScreen(){
     const list=this.repairables();
@@ -1286,8 +1621,8 @@ class Component extends DCLogic {
         h('button',{onClick:()=>this.go('safehouse'),style:{background:'oklch(0.15 0.006 264 / .6)',border:'1px solid '+T.line2,borderRadius:3,width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flex:'0 0 auto'}}, svg('M15 6l-6 6 6 6',18,T.hi)),
         h('div',{style:{flex:1}},
           h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:3}}, this.t('kicker_repair_shop')),
-          h('div',{style:{fontFamily:T.sans,fontSize:18,fontWeight:700,color:T.hi}}, this.t('repair_gear'))),
-        h('div',{style:{display:'flex',alignItems:'center',gap:7,background:T.s2,border:'1px solid '+T.line,borderRadius:3,padding:'5px 10px',flex:'0 0 auto'}}, this.chip('SATO',T.sato), h('span',{style:{fontFamily:T.mono,fontWeight:600,fontSize:14,color:T.hi}}, this.gs.sato.toLocaleString()))),
+          h('div',{style:{fontFamily:T.sans,fontSize:18,fontWeight:400,color:T.hi}}, this.t('repair_gear'))),
+        h('div',{style:{display:'flex',alignItems:'center',gap:7,background:T.s2,border:'1px solid '+T.line,borderRadius:3,padding:'5px 10px',flex:'0 0 auto'}}, this.chip('SATO',T.sato), h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:14,color:T.hi}}, this.gs.sato.toLocaleString()))),
       h('div',{style:{padding:'11px 18px 3px',fontFamily:T.sans,fontSize:11.5,color:T.warn,lineHeight:1.5}}, this.t('repair_explain')),
       h('div',{style:{flex:1,overflowY:'auto',padding:'8px 0 20px'}},
         list.length? list.map(inst=>this.repairRow(inst)) : h('div',{style:{padding:'40px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, this.t('repair_none'))));
@@ -1300,14 +1635,14 @@ class Component extends DCLogic {
       h('div',{style:{flex:1,minWidth:0}},
         h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:2,flexWrap:'wrap'}},
           this.chip(CATKR[src.Category]||src.Category,T.lo),
-          h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, this.itemLabel(inst)),
+          h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:500,color:T.hi}}, this.itemLabel(inst)),
           this.isEquipped(inst.uid)?this.chip(this.t('equip_worn'),T.good):null, stChip),
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:5}},
           h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.lo}}, this.t('item_durability')),
           h('span',{style:{fontFamily:T.mono,fontSize:12,color:st==='broken'?T.warn:T.mid}}, this.durTxt(inst,' / '))),
         this.durBar(inst)),
       h('div',{style:{flex:'0 0 auto',display:'flex',flexDirection:'column',alignItems:'flex-end',gap:2}},
-        h('span',{style:{fontFamily:T.mono,fontSize:12,fontWeight:600,color:T.sato}}, cost.toLocaleString()),
+        h('span',{style:{fontFamily:T.mono,fontSize:12,fontWeight:500,color:T.sato}}, cost.toLocaleString()),
         h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint,letterSpacing:'.06em'}}, '사토')),
       svg('M9 6l6 6-6 6',18,T.faint));
   }
@@ -1320,7 +1655,7 @@ class Component extends DCLogic {
       h('div',{onClick:e=>e.stopPropagation(),style:{width:'100%',background:T.s1,borderTop:'1px solid '+T.line2,borderRadius:'10px 10px 0 0',padding:'10px 18px 22px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
         h('div',{style:{width:34,height:4,background:T.line2,borderRadius:2,margin:'0 auto 16px'}}),
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:6}}, this.t('repair_confirm')),
-        h('div',{style:{fontFamily:T.sans,fontSize:19,fontWeight:700,color:T.hi,marginBottom:14}}, this.itemLabel(inst)),
+        h('div',{style:{fontFamily:T.sans,fontSize:19,fontWeight:400,color:T.hi,marginBottom:14}}, this.itemLabel(inst)),
         h('div',{style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'4px 14px',marginBottom:14}},
           row(this.t('item_current_durability'), this.durTxt(inst,' / ')),
           row(this.t('repair_worn_durability'), worn+this.t('frag_point'), T.warn),
@@ -1329,39 +1664,45 @@ class Component extends DCLogic {
           svg('M12 9v4M12 17h.01M10.3 4.3 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z',20,T.warn,1.7),
           h('span',null,this.t('repair_fail_warn'))),
         h('div',{style:{display:'flex',gap:10}},
-          h('button',{onClick:()=>this.setState({repairSel:null}),style:{flex:'0 0 auto',padding:'14px 20px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:600,borderRadius:4,cursor:'pointer'}}, this.t('btn_cancel')),
-          h('button',{disabled:!aff,onClick:()=>this.doRepair(inst),style:{flex:1,background:'transparent',border:'1px solid '+(aff?T.warn:T.line),color:aff?T.warn:T.faint,fontFamily:T.sans,fontSize:15,fontWeight:700,padding:'14px',borderRadius:4,cursor:aff?'pointer':'default',letterSpacing:'.02em'}}, aff?this.t('repair_execute'):this.t('shop_insufficient_sato')))));
+          h('button',{onClick:()=>this.setState({repairSel:null}),style:{flex:'0 0 auto',padding:'14px 20px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:500,borderRadius:4,cursor:'pointer'}}, this.t('btn_cancel')),
+          h('button',{disabled:!aff,onClick:()=>this.doRepair(inst),style:{flex:1,background:'transparent',border:'1px solid '+(aff?T.warn:T.line),color:aff?T.warn:T.faint,fontFamily:T.sans,fontSize:15,fontWeight:400,padding:'14px',borderRadius:4,cursor:aff?'pointer':'default',letterSpacing:'.02em'}}, aff?this.t('repair_execute'):this.t('shop_insufficient_sato')))));
   }
   // ---- vendor (구매/판매/수리 · Services 기반) ----
   vendorScreen(){
     const v=this.eng.byId.vendor[this.state.vendor]||{};
     const svc=this.services(v);
-    const tabs=[]; if(svc.includes('Buy'))tabs.push(['buy',this.t('shop_buy')]); if(svc.includes('Sell'))tabs.push(['sell',this.t('shop_sell')]); if(svc.includes('Repair'))tabs.push(['repair',this.t('nav_repair')]); if(svc.includes('Heal'))tabs.push(['heal',this.t('heal_treat')]); if(svc.includes('Load'))tabs.push(['load',this.t('usb_decode')]);
+    const tabs=[]; if(svc.includes('Buy'))tabs.push(['buy',this.t('shop_buy')]); if(svc.includes('Sell'))tabs.push(['sell',this.t('shop_sell')]); if(svc.includes('Repair'))tabs.push(['repair',this.t('nav_repair')]); if(svc.includes('Heal'))tabs.push(['heal',this.t('heal_treat')]); if(svc.includes('Load'))tabs.push(['load',this.t('usb_decode')]); if(svc.includes('Appraisal'))tabs.push(['appraise',this.t('appraise_tab')]); if(svc.includes('Module'))tabs.push(['module',this.t('module_tab')]);
     let tab=this.state.vtab; if(!tabs.some(t=>t[0]===tab)) tab=(tabs[0]||['buy'])[0];
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       h('div',{style:{position:'relative',flex:'0 0 auto',height:118,background:T.s3,overflow:'hidden'}},
-        h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, oklch(0.28 0.01 264) 0%, oklch(0.19 0.008 264) 100%)'}}),
-        h('button',{onClick:()=>this.go('safehouse'),style:{position:'absolute',top:14,left:14,zIndex:2,background:'oklch(0.15 0.006 264 / .6)',border:'1px solid '+T.line2,borderRadius:3,width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}, svg('M15 6l-6 6 6 6',18,T.hi)),
-        h('div',{style:{position:'absolute',top:14,right:14,zIndex:2,display:'flex',alignItems:'center',gap:7,background:T.s2,border:'1px solid '+T.line,borderRadius:3,padding:'5px 10px'}}, this.chip('SATO',T.sato), h('span',{style:{fontFamily:T.mono,fontWeight:600,fontSize:14,color:T.hi}}, this.gs.sato.toLocaleString())),
+        h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, oklch(0.28 0.01 264) 0%, rgb(24,25,29) 100%)'}}),
+        h('button',{onClick:()=>this.go('safehouse'),style:{position:'absolute',top:14,left:14,zIndex:2,background:'rgba(10,11,14,0.6)',border:'none',borderRadius:3,width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}, svg('M15 6l-6 6 6 6',18,'rgb(234,235,238)')),
+        h('div',{style:{position:'absolute',top:14,right:14,zIndex:2,display:'flex',alignItems:'center',gap:7,background:'rgb(33,35,39)',border:'1px solid rgb(54,56,60)',borderRadius:3,padding:'5px 10px'}},
+          h('span',{style:{borderRadius:2,border:'1px solid rgb(133,179,197)',padding:'2px 6px',fontFamily:T.mono,fontWeight:500,fontSize:10,lineHeight:'100%',letterSpacing:'0.4px',color:'rgb(133,179,197)'}},'SATO'),
+          h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:14,lineHeight:'100%',color:'rgb(133,179,197)'}}, this.gs.sato.toLocaleString())),
         h('div',{style:{position:'absolute',left:18,bottom:12,zIndex:2}},
-          h('div',{style:{fontFamily:T.sans,fontSize:21,fontWeight:700,color:T.hi}}, this.shopName(v.ShopID,v)),
-          h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.mid}}, this.tx(v,'VendorName')))),
-      tabs.length? h('div',{style:{display:'flex',flex:'0 0 auto',borderBottom:'1px solid '+T.line,background:T.s1}},
+          h('div',{style:{fontFamily:T.sans,fontSize:21,fontWeight:400,color:'rgb(234,235,238)',marginBottom:2}}, this.shopName(v.ShopID,v)),
+          h('div',{style:{fontFamily:T.sans,fontSize:12,color:'rgb(169,171,175)'}}, this.tx(v,'VendorName')))),
+      tabs.length? h('div',{style:{display:'flex',flex:'0 0 auto',background:'rgb(24,25,29)',borderBottom:'1px solid rgb(54,56,60)'}},
         ...tabs.map(([k,l])=>{ const on=tab===k;
-          return h('button',{key:k,onClick:()=>this.setState({vtab:k}),style:{flex:1,background:'none',border:'none',borderBottom:'2px solid '+(on?T.hi:'transparent'),color:on?T.hi:T.lo,fontFamily:T.sans,fontSize:14,fontWeight:600,padding:'12px 0',cursor:'pointer'}}, l); })) : null,
-      tab==='buy'?this.vendorBuy(v):tab==='sell'?this.vendorSell(v):tab==='repair'?this.vendorRepair():tab==='load'?this.vendorLoad(v):this.vendorHeal(v)
+          return h('button',{key:k,onClick:()=>this.setState({vtab:k}),style:{flex:1,background:'none',border:'none',borderBottom:'2px solid '+(on?'rgb(169,171,175)':'transparent'),padding:'13px 0',cursor:'pointer',fontFamily:T.sans,fontSize:14,fontWeight:500,textAlign:'center',color:on?'rgb(234,235,238)':'rgb(111,114,118)'}}, l); })) : null,
+      tab==='buy'?this.vendorBuy(v):tab==='sell'?this.vendorSell(v):tab==='repair'?this.vendorRepair():tab==='load'?this.vendorLoad(v):tab==='appraise'?this.vendorAppraise(v):tab==='module'?this.vendorModule(v):this.vendorHeal(v)
     );
   }
+  shopPill(txt,color){ return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'5px 8px',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:color,whiteSpace:'nowrap'}}, txt); }
+  shopRow(o){ return h('div',{key:o.key,onClick:o.disabled?null:o.onClick,style:{display:'flex',flexDirection:'column',gap:8,padding:'16px 18px',borderBottom:'1px solid rgb(54,56,60)',cursor:o.disabled?'default':'pointer',opacity:o.disabled?0.5:1}},
+      h('div',{style:{display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8}},
+        this.catChip(o.cat,false),
+        h('div',{style:{display:'flex',flexDirection:'row',gap:4,alignItems:'center',flexShrink:0}}, this.shopPill(o.priceLabel,o.priceColor), this.shopPill(o.countLabel,'rgb(169,171,175)'))),
+      h('div',{style:{display:'flex',flexDirection:'column',gap:4}},
+        h('div',{style:{fontFamily:T.sans,fontSize:14,color:'rgb(234,235,238)'}}, o.name),
+        o.desc?h('div',{style:{fontFamily:T.sans,fontSize:12,color:'rgb(111,114,118)',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}, o.desc):null)); }
   vendorBuy(v){
     const rows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID);
-    return h('div',{style:{flex:1,overflowY:'auto',paddingBottom:20}},
-      rows.length? rows.map(r=>{ const price=this.eng.N(r.BuyPrice); const key=v.ShopID+'|'+r.ItemID; const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(r.StockMax,99); const aff=this.gs.sato>=price&&stock>0; const src=this.eng.byId.item[r.ItemID]||this.eng.byId.weapon[r.ItemID]||this.eng.byId.armor[r.ItemID]||this.eng.byId.artifact[r.ItemID]||{}; const cat=CATKR[src.Category]||src.Category||'';
-        return h('div',{key:r.ItemID,style:{display:'flex',alignItems:'center',gap:10,padding:'14px 18px',borderBottom:'1px solid '+T.line,opacity:stock>0?1:.5}},
-          h('div',{style:{flex:1,minWidth:0}},
-            h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:3,flexWrap:'wrap'}}, this.chip(cat,T.lo), h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, this.tx(r,'ItemName')||this.eng.anyName(r.ItemID)), h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.faint}}, (this.t('frag_stock')+' ')+stock)),
-            h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo}}, (this.tx(src,'Description')||'')+(src.EffectValue?((' '+this.t('frag_dot_heal'))+src.EffectValue):''))),
-          h('button',{onClick:()=>this.buy(v.ShopID,r),disabled:!aff,style:{flex:'0 0 auto',background:aff?T.s2:'transparent',border:'1px solid '+(aff?T.line2:T.line),color:aff?T.hi:T.faint,fontFamily:T.mono,fontSize:12,fontWeight:600,padding:'8px 12px',borderRadius:3,cursor:aff?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',gap:1}},
-            h('span',{style:{color:T.sato}}, price.toLocaleString()), h('span',{style:{fontSize:9,color:aff?T.mid:T.faint}}, this.t('shop_buy')))); })
+    return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px'}},
+      rows.length? rows.map(r=>{ const price=this.eng.N(r.BuyPrice); const key=v.ShopID+'|'+r.ItemID; const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(r.StockMax,99); const aff=this.gs.sato>=price&&stock>0; const liq=this.eng.byId.liquor&&this.eng.byId.liquor[r.ItemID]; const md=this.eng.byId.module&&this.eng.byId.module[r.ItemID]; const usb=this.eng.byId.usb&&this.eng.byId.usb[r.ItemID]; const src=this.eng.byId.item[r.ItemID]||this.eng.byId.weapon[r.ItemID]||this.eng.byId.armor[r.ItemID]||this.eng.byId.artifact[r.ItemID]||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
+        const desc=(this.tx(src,'Description')||(liq&&this.tx(liq,'Notes'))||'')+(src.EffectValue?((' '+this.t('frag_dot_heal'))+src.EffectValue):'');
+        return this.shopRow({key:r.ItemID,cat,name:this.tx(r,'ItemName')||this.eng.anyName(r.ItemID),desc,priceLabel:'BUY '+price.toLocaleString(),priceColor:'rgb(133,179,197)',countLabel:(this.en()?'Stock ':'재고 ')+String(stock).padStart(2,'0'),onClick:()=>this.buy(v.ShopID,r),disabled:!aff}); })
         : h('div',{style:{padding:'40px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, this.t('shop_sell_empty')));
   }
   sellables(v){
@@ -1376,14 +1717,9 @@ class Component extends DCLogic {
     this.flash(this.eng.anyName(inst.id)+(' '+this.t('frag_sell_plus'))+p); this.forceUpdate(); }
   vendorSell(v){
     const list=this.sellables(v);
-    return h('div',{style:{flex:1,overflowY:'auto',paddingBottom:20}},
-      h('div',{style:{padding:'10px 18px 2px',fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:T.faint}}, (this.t('frag_tradable')+' ')+(v.TradeCategories||'—')),
-      list.length? list.map(inst=>{ const p=this.sellPrice(inst); const inVault=this.gs.vault.some(x=>x.uid===inst.uid); const can=p>0&&!this.isEquipped(inst.uid);
-        return h('div',{key:inst.uid,style:{display:'flex',alignItems:'center',gap:10,padding:'13px 18px',borderBottom:'1px solid '+T.line}},
-          h('div',{style:{flex:1,minWidth:0}},
-            h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:2,flexWrap:'wrap'}}, this.chip(inVault?this.t('nav_vault'):this.t('nav_belongings'), inVault?T.good:T.warn), h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, this.itemLabel(inst)), inst.qty>1?h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid}},'×'+inst.qty):null),
-            h('div',{style:{fontFamily:T.mono,fontSize:11,color:T.lo}}, p>0?((this.en()?(p+' '+this.t('currency_sato')+' each'):('개당 '+p+' '+this.t('currency_sato')))):this.t('shop_no_sale'))),
-          h('button',{onClick:()=>this.sellItem(inst),disabled:!can,style:{flex:'0 0 auto',background:can?T.s2:'transparent',border:'1px solid '+(can?T.line2:T.line),color:can?T.hi:T.faint,fontFamily:T.mono,fontSize:12,fontWeight:600,padding:'8px 12px',borderRadius:3,cursor:can?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}, h('span',{style:{color:can?T.sato:T.faint}}, p.toLocaleString()), h('span',{style:{fontSize:9,color:T.mid}},this.t('shop_sell')))); })
+    return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px'}},
+      list.length? list.map(inst=>{ const p=this.sellPrice(inst); const can=p>0&&!this.isEquipped(inst.uid); const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]; const md=this.eng.byId.module&&this.eng.byId.module[inst.id]; const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id]; const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
+        return this.shopRow({key:inst.uid,cat,name:this.itemLabel(inst),desc:this.tx(src,'Description')||(liq&&this.tx(liq,'Notes'))||'',priceLabel:'SELL '+p.toLocaleString(),priceColor:'rgb(204,162,110)',countLabel:(this.en()?'Owned ':'소지 ')+String(inst.qty||1).padStart(2,'0'),onClick:()=>this.sellItem(inst),disabled:!can}); })
         : h('div',{style:{padding:'40px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, this.t('shop_nothing_to_sell')));
   }
   healCooldown(){ return Math.max(1, this.eng.N(this.eng.DATA.config.heal_cooldown_sorties, 1)); }
@@ -1404,7 +1740,7 @@ class Component extends DCLogic {
         row(this.t('heal_cost'), cost.toLocaleString()+(' '+this.t('currency_sato')), aff?T.sato:T.danger),
         row(this.t('usage_condition'), (this.en()?('1 / '+cd+' sorties'):(cd+'출정당 1회')), T.mid),
         row(this.t('common_status'), avail?this.t('common_available'):((nextIn+(this.en()?' ':'')+this.t('frag_sorties_until'))), avail?T.good:T.warn)),
-      h('button',{disabled:!can,onClick:can?()=>this.doHeal():null,style:{width:'100%',background:'transparent',border:'1px solid '+(can?T.good:T.line),color:can?T.good:T.faint,fontFamily:T.sans,fontSize:15,fontWeight:700,padding:'15px',borderRadius:4,cursor:can?'pointer':'default'}}, full?this.t('heal_already_full'):(!avail?((nextIn+(this.en()?' ':'')+this.t('frag_sorties_until'))):(!aff?this.t('shop_insufficient_sato'):this.t('heal_get')))));
+      h('button',{disabled:!can,onClick:can?()=>this.doHeal():null,style:{width:'100%',background:'transparent',border:'1px solid '+(can?T.good:T.line),color:can?T.good:T.faint,fontFamily:T.sans,fontSize:15,fontWeight:400,padding:'15px',borderRadius:4,cursor:can?'pointer':'default'}}, full?this.t('heal_already_full'):(!avail?((nextIn+(this.en()?' ':'')+this.t('frag_sorties_until'))):(!aff?this.t('shop_insufficient_sato'):this.t('heal_get')))));
   }
   vendorRepair(){
     const list=this.repairables();
@@ -1416,7 +1752,7 @@ class Component extends DCLogic {
     const srcLabel = { live:this.t('data_sheet_live'), cache:this.t('data_cache_connfail'), bundled:this.t('data_bundle_snapshot') }[this.dataSrc]||'—';
     const srcColor = this.dataSrc==='live'?T.good:(this.dataSrc==='cache'?T.warn:T.lo);
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-      this.screenTitle('SETTINGS','설정'),
+      this.screenTitle('SETTINGS','nav_settings'),
       h('div',{style:{padding:'0 18px',overflowY:'auto'}},
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 10px'}}, this.t('data_balance')),
         h('div',{style:{background:T.s1,border:'1px solid '+T.line,borderRadius:4,padding:'13px 15px',marginBottom:12}},
@@ -1424,9 +1760,9 @@ class Component extends DCLogic {
             h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}}, this.t('data_source')),
             h('span',{style:{fontFamily:T.mono,fontSize:12,color:srcColor}}, srcLabel)),
           h('div',{style:{fontFamily:T.sans,fontSize:11.5,color:T.lo,lineHeight:1.5}}, this.t('data_sheet_help'))),
-        h('button',{onClick:()=>this.reloadSheet(),style:{width:'100%',background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:600,padding:'13px',borderRadius:4,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:26}},
+        h('button',{onClick:()=>this.reloadSheet(),style:{width:'100%',background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'13px',borderRadius:4,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:26}},
           svg('M4 12a8 8 0 018-8 8 8 0 016 2.7M20 12a8 8 0 01-8 8 8 8 0 01-6-2.7M18 4v3h-3M6 20v-3h3',18,T.hi,1.7),this.t('data_reload_sheet')),
-        h('button',{onClick:()=>this.clearCache(),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:600,padding:'13px',borderRadius:4,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:8}},
+        h('button',{onClick:()=>this.clearCache(),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'13px',borderRadius:4,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:8}},
           svg('M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13M10 11v6M14 11v6',18,T.mid,1.6),this.t('data_clear_cache')),
         h('div',{style:{fontFamily:T.sans,fontSize:11.5,color:T.lo,lineHeight:1.5,marginBottom:26}}, this.t('data_clear_cache_desc')),
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 10px'}}, this.t('settings_app')),
@@ -1435,9 +1771,9 @@ class Component extends DCLogic {
             h('div',{style:{fontFamily:T.sans,fontSize:14,color:T.hi}},this.t('settings_language')),
             h('div',{style:{fontFamily:T.sans,fontSize:11,color:T.lo,marginTop:2}},this.t('dev_en_check'))),
           h('div',{style:{display:'flex',border:'1px solid '+T.line2,borderRadius:4,overflow:'hidden'}},
-            ...[['kr',this.t('lang_korean')],['en','English']].map(([k,l])=>h('button',{key:k,onClick:()=>this.setLang(k),style:{background:this.lang===k?T.s2:'transparent',border:'none',color:this.lang===k?T.hi:T.lo,fontFamily:T.sans,fontSize:12,fontWeight:600,padding:'8px 14px',cursor:'pointer'}},l)))),
+            ...[['kr',this.t('lang_korean')],['en','English']].map(([k,l])=>h('button',{key:k,onClick:()=>this.setLang(k),style:{background:this.lang===k?T.s2:'transparent',border:'none',color:this.lang===k?T.hi:T.lo,fontFamily:T.sans,fontSize:12,fontWeight:500,padding:'8px 14px',cursor:'pointer'}},l)))),
         ...[[this.t('settings_account'),this.t('settings_login_logout')],[this.t('nav_feedback'),this.t('feedback_bug')]].map(([a,b])=>h('div',{key:a,style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'15px 0',borderBottom:'1px solid '+T.line}}, h('span',{style:{fontFamily:T.sans,fontSize:14,color:T.hi}},a), h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.lo}},b))),
-        h('button',{onClick:()=>{this.newRun(true);this.setState({ready:true});this.go('safehouse');this.flash(this.t('settings_reset_char'));},style:{marginTop:22,width:'100%',background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:14,fontWeight:600,padding:'13px',borderRadius:4,cursor:'pointer',marginBottom:20}}, this.t('settings_reset_progress')))
+        h('button',{onClick:()=>{this.newRun(true);this.setState({ready:true});this.go('safehouse');this.flash(this.t('settings_reset_char'));},style:{marginTop:22,width:'100%',background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'13px',borderRadius:4,cursor:'pointer',marginBottom:20}}, this.t('settings_reset_progress')))
     );
   }
 }
