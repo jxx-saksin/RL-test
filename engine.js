@@ -436,6 +436,7 @@ const DEFAULT_TPL_EN = {
   timeout: 'Time out — failed to bring down {MonsterName}.',
   loot: 'Recovered something from the enemy.',
 };
+const uiT = (k) => t(k);
 export function logTpl(id, vars) {
   const row = (DATA.combatLog || []).find(r => r.LineID === id);
   const en = LANG === 'en';
@@ -453,6 +454,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
   const A = { ...pProf, hp: playerHpStart != null ? playerHpStart : pProf.maxHp, side: 'player', next: 0, stunUntil: 0, bleed: [], ruptureStacks: 0, ruptureUntil: 0 };
   const B = { ...mProf, hp: mProf.maxHp, side: 'monster', next: 0, stunUntil: 0, bleed: [], ruptureStacks: 0, ruptureUntil: 0 };
   const triggers = { hitsLanded: 0, evades: 0, hitsTaken: 0, critsLanded: 0 };
+  const ME = uiT('common_me');
   const limit = mProf.timeLimit;
   let t = 0, guard = 0;
   const push = (who, type, text) => log.push({ t: +t.toFixed(1), who, type, text, hpP: Math.max(0, Math.round(A.hp)), hpM: Math.max(0, Math.round(B.hp)) });
@@ -481,7 +483,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     for (const b of actor.bleed) {
       while (b.nextTick <= t && b.until >= b.nextTick) {
         actor.hp -= b.dmg;
-        push(actor.side, 'dot', logTpl('dot_bleed', { Target: actor.side === 'player' ? t('common_me') : actor.name, Damage: b.dmg.toFixed(0), CurrentHP: Math.max(0, actor.hp).toFixed(0) }));
+        push(actor.side, 'dot', logTpl('dot_bleed', { Target: actor.side === 'player' ? ME : actor.name, Damage: b.dmg.toFixed(0), CurrentHP: Math.max(0, actor.hp).toFixed(0) }));
         b.nextTick += b.interval;
         if (actor.hp <= 0) break;
       }
@@ -490,15 +492,15 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     if (actor.hp <= 0) break;
 
     if (actor.stunUntil > t) { // stunned: skip, reschedule
-      push(actor.side, 'stun', logTpl('stun_skip', { Target: actor.side === 'player' ? t('common_me') : actor.name }));
+      push(actor.side, 'stun', logTpl('stun_skip', { Target: actor.side === 'player' ? ME : actor.name }));
       actor.next = actor.stunUntil + 1 / actor.atkSpeed;
       continue;
     }
 
     // attempt hit
     const hc = hitChance(actor.accuracy, foe.evasion);
-    const nm = actor.side === 'player' ? t('common_me') : actor.name;
-    const fnm = foe.side === 'player' ? t('common_me') : foe.name;
+    const nm = actor.side === 'player' ? ME : actor.name;
+    const fnm = foe.side === 'player' ? ME : foe.name;
     if (Math.random() > hc) {
       push(actor.side, 'miss', logTpl('miss', { Attacker: nm, Target: fnm, HitPct: (hc * 100).toFixed(0) }));
       if (foe.side === 'player') triggers.evades++;
