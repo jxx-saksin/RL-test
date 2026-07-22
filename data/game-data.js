@@ -2352,6 +2352,22 @@ export const DATA = {
       "Notes": "예시 그룹 배치",
       "LastUpdated": 46209
     }
+  ],
+  "ui": [
+    {"StringID":"save_section","Text_KR":"세이브","Text_EN":"Save","Category":"save","UIRole":"label","Status":"Planning","LastUpdated":46225},
+    {"StringID":"save_continue","Text_KR":"이어하기","Text_EN":"Continue","Category":"save","UIRole":"button","Status":"Planning","LastUpdated":46225},
+    {"StringID":"save_new_game","Text_KR":"처음부터","Text_EN":"New game","Category":"save","UIRole":"button","Status":"Planning","LastUpdated":46225},
+    {"StringID":"save_resuming","Text_KR":"이어하는 중","Text_EN":"Resuming","Category":"save","UIRole":"label","Status":"Planning","LastUpdated":46225},
+    {"StringID":"save_export","Text_KR":"세이브 코드 내보내기","Text_EN":"Export save code","Category":"save","UIRole":"button","Status":"Planning","LastUpdated":46225},
+    {"StringID":"save_import","Text_KR":"세이브 코드 불러오기","Text_EN":"Import save code","Category":"save","UIRole":"button","Status":"Planning","LastUpdated":46225},
+    {"StringID":"save_import_hint","Text_KR":"세이브 코드를 붙여넣으세요","Text_EN":"Paste your save code","Category":"save","UIRole":"label","Status":"Planning","LastUpdated":46225},
+    {"StringID":"save_import_apply","Text_KR":"불러오기","Text_EN":"Load","Category":"save","UIRole":"button","Status":"Planning","LastUpdated":46225},
+    {"StringID":"save_code_copied","Text_KR":"세이브 코드가 복사되었습니다","Text_EN":"Save code copied","Category":"save","UIRole":"message","Status":"Planning","LastUpdated":46225},
+    {"StringID":"save_code_invalid","Text_KR":"세이브 코드가 올바르지 않습니다","Text_EN":"Invalid save code","Category":"save","UIRole":"message","Status":"Planning","LastUpdated":46225},
+    {"StringID":"save_imported","Text_KR":"세이브를 불러왔습니다","Text_EN":"Save loaded","Category":"save","UIRole":"message","Status":"Planning","LastUpdated":46225},
+    {"StringID":"save_reset","Text_KR":"세이브 초기화","Text_EN":"Reset save","Category":"save","UIRole":"button","Status":"Planning","LastUpdated":46225},
+    {"StringID":"save_reset_done","Text_KR":"세이브를 초기화했습니다","Text_EN":"Save reset","Category":"save","UIRole":"message","Status":"Planning","LastUpdated":46225},
+    {"StringID":"save_autosaved","Text_KR":"자동 저장됨","Text_EN":"Autosaved","Category":"save","UIRole":"message","Status":"Planning","LastUpdated":46225}
   ]
 };
 

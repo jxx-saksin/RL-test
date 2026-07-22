@@ -117,6 +117,21 @@ const V3_STRINGS = {
   pvp_flee_success:['도주 성공 — 무사히 벗어났다','Fled clean — got away safely'],
   pvp_win_pick_tpl:['승리 — 카드 1장 선택 · 복제 확률 {Rate}%','Win — pick 1 card · copy chance {Rate}%'],
   pvp_lose_pick_tpl:['패배 — 카드 1장 선택 · 도주 실패 확률 {Rate}%','Lose — pick 1 card · flee-fail chance {Rate}%'],
+  // save system (UIString Category=save — sheet wins, these are offline fallbacks)
+  save_section:['세이브','Save'],
+  save_continue:['이어하기','Continue'],
+  save_new_game:['처음부터','New game'],
+  save_resuming:['이어하는 중','Resuming'],
+  save_export:['세이브 코드 내보내기','Export save code'],
+  save_import:['세이브 코드 불러오기','Import save code'],
+  save_import_hint:['세이브 코드를 붙여넣으세요','Paste your save code'],
+  save_import_apply:['불러오기','Load'],
+  save_code_copied:['세이브 코드가 복사되었습니다','Save code copied'],
+  save_code_invalid:['세이브 코드가 올바르지 않습니다','Invalid save code'],
+  save_imported:['세이브를 불러왔습니다','Save loaded'],
+  save_reset:['세이브 초기화','Reset save'],
+  save_reset_done:['세이브를 초기화했습니다','Save reset'],
+  save_autosaved:['자동 저장됨','Autosaved'],
 };
 export function invalidateUi(){ _uiById = null; _uiByKr = null; }
 
@@ -180,6 +195,10 @@ export function startingState() {
 
 let _uid = 1;
 export function nextUid(){ return 'u' + (_uid++); }
+// save/load support — the uid counter must survive a restore, or freshly-made
+// instances re-issue uids already used by loaded items (equip slots then point wrong).
+export function getUidCounter(){ return _uid; }
+export function setUidCounter(n){ const v = Number(n); if (Number.isFinite(v) && v > _uid) _uid = Math.floor(v); }
 
 // v3 appraisable option keys per kind (재질·소켓수·카테고리·상태이상종류·부여력종류 = 공개, 제외)
 export const APPRAISE_OPTS = {
