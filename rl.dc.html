@@ -23,10 +23,10 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   ::-webkit-scrollbar{width:0;height:0;}
   .rl-wrap{min-height:100dvh;display:flex;align-items:center;justify-content:center;background:oklch(0.120 0.005 264);}
-  .rl-frame{width:min(402px,100vw);height:min(874px,100dvh);box-sizing:border-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);border:1px solid oklch(0.340 0.008 264);box-shadow:0 24px 80px rgba(0,0,0,.6);}
+  .rl-frame{width:min(402px,100vw);height:min(874px,100dvh);box-sizing:border-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);border:1px solid oklch(0.340 0.008 264);box-shadow:0 24px 80px rgba(0,0,0,.6);}
   @media (max-width:520px),(display-mode:standalone),(display-mode:fullscreen){
-    .rl-wrap{min-height:100dvh;background:oklch(0.185 0.006 264);align-items:stretch;justify-content:stretch;}
-    .rl-frame{width:100vw;height:100dvh;max-width:none;border:none;box-shadow:none;border-radius:0;}
+    .rl-wrap{min-height:100dvh;min-height:100svh;background:oklch(0.185 0.006 264);align-items:stretch;justify-content:stretch;}
+    .rl-frame{width:100vw;height:100dvh;height:100svh;max-width:none;border:none;box-shadow:none;border-radius:0;}
   }
   @keyframes rlIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
   @keyframes rlSheet{from{transform:translateY(100%)}to{transform:none}}
@@ -761,7 +761,7 @@ class Component extends DCLogic {
       this.battleBanner(placeTitle,zoneName,c.encounter),
       list.length? h('div',{style:{flex:1,position:'relative',overflow:'hidden'}},
           list.map((inst,i)=>{ const off=i-c.restFocus, abs=Math.abs(off); const isC=off===0; const x=off*250, s=isC?1:0.9, o=isC?1:0.5;
-            return h('div',{key:inst.uid,onClick:()=>{ if(!isC){c.restFocus=i;this.forceUpdate();} },style:{position:'absolute',left:'50%',top:'50%',width:342,height:442,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'default':'pointer'}}, this.lootCardBig(inst)); }))
+            return h('div',{key:inst.uid,onClick:()=>{ if(!isC){c.restFocus=i;this.forceUpdate();} },style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(442px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'default':'pointer'}}, this.lootCardBig(inst)); }))
         : h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}, this.emptyRow(this.en()?'No food or medicine to use.':'사용할 음식이나 의약품이 없습니다.')),
       list.length? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 12px'}}, list.map((x,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===c.restFocus?'rgb(169,171,175)':'rgb(43,46,50)'}}))) : null,
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
@@ -800,9 +800,9 @@ class Component extends DCLogic {
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:LO,whiteSpace:'nowrap'}}, k),
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:vc||HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
     const desc=md.Description?this.tx(md,'Description'):(this.tx(md,'Flavor')||'');
-    return h('div',{style:{width:342,height:473,boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
+    return h('div',{style:{width:342,height:'min(473px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
       // ART 190
-      h('div',{style:{position:'relative',height:190,alignSelf:'stretch',flexShrink:0,background:ART}},
+      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,alignSelf:'stretch',background:ART}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
         h('div',{style:{position:'absolute',left:0,top:110,width:340,height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         h('div',{style:{position:'absolute',right:17,top:12,width:59,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',justifyContent:'flex-start',padding:'0 8px'}},
@@ -847,8 +847,8 @@ class Component extends DCLogic {
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:LO,whiteSpace:'nowrap'}}, k),
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:vc||HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
     const pct=Math.max(0,Math.min(100,this.gs.hp/prof.maxHp*100));
-    return h('div',{style:{width:342,height:473,boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
-      h('div',{style:{position:'relative',height:190,alignSelf:'stretch',flexShrink:0,background:ART}},
+    return h('div',{style:{width:342,height:'min(473px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
+      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,alignSelf:'stretch',background:ART}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
         h('div',{style:{position:'absolute',left:0,top:110,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         h('div',{style:{position:'absolute',right:16,top:16,width:45,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 8px'}},
@@ -920,7 +920,7 @@ class Component extends DCLogic {
       h('div',{onPointerDown:(e)=>{this._sx=e.clientX;this._moved=false;},onPointerMove:(e)=>{if(this._sx!=null&&Math.abs(e.clientX-this._sx)>8)this._moved=true;},onPointerUp:(e)=>{if(this._sx==null)return;const dx=e.clientX-this._sx;this._sx=null;if(this.combat.flipped)return;if(Math.abs(dx)>30){ if(dx<0)this.focusCard(Math.min(this.combat.cards.length-1,this.combat.cardFocus+1)); else this.focusCard(Math.max(0,this.combat.cardFocus-1)); }},style:{flex:1,position:'relative',overflow:'hidden'}},
         c.cards.map((id,i)=>{ const off=i-c.cardFocus, abs=Math.abs(off); const isCenter=off===0; const x=off*250, s=isCenter?1:0.9; let o=isCenter?1:0.5; if(flipped&&!isCenter) o=0; const rot=(flipped&&isCenter)?180:0;
               return h('div',{key:i,onClick:()=>{ if(this._moved||flipped) return; isCenter?this.flipCenter():this.focusCard(i); },
-                style:{position:'absolute',left:'50%',top:'50%',width:342,height:473,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isCenter?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',perspective:'1200px',pointerEvents:(flipped&&!isCenter)?'none':'auto'}},
+                style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(473px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isCenter?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',perspective:'1200px',pointerEvents:(flipped&&!isCenter)?'none':'auto'}},
                 h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
                   h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 8px, oklch(0.235 0.008 264) 8px 9px)',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
                   isCenter? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'hidden'}}, flipped?(c.pvp?this.userFront(c.mProf):this.monsterFront(c.mProf)):null):null)); })),
@@ -977,15 +977,15 @@ class Component extends DCLogic {
     h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:4}},
       h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, placeTitle),
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.2px',color:'rgb(111,114,118)',lineHeight:'100%'}}, 'ENCOUNTER · '+zoneName+' · '+(this.en()?('Encounter #'+(enc+1)):((enc+1)+'전 조우'))))); }
-  cardFace(){ return h('div',{style:{width:342,height:442,borderRadius:8,background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 8px, oklch(0.235 0.008 264) 8px 9px)',border:'1px solid '+T.line2,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}); }
+  cardFace(){ return h('div',{style:{width:342,height:'min(442px, 100%)',borderRadius:8,background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 8px, oklch(0.235 0.008 264) 8px 9px)',border:'1px solid '+T.line2,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}); }
   placeTitleFor(c){ const zObj=this.eng.byId.zone[c.zoneId]; const zoneName=zObj?this.tx(zObj,'ZoneName'):''; const cityObj=zObj&&this.eng.byId.city?this.eng.byId.city[zObj.CityID]:null; return {zoneName, placeTitle:(cityObj?(this.tx(cityObj,'CityName')||'')+' · ':'')+zoneName}; }
   attemptFlee(){ Object.assign(this.combat,{phase:'fleeCards', fleeFocus:1, fleeFlipped:false, fleeSuccess:null}); if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate(); }
   flipFlee(){ const c=this.combat; if(c.fleeFlipped) return; const p=this.eng.N(this.eng.DATA.config.flee_chance_base,0.9); c.fleeSuccess=Math.random()<p; c.fleeFlipped=true; this.forceUpdate();
     if(this._ct) clearTimeout(this._ct); this._ct=setTimeout(()=>{ if(this.combat&&this.combat.fleeSuccess){ this.flash(this.t('combat_flee_success')); this.extract(); } else if(this.combat){ this.enterCombat(); } }, 3000); }
   fleeFront(){
     const ok=this.combat.fleeSuccess, col=ok?'rgb(131,178,137)':'rgb(196,103,93)';
-    return h('div',{style:{width:342,height:442,borderRadius:8,overflow:'hidden',background:'rgb(24,25,29)',border:'1px solid rgb(54,56,60)',display:'flex',flexDirection:'column'}},
-      h('div',{style:{position:'relative',height:317,flexShrink:0,background:'rgb(43,46,50)',backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
+    return h('div',{style:{width:342,height:'min(442px, 100%)',borderRadius:8,overflow:'hidden',background:'rgb(24,25,29)',border:'1px solid rgb(54,56,60)',display:'flex',flexDirection:'column'}},
+      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,background:'rgb(43,46,50)',backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
         h('div',{style:{position:'absolute',left:0,top:237,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgb(24,25,29) 100%)'}}),
         h('span',{style:{position:'absolute',left:15,top:294,fontFamily:T.mono,fontSize:10,letterSpacing:'0.8px',color:col}}, ok?(this.en()?'SUCCESS':'성공'):(this.en()?'FAILED':'실패'))),
       h('div',{style:{padding:'13px 15px',display:'flex',flexDirection:'column'}},
@@ -1000,7 +1000,7 @@ class Component extends DCLogic {
       this.battleBanner(placeTitle,zoneName,c.encounter),
       h('div',{onPointerDown:(e)=>{this._fx=e.clientX;this._fmoved=false;},onPointerMove:(e)=>{if(this._fx!=null&&Math.abs(e.clientX-this._fx)>8)this._fmoved=true;},onPointerUp:(e)=>{if(this._fx==null)return;const dx=e.clientX-this._fx;this._fx=null;if(c.fleeFlipped)return;if(Math.abs(dx)>30){ if(dx<0)c.fleeFocus=Math.min(2,(c.fleeFocus||0)+1); else c.fleeFocus=Math.max(0,(c.fleeFocus||0)-1); this.forceUpdate(); }},style:{flex:1,position:'relative',overflow:'hidden'}},
         [0,1,2].map(i=>{ const off=i-(c.fleeFocus==null?1:c.fleeFocus), abs=Math.abs(off), isC=off===0; const x=off*250; let o=isC?1:0.5; if(flipped&&!isC)o=0; const rot=(flipped&&isC)?180:0;
-          return h('div',{key:i,onClick:()=>{ if(this._fmoved||flipped)return; isC?this.flipFlee():(c.fleeFocus=i,this.forceUpdate()); },style:{position:'absolute',left:'50%',top:'50%',width:342,height:442,transform:'translate(calc(-50% + '+x+'px), -50%)',opacity:o,zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',perspective:'1200px',pointerEvents:(flipped&&!isC)?'none':'auto'}},
+          return h('div',{key:i,onClick:()=>{ if(this._fmoved||flipped)return; isC?this.flipFlee():(c.fleeFocus=i,this.forceUpdate()); },style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(442px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%)',opacity:o,zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',perspective:'1200px',pointerEvents:(flipped&&!isC)?'none':'auto'}},
             h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
               h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden'}}, this.cardFace()),
               isC? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)'}}, this.fleeFront()):null)); })),
@@ -1022,8 +1022,8 @@ class Component extends DCLogic {
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       this.battleBanner(placeTitle,zoneName,c.encounter),
       h('div',{style:{flex:1,position:'relative'}},
-        h('div',{style:{position:'absolute',left:'50%',top:24,transform:'translateX(-50%)',width:342,height:442,borderRadius:8,overflow:'hidden',background:'rgb(24,25,29)',border:'1px solid rgb(54,56,60)',display:'flex',flexDirection:'column'}},
-          h('div',{style:{position:'relative',height:317,flexShrink:0,background:'rgb(43,46,50)',backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
+        h('div',{style:{position:'absolute',left:'50%',top:24,transform:'translateX(-50%)',width:342,height:'min(442px, 100%)',borderRadius:8,overflow:'hidden',background:'rgb(24,25,29)',border:'1px solid rgb(54,56,60)',display:'flex',flexDirection:'column'}},
+          h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,background:'rgb(43,46,50)',backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
             h('div',{style:{position:'absolute',left:0,top:237,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgb(24,25,29) 100%)'}}),
             h('span',{style:{position:'absolute',left:15,top:294,fontFamily:T.mono,fontSize:10,letterSpacing:'0.8px',color:col}}, ok?(this.en()?'SUCCESS':'성공'):(this.en()?'FAILED':'실패'))),
           h('div',{style:{padding:'13px 15px',display:'flex',flexDirection:'column'}},
@@ -1152,8 +1152,8 @@ class Component extends DCLogic {
   // card-action-Search-Failed (.fig 2163:8068) — PvP 전리품 획득 실패
   searchFailedCard(){
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', PVP='rgb(196,103,93)';
-    return h('div',{style:{width:342,height:442,boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
-      h('div',{style:{position:'relative',height:317,alignSelf:'stretch',flexShrink:0,background:'#0f1013',backgroundImage:'url(components/cards/search-failed.png)',backgroundSize:'cover',backgroundPosition:'center'}},
+    return h('div',{style:{width:342,height:'min(442px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
+      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,alignSelf:'stretch',background:'#0f1013',backgroundImage:'url(components/cards/search-failed.png)',backgroundSize:'cover',backgroundPosition:'center'}},
         h('div',{style:{position:'absolute',right:17,top:15,width:38,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',padding:'0 8px'}},
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:PVP,whiteSpace:'nowrap'}}, 'PVP')),
         h('div',{style:{position:'absolute',left:0,top:237,width:340,height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
@@ -1590,7 +1590,7 @@ class Component extends DCLogic {
     const nRows=Math.max(1,Math.ceil(stats.length/2));
     return h('div',{style:{width:342,height:'100%',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
       // ART 190
-      h('div',{style:{position:'relative',height:190,alignSelf:'stretch',flexShrink:0,background:md?md.HexCode:ART}},
+      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,alignSelf:'stretch',background:md?md.HexCode:ART}},
         md?null:h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
         h('div',{style:{position:'absolute',left:0,top:118,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         gtags.length?h('div',{style:{position:'absolute',right:15,top:15,display:'flex',flexDirection:'row-reverse',gap:7}},
