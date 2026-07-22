@@ -94,8 +94,9 @@ class Component extends DCLogic {
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
       await this.loadData();
-      this.newRun(true);
-      this.setState({ ready:true });
+      const sv=this.readSave();
+      if(sv){ this.applySave(sv); this.setState({ ready:true, resumeBanner:true }); }
+      else { this.newRun(true); this.setState({ ready:true }); }
       this.bootFromQuery();
     }catch(e){ console.error('engine load failed', e); this.setState({ ready:true, err:String(e) }); }
   }
@@ -126,6 +127,56 @@ class Component extends DCLogic {
     this.flash(src==='live'?this.t('data_sheet_applied'):src==='cache'?this.t('data_conn_fail_cache'):this.t('data_use_bundle'));
   }
   componentWillUnmount(){ if(this._t) clearInterval(this._t); if(this._ut) clearInterval(this._ut); }
+  // ---------- save system (localStorage rl_save_v1 · 안전가옥 기준점만 저장) ----------
+  saveObj(){ return { v:1, savedAt:Date.now(), uidCounter:this.eng.getUidCounter(), gs:this.gs }; }
+  inSortie(){ return !!this.combat; }
+  saveGame(){
+    if(!this.gs || !this.eng || this.inSortie()) return;
+    clearTimeout(this._saveT);
+    this._saveT=setTimeout(()=>{ if(this.inSortie()) return; try{ localStorage.setItem('rl_save_v1', JSON.stringify(this.saveObj())); }catch(_){ } },400);
+  }
+  validSave(o){ return !!(o && o.v===1 && o.gs && Array.isArray(o.gs.bag) && Array.isArray(o.gs.vault)); }
+  readSave(){ try{ const s=localStorage.getItem('rl_save_v1'); if(!s) return null; const o=JSON.parse(s); return this.validSave(o)?o:null; }catch(_){ return null; } }
+  applySave(o){
+    const eng=this.eng, gs=o.gs;
+    // 방어: 현재 시트에 없는 id 인스턴스 제거 → 빈 장착 슬롯 null
+    const known=(inst)=> !!(inst && inst.id && (eng.anyItem(inst.id) || (eng.byId.liquor&&eng.byId.liquor[inst.id]) || (eng.byId.module&&eng.byId.module[inst.id]) || (eng.byId.usb&&eng.byId.usb[inst.id])));
+    gs.bag=(gs.bag||[]).filter(known); gs.vault=(gs.vault||[]).filter(known);
+    gs.equip=Object.assign({weapon:null,head:null,body:null,artifact1:null,artifact2:null}, gs.equip||{});
+    const uids=new Set(gs.bag.concat(gs.vault).map(x=>x.uid));
+    ['weapon','head','body','artifact1','artifact2'].forEach(s=>{ if(gs.equip[s]&&!uids.has(gs.equip[s])) gs.equip[s]=null; });
+    gs.shopStock=gs.shopStock||{}; gs.sato=eng.N(gs.sato,0); gs.sorties=eng.N(gs.sorties,0);
+    this.gs=gs; this.combat=null;
+    eng.setUidCounter(o.uidCounter);
+    this.staMax=10;
+    const full=eng.playerProfile(gs,false);
+    gs.maxHp=full.maxHp;
+    gs.hp=Math.max(0,Math.min(eng.N(gs.hp,full.maxHp),full.maxHp));
+    gs.sta=Math.max(0,Math.min(eng.N(gs.sta,this.staMax),this.staMax));
+  }
+  exportSaveCode(){
+    try{ const code=btoa(unescape(encodeURIComponent(JSON.stringify(this.saveObj()))));
+      this.setState({svCode:code});
+      try{ if(navigator.clipboard) navigator.clipboard.writeText(code); }catch(_){ }
+      this.flash(this.t('save_code_copied'));
+    }catch(_){ this.flash(this.t('save_code_invalid')); }
+  }
+  importSaveCode(code){
+    try{
+      const o=JSON.parse(decodeURIComponent(escape(atob(String(code||'').replace(/\s+/g,'')))));
+      if(!this.validSave(o)){ this.flash(this.t('save_code_invalid')); return; }
+      this.applySave(o);
+      try{ localStorage.setItem('rl_save_v1', JSON.stringify(this.saveObj())); }catch(_){ }
+      this.setState({svImportOpen:false,svImportVal:'',svCode:null,resumeBanner:false});
+      this.go('safehouse');
+      this.flash(this.t('save_imported'));
+    }catch(_){ this.flash(this.t('save_code_invalid')); }
+  }
+  resetSave(){
+    try{ localStorage.removeItem('rl_save_v1'); }catch(_){ }
+    this.newRun(true); this.combat=null; this.setState({resumeBanner:false,svCode:null,svImportOpen:false}); this.go('safehouse');
+    this.flash(this.t('save_reset_done'));
+  }
   componentDidUpdate(){ if(this.logRef){ this.logRef.scrollTop = this.logRef.scrollHeight; } }
 
   newRun(fresh){
@@ -138,9 +189,9 @@ class Component extends DCLogic {
     ['weapon','head','body'].forEach(s=>{ if(gs.equip[s]) this.moveToBag(gs.equip[s]); });
   }
   moveToBag(uid){ const i=this.gs.vault.findIndex(x=>x.uid===uid); if(i>=0){ const [it]=this.gs.vault.splice(i,1); this.gs.bag.push(it); } }
-  rest(){ const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=full.maxHp; this.gs.sta=this.staMax; }
-  go(screen){ if(this._t){clearInterval(this._t); this._t=null;} if(this._ut){clearInterval(this._ut); this._ut=null;} this.setState({ screen, modalZone:null, sel:null }); }
-  flash(msg){ this.setState({toast:msg}); clearTimeout(this._ft); this._ft=setTimeout(()=>this.setState({toast:null}),1600); }
+  rest(){ const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=full.maxHp; this.gs.sta=this.staMax; this.saveGame(); }
+  go(screen){ if(this._t){clearInterval(this._t); this._t=null;} if(this._ut){clearInterval(this._ut); this._ut=null;} this.setState({ screen, modalZone:null, sel:null }); if(screen==='safehouse') this.saveGame(); }
+  flash(msg){ this.setState({toast:msg}); clearTimeout(this._ft); this._ft=setTimeout(()=>this.setState({toast:null}),1600); this.saveGame(); }
 
   // ---------- sortie / combat ----------
   zonePool(zoneId){
@@ -194,7 +245,7 @@ class Component extends DCLogic {
     const full = this.eng.playerProfile(this.gs,false);
     const prof = this.eng.playerProfile(this.gs, staZero); prof.maxHp = full.maxHp;
     const res = this.eng.simulateCombat(prof, mProf, this.gs.hp);
-    Object.assign(this.combat, { prof:full, res, revealed:1, phase:'fighting', staZero, encounter:this.combat.encounter+1 });
+    Object.assign(this.combat, { prof:prof, res, revealed:1, phase:'fighting', staZero, encounter:this.combat.encounter+1 });
     this.forceUpdate();
     if(this._t) clearInterval(this._t);
     this._t = setInterval(()=>this.tick(), 300);
@@ -277,6 +328,7 @@ class Component extends DCLogic {
       if(this.isEquipped(uid)){ const e=this.gs.equip; ['weapon','head','body','artifact1','artifact2'].forEach(s=>{ if(e[s]===uid) e[s]=null; }); const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp); }
       const [it]=this.gs.bag.splice(inB,1); if(!merge(this.gs.vault,it)) this.gs.vault.push(it);
     } }
+    this.saveGame();
     this.forceUpdate();
   }
   // ---------- move / vendor helpers ----------
@@ -291,6 +343,7 @@ class Component extends DCLogic {
     inst.qty-=n;
     const ex=dst.find(x=>x.id===inst.id);
     if(ex){ ex.qty=(ex.qty||1)+n; } else { const ni=this.eng.mkInstance(inst.id,n); ni.qty=n; dst.push(ni); }
+    this.saveGame();
     this.forceUpdate();
   }
   services(v){ const list=String((v&&v.Services)||'').split(',').map(s=>s.trim()).filter(Boolean); if(v&&String(v.ShopType||'')==='DataTech'&&!list.includes('Module')) list.push('Module'); return list; }
@@ -324,7 +377,7 @@ class Component extends DCLogic {
   // ================= RENDER =================
   renderVals(){ let screenEl; try{ screenEl = this.state.ready ? this.renderApp() : this.loading(); }catch(e){ console.error('renderApp threw:', e); screenEl = this.loading(); } return { screenEl }; }
   loading(){ return this.phone(h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:T.lo,fontFamily:T.mono,fontSize:13}}, this.state && this.state.err ? ((this.eng?this.t('frag_error'):'오류:')+' '+this.state.err) : (this.eng?this.t('common_loading'):'불러오는 중…'))); }
-  phone(...kids){ return h('div',{style:{width:'min(402px, 100vw)',height:'min(874px, 100dvh)',background:T.bg,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative',boxShadow:'0 24px 80px rgba(0,0,0,.6)',border:'1px solid '+T.line}}, ...kids); }
+  phone(...kids){ return h('div',{style:{width:'min(402px, 100vw)',height:'min(874px, 100dvh)',boxSizing:'border-box',padding:'env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)',background:T.bg,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative',boxShadow:'0 24px 80px rgba(0,0,0,.6)',border:'1px solid '+T.line}}, ...kids); }
 
   bar(label, val, max, color){
     const pct = max>0 ? Math.max(0,Math.min(100,(val/max)*100)) : 0;
@@ -384,6 +437,10 @@ class Component extends DCLogic {
     const vendors=this.eng.DATA.vendors.slice().sort((a,b)=>{ const oa=isOpen(a)?0:1, ob=isOpen(b)?0:1; if(oa!==ob) return oa-ob; return pri(a)-pri(b); });
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       this.screenTitle(this.t('kicker_safehouse'),'안전가옥'),
+      this.state.resumeBanner? h('div',{style:{display:'flex',alignItems:'center',gap:10,margin:'0 16px 4px',padding:'9px 12px',background:T.s1,border:'1px solid '+T.line,borderRadius:4,flex:'0 0 auto'}},
+        h('span',{style:{flex:1,fontFamily:T.mono,fontSize:11,color:T.mid,letterSpacing:'.04em'}}, this.t('save_resuming')),
+        h('button',{onClick:()=>{try{localStorage.removeItem('rl_save_v1');}catch(_){ } this.newRun(true); this.setState({resumeBanner:false}); this.saveGame(); this.flash(this.t('save_reset_done'));},style:{background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:12,padding:'5px 11px',borderRadius:4,cursor:'pointer'}}, this.t('save_new_game')),
+        h('button',{onClick:()=>this.setState({resumeBanner:false}),style:{background:'transparent',border:'none',color:T.faint,fontSize:15,cursor:'pointer',padding:'0 4px',lineHeight:1}}, '×')):null,
       h('div',{style:{padding:'20px 16px 24px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:16}},
         ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Module')||svc.includes('Sell'); const act=()=>this.openVendor(v.VendorID);
             const img=this.shopImg(v.ShopID);
@@ -543,14 +600,16 @@ class Component extends DCLogic {
     if(!apps.length) return [];
     if(attr==='bleed'||attr==='rupture'){
       const dur = this.eng.N((this.eng.byId.status[attr]||{}).Duration, attr==='bleed'?4:3);
+      const mx = this.eng.N((this.eng.byId.status[attr]||{}).MaxStack, 8);
       const n = apps.filter(a=>(a.t||0)+dur >= nowT).length;
-      return n>0?[{key:attr,count:Math.min(n,8)}]:[];
+      return n>0?[{key:attr,count:Math.min(n,mx)}]:[];
     }
     // 기절·관통 등 순간 효과: 부여된 바로 그 줄에서만 표시(플래시)
     const last=lines[lines.length-1];
     return (last.who===applier && last.type==='status')?[{key:attr,count:1}]:[];
   }
   statusChip(key){ const col=(ATTR[key]&&ATTR[key].c)||T.mid; return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid '+col,padding:'3px 8px',whiteSpace:'nowrap'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:1,letterSpacing:'1.33px',color:col}}, this.eng.t('status_'+key))); }
+  plainChip(label,col){ return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid '+col,padding:'3px 8px',whiteSpace:'nowrap'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:1,letterSpacing:'1.33px',color:col}}, label)); }
   statusIcons(side){ const list=this.activeStatuses(side); const out=[]; list.forEach(s=>{ const n=Math.min(s.count,8); for(let i=0;i<n;i++) out.push(h('span',{key:s.key+i,style:{display:'inline-flex'}}, this.statusIcon(s.key,15))); }); return out; }
   statLines(prof,isMonster){
     const md=isMonster?(this.eng.byId.monster[prof.id]||{}):null;
@@ -579,14 +638,16 @@ class Component extends DCLogic {
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:T.faint,margin:'2px 0'}}, 'STAT'),
       ...rows.map((r,i)=>h('div',{key:i,style:{display:'flex',gap:16}}, cell(r[0],r[1],r[2]), cell(r[3],r[4],r[5]))));
   }
-  combatStats(prof){
-    const cell=(k,v)=>h('div',{style:{flex:1,display:'flex',justifyContent:'space-between',gap:8,minWidth:0}}, h('span',{style:{color:T.lo}},k), h('span',{style:{color:T.hi}},v));
+  combatStats(prof,pen){
+    const vc=pen?'#CB6D62':T.hi;
+    const cell=(k,v)=>h('div',{style:{flex:1,display:'flex',justifyContent:'space-between',gap:8,minWidth:0}}, h('span',{style:{color:T.lo}},k), h('span',{style:{color:vc}},v));
     return h('div',{style:{display:'flex',flexDirection:'column',gap:6,fontFamily:T.mono,fontSize:11}},
       h('div',{style:{display:'flex',gap:18}}, cell(this.t('stat_atk'), Math.round(prof.minAtk)+'~'+Math.round(prof.maxAtk)), cell(this.t('stat_def'), String(Math.round(prof.defense)))),
       h('div',{style:{display:'flex',gap:18}}, cell(this.t('stat_atk_speed'), (prof.atkSpeed!=null?prof.atkSpeed:1).toFixed(1)), cell(this.t('stat_evasion'), Math.round(prof.evasion||0)+'%'))); }
   combatantCard(prof,isMonster,cur,animate){
     const pct=Math.max(0,Math.min(100,cur/prof.maxHp*100));
     const md=isMonster?(this.eng.byId.monster[prof.id]||{}):null;
+    const pen=!isMonster && this.combat && this.combat.staZero;
     return h('div',{onClick:()=>this.setState({combatSheet:isMonster?'monster':'player'}),style:{background:isMonster?T.s2:T.s1,border:'1px solid '+T.line,borderRadius:6,overflow:'hidden',cursor:'pointer'}},
       isMonster? h('div',{style:{position:'relative',height:58,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}, h('div',{style:{position:'absolute',left:12,bottom:8,fontFamily:T.mono,fontSize:9,color:prof.isUser?T.sato:T.faint,letterSpacing:'.1em'}}, prof.isUser?this.t('kicker_userdata'):((md.Category||'')+''+this.t('kicker_dot_monsters'))), prof.grade?h('div',{style:{position:'absolute',right:10,top:10,fontFamily:T.mono,fontSize:9,letterSpacing:'.1em',color:T.hi,background:'oklch(0.15 0.006 264 / .55)',border:'1px solid oklch(0.9 0 0 / .18)',borderRadius:3,padding:'2px 7px'}}, prof.grade):null) : null,
       h('div',{style:{padding:'11px 13px'}},
@@ -594,11 +655,12 @@ class Component extends DCLogic {
           h('span',{style:{fontFamily:T.sans,fontSize:13,fontWeight:500,color:T.hi,flex:'0 1 auto',minWidth:0,maxWidth:'55%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, isMonster?prof.name:this.t('common_me')),
           h('div',{style:{flex:1}}),
           ...this.statusIcons(isMonster?'monster':'player'),
+          pen? this.plainChip(this.en()?'FATIGUED':'탈진','rgb(169,171,175)'):null,
           AT(prof.attribute)?this.statusChip(prof.attribute):null),
         h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
           h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:T.hp}})),
-          h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.mid,minWidth:56,textAlign:'right'}}, Math.round(cur)+'/'+prof.maxHp)),
-        this.combatStats(prof)));
+          h('span',{style:{fontFamily:T.mono,fontSize:10,color:pen?'#CB6D62':T.mid,minWidth:56,textAlign:'right'}}, Math.round(cur)+'/'+prof.maxHp)),
+        this.combatStats(prof,pen)));
   }
   combatElapsed(){ const c=this.combat; if(!c||!c.res) return 0; const r=c.res.log.slice(0,c.revealed); const last=r[r.length-1]; return last?last.t:0; }
   timeLimitBar(){ const c=this.combat; const lim=c.mProf.timeLimit||20; const rem=Math.max(0,lim-this.combatElapsed()); const pct=Math.max(0,Math.min(100,(rem/lim)*100));
@@ -683,7 +745,7 @@ class Component extends DCLogic {
       h('div',{style:{background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}}, bars, statusEl, buttons));
   }
   restScreen(){
-    const c=this.combat, list=this.consumables();
+    const c=this.combat, list=this.consumables(), g=this.gs;
     if(c.restFocus==null||c.restFocus>=list.length) c.restFocus=Math.max(0,Math.floor(list.length/2));
     const {zoneName,placeTitle}=this.placeTitleFor(c);
     const backToDone=()=>{ this.combat.phase=this.combat.restReturn||'won'; this.forceUpdate(); };
@@ -695,10 +757,14 @@ class Component extends DCLogic {
         : h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}, this.emptyRow(this.en()?'No food or medicine to use.':'사용할 음식이나 의약품이 없습니다.')),
       list.length? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 12px'}}, list.map((x,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===c.restFocus?'rgb(169,171,175)':'rgb(43,46,50)'}}))) : null,
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
-        h('div',{style:{background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',gap:8}},
-          list.length? h('button',{onClick:()=>{ const inst=list[c.restFocus]; if(inst){ this.useConsumable(inst); const nl=this.consumables(); if(nl.length&&c.restFocus>=nl.length) c.restFocus=nl.length-1; this.forceUpdate(); } },style:{flex:1,height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid rgb(131,178,137)',background:'transparent',color:'rgb(131,178,137)',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:'pointer'}}, this.en()?'Use':'사용하기')
-            : h('button',{disabled:true,style:{flex:1,height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid rgb(54,56,60)',background:'transparent',color:'rgb(75,77,82)',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:'default'}}, this.en()?'Use recovery item':'회복 아이템 사용'),
-          h('button',{onClick:backToDone,style:{flex:list.length?'0 0 92px':1,height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid rgb(74,77,83)',background:'transparent',color:'rgb(169,171,175)',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:'pointer'}}, list.length?(this.en()?'Done':'완료'):(this.en()?'Continue':'계속 진행')))));
+        h('div',{style:{background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}},
+          h('div',{style:{display:'flex',gap:5}},
+            h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_hp'),Math.round(g.hp),Math.round(g.maxHp),Math.max(0,Math.min(100,g.hp/g.maxHp*100)),'rgb(174,97,92)')),
+            h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_stamina'),Math.round(g.sta),Math.round(this.staMax),Math.max(0,Math.min(100,g.sta/this.staMax*100)),'rgb(193,158,111)'))),
+          h('div',{style:{display:'flex',gap:8}},
+            list.length? h('button',{onClick:()=>{ const inst=list[c.restFocus]; if(inst){ this.useConsumable(inst); const nl=this.consumables(); if(nl.length&&c.restFocus>=nl.length) c.restFocus=nl.length-1; this.forceUpdate(); } },style:{flex:1,height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid rgb(131,178,137)',background:'transparent',color:'rgb(131,178,137)',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:'pointer'}}, this.en()?'Use':'사용하기')
+              : h('button',{disabled:true,style:{flex:1,height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid rgb(54,56,60)',background:'transparent',color:'rgb(75,77,82)',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:'default'}}, this.en()?'Use recovery item':'회복 아이템 사용'),
+            h('button',{onClick:backToDone,style:{flex:list.length?'0 0 92px':1,height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid rgb(74,77,83)',background:'transparent',color:'rgb(169,171,175)',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:'pointer'}}, list.length?(this.en()?'Done':'완료'):(this.en()?'Continue':'계속 진행'))))));
   }
   // ---- monster card draw (S3 · 전투 진입) ----
   focusCard(i){ if(this.combat.flipped) return; this.combat.cardFocus=i; this.forceUpdate(); }
@@ -711,20 +777,22 @@ class Component extends DCLogic {
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', MID='rgb(169,171,175)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', HPC='rgb(196,103,93)';
     const attrCol=AT(m.attribute)?((ATTR[m.attribute]&&ATTR[m.attribute].c)||'rgb(124,165,187)'):HI;
     const stats=[
-      [this.t('stat_atk_max'), String(Math.round(m.maxAtk)), HI],
-      [this.t('stat_atk_speed'), (m.atkSpeed!=null?m.atkSpeed:1).toFixed(1), HI],
+      [this.t('stat_atk'), Math.round(m.minAtk)+'~'+Math.round(m.maxAtk), HI],
       [this.t('stat_def'), String(Math.round(m.defense)), HI],
+      [this.t('stat_atk_speed'), (m.atkSpeed!=null?m.atkSpeed:1).toFixed(1), HI],
+      [this.t('stat_accuracy'), String(Math.round(m.accuracy||0)), HI],
+      [this.t('stat_evasion'), Math.round(m.evasion||0)+'%', HI],
+      [this.t('stat_crit_chance'), Math.round(m.critChance||0)+'%', HI],
       [this.t('stat_crit_resist'), String(Math.round(m.critResist)), HI],
+      [this.t('stat_status_resist'), String(Math.round(m.statusResist)), HI],
       [this.t('status_effect'), AT(m.attribute)?this.t('status_'+m.attribute):'-', attrCol],
       [this.t('stat_potency'), String(Math.round(m.potency)), HI],
-      [this.t('stat_status_resist'), String(Math.round(m.statusResist)), HI],
-      [this.t('item_material_type'), (md.Material&&md.Material!=='-')?md.Material:'-', HI],
     ];
     const cell=(k,v,vc,i)=>h('div',{key:i,style:{borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'7px 0',justifyContent:'space-between',alignItems:'flex-start',boxSizing:'border-box'}},
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:LO,whiteSpace:'nowrap'}}, k),
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:vc||HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
     const desc=md.Description?this.tx(md,'Description'):(this.tx(md,'Flavor')||'');
-    return h('div',{style:{width:342,height:442,boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
+    return h('div',{style:{width:342,height:473,boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
       // ART 190
       h('div',{style:{position:'relative',height:190,alignSelf:'stretch',flexShrink:0,background:ART}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
@@ -734,7 +802,7 @@ class Component extends DCLogic {
         h('span',{style:{position:'absolute',left:14,top:166,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, md.Category||''),
         h('span',{style:{position:'absolute',right:15,top:165,fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:SUB,whiteSpace:'nowrap'}}, 'STA −'+m.staminaCost+' · '+this.t('combat_time_limit')+' '+m.timeLimit+'s')),
       // BODY 214
-      h('div',{style:{height:214,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
+      h('div',{style:{height:245,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
         h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0}}, h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, m.name)),
         h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('stat_hp')),
@@ -742,8 +810,8 @@ class Component extends DCLogic {
           h('span',{style:{width:50,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:'100%',color:MID,flexShrink:0}}, Math.round(m.maxHp))),
         h('div',{style:{height:28,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'15px 0',display:'flex',alignItems:'flex-start'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:MUT}}, 'STAT')),
-        h('div',{style:{height:126,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'2px 0'}},
-          h('div',{style:{height:124,display:'grid',gridTemplateRows:'31px 31px 31px 31px',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}},
+        h('div',{style:{height:157,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'2px 0'}},
+          h('div',{style:{height:155,display:'grid',gridTemplateRows:'31px 31px 31px 31px 31px',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}},
             ...stats.map((s2,i)=>cell(s2[0],s2[1],s2[2],i))))),
       // FOOTER 36
       h('div',{style:{width:340,height:36,flexShrink:0}},
@@ -753,37 +821,41 @@ class Component extends DCLogic {
   playerFront(prof){
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', MID='rgb(169,171,175)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', HPC='rgb(196,103,93)';
     const attrCol=AT(prof.attribute)?((ATTR[prof.attribute]&&ATTR[prof.attribute].c)||'rgb(124,165,187)'):HI;
+    const pen=this.combat&&this.combat.staZero;
+    const VC=pen?'#CB6D62':HI;
     const stats=[
-      [this.t('stat_atk_max'), String(Math.round(prof.maxAtk)), HI],
-      [this.t('stat_atk_speed'), (prof.atkSpeed!=null?prof.atkSpeed:1).toFixed(1), HI],
-      [this.t('stat_def'), String(Math.round(prof.defense)), HI],
-      [this.t('stat_crit_resist'), String(Math.round(prof.critResist)), HI],
+      [this.t('stat_atk'), Math.round(prof.minAtk)+'~'+Math.round(prof.maxAtk), VC],
+      [this.t('stat_def'), String(Math.round(prof.defense)), VC],
+      [this.t('stat_atk_speed'), (prof.atkSpeed!=null?prof.atkSpeed:1).toFixed(1), VC],
+      [this.t('stat_accuracy'), String(Math.round(prof.accuracy||0)), VC],
+      [this.t('stat_evasion'), Math.round(prof.evasion||0)+'%', VC],
+      [this.t('stat_crit_chance'), Math.round(prof.critChance||0)+'%', VC],
+      [this.t('stat_crit_resist'), String(Math.round(prof.critResist)), VC],
+      [this.t('stat_status_resist'), String(Math.round(prof.statusResist)), VC],
       [this.t('status_effect'), AT(prof.attribute)?this.t('status_'+prof.attribute):'-', attrCol],
-      [this.t('stat_potency'), String(Math.round(prof.potency||0)), HI],
-      [this.t('stat_status_resist'), String(Math.round(prof.statusResist)), HI],
-      [this.t('item_material_type'), '-', HI],
+      [this.t('stat_potency'), String(Math.round(prof.potency||0)), VC],
     ];
     const cell=(k,v,vc,i)=>h('div',{key:i,style:{borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'7px 0',justifyContent:'space-between',alignItems:'flex-start',boxSizing:'border-box'}},
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:LO,whiteSpace:'nowrap'}}, k),
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:vc||HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
     const pct=Math.max(0,Math.min(100,this.gs.hp/prof.maxHp*100));
-    return h('div',{style:{width:342,height:442,boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
+    return h('div',{style:{width:342,height:473,boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
       h('div',{style:{position:'relative',height:190,alignSelf:'stretch',flexShrink:0,background:ART}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
         h('div',{style:{position:'absolute',left:0,top:110,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
-        h('div',{style:{position:'absolute',right:17,top:12,width:59,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',padding:'0 8px'}},
+        h('div',{style:{position:'absolute',right:16,top:16,width:45,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 8px'}},
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:HI,whiteSpace:'nowrap'}}, 'USER')),
         h('span',{style:{position:'absolute',left:14,top:166,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, this.t('common_me'))),
-      h('div',{style:{height:214,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
+      h('div',{style:{height:245,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
         h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0}}, h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.t('common_me'))),
         h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('stat_hp')),
           h('div',{style:{height:6,flexGrow:1,borderRadius:999,overflow:'hidden',background:ART}}, h('div',{style:{height:6,borderRadius:999,background:HPC,width:pct+'%'}})),
-          h('span',{style:{width:64,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:'100%',color:MID,flexShrink:0}}, Math.round(this.gs.hp)+'/'+prof.maxHp)),
+          h('span',{style:{width:64,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:'100%',color:pen?'#CB6D62':MID,flexShrink:0}}, Math.round(this.gs.hp)+'/'+prof.maxHp)),
         h('div',{style:{height:28,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'15px 0',display:'flex',alignItems:'flex-start'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:MUT}}, 'STAT')),
-        h('div',{style:{height:126,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'2px 0'}},
-          h('div',{style:{height:124,display:'grid',gridTemplateRows:'31px 31px 31px 31px',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}},
+        h('div',{style:{height:157,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'2px 0'}},
+          h('div',{style:{height:155,display:'grid',gridTemplateRows:'31px 31px 31px 31px 31px',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}},
             ...stats.map((s2,i)=>cell(s2[0],s2[1],s2[2],i))))),
       h('div',{style:{width:340,height:36,flexShrink:0,boxSizing:'border-box',borderRight:'1px solid '+LN,borderBottom:'1px solid '+LN,borderLeft:'1px solid '+LN}}));
   }
@@ -840,7 +912,7 @@ class Component extends DCLogic {
       h('div',{onPointerDown:(e)=>{this._sx=e.clientX;this._moved=false;},onPointerMove:(e)=>{if(this._sx!=null&&Math.abs(e.clientX-this._sx)>8)this._moved=true;},onPointerUp:(e)=>{if(this._sx==null)return;const dx=e.clientX-this._sx;this._sx=null;if(this.combat.flipped)return;if(Math.abs(dx)>30){ if(dx<0)this.focusCard(Math.min(this.combat.cards.length-1,this.combat.cardFocus+1)); else this.focusCard(Math.max(0,this.combat.cardFocus-1)); }},style:{flex:1,position:'relative',overflow:'hidden'}},
         c.cards.map((id,i)=>{ const off=i-c.cardFocus, abs=Math.abs(off); const isCenter=off===0; const x=off*250, s=isCenter?1:0.9; let o=isCenter?1:0.5; if(flipped&&!isCenter) o=0; const rot=(flipped&&isCenter)?180:0;
               return h('div',{key:i,onClick:()=>{ if(this._moved||flipped) return; isCenter?this.flipCenter():this.focusCard(i); },
-                style:{position:'absolute',left:'50%',top:'50%',width:342,height:442,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isCenter?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',perspective:'1200px',pointerEvents:(flipped&&!isCenter)?'none':'auto'}},
+                style:{position:'absolute',left:'50%',top:'50%',width:342,height:473,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isCenter?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',perspective:'1200px',pointerEvents:(flipped&&!isCenter)?'none':'auto'}},
                 h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
                   h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 8px, oklch(0.235 0.008 264) 8px 9px)',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
                   isCenter? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'hidden'}}, flipped?(c.pvp?this.userFront(c.mProf):this.monsterFront(c.mProf)):null):null)); })),
@@ -981,7 +1053,7 @@ class Component extends DCLogic {
 
   // ---- PvP (콜드데이터) · 조우 카드 뒷면은 몬스터와 동일, 플립 시 생존자 카드 ----
   maskedStatLines(){
-    const rows=[[this.t('stat_atk'),'??',this.t('stat_def'),'??'],[this.t('stat_atk_speed'),'??',this.t('stat_accuracy'),'??'],[this.t('stat_evasion'),'??',this.t('stat_crit_chance'),'??'],[this.t('stat_crit_resist'),'??',this.t('stat_status_resist'),'??'],[this.t('status_effect'),'??',this.t('item_material_type'),'??']];
+    const rows=[[this.t('stat_atk'),'??',this.t('stat_def'),'??'],[this.t('stat_atk_speed'),'??',this.t('stat_accuracy'),'??'],[this.t('stat_evasion'),'??',this.t('stat_crit_chance'),'??'],[this.t('stat_crit_resist'),'??',this.t('stat_status_resist'),'??'],[this.t('status_effect'),'??',this.t('stat_potency'),'??']];
     const cell=(k,v)=>h('div',{style:{flex:1,display:'flex',justifyContent:'space-between',gap:8,minWidth:0}}, h('span',{style:{color:T.lo}},k), h('span',{style:{color:T.mid,letterSpacing:'.06em'}},v));
     return h('div',{style:{display:'flex',flexDirection:'column',gap:6,fontFamily:T.mono,fontSize:11}}, ...rows.map((r,i)=>h('div',{key:i,style:{display:'flex',gap:18}}, cell(r[0],r[1]), cell(r[2],r[3]))));
   }
@@ -1955,7 +2027,15 @@ class Component extends DCLogic {
           h('div',{style:{display:'flex',border:'1px solid '+T.line2,borderRadius:4,overflow:'hidden'}},
             ...[['kr',this.t('lang_korean')],['en','English']].map(([k,l])=>h('button',{key:k,onClick:()=>this.setLang(k),style:{background:this.lang===k?T.s2:'transparent',border:'none',color:this.lang===k?T.hi:T.lo,fontFamily:T.sans,fontSize:12,fontWeight:500,padding:'8px 14px',cursor:'pointer'}},l)))),
         ...[[this.t('settings_account'),this.t('settings_login_logout')],[this.t('nav_feedback'),this.t('feedback_bug')]].map(([a,b])=>h('div',{key:a,style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'15px 0',borderBottom:'1px solid '+T.line}}, h('span',{style:{fontFamily:T.sans,fontSize:14,color:T.hi}},a), h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.lo}},b))),
-        h('button',{onClick:()=>{this.newRun(true);this.setState({ready:true});this.go('safehouse');this.flash(this.t('settings_reset_char'));},style:{marginTop:22,width:'100%',background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'13px',borderRadius:4,cursor:'pointer',marginBottom:20}}, this.t('settings_reset_progress')))
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'22px 0 10px'}}, this.t('save_section')),
+        h('button',{onClick:()=>this.exportSaveCode(),style:{width:'100%',background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'13px',borderRadius:4,cursor:'pointer',marginBottom:8}}, this.t('save_export')),
+        this.state.svCode? h('textarea',{readOnly:true,value:this.state.svCode,onFocus:e=>e.target.select(),style:{width:'100%',boxSizing:'border-box',height:76,background:T.s1,border:'1px solid '+T.line,borderRadius:4,color:T.mid,fontFamily:T.mono,fontSize:10,padding:8,marginBottom:8,resize:'none',wordBreak:'break-all'}}):null,
+        h('button',{onClick:()=>this.setState({svImportOpen:!this.state.svImportOpen}),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'13px',borderRadius:4,cursor:'pointer',marginBottom:8}}, this.t('save_import')),
+        this.state.svImportOpen? h('div',{style:{marginBottom:8}},
+          h('textarea',{value:this.state.svImportVal||'',onChange:e=>this.setState({svImportVal:e.target.value}),placeholder:this.t('save_import_hint'),style:{width:'100%',boxSizing:'border-box',height:76,background:T.s1,border:'1px solid '+T.line,borderRadius:4,color:T.hi,fontFamily:T.mono,fontSize:10,padding:8,marginBottom:8,resize:'none',wordBreak:'break-all'}}),
+          h('button',{onClick:()=>this.importSaveCode(this.state.svImportVal),style:{width:'100%',background:T.s2,border:'1px solid '+T.line2,color:'#83b289',fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'13px',borderRadius:4,cursor:'pointer'}}, this.t('save_import_apply'))):null,
+        h('button',{onClick:()=>this.resetSave(),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'13px',borderRadius:4,cursor:'pointer'}}, this.t('save_reset')),
+        h('button',{onClick:()=>{try{localStorage.removeItem('rl_save_v1');}catch(_){ } this.newRun(true);this.setState({ready:true,resumeBanner:false});this.go('safehouse');this.flash(this.t('settings_reset_char'));},style:{marginTop:22,width:'100%',background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'13px',borderRadius:4,cursor:'pointer',marginBottom:20}}, this.t('settings_reset_progress')))
     );
   }
 }
