@@ -780,8 +780,9 @@ class Component extends DCLogic {
     if(card.type==='user'){ c.pvp=card.bot; c.mProf=this.eng.coldProfile(card.bot); }
     else { const m=this.eng.byId.monster[card.id]; if(!m) return; c.pvp=null; c.mProf=this.eng.monsterProfile(m); }
     c.picked=c.cardFocus; c.flipped=true; this.forceUpdate(); }
-  monsterFront(m){
+  monsterFront(m,fixed){
     const md=this.eng.byId.monster[m.id]||{};
+    const artP=fixed?{height:190,flexShrink:0}:{flex:'1 1 auto',minHeight:60};
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', MID='rgb(169,171,175)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', HPC='rgb(196,103,93)';
     const attrCol=AT(m.attribute)?((ATTR[m.attribute]&&ATTR[m.attribute].c)||'rgb(124,165,187)'):HI;
     const stats=[
@@ -800,9 +801,9 @@ class Component extends DCLogic {
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:LO,whiteSpace:'nowrap'}}, k),
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:vc||HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
     const desc=md.Description?this.tx(md,'Description'):(this.tx(md,'Flavor')||'');
-    return h('div',{style:{width:342,height:'min(473px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
+    return h('div',{style:{width:342,height:fixed?'auto':'min(473px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
       // ART 190
-      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,alignSelf:'stretch',background:ART}},
+      h('div',{style:{position:'relative',...artP,alignSelf:'stretch',background:ART}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
         h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         h('div',{style:{position:'absolute',right:17,top:12,width:59,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',justifyContent:'flex-start',padding:'0 8px'}},
@@ -826,8 +827,9 @@ class Component extends DCLogic {
         h('div',{style:{height:36,alignSelf:'stretch',boxSizing:'border-box',padding:'11px 15px',display:'flex',alignItems:'flex-start'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:MUT,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, desc||this.t('item_desc_label')))));
   }
-  playerFront(prof){
+  playerFront(prof,fixed){
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', MID='rgb(169,171,175)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', HPC='rgb(196,103,93)';
+    const artP=fixed?{height:190,flexShrink:0}:{flex:'1 1 auto',minHeight:60};
     const attrCol=AT(prof.attribute)?((ATTR[prof.attribute]&&ATTR[prof.attribute].c)||'rgb(124,165,187)'):HI;
     const pen=this.combat&&this.combat.staZero;
     const VC=pen?'#CB6D62':HI;
@@ -847,8 +849,8 @@ class Component extends DCLogic {
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:LO,whiteSpace:'nowrap'}}, k),
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:vc||HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
     const pct=Math.max(0,Math.min(100,this.gs.hp/prof.maxHp*100));
-    return h('div',{style:{width:342,height:'min(473px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
-      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,alignSelf:'stretch',background:ART}},
+    return h('div',{style:{width:342,height:fixed?'auto':'min(473px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
+      h('div',{style:{position:'relative',...artP,alignSelf:'stretch',background:ART}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
         h('div',{style:{position:'absolute',left:0,bottom:0,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         h('div',{style:{position:'absolute',right:16,top:16,width:45,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 8px'}},
@@ -876,7 +878,7 @@ class Component extends DCLogic {
     const rows = isM
       ? [[this.t('stat_atk'),Math.round(prof.minAtk)+'–'+Math.round(prof.maxAtk)],[this.t('stat_def'),String(Math.round(prof.defense))],[this.t('stat_atk_speed'),prof.atkSpeed.toFixed(2)],[this.t('stat_crit_resist'),Math.round(prof.critResist)],[this.t('stat_status_resist'),Math.round(prof.statusResist)],[this.t('stat_potency'),Math.round(prof.potency)],[this.t('item_material_type'), md.Material&&md.Material!=='-'?md.Material:'—'],[this.t('combat_time_limit'), prof.timeLimit+'s']]
       : [[this.t('stat_atk'),Math.round(prof.minAtk)+'–'+Math.round(prof.maxAtk)],[this.t('stat_def'),String(Math.round(prof.defense))],[this.t('stat_atk_speed'),prof.atkSpeed.toFixed(2)],[this.t('stat_accuracy'),Math.round(prof.accuracy)+'%'],[this.t('stat_evasion'),Math.round(prof.evasion)+'%'],[this.t('stat_crit_chance'),Math.round(prof.critChance)+'%'],[this.t('stat_crit_resist'),Math.round(prof.critResist)+'%'],[this.t('stat_status_resist'),Math.round(prof.statusResist)+'%']];
-    const card = isM? (c.pvp? this.userFront(prof) : this.monsterFront(prof)) : this.playerFront(prof);
+    const card = isM? (c.pvp? this.userFront(prof) : this.monsterFront(prof,true)) : this.playerFront(prof,true);
     return h('div',{onClick:()=>this.setState({combatSheet:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',zIndex:34,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{maxHeight:'90%',overflowY:'auto',animation:'rlIn .22s cubic-bezier(.2,.8,.2,1)'}}, card));
   }
@@ -1566,7 +1568,8 @@ class Component extends DCLogic {
         h('div',{style:{alignSelf:'stretch',flexShrink:0}}, ...rows.map((st,i)=>cell(st[0],st[1],i))),
         h('div',{style:{flexGrow:1,minHeight:12}})));
   }
-  lootCardBig(inst){
+  lootCardBig(inst,fixed){
+    const artP=fixed?{height:190,flexShrink:0}:{flex:'1 1 auto',minHeight:60};
     const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||{};
     const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id];
     const md=this.eng.byId.module&&this.eng.byId.module[inst.id];
@@ -1588,9 +1591,9 @@ class Component extends DCLogic {
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:col||(v===UNW?UNC:HI),textAlign:'right',whiteSpace:'nowrap'}}, v));
     const secLabel=(t)=>h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:MUT}}, t);
     const nRows=Math.max(1,Math.ceil(stats.length/2));
-    return h('div',{style:{width:342,height:'100%',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
+    return h('div',{style:{width:342,height:fixed?'auto':'100%',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
       // ART 190
-      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,alignSelf:'stretch',background:md?md.HexCode:ART}},
+      h('div',{style:{position:'relative',...artP,alignSelf:'stretch',background:md?md.HexCode:ART}},
         md?null:h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
         h('div',{style:{position:'absolute',left:0,bottom:0,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         gtags.length?h('div',{style:{position:'absolute',right:15,top:15,display:'flex',flexDirection:'row-reverse',gap:7}},
@@ -1761,7 +1764,7 @@ class Component extends DCLogic {
     return h('div',{onClick:()=>this.setState({sel:null,moveQty:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
       // 업데이트된 카드 (전리품 카드와 동일)
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,height:ch,maxHeight:'100%'}}, this.lootCardBig(inst))),
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig(inst,true))),
       // 하단 토스트 모달 — 버튼만
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:8,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
         isConsum?h('div',{style:{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}, this.fbar(this.t('stat_hp'),this.gs.hp,this.gs.maxHp,'#ae615c'), this.fbar(this.t('stat_stamina'),this.gs.sta,this.staMax,'#c19e6f')):null,
