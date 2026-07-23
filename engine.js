@@ -290,6 +290,8 @@ export function appraise(inst, proofPct){
     else if (['accuracy','critChance','evasion','statusResist'].includes(key)) after = clamp(after, 0, 100);
     else after = Math.max(0, after);
     inst.rolls[key] = after;
+    inst.apprDelta = inst.apprDelta || {};
+    inst.apprDelta[key] = after > before ? 1 : (after < before ? -1 : 0);
     changes.push({ key, from: before, to: after });
   }
   if (inst.unappraised.includes('maxDur')) inst.dur = Math.min(inst.dur, inst.rolls.maxDur);

@@ -109,7 +109,7 @@ export function shape(rowsByTab) {
     zones: pfx(toObjs(rowsByTab.Zone), 'ZoneID', 'city_'),
     vendors: pfx(toObjs(rowsByTab.Vendor), 'VendorID', 'vendor_'),
     shops: pfx(toObjs(rowsByTab.Shop), 'ShopID', 'shop_'),
-    lootTable: toObjs(rowsByTab.LootTable).filter(r => String(r.MonsterID || '').startsWith('monster_') && r.ItemID),
+    lootTable: toObjs(rowsByTab.LootTable).map(r => (r.ItemID ? r : { ...r, ItemID: r.itemID })).filter(r => String(r.MonsterID || '').startsWith('monster_') && r.ItemID),
     spawnTable: toObjs(rowsByTab.SpawnTable || []).filter(r => String(r.ZoneID || '').startsWith('city_') && String(r.MonsterID || '').startsWith('monster_')),
     artifacts: toObjs(rowsByTab.Artifact || []),
     affixes: toObjs(rowsByTab.Affix || []).filter(r => String(r.AffixID || '').trim()),

@@ -22,6 +22,8 @@ export const DATA = {
     "repair_cost_per_point": 20,
     "repair_cost_base": 0,
     "combat_card_count": 3,
+    "stamina_cost_per_point": 2,
+    "stamina_cooldown_sorties": 1,
     "start_vault_items": "weapon_wooden_sword,armor_cloth_hood",
     "start_sato": 1000,
     "start_primary_stats": "10,10,10,10"
