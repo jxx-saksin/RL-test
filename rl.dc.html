@@ -46,6 +46,9 @@
   @keyframes rlHpGlow{0%{filter:brightness(1);box-shadow:0 0 0 0 rgba(255,120,105,0)}16%{filter:brightness(2.2);box-shadow:0 0 9px 2px rgba(255,130,110,.95)}100%{filter:brightness(1);box-shadow:0 0 0 0 rgba(255,120,105,0)}}
   @keyframes rlNumShake{0%,100%{transform:translateX(0)}14%{transform:translateX(-4px)}30%{transform:translateX(4px)}46%{transform:translateX(-3px)}62%{transform:translateX(3px)}78%{transform:translateX(-2px)}}
   @keyframes rlBorderFlash{0%{opacity:0}10%{opacity:1}52%{opacity:1}100%{opacity:0}}
+  @keyframes rlInnerGlow{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
+  @keyframes rlShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(120%)}}
+  @keyframes rlLvlPop{0%{transform:scale(1)}35%{transform:scale(1.4)}100%{transform:scale(1)}}
 </style>
 </helmet>
 <template id="__bundler_thumbnail">
@@ -520,9 +523,10 @@ class Component extends DCLogic {
       this.screenTitle('SORTIE · '+selSlot.name+' (TIER '+selTier+')','nav_sortie'),
       // ---- city carousel ----
       h('div',{style:{display:'flex',gap:8,overflowX:'auto',padding:'2px 16px 16px',flex:'0 0 auto',scrollSnapType:'x mandatory'}},
-        ...citySlots.map((sc,i)=>{ const active=sc.id===sel && !sc.locked; const img=this.cityImg(i); const useImg=img&&!sc.locked;
+        ...citySlots.map((sc,i)=>{ const active=sc.id===sel && !sc.locked;
           return h('div',{key:sc.id,onClick:sc.locked?()=>this.flash(this.t('zone_sealed_msg')):()=>this.setState({cityId:sc.id}),
-            style:{flex:'0 0 92%',scrollSnapAlign:'center',height:236,position:'relative',borderRadius:8,overflow:'hidden',boxShadow:'inset 0 0 0 1px '+(active?T.line2:T.line),cursor:sc.locked?'default':'pointer',backgroundColor:T.s3,backgroundImage:useImg?('url('+img+')'):'repeating-linear-gradient(135deg, transparent 0 7px, oklch(0.27 0.008 264) 7px 8px)',backgroundSize:'cover',backgroundPosition:'center',backgroundRepeat:'no-repeat'}},
+            style:{flex:'0 0 92%',scrollSnapAlign:'center',height:236,position:'relative',borderRadius:8,overflow:'hidden',boxShadow:'inset 0 0 0 1px '+(active?T.line2:T.line),cursor:sc.locked?'default':'pointer',backgroundColor:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 7px, oklch(0.27 0.008 264) 7px 8px)',backgroundSize:'cover',backgroundPosition:'center',backgroundRepeat:'no-repeat'}},
+            (!sc.locked)?h('img',{src:'assets/art/cities/'+sc.id+'.jpg',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}):null,
             h('div',{style:{position:'absolute',inset:0,borderRadius:8,background:sc.locked?'linear-gradient(180deg, rgba(24,25,29,.55), rgba(24,25,29,.92))':'linear-gradient(180deg, rgba(24,25,29,0) 0%, rgb(24,25,29) 100%)'}}),
             h('div',{style:{position:'absolute',left:16,top:14,fontFamily:T.mono,fontSize:9,color:T.faint,letterSpacing:'.12em'}}, 'CITY 0'+(i+1)+' · TIER '+(i+1)),
             h('div',{style:{position:'absolute',left:16,right:16,bottom:16}},
@@ -573,7 +577,7 @@ class Component extends DCLogic {
     }
     return h('div',{onClick:()=>this.setState({modalZone:null}),style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',display:'flex',alignItems:'flex-end',zIndex:30,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 16px',background:'rgb(24,25,29)',boxShadow:'inset 0 0 0 1px rgb(54,56,60)',borderRadius:8,padding:16,display:'flex',flexDirection:'column',gap:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
-        h('div',{style:{height:104,borderRadius:8,background:'url(assets/battle/zone-banner.jpg) 50% 35% / cover no-repeat'}}),
+        h('div',{style:{height:104,borderRadius:8,background:'url(assets/art/zones/'+z.ZoneID+'.jpg) 50% 35% / cover no-repeat, url(assets/battle/zone-banner.jpg) 50% 35% / cover no-repeat'}}),
         h('div',{style:{display:'flex',flexDirection:'column',gap:8}},
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}},
             h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:500,color:T.hi}}, this.tx(z,'ZoneName')),
@@ -686,13 +690,14 @@ class Component extends DCLogic {
     const fx=(this.combat&&this.combat.fx&&this.combat.fx.target===side)?this.combat.fx:null;
     const isHit=!!fx&&(fx.type==='hit'||fx.type==='crit');
     return h('div',{style:{position:'relative'}},
-      fx? h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':'#FF6A5A'),fontSize:fx.type==='miss'?36:(fx.crit?30:20),textShadow:'0 2px 9px rgba(0,0,0,.75)',animation:(fx.type==='miss'?'rlMiss .7s':(fx.crit?'rlCritPop .66s':'rlDmgFloat .6s'))+' ease-out forwards'}},
+      fx? h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':'#FF6A5A'),fontSize:fx.type==='miss'?36:(fx.crit?45:20),textShadow:'0 2px 9px rgba(0,0,0,.75)',animation:(fx.type==='miss'?'rlMiss .7s':(fx.crit?'rlCritPop .66s':'rlDmgFloat .6s'))+' ease-out forwards'}},
         fx.crit
           ? h('div',{key:'n',style:{lineHeight:1,animation:'rlNumShake .5s ease-out'}}, '-'+fx.dmg)
           : (fx.type==='miss'?'miss':('-'+fx.dmg))) : null,
       h('div',{onClick:()=>this.setState({combatSheet:isMonster?'monster':'player'}),ref:el=>{ if(el && isHit && el._hit!==fx.seq){ el._hit=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation=(fx.crit?'rlHitCrit .42s':'rlHit .3s')+' ease-out'; } },style:{position:'relative',background:isMonster?T.s2:T.s1,border:'1px solid '+T.line,borderRadius:6,overflow:'hidden',cursor:'pointer'}},
       isHit? h('div',{key:'fl'+fx.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:fx.crit?'rgba(230,64,52,.5)':'rgba(214,64,52,.34)',animation:'rlHitFlash '+(fx.crit?'.42s':'.3s')+' ease-out'}}):null,
       (fx&&fx.crit)? h('div',{key:'brd'+fx.seq,style:{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 1px #FFFFFF',animation:'rlBorderFlash .42s ease-out'}}):null,
+      (fx&&fx.crit)? h('div',{key:'ig'+fx.seq,style:{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 36px 4px rgba(255,255,255,0.5)',animation:'rlInnerGlow .22s ease-out'}}):null,
       isMonster? h('div',{style:{position:'relative',height:58,overflow:'hidden',background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
         (!prof.isUser)?h('img',{src:'assets/art/monsters/'+prof.id+'.jpg',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}):null,
         h('div',{style:{position:'absolute',left:12,bottom:8,fontFamily:T.mono,fontSize:9,color:prof.isUser?T.sato:T.faint,letterSpacing:'.1em'}}, prof.isUser?this.t('kicker_userdata'):((md.Category||'')+''+this.t('kicker_dot_monsters'))), prof.grade?h('div',{style:{position:'absolute',right:10,top:10,fontFamily:T.mono,fontSize:9,letterSpacing:'.1em',color:T.hi,background:'oklch(0.15 0.006 264 / .55)',border:'1px solid oklch(0.9 0 0 / .18)',borderRadius:3,padding:'2px 7px'}}, prof.grade):null) : null,
@@ -960,7 +965,7 @@ class Component extends DCLogic {
     const placeTitle=(cityName?cityName+' · ':'')+zoneName;
     const flipped=c.flipped;
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-      h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/battle/encounter-banner.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
+      h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/art/zones/'+c.zoneId+'.jpg), url(assets/battle/encounter-banner.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
         h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:4}},
           h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, placeTitle),
           h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.2px',color:'rgb(111,114,118)',lineHeight:'100%'}}, 'ENCOUNTER · '+zoneName+' · '+(this.en()?('Encounter #'+(c.encounter+1)):((c.encounter+1)+'전 조우'))))),
@@ -1020,7 +1025,7 @@ class Component extends DCLogic {
   }
   // ---- flee (pre-combat) : 3-card flip, master-sheet flee chance ----
   fleePct(){ return Math.round(this.eng.N(this.eng.DATA.config.flee_chance_base, 0.9) * 100); }
-  battleBanner(placeTitle,zoneName,enc){ return h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/battle/encounter-banner.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
+  battleBanner(placeTitle,zoneName,enc){ const zid=this.combat&&this.combat.zoneId; return h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:(zid?'url(assets/art/zones/'+zid+'.jpg), ':'')+'url(assets/battle/encounter-banner.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
     h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:4}},
       h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, placeTitle),
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.2px',color:'rgb(111,114,118)',lineHeight:'100%'}}, 'ENCOUNTER · '+zoneName+' · '+(this.en()?('Encounter #'+(enc+1)):((enc+1)+'전 조우'))))); }
@@ -1505,22 +1510,81 @@ class Component extends DCLogic {
     const snap=(this.combat&&this.combat.gSnap)||null;
     const prim=[['str',this.t('stat_str')],['dex',this.t('stat_dex')],['vit',this.t('stat_vit')],['will',this.t('stat_will')]];
     const FILL='rgb(132,146,175)';
-    return h('div',{style:{alignSelf:'stretch',margin:'0 16px',background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:'4px 16px'}},
+    return h('div',{ref:el=>this.runGrowthSeq(el),style:{alignSelf:'stretch',margin:'0 16px',background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:'4px 16px'}},
       ...prim.map(([k,kr],idx)=>{
         const g=this.gs.growth[k]; const pct=this.eng.growthPct(this.gs,k);
         const s=snap?snap[k]:{level:g.level,pct:pct};
-        const lvUp=Math.max(0,g.level-s.level);
-        const basePct=lvUp>0?0:Math.min(s.pct,pct);
-        const gainPct=lvUp>0?pct:Math.max(0,pct-s.pct);
-        return h('div',{key:k,style:{padding:'12px 0',borderTop:idx>0?'1px solid rgb(54,56,60)':'none'}},
+        const fromLv=s.level, fromP=Math.max(0,Math.min(100,s.pct));
+        const toLv=g.level, toP=Math.max(0,Math.min(100,pct));
+        const lvUp=Math.max(0,toLv-fromLv);
+        const grew=(toLv>fromLv)||(toP>fromP+0.005);
+        return h('div',{key:k,'data-grow':idx,'data-fl':fromLv,'data-fp':fromP.toFixed(4),'data-tl':toLv,'data-tp':toP.toFixed(4),'data-gain':grew?'1':'0',style:{padding:'12px 0',borderTop:idx>0?'1px solid rgb(54,56,60)':'none'}},
           h('div',{style:{fontFamily:T.sans,fontSize:12.5,fontWeight:500,color:'rgb(234,235,238)'}}, kr),
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:24}},
-            h('span',{style:{fontFamily:T.mono,fontSize:11,color:'rgb(169,171,175)'}}, 'Lv '+g.level+(lvUp>0?' (+'+lvUp+')':'')),
-            h('span',{style:{fontFamily:T.mono,fontSize:10.5,color:(lvUp>0||gainPct>0.005)?'rgb(131,178,137)':'rgb(75,77,82)'}}, pct.toFixed(2)+'%')),
-          h('div',{style:{height:5,borderRadius:1,overflow:'hidden',background:'rgb(43,46,50)',display:'flex'}},
-            h('div',{style:{width:basePct+'%',height:'100%',background:FILL,opacity:.45}}),
-            h('div',{style:{width:gainPct+'%',height:'100%',background:FILL}})));
+            h('span',{'data-lvl':'1',style:{fontFamily:T.mono,fontSize:11,display:'inline-flex',alignItems:'center',lineHeight:'12px',color:'rgb(169,171,175)'}}, 'Lv ', h('span',{'data-lvlbox':'1',style:{display:'inline-block',overflow:'hidden',height:'12px',lineHeight:'12px'}}, String(toLv))),
+            h('span',{'data-num':'1',style:{fontFamily:T.mono,fontSize:10.5,display:'inline-block',transformOrigin:'right center',willChange:'transform',color:grew?'rgb(131,178,137)':'rgb(75,77,82)'}}, toP.toFixed(2)+'%')),
+          h('div',{style:{position:'relative',height:5,borderRadius:1,overflow:'hidden',background:'rgb(43,46,50)'}},
+            h('div',{'data-fill':'1',style:{position:'absolute',left:0,top:0,height:'100%',width:toP+'%',background:FILL,willChange:'width'}}),
+            h('div',{'data-shimmer':'1',style:{position:'absolute',inset:0,pointerEvents:'none',transform:'translateX(-100%)',background:'linear-gradient(90deg, rgba(165,172,178,0) 0%, rgba(165,172,178,0.5) 50%, rgba(165,172,178,0) 100%)'}})));
       }));
+  }
+  runGrowthSeq(el){
+    if(!el || el._seq) return; el._seq=1;
+    const rows=[...el.querySelectorAll('[data-grow]')].filter(r=>r.getAttribute('data-gain')==='1');  // 성장 안 한 스탯은 스킵(정적 표시)
+    // 성장 스탯: 시작 상태(전투 전)로 리셋
+    rows.forEach(r=>{
+      const num=r.querySelector('[data-num]'), box=r.querySelector('[data-lvlbox]'), fill=r.querySelector('[data-fill]');
+      const fromLv=r.getAttribute('data-fl'), fromP=parseFloat(r.getAttribute('data-fp'))||0;
+      if(num) num.textContent=fromP.toFixed(2)+'%';
+      if(box) box.textContent=String(fromLv);
+      if(fill) fill.style.width=fromP+'%';
+    });
+    const easeOut=t=>1-Math.pow(1-t,4);   // 뒤로 갈수록 느려짐
+    let i=0;
+    const runOne=()=>{
+      if(i>=rows.length) return;
+      const row=rows[i];
+      const num=row.querySelector('[data-num]'), box=row.querySelector('[data-lvlbox]'), fill=row.querySelector('[data-fill]'), shim=row.querySelector('[data-shimmer]');
+      const fromLv=parseInt(row.getAttribute('data-fl'),10)||0, fromP=parseFloat(row.getAttribute('data-fp'))||0;
+      const toLv=parseInt(row.getAttribute('data-tl'),10)||0, toP=parseFloat(row.getAttribute('data-tp'))||0;
+      const span=(toLv>fromLv)?((100-fromP)+(toLv-fromLv-1)*100+toP):Math.max(0,toP-fromP);
+      if(num){ num.style.transition='transform .2s ease-out'; num.style.transform='scale(1.2)'; }
+      if(shim) shim.style.animation='rlShimmer 1.4s linear infinite';
+      let lastLv=fromLv; const dur=2000; let st=null;
+      const tick=now=>{
+        if(st==null)st=now;
+        const t=Math.min(1,(now-st)/dur), f=easeOut(t);
+        let level=fromLv, p=fromP+span*f;
+        while(p>=100 && level<toLv){ p-=100; level++; }
+        if(t>=1){ level=toLv; p=toP; }
+        const pc=Math.max(0,Math.min(100,p));
+        if(fill) fill.style.width=pc+'%';
+        if(num) num.textContent=pc.toFixed(2)+'%';
+        if(level!==lastLv){ const prev=lastLv; lastLv=level; this.rollLevel(box, prev, level); }
+        if(t<1) requestAnimationFrame(tick);
+        else {
+          if(num){ num.textContent=toP.toFixed(2)+'%'; num.style.transform='scale(1)'; }
+          if(box) box.textContent=String(toLv);
+          if(fill) fill.style.width=toP+'%';
+          if(shim) shim.style.animation='';
+          i++; setTimeout(runOne,220);
+        }
+      };
+      requestAnimationFrame(tick);
+    };
+    runOne();
+  }
+  rollLevel(box, from, to){
+    if(!box) return;
+    box.textContent='';
+    const strip=document.createElement('span');
+    strip.style.display='block'; strip.style.transform='translateY(0)';
+    const mk=v=>{ const s=document.createElement('span'); s.style.display='block'; s.style.height='12px'; s.style.lineHeight='12px'; s.textContent=String(v); return s; };
+    strip.appendChild(mk(from)); strip.appendChild(mk(to));
+    box.appendChild(strip);
+    void strip.offsetWidth;
+    strip.style.transition='transform .32s cubic-bezier(.2,.85,.2,1)';
+    strip.style.transform='translateY(-12px)';
   }
   result(){
     const c=this.combat; const death=c.result==='death';
@@ -1542,7 +1606,7 @@ class Component extends DCLogic {
     const stage=c.resultStage||(uids.length?'loot':'growth');
     if(stage==='growth'){
       return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'rgb(17,19,21)'}},
-        h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/battle/encounter-banner.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
+        h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/art/zones/'+c.zoneId+'.jpg), url(assets/battle/encounter-banner.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
           h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:4}},
             h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, this.t('combat_return_success')),
             h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'2px',color:'rgb(131,178,137)',lineHeight:'100%'}}, 'EXTRACTION COMPLETE'))),
