@@ -480,13 +480,13 @@ class Component extends DCLogic {
         h('button',{onClick:()=>this.setState({resumeBanner:false}),style:{background:'transparent',border:'none',color:T.faint,fontSize:15,cursor:'pointer',padding:'0 4px',lineHeight:1}}, '×')):null,
       h('div',{style:{padding:'20px 16px 24px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:16}},
         ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Feed')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Module')||svc.includes('Sell'); const act=()=>this.openVendor(v.VendorID);
-            const img=this.shopImg(v.ShopID);
             const tc=String(v.TradeCategories||'').split(',').map(s=>s.trim()).filter(Boolean); const cat=tc.length?(CATKR[tc[0]]||tc[0]):'';
             const SL={Buy:this.t('shop_buy'),Sell:this.t('shop_sell'),Repair:this.t('nav_repair'),Heal:this.t('heal_treat'),Feed:(this.en()?'Recover':'회복'),Load:this.t('usb_decode'),Appraisal:this.t('appraise_tab'),Module:this.t('module_tab'),Quest:(this.en()?'Quest':'퀵스트')};
             const svcTxt=this.tx(v,'Services')||['Buy','Sell','Repair','Heal','Feed','Load','Appraisal','Module','Quest'].filter(s=>svc.includes(s)).map(s=>SL[s]).join(' · ');
             return h('button',{key:v.VendorID,disabled:!open,onClick:open?act:null,
               style:{textAlign:'left',background:'rgb(24,25,29)',border:'1px solid rgb(54,56,60)',borderRadius:8,padding:0,cursor:open?'pointer':'default',opacity:open?1:.5,display:'flex',flexDirection:'column',overflow:'hidden',flexShrink:0}},
-              h('div',{style:{position:'relative',height:110,background:img?('rgb(43,46,50) url('+img+') center / cover no-repeat'):'rgb(43,46,50)',flexShrink:0}},
+              h('div',{style:{position:'relative',height:110,overflow:'hidden',background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)',flexShrink:0}},
+                h('img',{src:'assets/art/shop/'+v.ShopID+'.jpg',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}),
                 h('div',{style:{position:'absolute',left:0,right:0,bottom:0,height:44,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgb(24,25,29) 100%)'}}),
                 open?null:h('div',{style:{position:'absolute',right:12,top:11,display:'flex',alignItems:'center',gap:5,color:T.faint,fontFamily:T.mono,fontSize:10,background:'rgba(10,11,14,0.55)',border:'1px solid '+T.line2,borderRadius:3,padding:'3px 8px'}}, svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',13,T.faint,1.6),this.t('common_locked'))),
               h('div',{style:{padding:'12px 15px',display:'flex',flexDirection:'column'}},
@@ -501,7 +501,6 @@ class Component extends DCLogic {
           }))
       );
   }
-  shopImg(id){ return ({shop_clinic:'assets/shop-clinic.jpg',shop_hardware:'assets/shop-hardware.jpg'})[id]||''; }
   shopName(id,v){ return this.tx(v,'ShopName') || id; }
   optStatKey(k){ return ({minAtk:'stat_atk_min',maxAtk:'stat_atk_max',atkSpeed:'stat_atk_speed',accuracy:'stat_accuracy',critChance:'stat_crit_chance',potency:'stat_potency',def:'stat_def',evasion:'stat_evasion',statusResist:'stat_status_resist',maxDur:'stat_max_dur',growthTags:'stat_growth_tags'})[k] || k; }
   shopDesc(id){ const map={shop_clinic:'vendor_clinic_desc',shop_hardware:'vendor_hardware_desc',shop_canteen:'vendor_canteen_desc',shop_blackmarket:'vendor_blackmarket_desc',shop_pawnshop:'vendor_pawnshop_desc'}; return map[id]?this.t(map[id]):''; }
