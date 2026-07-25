@@ -264,6 +264,7 @@ class Component extends DCLogic {
     this.forceUpdate();
   }
   enterCombat(){
+    if(typeof navigator!=='undefined' && navigator.vibrate){ try{ navigator.vibrate(40); }catch(e){} } // 제스처 결합 진동(활성화 확보 + 전투 시작 피드백)
     const mProf = this.combat.mProf;
     this.gs.sta = Math.max(0, this.gs.sta - mProf.staminaCost);
     const staZero = this.gs.sta <= 0;
@@ -292,7 +293,7 @@ class Component extends DCLogic {
     }
     c.fxSeq=(c.fxSeq||0)+1;
     c.fx={ seq:c.fxSeq, type:ln.type, target, dmg, crit:ln.type==='crit', rx:0.18+Math.random()*0.64, ry:0.06+Math.random()*0.14 };
-    if(typeof navigator!=='undefined' && navigator.vibrate){ try{ if(ln.type==='crit') navigator.vibrate([0,45,30,40]); else if(ln.type==='hit') navigator.vibrate(22); }catch(e){} }
+    if(typeof navigator!=='undefined' && navigator.vibrate){ try{ if(ln.type==='crit') navigator.vibrate([0,80,45,90]); else if(ln.type==='hit') navigator.vibrate(50); }catch(e){} }
   }
   finishCombat(){
     const c=this.combat, res=c.res;
