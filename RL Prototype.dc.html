@@ -2221,6 +2221,7 @@ class Component extends DCLogic {
       
       list.length? h('div',{style:{padding:'0 16px'}}, ...list.map((inst,i)=>this.repairRow(inst,i))) : this.repairEmpty());
   }
+  vibeTest(){ const has=(typeof navigator!=='undefined' && typeof navigator.vibrate==='function'); let ret='—'; if(has){ try{ ret=String(navigator.vibrate(300)); }catch(e){ ret='ERR '+((e&&e.message)||e); } } const standalone=(typeof window!=='undefined'&&window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)?'PWA(standalone)':'browser-tab'; this.setState({vibeMsg:(this.en()?'vibrate API: ':'vibrate API: ')+(has?(this.en()?'yes':'있음'):(this.en()?'NO':'없음'))+'  ·  '+(this.en()?'returned: ':'반환: ')+ret+'  ·  '+standalone}); }
   settings(){
     const srcLabel = { live:this.t('data_sheet_live'), cache:this.t('data_cache_connfail'), bundled:this.t('data_bundle_snapshot') }[this.dataSrc]||'—';
     const srcColor = this.dataSrc==='live'?T.good:(this.dataSrc==='cache'?T.warn:T.lo);
@@ -2246,7 +2247,12 @@ class Component extends DCLogic {
           h('div',{style:{display:'flex',border:'1px solid '+T.line2,borderRadius:4,overflow:'hidden'}},
             ...[['kr',this.t('lang_korean')],['en','English']].map(([k,l])=>h('button',{key:k,onClick:()=>this.setLang(k),style:{background:this.lang===k?T.s2:'transparent',border:'none',color:this.lang===k?T.hi:T.lo,fontFamily:T.sans,fontSize:12,fontWeight:500,padding:'8px 14px',cursor:'pointer'}},l)))),
         ...[[this.t('settings_account'),this.t('settings_login_logout')],[this.t('nav_feedback'),this.t('feedback_bug')]].map(([a,b])=>h('div',{key:a,style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'15px 0',borderBottom:'1px solid '+T.line}}, h('span',{style:{fontFamily:T.sans,fontSize:14,color:T.hi}},a), h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.lo}},b))),
-        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'22px 0 10px'}}, this.t('save_section')),
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'22px 0 10px'}}, this.en()?'DIAGNOSTICS':'진단'),
+        h('button',{onClick:()=>this.vibeTest(),style:{width:'100%',background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'13px',borderRadius:4,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
+          svg('M8 4h8M9 4v16M15 4v16M6 8H4v8h2M18 8h2v8h-2',18,T.hi,1.6), this.en()?'Vibration test (300ms)':'진동 테스트 (300ms)'),
+        this.state.vibeMsg? h('div',{style:{fontFamily:T.mono,fontSize:11,color:T.mid,lineHeight:1.6,margin:'8px 0 0',padding:'10px 12px',background:T.s1,border:'1px solid '+T.line,borderRadius:4,wordBreak:'break-all'}}, this.state.vibeMsg):null,
+        h('div',{style:{fontFamily:T.sans,fontSize:11.5,color:T.lo,lineHeight:1.5,margin:'8px 0 26px'}}, this.en()?'Tap to fire a 300ms vibration directly. If nothing buzzes but it says "returned: true", the device/PWA silently blocks web vibration.':'탭 시 300ms 진동을 직접 호출합니다. 진동은 없는데 "반환: true"면 기기/PWA가 웹 진동을 무시하는 것입니다.'),
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 10px'}}, this.t('save_section')),
         h('button',{onClick:()=>this.exportSaveCode(),style:{width:'100%',background:T.s2,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'13px',borderRadius:4,cursor:'pointer',marginBottom:8}}, this.t('save_export')),
         this.state.svCode? h('textarea',{readOnly:true,value:this.state.svCode,onFocus:e=>e.target.select(),style:{width:'100%',boxSizing:'border-box',height:76,background:T.s1,border:'1px solid '+T.line,borderRadius:4,color:T.mid,fontFamily:T.mono,fontSize:10,padding:8,marginBottom:8,resize:'none',wordBreak:'break-all'}}):null,
         h('button',{onClick:()=>this.setState({svImportOpen:!this.state.svImportOpen}),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'13px',borderRadius:4,cursor:'pointer',marginBottom:8}}, this.t('save_import')),
