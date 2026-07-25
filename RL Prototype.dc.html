@@ -215,7 +215,7 @@ class Component extends DCLogic {
   }
   moveToBag(uid){ const i=this.gs.vault.findIndex(x=>x.uid===uid); if(i>=0){ const [it]=this.gs.vault.splice(i,1); this.gs.bag.push(it); } }
   rest(){ const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=full.maxHp; this.gs.sta=this.staMax; this.saveGame(); }
-  go(screen){ if(this._t){clearInterval(this._t); this._t=null;} if(this._ut){clearInterval(this._ut); this._ut=null;} this._lastScroll=0; this.setState({ screen, modalZone:null, sel:null, titleHidden:false }); if(screen==='safehouse') this.saveGame(); }
+  go(screen){ if(this._t){clearInterval(this._t); this._t=null;} if(this._ut){clearInterval(this._ut); this._ut=null;} this._lastScroll=0; this._titleLock=false; clearTimeout(this._titleLockT); this.setState({ screen, modalZone:null, sel:null, titleHidden:false }); if(screen==='safehouse') this.saveGame(); }
   flash(msg){ this.setState({toast:msg}); clearTimeout(this._ft); this._ft=setTimeout(()=>this.setState({toast:null}),1600); this.saveGame(); }
 
   // ---------- sortie / combat ----------
@@ -292,7 +292,7 @@ class Component extends DCLogic {
     }
     c.fxSeq=(c.fxSeq||0)+1;
     c.fx={ seq:c.fxSeq, type:ln.type, target, dmg, crit:ln.type==='crit', rx:0.18+Math.random()*0.64, ry:0.06+Math.random()*0.14 };
-    if(ln.type==='crit' && typeof navigator!=='undefined' && navigator.vibrate){ try{ navigator.vibrate(35); }catch(e){} }
+    if(typeof navigator!=='undefined' && navigator.vibrate){ try{ if(ln.type==='crit') navigator.vibrate([0,45,30,40]); else if(ln.type==='hit') navigator.vibrate(22); }catch(e){} }
   }
   finishCombat(){
     const c=this.combat, res=c.res;
@@ -449,7 +449,12 @@ class Component extends DCLogic {
   screenTitle(kicker,title){ return h('div',{style:{padding:'18px 18px 14px',flex:'0 0 auto'}},
     h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:T.faint,marginBottom:6}}, this.eng.t(kicker)),
     h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:400,color:T.hi,letterSpacing:'-.01em'}}, this.eng.t(title))); }
-  onContentScroll(e){ const st=e.target.scrollTop; const prev=this._lastScroll||0; let hide=!!(this.state&&this.state.titleHidden); if(st<=4)hide=false; else if(st>prev+2)hide=true; else if(st<prev-2)hide=false; this._lastScroll=st; if(hide!==!!(this.state&&this.state.titleHidden)) this.setState({titleHidden:hide}); }
+  onContentScroll(e){ const el=e.target; this._titleScrollEl=el; const st=el.scrollTop;
+    if(this._titleLock) return; // 타이틀 접힘/펼침 리플로우로 유발되는 스크롤 이벤트 무시(진동 방지)
+    const prev=this._lastScroll==null?st:this._lastScroll; const hidden=!!(this.state&&this.state.titleHidden); let hide=hidden;
+    if(st<=6)hide=false; else if(st>prev+6)hide=true; else if(st<prev-6)hide=false;
+    this._lastScroll=st;
+    if(hide!==hidden){ this._titleLock=true; this.setState({titleHidden:hide}); clearTimeout(this._titleLockT); this._titleLockT=setTimeout(()=>{ this._titleLock=false; this._lastScroll=this._titleScrollEl?this._titleScrollEl.scrollTop:st; },360); } }
   titleWrap(node){ return h('div',{style:{flex:'0 0 auto',overflow:'hidden',maxHeight:this.state.titleHidden?0:88,opacity:this.state.titleHidden?0:1,transition:'max-height .28s ease, opacity .22s ease'}}, node); }
   toastEl(){ if(!this.state.toast) return null; return h('div',{style:{position:'absolute',bottom:104,left:'50%',transform:'translateX(-50%)',background:T.s3,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.mono,fontSize:12,padding:'8px 16px',borderRadius:3,animation:'rlFade .2s',zIndex:20}}, this.eng.t(this.state.toast)); }
 
