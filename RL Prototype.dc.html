@@ -853,8 +853,8 @@ class Component extends DCLogic {
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
         h('img',{src:artUrl,onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}),
         h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
-        h('div',{style:{position:'absolute',right:17,top:12,width:59,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',justifyContent:'flex-start',padding:'0 8px'}},
-          h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:HI,whiteSpace:'nowrap'}}, String(m.grade||'UNIQUE').toUpperCase())),
+        h('div',{style:{position:'absolute',right:17,top:12,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'4px 8px'}},
+          h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',marginRight:'-1.33px',color:HI,whiteSpace:'nowrap'}}, String(m.grade||'UNIQUE').toUpperCase())),
         h('span',{style:{position:'absolute',left:14,bottom:14,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, md.Category||''),
         h('span',{style:{position:'absolute',right:15,bottom:15,fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:SUB,whiteSpace:'nowrap'}}, 'STA −'+m.staminaCost+' · '+this.t('combat_time_limit')+' '+m.timeLimit+'s')),
       // BODY 214
@@ -1034,7 +1034,8 @@ class Component extends DCLogic {
   fleeFront(){
     const ok=this.combat.fleeSuccess, col=ok?'rgb(131,178,137)':'rgb(196,103,93)';
     return h('div',{style:{width:342,height:'min(442px, 100%)',borderRadius:8,overflow:'hidden',background:'rgb(24,25,29)',border:'1px solid rgb(54,56,60)',display:'flex',flexDirection:'column'}},
-      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,background:'rgb(43,46,50)',backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
+      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,overflow:'hidden',background:'rgb(43,46,50)',backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
+        h('img',{src:'assets/art/scenes/'+(ok?'flee-Success':'flee-Failed')+'.jpg',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}),
         h('div',{style:{position:'absolute',left:0,bottom:0,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgb(24,25,29) 100%)'}}),
         h('span',{style:{position:'absolute',left:15,bottom:13,fontFamily:T.mono,fontSize:10,letterSpacing:'0.8px',color:col}}, ok?(this.en()?'SUCCESS':'성공'):(this.en()?'FAILED':'실패'))),
       h('div',{style:{padding:'13px 15px',display:'flex',flexDirection:'column'}},
@@ -1202,7 +1203,7 @@ class Component extends DCLogic {
   searchFailedCard(){
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', PVP='rgb(196,103,93)';
     return h('div',{style:{width:342,height:'min(442px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
-      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,alignSelf:'stretch',background:'#0f1013',backgroundImage:'url(components/cards/search-failed.png)',backgroundSize:'cover',backgroundPosition:'center'}},
+      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,alignSelf:'stretch',background:'#0f1013',backgroundImage:'url(assets/art/scenes/Search-Failed.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
         h('div',{style:{position:'absolute',right:17,top:15,width:38,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',padding:'0 8px'}},
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:PVP,whiteSpace:'nowrap'}}, 'PVP')),
         h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
