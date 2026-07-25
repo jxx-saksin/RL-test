@@ -438,17 +438,18 @@ class Component extends DCLogic {
   }
   nav(){
     const items=[['safehouse','안전가옥'],['inventory',this.t('nav_belongings')],['zone','출정'],['character','캐릭터'],['settings','설정']];
-    return h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px',background:'transparent'}},
-      h('div',{style:{display:'flex',flexDirection:'row',gap:34,justifyContent:'center',alignItems:'center',height:83,padding:16,boxSizing:'border-box',background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)'}},
-        ...items.map(([k,label])=>{ const on=this.state.screen===k || (k==='zone'&&this.state.screen==='combat');
-          return h('button',{key:k,onClick:()=>this.go(k),style:{width:36,background:'none',border:'none',cursor:'pointer',padding:0,display:'flex',flexDirection:'column',alignItems:'center',gap:4,color:on?'rgb(234,235,238)':'rgb(75,77,82)'}},
-            navIcon(k,'currentColor',20), h('span',{style:{fontFamily:T.sans,fontSize:10,fontWeight:500,lineHeight:'100%'}},this.eng.t(label))); }))
+    return h('div',{style:{position:'absolute',left:0,right:0,bottom:0,padding:'0 16px 26px',background:'transparent',zIndex:15,pointerEvents:'none'}},
+      h('div',{style:{display:'flex',flexDirection:'row',gap:34,justifyContent:'center',alignItems:'center',height:64,padding:16,boxSizing:'border-box',background:'rgba(24,25,29,0.72)',backdropFilter:'blur(14px)',WebkitBackdropFilter:'blur(14px)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgba(54,56,60,0.9)',pointerEvents:'auto'}},
+        ...items.map(([k])=>{ const on=this.state.screen===k || (k==='zone'&&this.state.screen==='combat'); const sortie=k==='zone';
+          const col=on?(sortie?'#C4675D':'rgb(234,235,238)'):'rgb(75,77,82)';
+          return h('button',{key:k,onClick:()=>this.go(k),style:{width:36,background:'none',border:'none',cursor:'pointer',padding:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:col,filter:(on&&sortie)?'drop-shadow(0 0 5px rgba(196,103,93,0.5))':'none'}},
+            navIcon(k,'currentColor',20)); }))
     );
   }
   screenTitle(kicker,title){ return h('div',{style:{padding:'18px 18px 14px',flex:'0 0 auto'}},
     h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:T.faint,marginBottom:6}}, this.eng.t(kicker)),
     h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:400,color:T.hi,letterSpacing:'-.01em'}}, this.eng.t(title))); }
-  toastEl(){ if(!this.state.toast) return null; return h('div',{style:{position:'absolute',bottom:78,left:'50%',transform:'translateX(-50%)',background:T.s3,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.mono,fontSize:12,padding:'8px 16px',borderRadius:3,animation:'rlFade .2s',zIndex:20}}, this.eng.t(this.state.toast)); }
+  toastEl(){ if(!this.state.toast) return null; return h('div',{style:{position:'absolute',bottom:104,left:'50%',transform:'translateX(-50%)',background:T.s3,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.mono,fontSize:12,padding:'8px 16px',borderRadius:3,animation:'rlFade .2s',zIndex:20}}, this.eng.t(this.state.toast)); }
 
   renderApp(){
     const s=this.state.screen;
@@ -478,7 +479,7 @@ class Component extends DCLogic {
         h('span',{style:{flex:1,fontFamily:T.mono,fontSize:11,color:T.mid,letterSpacing:'.04em'}}, this.t('save_resuming')),
         h('button',{onClick:()=>{try{localStorage.removeItem('rl_save_v1');}catch(_){ } this.newRun(true); this.setState({resumeBanner:false}); this.saveGame(); this.flash(this.t('save_reset_done'));},style:{background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:12,padding:'5px 11px',borderRadius:4,cursor:'pointer'}}, this.t('save_new_game')),
         h('button',{onClick:()=>this.setState({resumeBanner:false}),style:{background:'transparent',border:'none',color:T.faint,fontSize:15,cursor:'pointer',padding:'0 4px',lineHeight:1}}, '×')):null,
-      h('div',{style:{padding:'20px 16px 24px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:16}},
+      h('div',{style:{padding:'20px 16px 100px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:16}},
         ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Feed')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Module')||svc.includes('Sell'); const act=()=>this.openVendor(v.VendorID);
             const tc=String(v.TradeCategories||'').split(',').map(s=>s.trim()).filter(Boolean); const cat=tc.length?(CATKR[tc[0]]||tc[0]):'';
             const SL={Buy:this.t('shop_buy'),Sell:this.t('shop_sell'),Repair:this.t('nav_repair'),Heal:this.t('heal_treat'),Feed:(this.en()?'Recover':'회복'),Load:this.t('usb_decode'),Appraisal:this.t('appraise_tab'),Module:this.t('module_tab'),Quest:(this.en()?'Quest':'퀵스트')};
@@ -536,7 +537,7 @@ class Component extends DCLogic {
             sc.locked?h('div',{style:{position:'absolute',top:12,right:12}}, icLock(16,T.faint)):null); })),
       // ---- zone list for selected city ----
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,padding:'0 18px 8px',flex:'0 0 auto'}}, selSlot.name+''+this.t('kicker_dot_infiltration')),
-      h('div',{style:{overflowY:'auto',flex:1,padding:'0 16px 20px'}},
+      h('div',{style:{overflowY:'auto',flex:1,padding:'0 16px 100px'}},
         zones.length? zones.map((z,i)=>{ const hidden=this.eng.N(z.IsHidden)===1;
           return h('div',{key:z.ZoneID,onClick:()=>this.setState({modalZone:z}),
             style:{padding:'16px 0',borderTop:i>0?'1px solid '+T.line:'none',cursor:'pointer',display:'flex',flexDirection:'column',gap:4}},
@@ -1769,7 +1770,7 @@ class Component extends DCLogic {
       h('div',{style:{display:'flex',gap:6,padding:'12px 18px',overflowX:'auto',flex:'0 0 auto'}},
         ...cats.map(([id,lk])=>h('button',{key:id,onClick:()=>this.setState({filter:id}),style:{flex:'0 0 auto',background:filter===id?'rgb(43,46,50)':'transparent',border:'1px solid '+(filter===id?'rgb(74,77,83)':'rgb(54,56,60)'),color:filter===id?'rgb(234,235,238)':'rgb(111,114,118)',fontFamily:T.mono,fontSize:11,padding:'5px 11px',borderRadius:999,cursor:'pointer',whiteSpace:'nowrap'}},this.t(lk)))),
       // list
-      h('div',{style:{flex:1,overflowY:'auto',paddingBottom:16}},
+      h('div',{style:{flex:1,overflowY:'auto',paddingBottom:100}},
         rows.length? rows.map(inst=>this.invRow(inst,seg,catOf)) : h('div',{style:{padding:'30px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, this.t('common_empty')))
     );
   }
@@ -1922,7 +1923,7 @@ class Component extends DCLogic {
     const kick=(t)=>h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:10}}, t);
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       this.screenTitle('CHARACTER','nav_character'),
-      h('div',{style:{flex:1,margin:'0 16px 16px',background:'#18191D',border:'1px solid #36383C',borderRadius:8,overflowY:'auto',padding:'14px 14px 18px'}},
+      h('div',{style:{flex:1,margin:'0 16px 16px',background:'#18191D',border:'1px solid #36383C',borderRadius:8,overflowY:'auto',padding:'14px 14px 110px'}},
         h('div',{style:{height:104,borderRadius:8,overflow:'hidden',marginBottom:16,background:'linear-gradient(180deg, oklch(0.30 0.01 264) 0%, oklch(0.19 0.008 264) 100%)'}}),
         h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:3}},
           h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:600,color:T.hi}}, this.en()?'Player':'플레이어'),
@@ -2219,7 +2220,7 @@ class Component extends DCLogic {
     const srcColor = this.dataSrc==='live'?T.good:(this.dataSrc==='cache'?T.warn:T.lo);
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       this.screenTitle('SETTINGS','nav_settings'),
-      h('div',{style:{padding:'0 18px',overflowY:'auto'}},
+      h('div',{style:{padding:'0 18px 100px',overflowY:'auto'}},
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 10px'}}, this.t('data_balance')),
         h('div',{style:{background:T.s1,border:'1px solid '+T.line,borderRadius:4,padding:'13px 15px',marginBottom:12}},
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}},
