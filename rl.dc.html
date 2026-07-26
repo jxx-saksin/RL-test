@@ -171,6 +171,12 @@ class Component extends DCLogic {
     // 방어: 현재 시트에 없는 id 인스턴스 제거 → 빈 장착 슬롯 null
     const known=(inst)=> !!(inst && inst.id && (eng.anyItem(inst.id) || (eng.byId.liquor&&eng.byId.liquor[inst.id]) || (eng.byId.module&&eng.byId.module[inst.id]) || (eng.byId.usb&&eng.byId.usb[inst.id])));
     gs.bag=(gs.bag||[]).filter(known); gs.vault=(gs.vault||[]).filter(known);
+    // 정합: 스테일 데이터로 잘못 생성된 인스턴스 복구 — id가 실제 장비인데 필드가 비면 온전히 재생성(uid·qty 보존)
+    const rebuild=(inst)=>{ if(!inst) return inst;
+      const rk = eng.byId.weapon[inst.id]?'weapon':eng.byId.armor[inst.id]?'armor':eng.byId.artifact[inst.id]?'artifact':null;
+      if(rk && (inst.kind!==rk || inst.maxDur==null || !inst.rolls)){ const fresh=eng.mkInstance(inst.id, inst.qty||1, {}); fresh.uid=inst.uid; return fresh; }
+      return inst; };
+    gs.bag=gs.bag.map(rebuild); gs.vault=gs.vault.map(rebuild);
     gs.equip=Object.assign({weapon:null,head:null,body:null,artifact1:null,artifact2:null}, gs.equip||{});
     const uids=new Set(gs.bag.concat(gs.vault).map(x=>x.uid));
     ['weapon','head','body','artifact1','artifact2'].forEach(s=>{ if(gs.equip[s]&&!uids.has(gs.equip[s])) gs.equip[s]=null; });
@@ -236,7 +242,7 @@ class Component extends DCLogic {
   startSortie(zoneId){
     const z=this.eng.byId.zone[zoneId];
     if(z && this.eng.N(z.IsHidden)===1 && z.UnlockType==='item' && z.UnlockKey){ this.consumeItem(z.UnlockKey); this.flash(this.t('zone_keycard_used')); }
-    this.combat = { zoneId, encounter:0, runLoot:[], runLootInsts:[] };
+    this.combat = { zoneId, encounter:0, runLoot:[], runLootInsts:[], satoGained:0 };
     // 귀환 화면 성장 그래프용 — 출정 시작 시점 스냅샷
     this.combat.gSnap = Object.fromEntries(['str','dex','vit','will'].map(k=>[k,{ level:this.gs.growth[k].level, pct:this.eng.growthPct(this.gs,k) }]));
     this.setState({ screen:'combat', modalZone:null });
@@ -320,6 +326,13 @@ class Component extends DCLogic {
       c.lootInsts=[];
       for(const l of loot){ const made=this.addToBag(l.id, l.qty, {unappraisedMult:l.unappraisedMult})||[]; c.runLoot.push(l); for(const mi of made){ c.lootInsts.push(mi.uid); (c.runLootInsts||(c.runLootInsts=[])).push(mi.uid); } }
       c.loot = loot;
+      // 사토 드롭 (Config 공식: StaminaCost × per × rand(등급 배율)) — 누적만, 귀환 성공 시 지급(사망 시 0)
+      { const cfg=this.eng.DATA.config, per=this.eng.N(cfg.stamina_cost_per_point,20), sc=this.eng.N(c.mProf.staminaCost,1);
+        const mrow=this.eng.byId.monster[c.mProf.id]||{}, isBoss=String(mrow.Grade||'').toUpperCase()==='BOSS';
+        const lo=this.eng.N(isBoss?cfg.sato_drop_boss_mult_min:cfg.sato_drop_stamina_mult_min, isBoss?1:0.6);
+        const hi=this.eng.N(isBoss?cfg.sato_drop_boss_mult_max:cfg.sato_drop_stamina_mult_max, isBoss?5:1.1);
+        const gain=Math.max(0, Math.round(sc*per*(lo+Math.random()*(hi-lo))));
+        c.satoGained=(c.satoGained||0)+gain; }
       if(loot.length){ c.res.log.push({t:res.elapsed||0, who:'sys', type:'win', text:this.eng.logTpl('loot',{}), hpP:res.playerHpEnd, hpM:0}); c.revealed=c.res.log.length; }
       c.ups = this.eng.applyGrowth(this.gs, res.triggers);
       const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp;
@@ -337,7 +350,7 @@ class Component extends DCLogic {
     return made;
   }
   addToBag(id, qty, opts){ return this.stackAdd(this.gs.bag, id, qty, opts); }
-  extract(){ this.setState({ screen:'result' }); this.combat.result='extract'; if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate(); }
+  extract(){ if(this.combat && !this.combat.satoPaid){ this.gs.sato+=this.eng.N(this.combat.satoGained,0); this.combat.satoPaid=true; } this.setState({ screen:'result' }); this.combat.result='extract'; if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate(); }
   death(){
     // 소지품(bag)은 전부 잃되, 착용 중인 장비는 유지된다
     this.gs.bag = this.gs.bag.filter(x=>this.isEquipped(x.uid));
@@ -1686,7 +1699,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const easeOut=t=>1-Math.pow(1-t,4);   // 뒤로 갈수록 느려짐
     let i=0;
     const runOne=()=>{
-      if(i>=rows.length) return;
+      if(i>=rows.length){ this.runSatoCount(el); return; }
       const row=rows[i];
       const num=row.querySelector('[data-num]'), box=row.querySelector('[data-lvlbox]'), fill=row.querySelector('[data-fill]'), shim=row.querySelector('[data-shimmer]');
       const fromLv=parseInt(row.getAttribute('data-fl'),10)||0, fromP=parseFloat(row.getAttribute('data-fp'))||0;
@@ -1730,6 +1743,48 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     strip.style.transition='transform .32s cubic-bezier(.2,.85,.2,1)';
     strip.style.transform='translateY(-12px)';
   }
+  // 사토 보상 박스 — 성장 스테이지에서 스탯 연출 종료 후 카운트업 (runSatoCount)
+  resultSato(){
+    const c=this.combat; const gain=this.eng.N(c&&c.satoGained,0);
+    if(!(gain>0)) return null;
+    const before=Math.max(0, this.eng.N(this.gs.sato,0)-gain);
+    const HI='rgb(234,235,238)', LN='rgb(54,56,60)', MUT='rgb(75,77,82)', WAL='rgb(169,171,175)';
+    const SATO='oklch(0.740 0.055 224)', EDGE='oklch(0.740 0.055 224 / .5)', DIM='oklch(0.740 0.055 224 / .16)';
+    return h('div',{'data-sato':'1','data-gain':String(gain),'data-before':String(before),
+      style:{position:'relative',margin:'12px 16px 0',background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px '+LN,padding:16,overflow:'hidden',transition:'box-shadow .5s ease-out'}},
+      h('div',{'data-satohalo':'1',style:{position:'absolute',inset:0,pointerEvents:'none',opacity:0,transition:'opacity .5s ease-out',background:'radial-gradient(120% 90% at 50% 120%, '+DIM+', transparent 62%)'}}),
+      h('div',{style:{position:'relative',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}},
+        h('span',{style:{fontFamily:T.mono,fontSize:9.5,letterSpacing:'1.33px',color:SATO,border:'1px solid '+EDGE,borderRadius:4,padding:'2px 8px',lineHeight:1}}, 'SATO'),
+        h('div',{style:{display:'flex',alignItems:'baseline',gap:5}},
+          h('span',{style:{fontFamily:T.mono,fontSize:14,color:SATO,lineHeight:1}}, '+'),
+          h('span',{'data-satonum':'1',style:{fontFamily:T.mono,fontWeight:600,fontSize:19,lineHeight:1,color:HI,letterSpacing:'-.01em',transformOrigin:'right center',willChange:'transform'}}, '0'))),
+      h('div',{style:{position:'relative',display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:14,paddingTop:12,borderTop:'1px solid '+LN}},
+        h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.8px',color:MUT}}, this.en()?'VAULT':'금고'),
+        h('span',{'data-satowallet':'1',style:{fontFamily:T.mono,fontSize:12,color:WAL}}, before.toLocaleString())));
+  }
+  runSatoCount(statEl){
+    const box = statEl && statEl.parentNode && statEl.parentNode.querySelector('[data-sato]');
+    if(!box || box._sato) return; box._sato=1;
+    const gain=parseInt(box.getAttribute('data-gain'),10)||0, before=parseInt(box.getAttribute('data-before'),10)||0;
+    const num=box.querySelector('[data-satonum]'), wal=box.querySelector('[data-satowallet]'), halo=box.querySelector('[data-satohalo]');
+    box.style.boxShadow='inset 0 0 0 1px oklch(0.740 0.055 224 / .5)';
+    if(halo) halo.style.opacity='1';
+    const easeOut=t=>1-Math.pow(1-t,4);
+    let st=null; const dur=2500;
+    const tick=now=>{
+      if(st==null)st=now;
+      const t=Math.min(1,(now-st)/dur), f=easeOut(t), v=Math.round(gain*f);
+      if(num) num.textContent=v.toLocaleString();
+      if(wal) wal.textContent=(before+v).toLocaleString();
+      if(t<1) requestAnimationFrame(tick);
+      else{
+        if(num){ num.textContent=gain.toLocaleString(); num.style.transition='transform .16s ease-out'; num.style.transform='scale(1.14)';
+          setTimeout(()=>{ num.style.transition='transform .34s cubic-bezier(.2,.85,.2,1)'; num.style.transform='scale(1)'; },170); }
+        if(wal) wal.textContent=(before+gain).toLocaleString();
+      }
+    };
+    requestAnimationFrame(tick);
+  }
   result(){
     const c=this.combat; const death=c.result==='death';
     if(death){
@@ -1756,7 +1811,8 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
             h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'2px',color:'rgb(131,178,137)',lineHeight:'100%'}}, 'EXTRACTION COMPLETE'))),
         h('div',{style:{flex:1,overflowY:'auto',padding:'20px 0 16px'}},
           h('div',{style:{fontFamily:T.mono,fontSize:11,letterSpacing:'1.1px',color:'rgb(75,77,82)',margin:'0 16px 10px'}}, this.en()?'GROWTH THIS SORTIE':'이번 출정 성장'),
-          this.resultGrowth()),
+          this.resultGrowth(),
+          this.resultSato()),
         h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
           h('div',{style:{background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16}},
             h('button',{onClick:()=>this.toSafehouse(),style:{width:'100%',height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid rgb(74,77,83)',background:'transparent',color:'rgb(169,171,175)',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:'pointer'}}, this.en()?'To Safehouse':'안전가옥으로'))));
@@ -1796,7 +1852,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
   // 아이템 카드 높이 (fig 스펙) — 소켓 있는 장비만 길어짐
   lootCardH(inst){
     const isGear=inst.kind==='weapon'||inst.kind==='armor';
-    const FLOOR=460;   // 소켓 없는 무기 카드 기준 (아트190 + 스탯3행 + 설명)
+    const FLOOR=460;   // 소켓 없는 무기 카드 기준 (아트190 + 스탯3행 + 설명) — 모든 카드 최소 높이
     if(!isGear) return FLOOR;
     const stats=this.itemDetailStats(inst).filter(([k])=>k!==this.t('item_durability'));
     const nRows=Math.max(1,Math.ceil(stats.length/2));
@@ -1806,7 +1862,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     if(n>0) h += 29 + n*33;   // MODULE 라벨 + 소켓 행
     return Math.max(FLOOR, h);
   }
-  dataCardBig(inst, usb){
+  dataCardBig(inst, usb, fixed){
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)';
     const mid=usb.MonsterID||usb.SourceMonsterID; const mon=mid?this.eng.byId.monster[mid]:null;
     const grade=String(usb.Grade||(mon&&mon.Grade)||'COMMON').toUpperCase();
@@ -1819,7 +1875,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const cell=(k,v,i)=>h('div',{key:i,style:{borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'7px 0',justifyContent:'space-between',alignItems:'flex-start',boxSizing:'border-box'}},
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:LO,whiteSpace:'nowrap'}}, k),
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
-    return h('div',{style:{width:342,height:'100%',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
+    return h('div',{style:{width:342,height:fixed?this.lootCardH(inst):'100%',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
       h('div',{style:{position:'relative',height:246,alignSelf:'stretch',flexShrink:0,backgroundColor:ART,backgroundImage:artUrl?('url('+artUrl+')'):'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)',backgroundSize:'cover',backgroundPosition:'center',backgroundRepeat:'no-repeat'}},
         h('div',{style:{position:'absolute',left:0,top:166,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         h('div',{style:{position:'absolute',top:15,right:17,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'3px 8px',display:'inline-flex',alignItems:'center'}},
@@ -1844,7 +1900,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', MID='rgb(169,171,175)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', UNC='rgb(124,165,187)';
     const UNW=this.t('appraise_unappraised');
     const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id];
-    if(usb) return this.dataCardBig(inst, usb);
+    if(usb) return this.dataCardBig(inst, usb, fixed);
     const cat=liq?this.t('appraise_tab'):md?(this.t('module_tab')+' · '+(md.HexCode||'')):usb?this.t('usb_decode'):(CATKR[s.Category]?this.t(this.catKey(s.Category)):(s.Category||''));
     const allStats=usb?[[this.t('usb_permanent_growth'),this.eng.substUsbTokens('{STAT}',usb)],[this.t('combat_time_limit'),this.eng.N(usb.UploadMinutes,1)+(this.en()?'m':'분')]]:((isGear||liq||md||s.Category==='Medicine'||s.Category==='Food')?this.itemDetailStats(inst):[]);
     const stats=allStats.filter(([k])=>k!==this.t('item_durability'));
@@ -1862,6 +1918,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
       // ART 190
       h('div',{style:{position:'relative',...artP,alignSelf:'stretch',background:md?md.HexCode:ART}},
         md?null:h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
+        md?null:h('img',{key:'artimg',src:'assets/art/items/'+inst.id+'.jpg',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',pointerEvents:'none'}}),
         h('div',{style:{position:'absolute',left:0,bottom:0,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         gtags.length?h('div',{style:{position:'absolute',right:15,top:15,display:'flex',flexDirection:'row-reverse',gap:7}},
           ...gtags.map((tg,i)=>h('div',{key:i,style:{height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'0 8px',display:'flex',alignItems:'center'}},
@@ -1925,20 +1982,21 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||{};
     const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id];
     const md=this.eng.byId.module&&this.eng.byId.module[inst.id];
+    const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id];
     const name=this.itemLabel(inst);
     const equippable = inst.kind==='weapon'||inst.kind==='armor'||inst.kind==='artifact';
     const equipped = this.isEquipped(inst.uid);
     const attr = s.Attribute;
     const st = this.eng.itemState(inst);
     const gearSub=(inst.kind==='weapon'||inst.kind==='armor')?[s.Material,(AT(s.Attribute)?this.t('status_'+s.Attribute):null)].filter(Boolean).join(' · '):'';
-    const desc=this.tx(s,'Description')||(liq&&(this.tx(this.eng.byId.liquor[inst.id],'Description')||this.tx(this.eng.byId.liquor[inst.id],'Notes')))||(md&&(this.eng.tr(md,'TargetStat')+' +'+md.Value_Min+'~'+md.Value_Max))||gearSub||'';
+    const desc=this.tx(s,'Description')||(liq&&(this.tx(this.eng.byId.liquor[inst.id],'Description')||this.tx(this.eng.byId.liquor[inst.id],'Notes')))||(md&&(this.eng.tr(md,'TargetStat')+' +'+md.Value_Min+'~'+md.Value_Max))||(usb&&this.eng.substUsbTokens(this.tx(usb,'Description')||usb.Description||'', usb))||gearSub||'';
     return h('div',{key:inst.uid,
       onPointerDown:(e)=>{ if(equipped) return; this._sw={uid:inst.uid,x0:e.clientX,el:e.currentTarget,moved:false}; },
       onPointerMove:(e)=>{ if(!this._sw||this._sw.uid!==inst.uid) return; let dx=e.clientX-this._sw.x0; const allowR=seg==='bag',allowL=seg==='vault'; if((dx>0&&!allowR)||(dx<0&&!allowL)) dx=0; if(Math.abs(dx)>6)this._sw.moved=true; this._sw.el.style.transition='none'; this._sw.el.style.transform='translateX('+Math.max(-120,Math.min(120,dx))+'px)'; },
       onPointerUp:(e)=>{ if(!this._sw||this._sw.uid!==inst.uid) return; const dx=e.clientX-this._sw.x0,el=this._sw.el,moved=this._sw.moved; el.style.transition='transform .2s'; el.style.transform='none'; const trig=(seg==='bag'&&dx>72)||(seg==='vault'&&dx<-72); this._sw=null; this._lastMoved=moved; if(trig){ this.flash(seg==='bag'?this.t('btn_to_vault'):this.t('btn_to_belongings')); this.moveItem(inst.uid); } },
       onPointerCancel:()=>{ if(this._sw){ this._sw.el.style.transition='transform .2s'; this._sw.el.style.transform='none'; this._sw=null; } },
       onClick:()=>{ if(this._lastMoved){ this._lastMoved=false; return; } this.setState({sel:inst.uid,moveQty:null}); },
-      style:{display:'flex',flexDirection:'column',gap:10,padding:'17px 18px',borderBottom:'1px solid '+T.line,cursor:'pointer',background:equipped?'oklch(0.225 0.008 264)':'transparent',touchAction:'pan-y'}},
+      style:{display:'flex',flexDirection:'column',padding:'16px 18px',borderBottom:'1px solid '+T.line,cursor:'pointer',background:equipped?'oklch(0.225 0.008 264)':'transparent',touchAction:'pan-y'}},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,alignSelf:'stretch'}},
         h('div',{style:{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',minWidth:0}},
           this.catChip(catOf(inst),equipped),
@@ -1948,11 +2006,11 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
           st==='destroyed'?this.subTag(this.t('item_destroyed')):null),
         equippable?h('button',{onClick:(e)=>{e.stopPropagation();this.toggleEquip(inst);},
           style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,cursor:'pointer',whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',color:'rgb(169,171,175)'}}, equipped?(this.en()?'Unequip':'해제'):(this.en()?'Equip':'착용')):null),
-      h('div',{style:{display:'flex',alignItems:'center',gap:8,alignSelf:'stretch',flexWrap:'wrap'}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:8,alignSelf:'stretch',flexWrap:'wrap',marginTop:8}},
         h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:400,color:T.hi}}, name),
         inst.qty>1?h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid}}, '×'+inst.qty):null,
         (inst.sockets&&inst.sockets.length)?this.socketRow(inst,{size:9}):null),
-      desc?h('div',{style:{alignSelf:'stretch'}}, h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:1,WebkitBoxOrient:'vertical',overflow:'hidden',textOverflow:'ellipsis'}}, desc)):null);
+      desc?h('div',{style:{alignSelf:'stretch',marginTop:4}}, h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:1,WebkitBoxOrient:'vertical',overflow:'hidden',textOverflow:'ellipsis'}}, desc)):null);
   }
   // ---- equip helpers ----
   slotOf(inst){
@@ -2005,8 +2063,6 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
       if(it.EffectType==='heal'){ out.push([this.t('heal_hp'), (it.EffectValue?(N(it.EffectValue)):'—'), 'rgb(131,178,137)']); }
       else if(it.EffectType==='stamina'){ out.push([this.t('stamina_restore'), (it.EffectValue?(N(it.EffectValue)):'—'), 'rgb(193,158,111)']); }
       else { const eff={buff:this.t('item_effect_buff'),none:'—'}[it.EffectType]||it.EffectType; if(it.EffectType&&it.EffectType!=='none') out.push([this.t('item_effect'), eff+(it.EffectValue?(' +'+it.EffectValue):'')]); }
-      const consumable=it.EffectType==='heal'||it.EffectType==='stamina';
-      if(!consumable && N(it.SellPrice)) out.push([this.t('shop_sell_price'), N(it.SellPrice)+(' '+this.t('currency_sato'))]);
       if(N(it.MaxStack)>1) out.push([this.t('item_max_stack'), N(it.MaxStack)]);
     }
     return out;
@@ -2284,9 +2340,9 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const tc=String(v.TradeCategories||'').split(',').map(s=>s.trim());
     const catOf=(inst)=>{ if(inst.kind==='weapon')return 'Weapon'; if(inst.kind==='armor'){const a=this.eng.byId.armor[inst.id];return a?a.Category:'Body';} const it=this.eng.byId.item[inst.id]; return it?it.Category:''; };
     const match=(cat)=> tc.includes(cat) || ((cat==='Head'||cat==='Body')&&tc.includes('Armor'));
-    return [...this.gs.vault,...this.gs.bag].filter(inst=>match(catOf(inst)));
+    return [...this.gs.vault,...this.gs.bag].filter(inst=>match(catOf(inst)) && this.sellPrice(inst)>0);
   }
-  sellPrice(inst){ const it=this.eng.byId.item[inst.id]; return it?this.eng.N(it.SellPrice):0; }
+  sellPrice(inst){ const e=this.eng.byId; const it=e.weapon[inst.id]||e.armor[inst.id]||e.artifact[inst.id]||(e.liquor&&e.liquor[inst.id])||e.item[inst.id]; return it?this.eng.N(it.SellPrice):0; }
   sellItem(inst){ const p=this.sellPrice(inst); if(p<=0){this.flash(this.t('shop_no_sale'));return;} if(this.isEquipped(inst.uid)){this.flash(this.t('equip_worn_nosale'));return;}
     this.gs.sato+=p; const dec=(arr)=>{const i=arr.findIndex(x=>x.uid===inst.uid);if(i<0)return false; if((arr[i].qty||1)>1)arr[i].qty--; else arr.splice(i,1); return true;}; dec(this.gs.vault)||dec(this.gs.bag);
     this.flash(this.eng.anyName(inst.id)+(' '+this.t('frag_sell_plus'))+p); this.forceUpdate(); }
