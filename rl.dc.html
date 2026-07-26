@@ -49,6 +49,10 @@
   @keyframes rlInnerGlow{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
   @keyframes rlShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(120%)}}
   @keyframes rlLvlPop{0%{transform:scale(1)}35%{transform:scale(1.4)}100%{transform:scale(1)}}
+  @keyframes rlBossTell{0%,100%{box-shadow:inset 0 0 30px 4px rgba(196,60,50,0)}50%{box-shadow:inset 0 0 34px 7px rgba(196,60,50,.16)}}
+  @keyframes rlBossEdge{0%,100%{box-shadow:inset 0 0 0 1px rgba(196,60,50,.25),0 0 16px rgba(150,20,16,.12)}50%{box-shadow:inset 0 0 0 1.5px rgba(230,80,68,.48),0 0 26px rgba(180,26,20,.28)}}
+  @keyframes rlVigIn{0%{opacity:0}100%{opacity:1}}
+  @keyframes rlEdgeFlash{0%{opacity:0}14%{opacity:1}44%{opacity:.32}100%{opacity:.32}}
 </style>
 </helmet>
 <template id="__bundler_thumbnail">
@@ -831,11 +835,135 @@ class Component extends DCLogic {
     if(card.type==='user'){ c.pvp=card.bot; c.mProf=this.eng.coldProfile(card.bot); }
     else { const m=this.eng.byId.monster[card.id]; if(!m) return; c.pvp=null; c.mProf=this.eng.monsterProfile(m); }
     c.picked=c.cardFocus; c.flipped=true; this.forceUpdate(); }
+  mountPillar(el){ if(!el || el._glInit) return; el._glInit=true; try{ this._initPillar(el); }catch(e){} }
+  _initPillar(canvas){
+    var gl=null; try{ gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:false,antialias:false})||canvas.getContext('experimental-webgl'); }catch(e){ return; }
+    if(!gl) return;
+    var mobile=/Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test((navigator&&navigator.userAgent)||'');
+    var ITER=mobile?28:52, dpr=Math.min((window.devicePixelRatio||1), mobile?1.0:2), minMs=mobile?33:24;
+    var FRAG=`precision highp float;
+uniform float uTime;uniform vec2 uResolution;uniform vec3 uTopColor;uniform vec3 uBottomColor;uniform float uIntensity;uniform float uGlowAmount;uniform float uPillarWidth;uniform float uPillarHeight;uniform float uNoiseIntensity;uniform float uRotCos;uniform float uRotSin;uniform float uWaveSin;uniform float uWaveCos;uniform float uPRotC;uniform float uPRotS;
+varying vec2 vUv;
+const float STEP_MULT=1.2;const int MAX_ITER=${ITER};const int WAVE_ITER=3;
+vec3 tanhv(vec3 x){vec3 e=exp(2.0*x);return (e-1.0)/(e+1.0);}
+void main(){
+ vec2 uv=(vUv*2.0-1.0)*vec2(uResolution.x/uResolution.y,1.0);
+ uv=vec2(uPRotC*uv.x-uPRotS*uv.y,uPRotS*uv.x+uPRotC*uv.y);
+ vec3 ro=vec3(0.0,0.0,-10.0);vec3 rd=normalize(vec3(uv,1.0));
+ float rotC=uRotCos,rotS=uRotSin;vec3 col=vec3(0.0);float t=0.1;
+ for(int i=0;i<MAX_ITER;i++){
+  vec3 p=ro+rd*t;p.xz=vec2(rotC*p.x-rotS*p.z,rotS*p.x+rotC*p.z);
+  vec3 q=p;q.y=p.y*uPillarHeight+uTime;float freq=1.0,amp=1.0;
+  for(int j=0;j<WAVE_ITER;j++){q.xz=vec2(uWaveCos*q.x-uWaveSin*q.z,uWaveSin*q.x+uWaveCos*q.z);q+=cos(q.zxy*freq-uTime*float(j)*2.0)*amp;freq*=2.0;amp*=0.5;}
+  float d=length(cos(q.xz))-0.2;float bnd=length(p.xz)-uPillarWidth;float k=4.0;float hh=max(k-abs(d-bnd),0.0);d=max(d,bnd)+hh*hh*0.0625/k;d=abs(d)*0.15+0.01;
+  float grd=clamp((15.0-p.y)/30.0,0.0,1.0);col+=mix(uBottomColor,uTopColor,grd)/d;
+  t+=d*STEP_MULT;if(t>50.0)break;}
+ float wN=uPillarWidth/3.0;col=tanhv(col*uGlowAmount/wN);
+ col-=fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)/15.0*uNoiseIntensity;
+ gl_FragColor=vec4(col*uIntensity,1.0);}`;
+    var VERT='attribute vec2 p;varying vec2 vUv;void main(){vUv=p*0.5+0.5;gl_Position=vec4(p,0.0,1.0);}';
+    function mk(tp,s){var sh=gl.createShader(tp);gl.shaderSource(sh,s);gl.compileShader(sh);return gl.getShaderParameter(sh,gl.COMPILE_STATUS)?sh:null;}
+    var vs=mk(gl.VERTEX_SHADER,VERT), fs=mk(gl.FRAGMENT_SHADER,FRAG); if(!vs||!fs) return;
+    var prog=gl.createProgram();gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog,gl.LINK_STATUS)) return;
+    gl.useProgram(prog);
+    var b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+    var loc=gl.getAttribLocation(prog,'p');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+    var U={};['uTime','uResolution','uTopColor','uBottomColor','uIntensity','uGlowAmount','uPillarWidth','uPillarHeight','uNoiseIntensity','uRotCos','uRotSin','uWaveSin','uWaveCos','uPRotC','uPRotS'].forEach(function(n){U[n]=gl.getUniformLocation(prog,n);});
+    var wS=Math.sin(0.4),wC=Math.cos(0.4),TOP=[0.918,0.702,0.031],BOT=[0.976,0.322,0.086],time=0,raf=0,last=0;
+    var CFG={intensity:0.2,glow:0.005,pillarWidth:5.0,pillarHeight:0.4,noise:0.5,rotSpeed:0.45,rotDeg:30};
+    var pRotR=CFG.rotDeg*Math.PI/180, pRotC=Math.cos(pRotR), pRotS=Math.sin(pRotR);
+    function size(){var w=canvas.clientWidth||342,hh=canvas.clientHeight||190;canvas.width=Math.max(1,Math.round(w*dpr));canvas.height=Math.max(1,Math.round(hh*dpr));gl.viewport(0,0,canvas.width,canvas.height);}
+    size();
+    function frame(now){
+      if(!canvas.isConnected){ try{cancelAnimationFrame(raf);var ext=gl.getExtension('WEBGL_lose_context');if(ext)ext.loseContext();}catch(_){} return; }
+      raf=requestAnimationFrame(frame);
+      if(now-last<minMs) return; last=now;
+      if(canvas.clientWidth>0 && canvas.width!==Math.round(canvas.clientWidth*dpr)) size();
+      time+=0.016*CFG.rotSpeed;
+      gl.uniform1f(U.uTime,time);gl.uniform2f(U.uResolution,canvas.width,canvas.height);
+      gl.uniform3fv(U.uTopColor,TOP);gl.uniform3fv(U.uBottomColor,BOT);
+      gl.uniform1f(U.uIntensity,CFG.intensity);gl.uniform1f(U.uGlowAmount,CFG.glow);gl.uniform1f(U.uPillarWidth,CFG.pillarWidth);gl.uniform1f(U.uPillarHeight,CFG.pillarHeight);gl.uniform1f(U.uNoiseIntensity,CFG.noise);
+      gl.uniform1f(U.uRotCos,Math.cos(time*0.3));gl.uniform1f(U.uRotSin,Math.sin(time*0.3));gl.uniform1f(U.uWaveSin,wS);gl.uniform1f(U.uWaveCos,wC);
+      gl.uniform1f(U.uPRotC,pRotC);gl.uniform1f(U.uPRotS,pRotS);
+      gl.drawArrays(gl.TRIANGLES,0,3);
+    }
+    raf=requestAnimationFrame(frame);
+  }
+  mountBurst(el){ if(!el || el._glInit) return; el._glInit=true; try{ this._initBurst(el); }catch(e){} }
+  _initBurst(canvas){
+    var gl=null; try{ gl=canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:false,antialias:false}); }catch(e){ return; }
+    if(!gl) return;
+    var mobile=/Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test((navigator&&navigator.userAgent)||'');
+    var STEPS=mobile?30:44, dpr=Math.min((window.devicePixelRatio||1), mobile?1.0:2), minMs=mobile?33:24;
+    var VERT='#version 300 es\nin vec2 position;\nvoid main(){gl_Position=vec4(position,0.0,1.0);}';
+    var FRAG=`#version 300 es
+precision highp float;precision highp int;
+out vec4 fragColor;
+uniform vec2 uResolution;uniform float uTime;uniform float uIntensity;uniform float uSpeed;uniform int uAnimType;uniform int uColorCount;uniform float uDistort;uniform vec2 uOffset;uniform sampler2D uGradient;uniform float uNoiseAmount;uniform int uRayCount;
+float hash21(vec2 p){p=floor(p);float f=52.9829189*fract(dot(p,vec2(0.065,0.005)));return fract(f);}
+mat2 rot30(){return mat2(0.8,-0.5,0.5,0.8);}
+float layeredNoise(vec2 fp){vec2 p=mod(fp+vec2(uTime*30.0,-uTime*21.0),1024.0);vec2 q=rot30()*p;float n=0.0;n+=0.40*hash21(q);n+=0.25*hash21(q*2.0+17.0);n+=0.20*hash21(q*4.0+47.0);n+=0.10*hash21(q*8.0+113.0);n+=0.05*hash21(q*16.0+191.0);return n;}
+vec3 rayDir(vec2 f,vec2 r,vec2 o,float d){float fo=r.y*max(d,1e-3);return normalize(vec3(2.0*(f-o)-r,fo));}
+float edgeFade(vec2 f,vec2 r,vec2 o){vec2 t=f-0.5*r-o;float rr=length(t)/(0.5*min(r.x,r.y));float x=clamp(rr,0.0,1.0);float q=x*x*x*(x*(x*6.0-15.0)+10.0);float s=q*0.5;s=pow(s,1.5);float tl=1.0-pow(1.0-s,2.0);s=mix(s,tl,0.2);float dn=(layeredNoise(f*0.15)-0.5)*0.0015*s;return clamp(s+dn,0.0,1.0);}
+mat3 rotX(float a){float c=cos(a),s=sin(a);return mat3(1.0,0.0,0.0,0.0,c,-s,0.0,s,c);}
+mat3 rotY(float a){float c=cos(a),s=sin(a);return mat3(c,0.0,s,0.0,1.0,0.0,-s,0.0,c);}
+mat3 rotZ(float a){float c=cos(a),s=sin(a);return mat3(c,-s,0.0,s,c,0.0,0.0,0.0,1.0);}
+vec3 sampleGradient(float t){t=clamp(t,0.0,1.0);return texture(uGradient,vec2(t,0.5)).rgb;}
+vec2 rot2(vec2 v,float a){float s=sin(a),c=cos(a);return mat2(c,-s,s,c)*v;}
+float bendAngle(vec3 q,float t){return 0.8*sin(q.x*0.55+t*0.6)+0.7*sin(q.y*0.50-t*0.5)+0.6*sin(q.z*0.60+t*0.7);}
+void main(){vec2 frag=gl_FragCoord.xy;float t=uTime*uSpeed;float ja=0.1*clamp(uNoiseAmount,0.0,1.0);vec3 dir=rayDir(frag,uResolution,uOffset,1.0);float mT=0.0;vec3 col=vec3(0.0);float n=layeredNoise(frag);vec4 c=cos(t*0.2+vec4(0.0,33.0,11.0,0.0));mat2 M2=mat2(c.x,c.y,c.z,c.w);float amp=clamp(uDistort,0.0,50.0)*0.15;mat3 R=mat3(1.0);if(uAnimType==1){vec3 a=vec3(t*0.31,t*0.21,t*0.17);R=rotZ(a.z)*rotY(a.y)*rotX(a.x);}
+for(int i=0;i<${STEPS};++i){vec3 P=mT*dir;P.z-=2.0;float rad=length(P);vec3 Pl=P*(10.0/max(rad,1e-6));if(uAnimType==0){Pl.xz*=M2;}else{Pl=R*Pl;}float sl=min(rad-0.3,n*ja)+0.1;float gw=smoothstep(0.35,3.0,mT);float a1=amp*gw*bendAngle(Pl*0.6,t);float a2=0.5*amp*gw*bendAngle(Pl.zyx*0.5+3.1,t*0.9);vec3 Pb=Pl;Pb.xz=rot2(Pb.xz,a1);Pb.xy=rot2(Pb.xy,a2);float rp=smoothstep(0.5,0.7,sin(Pb.x+cos(Pb.y)*cos(Pb.z))*sin(Pb.z+sin(Pb.y)*cos(Pb.x+t)));if(uRayCount>0){float an=atan(Pb.y,Pb.x);float cb=0.5+0.5*cos(float(uRayCount)*an);cb=pow(cb,3.0);rp*=smoothstep(0.15,0.95,cb);}float saw=fract(mT*0.25);float tRay=saw*saw*(3.0-2.0*saw);vec3 ug=2.0*sampleGradient(tRay);vec3 sd=1.0+vec3(cos(mT*3.0),cos(mT*3.0+1.0),cos(mT*3.0+2.0));vec3 sp=(uColorCount>0)?ug:sd;vec3 base=(0.05/(0.4+sl))*smoothstep(5.0,0.0,rad)*sp;col+=base*rp;mT+=sl;}
+col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col,0.0,1.0),1.0);}`;
+    function mk(tp,s){var sh=gl.createShader(tp);gl.shaderSource(sh,s);gl.compileShader(sh);return gl.getShaderParameter(sh,gl.COMPILE_STATUS)?sh:null;}
+    var vs=mk(gl.VERTEX_SHADER,VERT), fs=mk(gl.FRAGMENT_SHADER,FRAG); if(!vs||!fs) return;
+    var prog=gl.createProgram();gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog,gl.LINK_STATUS)) return;
+    gl.useProgram(prog);
+    var vao=gl.createVertexArray();gl.bindVertexArray(vao);
+    var b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+    var loc=gl.getAttribLocation(prog,'position');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+    var U={};['uResolution','uTime','uIntensity','uSpeed','uAnimType','uColorCount','uDistort','uOffset','uGradient','uNoiseAmount','uRayCount'].forEach(function(n){U[n]=gl.getUniformLocation(prog,n);});
+    var COLS=['#3a1f45','#7a3d8f','#B27EAD','#efd9ec'];
+    var data=new Uint8Array(COLS.length*4);
+    for(var i=0;i<COLS.length;i++){var v=parseInt(COLS[i].replace('#',''),16);data[i*4]=(v>>16)&255;data[i*4+1]=(v>>8)&255;data[i*4+2]=v&255;data[i*4+3]=255;}
+    var tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,COLS.length,1,0,gl.RGBA,gl.UNSIGNED_BYTE,data);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    var CFG={intensity:1.6,speed:0.5,animType:1,distort:1.0,noise:0.8,rayCount:24};
+    var t0=null,last=0,raf=0;
+    function size(){var w=canvas.clientWidth||342,hh=canvas.clientHeight||190;canvas.width=Math.max(1,Math.round(w*dpr));canvas.height=Math.max(1,Math.round(hh*dpr));}
+    size();
+    function frame(now){
+      if(!canvas.isConnected){ try{cancelAnimationFrame(raf);var ext=gl.getExtension('WEBGL_lose_context');if(ext)ext.loseContext();}catch(_){} return; }
+      raf=requestAnimationFrame(frame);
+      if(now-last<minMs) return; last=now;
+      if(t0===null) t0=now;
+      if(canvas.clientWidth>0 && canvas.width!==Math.round(canvas.clientWidth*dpr)) size();
+      gl.useProgram(prog);gl.bindVertexArray(vao);gl.viewport(0,0,canvas.width,canvas.height);
+      gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform1i(U.uGradient,0);
+      gl.uniform2f(U.uResolution,canvas.width,canvas.height);gl.uniform1f(U.uTime,(now-t0)*0.001);
+      gl.uniform1f(U.uIntensity,CFG.intensity);gl.uniform1f(U.uSpeed,CFG.speed);gl.uniform1i(U.uAnimType,CFG.animType);
+      gl.uniform1i(U.uColorCount,COLS.length);gl.uniform1f(U.uDistort,CFG.distort);gl.uniform2f(U.uOffset,0,0);
+      gl.uniform1f(U.uNoiseAmount,CFG.noise);gl.uniform1i(U.uRayCount,CFG.rayCount);
+      gl.drawArrays(gl.TRIANGLES,0,3);
+    }
+    raf=requestAnimationFrame(frame);
+  }
   monsterFront(m,fixed){
     const md=this.eng.byId.monster[m.id]||{};
+    const isBoss=String(m.grade||'').toLowerCase()==='boss';
     const artUrl='assets/art/monsters/'+m.id+'.jpg';
     const artP=fixed?{height:190,flexShrink:0}:{flex:'1 1 auto',minHeight:60};
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', MID='rgb(169,171,175)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', HPC='rgb(196,103,93)';
+    const GRADECOL={common:HI, rare:'#83B289', unique:'#7CA5BB', special:'#B27EAD', boss:'#D6BB79'};
+    const gk=String(m.grade||'').toLowerCase();
+    const gcol=GRADECOL[gk]||HI;
+    // 등급 리빌: 비네트 강도(등급색에 알파를 굽고 opacity 0→1 페이드) · 캐러셀(!fixed)에서만
+    const VIGA={rare:0.16, unique:0.3, special:0.3};
+    const rgba=(hex,a)=>{const v=parseInt(String(hex).replace('#',''),16);return 'rgba('+((v>>16)&255)+','+((v>>8)&255)+','+(v&255)+','+a+')';};
+    const fx=!fixed && gk!=='common';
+    const isSpecial=gk==='special';
     const attrCol=AT(m.attribute)?((ATTR[m.attribute]&&ATTR[m.attribute].c)||'rgb(124,165,187)'):HI;
     const stats=[
       [this.t('stat_atk'), Math.round(m.minAtk)+'~'+Math.round(m.maxAtk), HI],
@@ -853,16 +981,26 @@ class Component extends DCLogic {
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:LO,whiteSpace:'nowrap'}}, k),
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:vc||HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
     const desc=md.Description?this.tx(md,'Description'):(this.tx(md,'Flavor')||'');
-    return h('div',{style:{width:342,height:fixed?'auto':'min(473px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
+    return h('div',{style:{position:'relative',width:342,height:fixed?'auto':'min(473px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
+      (isBoss&&!fixed)? h('canvas',{key:'pillar',ref:el=>this.mountPillar(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:5,pointerEvents:'none',mixBlendMode:'screen'}}):null,
+      // 등급 비네트(카드 전체) — 보스는 레드, 그 외는 등급색
+      fx? h('div',{key:'gvig',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,borderRadius:8,
+        boxShadow:isBoss?'inset 0 0 48px 13px rgba(150,20,16,.6)':('inset 0 0 30px 7px '+rgba(gcol,VIGA[gk]||0.16)),
+        animation:'rlVigIn .7s ease-out forwards'}}):null,
+      // 등급 테두리(카드 전체) — 보스는 붉은 심박 무한, 그 외는 플래시 1회 후 유지
+      fx? h('div',{key:'gedge',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:7,borderRadius:8,
+        boxShadow:isBoss?undefined:('inset 0 0 0 1px '+gcol+', 0 0 13px -2px '+gcol),
+        animation:isBoss?'rlBossEdge 3.8s ease-in-out infinite':'rlEdgeFlash .9s ease-out forwards'}}):null,
       // ART 190
       h('div',{style:{position:'relative',...artP,alignSelf:'stretch',background:ART}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
         h('img',{src:artUrl,onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}),
-        h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
-        h('div',{style:{position:'absolute',right:17,top:12,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'4px 8px'}},
-          h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',marginRight:'-1.33px',color:HI,whiteSpace:'nowrap'}}, String(m.grade||'UNIQUE').toUpperCase())),
-        h('span',{style:{position:'absolute',left:14,bottom:14,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, md.Category||''),
-        h('span',{style:{position:'absolute',right:15,bottom:15,fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:SUB,whiteSpace:'nowrap'}}, 'STA −'+m.staminaCost+' · '+this.t('combat_time_limit')+' '+m.timeLimit+'s')),
+        (isSpecial&&!fixed)? h('canvas',{key:'burst',ref:el=>this.mountBurst(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:2,pointerEvents:'none',mixBlendMode:'lighten'}}):null,
+        h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,zIndex:3,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
+        h('div',{style:{position:'absolute',right:17,top:12,zIndex:4,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid '+(gcol===HI?'rgba(222,222,222,0.18)':gcol),display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'4px 8px',animation:fx?'rlLvlPop .5s cubic-bezier(.2,.8,.2,1)':'none'}},
+          h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',marginRight:'-1.33px',color:gcol,whiteSpace:'nowrap'}}, String(m.grade||'UNIQUE').toUpperCase())),
+        h('span',{style:{position:'absolute',left:14,bottom:14,zIndex:4,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, md.Category||''),
+        h('span',{style:{position:'absolute',right:15,bottom:15,zIndex:4,fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:SUB,whiteSpace:'nowrap'}}, 'STA −'+m.staminaCost+' · '+this.t('combat_time_limit')+' '+m.timeLimit+'s')),
       // BODY 214
       h('div',{style:{height:245,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
         h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0}}, h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, m.name)),
@@ -974,10 +1112,12 @@ class Component extends DCLogic {
           h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.2px',color:'rgb(111,114,118)',lineHeight:'100%'}}, 'ENCOUNTER · '+zoneName+' · '+(this.en()?('Encounter #'+(c.encounter+1)):((c.encounter+1)+'전 조우'))))),
       h('div',{onPointerDown:(e)=>{this._sx=e.clientX;this._moved=false;},onPointerMove:(e)=>{if(this._sx!=null&&Math.abs(e.clientX-this._sx)>8)this._moved=true;},onPointerUp:(e)=>{if(this._sx==null)return;const dx=e.clientX-this._sx;this._sx=null;if(this.combat.flipped)return;if(Math.abs(dx)>30){ if(dx<0)this.focusCard(Math.min(this.combat.cards.length-1,this.combat.cardFocus+1)); else this.focusCard(Math.max(0,this.combat.cardFocus-1)); }},style:{flex:1,position:'relative',overflow:'hidden'}},
         c.cards.map((id,i)=>{ const off=i-c.cardFocus, abs=Math.abs(off); const isCenter=off===0; const x=off*250, s=isCenter?1:0.9; let o=isCenter?1:0.5; if(flipped&&!isCenter) o=0; const rot=(flipped&&isCenter)?180:0;
+              const cbm=(id&&id.type==='monster')?this.eng.byId.monster[id.id]:null; const isBossBack=!!(cbm&&String(cbm.Grade||'').toLowerCase()==='boss');
               return h('div',{key:i,onClick:()=>{ if(this._moved||flipped) return; isCenter?this.flipCenter():this.focusCard(i); },
                 style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(473px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isCenter?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',perspective:'1200px',pointerEvents:(flipped&&!isCenter)?'none':'auto'}},
                 h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
-                  h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 8px, oklch(0.235 0.008 264) 8px 9px)',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
+                  h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 8px, oklch(0.235 0.008 264) 8px 9px)',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}},
+                    isBossBack? h('div',{style:{position:'absolute',inset:0,pointerEvents:'none',borderRadius:8,animation:'rlBossTell 5.5s ease-in-out infinite'}}):null),
                   isCenter? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'hidden'}}, flipped?(c.pvp?this.userFront(c.mProf):this.monsterFront(c.mProf)):null):null)); })),
       h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 12px'}}, ...c.cards.map((id,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===c.cardFocus?'rgb(169,171,175)':'rgb(43,46,50)'}}))),
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
