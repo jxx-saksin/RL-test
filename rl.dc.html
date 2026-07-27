@@ -1700,6 +1700,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
   }
   runGrowthSeq(el){
     if(!el || el._seq) return; el._seq=1;
+    this._growthEl=el; this._resAnimating=true; this._resSkip=false;   // 스킵 제어: 연출 진행 중 플래그
     const rows=[...el.querySelectorAll('[data-grow]')].filter(r=>r.getAttribute('data-gain')==='1');  // 성장 안 한 스탯은 스킵(정적 표시)
     // 성장 스탯: 시작 상태(전투 전)로 리셋
     rows.forEach(r=>{
@@ -1712,6 +1713,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const easeOut=t=>1-Math.pow(1-t,4);   // 뒤로 갈수록 느려짐
     let i=0;
     const runOne=()=>{
+      if(this._resSkip) return;
       if(i>=rows.length){ this.runSatoCount(el); return; }
       const row=rows[i];
       const num=row.querySelector('[data-num]'), box=row.querySelector('[data-lvlbox]'), fill=row.querySelector('[data-fill]'), shim=row.querySelector('[data-shimmer]');
@@ -1722,6 +1724,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
       if(shim) shim.style.animation='rlShimmer 1.4s linear infinite';
       let lastLv=fromLv; const dur=2000; let st=null;
       const tick=now=>{
+        if(this._resSkip) return;
         if(st==null)st=now;
         const t=Math.min(1,(now-st)/dur), f=easeOut(t);
         let level=fromLv, p=fromP+span*f;
@@ -1777,7 +1780,8 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
   }
   runSatoCount(statEl){
     const box = statEl && statEl.parentNode && statEl.parentNode.querySelector('[data-sato]');
-    if(!box || box._sato) return; box._sato=1;
+    if(!box){ this._resAnimating=false; return; }   // 사토 보상 없음 → 연출 종료
+    if(box._sato) return; box._sato=1;
     const gain=parseInt(box.getAttribute('data-gain'),10)||0, before=parseInt(box.getAttribute('data-before'),10)||0;
     const num=box.querySelector('[data-satonum]'), wal=box.querySelector('[data-satowallet]'), halo=box.querySelector('[data-satohalo]');
     box.style.boxShadow='inset 0 0 0 1px oklch(0.740 0.055 224 / .5)';
@@ -1785,6 +1789,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const easeOut=t=>1-Math.pow(1-t,4);
     let st=null; const dur=2500;
     const tick=now=>{
+      if(this._resSkip) return;
       if(st==null)st=now;
       const t=Math.min(1,(now-st)/dur), f=easeOut(t), v=Math.round(gain*f);
       if(num) num.textContent=v.toLocaleString();
@@ -1794,9 +1799,37 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
         if(num){ num.textContent=gain.toLocaleString(); num.style.transition='transform .16s ease-out'; num.style.transform='scale(1.14)';
           setTimeout(()=>{ num.style.transition='transform .34s cubic-bezier(.2,.85,.2,1)'; num.style.transform='scale(1)'; },170); }
         if(wal) wal.textContent=(before+gain).toLocaleString();
+        this._resAnimating=false;   // 연출 자연 종료 → 다음 클릭은 안전가옥 이동
       }
     };
     requestAnimationFrame(tick);
+  }
+  // 안전가옥으로 1번째 클릭: 성장·사토 연출을 즉시 최종값으로 확정 (forceUpdate 없이 명령형 — 사토 기본 렌더는 0이라)
+  skipResultAnim(){
+    this._resSkip=true;
+    const el=this._growthEl;
+    if(el){
+      el.querySelectorAll('[data-grow]').forEach(r=>{
+        if(r.getAttribute('data-gain')!=='1') return;
+        const num=r.querySelector('[data-num]'), box=r.querySelector('[data-lvlbox]'), fill=r.querySelector('[data-fill]'), shim=r.querySelector('[data-shimmer]');
+        const toLv=r.getAttribute('data-tl'), toP=parseFloat(r.getAttribute('data-tp'))||0;
+        if(num){ num.textContent=toP.toFixed(2)+'%'; num.style.transition=''; num.style.transform='scale(1)'; }
+        if(box) box.textContent=String(toLv);
+        if(fill) fill.style.width=toP+'%';
+        if(shim) shim.style.animation='';
+      });
+      const sbox=el.parentNode&&el.parentNode.querySelector('[data-sato]');
+      if(sbox){
+        sbox._sato=1;
+        const gain=parseInt(sbox.getAttribute('data-gain'),10)||0, before=parseInt(sbox.getAttribute('data-before'),10)||0;
+        const num=sbox.querySelector('[data-satonum]'), wal=sbox.querySelector('[data-satowallet]'), halo=sbox.querySelector('[data-satohalo]');
+        if(num){ num.textContent=gain.toLocaleString(); num.style.transition=''; num.style.transform='scale(1)'; }
+        if(wal) wal.textContent=(before+gain).toLocaleString();
+        if(halo) halo.style.opacity='1';
+        sbox.style.boxShadow='inset 0 0 0 1px oklch(0.740 0.055 224 / .5)';
+      }
+    }
+    this._resAnimating=false;
   }
   result(){
     const c=this.combat; const death=c.result==='death';
@@ -1827,8 +1860,8 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
           this.resultGrowth(),
           this.resultSato()),
         h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
-          h('div',{style:{background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16}},
-            h('button',{onClick:()=>this.toSafehouse(),style:{width:'100%',height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid rgb(74,77,83)',background:'transparent',color:'rgb(169,171,175)',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.en()?'To Safehouse':'안전가옥으로'))));
+          h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
+            h('button',{onClick:()=>{ if(this._resAnimating) this.skipResultAnim(); else this.toSafehouse(); },style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'To Safehouse':'안전가옥으로'))));
     }
     // loot 카드 개봉 — 전투 진입 몬스터 카드 화면과 동일 (성장 정보 없음)
     const focus=c.lootFocusIdx||0;
@@ -1927,7 +1960,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:col||(v===UNW?UNC:HI),textAlign:'right',whiteSpace:'nowrap'}}, v));
     const secLabel=(t)=>h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:MUT}}, t);
     const nRows=Math.max(1,Math.ceil(stats.length/2));
-    return h('div',{style:{width:342,height:fixed?this.lootCardH(inst):'100%',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
+    return h('div',{style:{width:342,height:fixed==='fit'?'auto':(fixed?this.lootCardH(inst):'100%'),minHeight:fixed==='fit'?460:'auto',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
       // ART 190
       h('div',{style:{position:'relative',...artP,alignSelf:'stretch',background:md?md.HexCode:ART}},
         md?null:h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
@@ -1956,9 +1989,9 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
           return h('div',{key:i,style:{height:33,boxSizing:'border-box',borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'6px 0 11px',justifyContent:'space-between',alignItems:'flex-start'}},
             h('span',{style:{whiteSpace:'nowrap'}}, h('span',{style:{fontFamily:T.mono,fontSize:11.5,fontWeight:500,lineHeight:'100%',color:LO}}, this.t('socket_label')), h('span',{style:{fontFamily:T.mono,fontSize:11.5,lineHeight:'100%',color:sk?MID:MUT}}, '  '+(sk?this.eng.tr(mo,'ColorName'):this.t('common_empty')))),
             h('span',{style:{fontFamily:T.mono,fontSize:11.5,lineHeight:'100%',color:HI,textAlign:'right',whiteSpace:'nowrap'}}, sk?(this.eng.tr(mo,'TargetStat')+' +'+sk.value):'-')); })):null,
-        h('div',{style:{flexGrow:1,minHeight:12}})),
+        h('div',{style:{flexGrow:1,minHeight:0}})),
       // FOOTER — 장비만 (소모품/정크/모듈/술은 설명이 제목 아래로 이동)
-      isGear?h('div',{style:{alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px 12px',display:'flex',alignItems:'flex-start'}},
+      isGear?h('div',{style:{alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'3px 15px 16px',display:'flex',alignItems:'flex-start'}},
         h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:1.5,color:desc?SUB:MUT,maxWidth:'100%'}}, desc||this.t('item_desc_label'))):null);
   }
   catKey(cat){ const map={Weapon:'item_slot_weapon',Head:'item_head',Body:'item_body',Medicine:'item_medicine',Food:'item_food',Junk:'item_junk',Quest:'item_quest',Key:'item_key',Artifact:'item_artifact',USB:'usb_decode',Material:'item_material_type'}; return map[cat]||cat; }
@@ -2102,7 +2135,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     return h('div',{onClick:()=>this.setState({sel:null,moveQty:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
       // 업데이트된 카드 (전리품 카드와 동일)
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig(inst,true))),
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig(inst,'fit'))),
       // 하단 액션 박스 (아이템 카테고리별 버튼 구성)
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
         isConsum?h('div',{style:{display:'flex',gap:5,marginBottom:16}}, h('div',{style:{flex:1}},this.fbar(this.t('stat_hp'),this.gs.hp,this.gs.maxHp,'#ae615c')), h('div',{style:{flex:1}},this.fbar(this.t('stat_stamina'),this.gs.sta,this.staMax,'#c19e6f'))):null,
@@ -2195,17 +2228,18 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
               h('div',{style:{height:6,flex:1,borderRadius:999,overflow:'hidden',background:T.s3}}, h('div',{style:{height:'100%',borderRadius:999,background:st==='destroyed'?T.danger:st==='broken'?T.warn:'rgb(165,172,178)',width:(inst.maxDur?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0)+'%'}})),
               h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid,flex:'0 0 auto'}}, this.durTxt(inst)))); })),
       h('div',{style:{flex:'0 0 auto',padding:'6px 16px 22px'}},
-        h('button',{onClick:()=>this.go('character'),style:{width:'100%',height:48,boxSizing:'border-box',background:'#18191d',border:'1px solid #4A4D53',borderRadius:999,color:'#A9ABAF',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.en()?'Back':'뒤로')));
+        h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
+          h('button',{onClick:()=>this.go('character'),style:{width:'100%',height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'Back':'뒤로'))));
   }
   equipCardModal(){
     const inst=this.eng.instById(this.gs,this.state.equipCard); if(!inst) return null;
     const close=()=>this.setState({equipCard:null});
     return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig(inst,true))),
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig(inst,'fit'))),
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',padding:'0 16px 22px'}},
-        h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:8,padding:'15px 13px'}},
-          h('button',{onClick:close,style:{width:'100%',height:51,boxSizing:'border-box',background:'transparent',border:'1px solid #4A4D53',borderRadius:4,color:'#A9ABAF',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.t('btn_confirm')))));
+        h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
+          h('button',{onClick:close,style:{width:'100%',height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_confirm')))));
   }
 
   // ---- shop (clinic) ----
@@ -2234,9 +2268,13 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
   repairables(){ return [...this.gs.bag, ...this.gs.vault].filter(i=>(i.kind==='weapon'||i.kind==='armor') && this.eng.N(i.maxDur)>0 && (this.eng.N(i.maxDur)-this.eng.N(i.dur))>0).sort((a,b)=>((b.maxDur-b.dur)-(a.maxDur-a.dur))); }
   durBar(inst){ const pct=inst.maxDur>0?Math.max(0,Math.min(100,(inst.dur/inst.maxDur)*100)):0; const st=this.eng.itemState(inst); const col=st==='destroyed'?T.danger:st==='broken'?T.warn:(pct<35?T.warn:T.dur);
     return h('div',{style:{height:5,background:T.s3,borderRadius:1,overflow:'hidden',marginTop:6}}, h('div',{style:{width:pct+'%',height:'100%',background:col}})); }
-  doRepair(inst){ const fromDur=this.eng.N(inst.dur); const r=this.eng.repair(this.gs,inst);
+  doRepair(inst){ if(this._rcvAnim) return; const fromDur=this.eng.N(inst.dur); const r=this.eng.repair(this.gs,inst);
     if(!r.ok){ this.flash(r.reason==='sato'?this.t('shop_insufficient_sato'):r.reason==='full'?this.t('repair_not_needed'):this.t('item_destroyed_norepair')); this.setState({repairSel:null}); return; }
-    this.setState({repairSel:null, repairResult:{ name:this.itemLabel(inst), cost:r.cost, restored:r.restored, fails:r.fails, maxLoss:r.maxLoss, dur:r.dur, maxDur:r.maxDur, fromDur }}); this.forceUpdate(); }
+    const result={ name:this.itemLabel(inst), cost:r.cost, restored:r.restored, fails:r.fails, maxLoss:r.maxLoss, dur:r.dur, maxDur:r.maxDur, fromDur };
+    // 체력·스태미너 회복과 동일 연출: 확인 시트의 내구도 게이지를 차오르게 한 뒤 결과 시트 오픈
+    this._rcvAnim=true;
+    this.animRecover(this._repFill,this._repNum,this._repBar,fromDur,r.dur,r.maxDur).then(()=>{
+      this._rcvAnim=false; this.setState({repairSel:null, repairResult:result}); this.forceUpdate(); this.saveGame(); }); }
   repairResultModal(){
     const r=this.state.repairResult; if(!r) return null;
     const failed=r.fails>0;
@@ -2245,15 +2283,18 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const row=(k,v,col,last)=>h('div',{key:k,style:{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:last?'none':'1px solid '+T.line}}, h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}},k), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col||T.hi}},v));
     const failedDur = failed? ('−'+r.maxLoss) : '0';
     return h('div',{onClick:()=>this.setState({repairResult:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.66)',display:'flex',alignItems:'flex-end',zIndex:36,animation:'rlFade .18s'}},
-      h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:8,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
+      h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:'24px 16px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.06em',color:failed?'#c4675d':'#83b289',marginBottom:5}}, this.en()?(failed?'REPAIR FAILED':'REPAIR DONE'):(failed?'수리 실패':'수리 완료')),
-        h('div',{style:{fontFamily:T.sans,fontSize:19,fontWeight:400,color:'#eaebee',marginBottom:16}}, r.name),
+        h('div',{style:{fontFamily:T.sans,fontSize:16,fontWeight:400,color:'#eaebee',marginBottom:16}}, r.name),
         this.fbar(this.t('item_durability'), r.dur, r.maxDur, failed?'#c4675d':'#83b289'),
         h('div',{style:{marginTop:16,marginBottom:16}},
           this.frow(this.en()?'Failed durability':'실패한 내구도', failedDur, failed?'#c4675d':'#a9abaf', false),
           this.frow(this.t('repair_restored_dur'), '+'+r.restored, '#83b289', true),
           this.frow(this.en()?'Paid':'지불 비용', r.cost.toLocaleString()+' '+this.t('currency_sato'), '#85b3c5', true)),
-        h('div',{style:{display:'flex'}}, this.fbtn(this.t('btn_confirm'),'#eaebee',()=>this.setState({repairResult:null})))));
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:'#1a1b21',borderRadius:16,padding:'10px 12px',marginBottom:16}},
+          icInfo(18,'#6f7276',1.7),
+          h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#6f7276',lineHeight:1.4}}, this.en()?(failed?'The repair failed.':'The repair is complete.'):(failed?'수리에 실패했습니다.':'수리가 완료되었습니다.'))),
+        h('button',{onClick:()=>this.setState({repairResult:null}),style:{width:'100%',height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color:'#eaebee',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_confirm'))));
   }
   repairScreen(){
     const list=this.repairables();
@@ -2266,7 +2307,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
         h('div',{style:{display:'flex',alignItems:'center',gap:7,background:T.s2,border:'1px solid '+T.line,borderRadius:3,padding:'5px 10px',flex:'0 0 auto'}}, this.chip('SATO',T.sato), h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:14,color:T.hi}}, this.gs.sato.toLocaleString()))),
       
       h('div',{style:{flex:1,overflowY:'auto',padding:'8px 0 20px'}},
-        list.length? h('div',{style:{padding:'0 16px'}}, ...list.map((inst,i)=>this.repairRow(inst,i))) : this.repairEmpty()));
+        list.length? h('div',{style:{padding:'16px 16px 0',display:'flex',flexDirection:'column',gap:16}}, ...list.map((inst,i)=>this.repairRow(inst,i))) : this.repairEmpty()));
   }
   fchip(label,color,border,dot){ return h('div',{style:{display:'flex',alignItems:'center',gap:5,background:'#212327',border:'1px solid '+border,borderRadius:4,padding:'3px 7px',boxSizing:'border-box'}}, dot?h('div',{style:{width:5,height:5,borderRadius:999,background:color,flexShrink:0}}):null, h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color}},label)); }
   emptyRow(text){ return h('div',{style:{display:'flex',justifyContent:'center',alignItems:'center',gap:6,padding:'20px 8px'}},
@@ -2275,15 +2316,16 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
   repairEmpty(){ return this.emptyRow(this.t('repair_none')); }
   repairRow(inst,i){
     const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||{};
-    const cost=this.eng.repairCostPreview(inst); const eqp=this.isEquipped(inst.uid);
+    const eqp=this.isEquipped(inst.uid);
     const at=AT(src.Attribute); const pct=inst.maxDur>0?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0;
-    return h('div',{key:inst.uid,onClick:()=>this.setState({repairSel:inst.uid}),style:{padding:'16px 0',borderTop:i>0?'1px solid #36383c':'none',cursor:'pointer',display:'flex',flexDirection:'column',gap:8,alignSelf:'stretch'}},
+    const GKR={str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')};
+    const gtags=this.eng.growthTagsActive(inst)||[];
+    return h('div',{key:inst.uid,onClick:()=>this.setState({repairSel:inst.uid}),style:{background:'#18191d',border:'1px solid #36383c',borderRadius:8,padding:'14px 15px',cursor:'pointer',display:'flex',flexDirection:'column',gap:10,alignSelf:'stretch'}},
       h('div',{style:{display:'flex',alignItems:'center',gap:4,flexWrap:'wrap'}},
         this.fchip(CATKR[src.Category]||src.Category||'', eqp?'#83b289':'#a9abaf', eqp?'#83b289':'#36383c', true),
-        at?this.fchip(at.kr,'#a9abaf','#36383c',false):null),
-      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
-        h('span',{style:{fontFamily:T.sans,fontSize:14,color:'#eaebee'}}, this.itemLabel(inst)),
-        h('span',{style:{fontFamily:T.mono,fontSize:14,color:'#85b3c5'}}, cost.toLocaleString()+' '+this.t('currency_sato'))),
+        at?this.fchip(at.kr,'#a9abaf','#36383c',false):null,
+        ...gtags.map(tg=>this.fchip(GKR[tg]||tg,'#a9abaf','#36383c',false))),
+      h('span',{style:{fontFamily:T.sans,fontSize:14,color:'#eaebee'}}, this.itemLabel(inst)),
       h('div',null,
         h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}},
           h('span',{style:{fontFamily:T.mono,fontSize:11,color:'#6f7276'}}, this.t('item_durability')),
@@ -2296,19 +2338,26 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const p=Math.round(this.eng.N(this.eng.DATA.config.repair_fail_chance_per_point,0.06)*100); const expFail=worn*p/100; const aff=this.gs.sato>=cost; const successPct=Math.max(0,Math.round(Math.pow(1-this.eng.N(this.eng.DATA.config.repair_fail_chance_per_point,0.06),worn)*100));
     const row=(k,v,col)=>h('div',{key:k,style:{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid '+T.line}}, h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}},k), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col||T.hi}},v));
     return h('div',{onClick:()=>this.setState({repairSel:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.66)',display:'flex',alignItems:'flex-end',zIndex:34,animation:'rlFade .18s'}},
-      h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:8,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
-        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.06em',color:'#4b4d52',marginBottom:5}}, this.t('repair_confirm')),
-        h('div',{style:{fontFamily:T.sans,fontSize:19,fontWeight:400,color:'#eaebee',marginBottom:16}}, this.itemLabel(inst)),
-        this.fbar(this.t('item_durability'),inst.dur,inst.maxDur,'#a5acb2'),
-        h('div',{style:{marginTop:16,marginBottom:14}},
-          this.frow(this.en()?'Success rate':'성공확률', successPct+'%','#cca26e',false),
-          this.frow(this.t('repair_cost'), cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85b3c5':T.danger, true)),
-        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:'#1a1b21',borderRadius:8,padding:'10px 12px',marginBottom:16}},
-          icCaution(18,'#cca26e',1.7),
-          h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#cca26e',lineHeight:1.4}}, this.t('repair_fail_warn'))),
-        h('div',{style:{display:'flex',gap:4}},
-          h('button',{disabled:!aff,onClick:()=>this.doRepair(inst),style:{flex:1,background:'transparent',border:'1px solid '+(aff?'#cca26e':T.line),borderRadius:4,color:aff?'#cca26e':T.faint,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'15px',cursor:aff?'pointer':'default'}}, aff?this.t('repair_execute'):this.t('shop_insufficient_sato')),
-          h('button',{onClick:()=>this.setState({repairSel:null}),style:{flex:'0 0 92px',background:'transparent',border:'1px solid #4a4d53',borderRadius:4,color:'#a9abaf',fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'15px',cursor:'pointer'}}, this.t('btn_cancel')))));
+      h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:'24px 16px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.06em',color:'#4b4d52',marginBottom:5}}, this.en()?'REPAIR DETAILS':'수리 내역'),
+        h('div',{style:{fontFamily:T.sans,fontSize:16,fontWeight:400,color:'#eaebee',marginBottom:16}}, this.itemLabel(inst)),
+        h('div',{style:{marginBottom:16}},
+          h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8}},
+            h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#6f7276',letterSpacing:'.05em'}}, this.t('item_durability')),
+            h('span',{ref:el=>this._repNum=el,style:{fontFamily:T.mono,fontSize:10,color:'#a9abaf',letterSpacing:'.05em'}}, Math.round(inst.dur)+' / '+Math.round(inst.maxDur))),
+          h('div',{className:'rcv-bar',ref:el=>this._repBar=el,style:{position:'relative',height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden','--rcv-edge':'#c9cfd4','--rcv-pulse':'rgba(131,178,137,.55)'}},
+            h('div',{className:'rcv-fill',ref:el=>this._repFill=el,style:{width:(inst.maxDur>0?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0)+'%',background:'#a5acb2'}}),
+            h('div',{className:'rcv-shim'}))),
+        h('div',{style:{marginBottom:16}},
+          this.frow(this.en()?'Perfect repair':'완벽 수리 확률', successPct+'%','#cca26e',false),
+          this.frow(this.en()?'Durability to repair':'수리할 내구도', String(worn),'#a9abaf',true),
+          this.frow(this.t('repair_cost'), cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85b3c5':'#c4675d', true)),
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:'#1a1b21',borderRadius:16,padding:'10px 12px',marginBottom:16}},
+          icCaution(18,aff?'#cca26e':'#6f7276',1.7),
+          h('span',{style:{fontFamily:T.sans,fontSize:12,color:aff?'#cca26e':'#6f7276',lineHeight:1.4}}, aff?this.t('repair_fail_warn'):(this.en()?'Not enough Sato.':'사토가 부족합니다.'))),
+        h('div',{style:{display:'flex',gap:8}},
+          h('button',{disabled:!aff,onClick:aff?()=>this.doRepair(inst):null,style:{flex:1,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color:aff?'#eaebee':'#4b4d52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:aff?'pointer':'default'}}, this.en()?'Repair':'수리'),
+          h('button',{onClick:()=>this.setState({repairSel:null}),style:{flex:1,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color:'#eaebee',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_cancel')))));
   }
   // ---- vendor (구매/판매/수리 · Services 기반) ----
   vendorScreen(){
@@ -2371,17 +2420,18 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     return new Promise(resolve=>{
       if(!fillEl){ resolve(); return; }
       const startPct=maxVal>0?Math.max(0,Math.min(100,startVal/maxVal*100)):0;
+      const endPct=maxVal>0?Math.max(0,Math.min(100,endVal/maxVal*100)):0;   // 수리는 부분 회복(≠100%)도 가능
       if(barEl) barEl.classList.add('rcv-on');
       const dur=1100, ease=t=>1-Math.pow(1-t,3); let st=null;
       const tick=now=>{
         if(st==null)st=now;
         const t=Math.min(1,(now-st)/dur), f=ease(t);
-        fillEl.style.width=(startPct+(100-startPct)*f)+'%';
+        fillEl.style.width=(startPct+(endPct-startPct)*f)+'%';
         if(numEl) numEl.textContent=Math.round(startVal+(endVal-startVal)*f)+' / '+Math.round(maxVal);
         if(t<1) requestAnimationFrame(tick);
         else{
-          fillEl.style.width='100%';
-          if(numEl) numEl.textContent=Math.round(maxVal)+' / '+Math.round(maxVal);
+          fillEl.style.width=endPct+'%';
+          if(numEl) numEl.textContent=Math.round(endVal)+' / '+Math.round(maxVal);
           if(barEl){ barEl.classList.remove('rcv-on'); barEl.classList.add('rcv-done'); setTimeout(()=>{ if(barEl) barEl.classList.remove('rcv-done'); },520); }
           resolve();
         }
@@ -2407,14 +2457,15 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
           h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8}},
             h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#6f7276',letterSpacing:'.05em'}}, this.t('stat_hp')),
             h('span',{ref:el=>this._hpNum=el,style:{fontFamily:T.mono,fontSize:10,color:'#a9abaf',letterSpacing:'.05em'}}, Math.round(g.hp)+' / '+Math.round(g.maxHp))),
-          h('div',{className:'rcv-bar',ref:el=>this._hpBar=el,style:{position:'relative',height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden','--rcv-edge':'#d68f7f','--rcv-pulse':'rgba(131,178,137,.55)'}},
+          h('div',{className:'rcv-bar',ref:el=>this._hpBar=el,style:{position:'relative',height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden','--rcv-edge':'#d68f7f','--rcv-pulse':'rgba(174,97,92,.55)'}},
             h('div',{className:'rcv-fill',ref:el=>this._hpFill=el,style:{width:pct+'%',background:'#ae615c'}}),
             h('div',{className:'rcv-shim'}))),
         h('div',{style:{background:'#18191d',border:'1px solid #36383c',borderRadius:4,padding:'0 14px'}},
           irow(this.t('heal_amount'), (this.en()?'HP 100% (+':'생명력 100% (+')+Math.round(g.maxHp-g.hp)+')', '#83b289', true),
           irow(this.t('heal_cost'), cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85b3c5':T.danger, false))),
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
-        h('button',{disabled:!can,onClick:can?()=>this.doHeal():null,style:{width:'100%',height:48,boxSizing:'border-box',background:'#18191d',border:'1px solid '+(can?'#83b289':'#4a4d53'),borderRadius:999,color:can?'#83b289':'#4b4d52',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:can?'pointer':'default'}}, btnLabel)));
+        h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
+          h('button',{disabled:!can,onClick:can?()=>this.doHeal():null,style:{width:'100%',height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color:can?'#83b289':'#4b4d52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:can?'pointer':'default'}}, btnLabel))));
   }
   feedCost(){ return Math.max(0, Math.ceil((this.staMax - this.gs.sta) * this.eng.N(this.eng.DATA.config.stamina_cost_per_point, 2))); }
   doFeed(){ const g=this.gs; if(g.sta>=this.staMax){ this.flash(this.en()?'Stamina already full':'스태미너가 가득 찼습니다'); return; } const cost=this.feedCost(); if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
@@ -2427,7 +2478,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const pct=this.staMax>0?Math.max(0,Math.min(100,g.sta/this.staMax*100)):0;
     const irow=(label,val,col,first)=>h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:40,borderTop:first?'none':'1px solid #36383c'}},
       h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#a9abaf'}},label), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col}},val));
-    const btnLabel=full?(this.en()?'Stamina full':'스태미너 가득 참'):(!aff?this.t('shop_insufficient_sato'):(this.en()?'Recover':'회복하기'));
+    const btnLabel=full?(this.en()?'Stamina full':'스태미너 가득함'):(!aff?this.t('shop_insufficient_sato'):(this.en()?'Recover':'회복하기'));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       h('div',{style:{flex:1,overflowY:'auto',padding:'8px 16px'}},
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:'#4b4d52',margin:'8px 0 12px'}}, this.en()?'FULL RECOVERY':'완전 회복'),
@@ -2442,13 +2493,14 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
           irow(this.en()?'Recover amount':'회복량', (this.en()?'STA 100% (+':'스태미너 100% (+')+Math.round(this.staMax-g.sta)+')', '#c19e6f', true),
           irow(this.en()?'Cost':'비용', cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85b3c5':T.danger, false))),
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
-        h('button',{disabled:!can,onClick:can?()=>this.doFeed():null,style:{width:'100%',height:48,boxSizing:'border-box',background:'#18191d',border:'1px solid '+(can?'#c19e6f':'#4a4d53'),borderRadius:999,color:can?'#c19e6f':'#4b4d52',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:can?'pointer':'default'}}, btnLabel)));
+        h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
+          h('button',{disabled:!can,onClick:can?()=>this.doFeed():null,style:{width:'100%',height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color:can?'#cca26e':'#4b4d52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:can?'pointer':'default'}}, btnLabel))));
   }
   vendorRepair(){
     const list=this.repairables();
     return h('div',{style:{flex:1,overflowY:'auto',paddingBottom:20}},
       
-      list.length? h('div',{style:{padding:'0 16px'}}, ...list.map((inst,i)=>this.repairRow(inst,i))) : this.repairEmpty());
+      list.length? h('div',{style:{padding:'16px 16px 0',display:'flex',flexDirection:'column',gap:16}}, ...list.map((inst,i)=>this.repairRow(inst,i))) : this.repairEmpty());
   }
   vibeTest(){ const has=(typeof navigator!=='undefined' && typeof navigator.vibrate==='function'); let ret='—'; if(has){ try{ ret=String(navigator.vibrate(300)); }catch(e){ ret='ERR '+((e&&e.message)||e); } } const standalone=(typeof window!=='undefined'&&window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)?'PWA(standalone)':'browser-tab'; this.setState({vibeMsg:(this.en()?'vibrate API: ':'vibrate API: ')+(has?(this.en()?'yes':'있음'):(this.en()?'NO':'없음'))+'  ·  '+(this.en()?'returned: ':'반환: ')+ret+'  ·  '+standalone}); }
   settings(){
