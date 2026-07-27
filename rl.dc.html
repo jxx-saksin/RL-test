@@ -34,6 +34,15 @@
   @keyframes rlCharge{from{width:0}to{width:100%}}
   @keyframes rlPunch{0%,84%{transform:scale(1)}92%{transform:scale(1.22)}100%{transform:scale(1)}}
   @keyframes rlSpin{to{transform:rotate(360deg)}}
+  /* --- 회복(보건소/급식소) 게이지 차오름 --- */
+  .rcv-fill{position:absolute;left:0;top:0;height:100%;border-radius:1px}
+  .rcv-fill::after{content:'';position:absolute;right:-1px;top:0;bottom:0;width:9px;border-radius:1px;opacity:0;transition:opacity .2s;background:linear-gradient(90deg,transparent,var(--rcv-edge,#fff))}
+  .rcv-bar.rcv-on .rcv-fill::after{opacity:.85}
+  .rcv-shim{position:absolute;top:0;bottom:0;width:60px;opacity:0;pointer-events:none;transform:translateX(-80px);background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent)}
+  .rcv-bar.rcv-on .rcv-shim{opacity:1;animation:rlRcvSweep .85s linear infinite}
+  @keyframes rlRcvSweep{from{transform:translateX(-80px)}to{transform:translateX(360px)}}
+  .rcv-bar.rcv-done{animation:rlRcvPulse .5s ease-out}
+  @keyframes rlRcvPulse{0%{box-shadow:0 0 0 0 var(--rcv-pulse,transparent)}30%{box-shadow:0 0 11px 2px var(--rcv-pulse,transparent)}100%{box-shadow:0 0 0 0 transparent}}
   /* --- 전투 타격감 이펙트 --- */
   @keyframes rlHit{0%{transform:translateX(0)}12%{transform:translateX(-7px)}26%{transform:translateX(6px)}42%{transform:translateX(-4px)}60%{transform:translateX(3px)}78%{transform:translateX(-2px)}100%{transform:translateX(0)}}
   @keyframes rlHitCrit{0%{transform:translateX(0)}10%{transform:translate(-10px,2px)}24%{transform:translate(9px,-2px)}40%{transform:translate(-7px,1px)}58%{transform:translate(5px,-1px)}76%{transform:translate(-3px,0)}100%{transform:translateX(0)}}
@@ -226,7 +235,7 @@ class Component extends DCLogic {
   moveToBag(uid){ const i=this.gs.vault.findIndex(x=>x.uid===uid); if(i>=0){ const [it]=this.gs.vault.splice(i,1); this.gs.bag.push(it); } }
   rest(){ const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=full.maxHp; this.gs.sta=this.staMax; this.saveGame(); }
   go(screen){ if(this._t){clearInterval(this._t); this._t=null;} if(this._ut){clearInterval(this._ut); this._ut=null;} this._lastScroll=0; this._titleLock=false; clearTimeout(this._titleLockT); this.setState({ screen, modalZone:null, sel:null, titleHidden:false }); if(screen==='safehouse') this.saveGame(); }
-  flash(msg){ this.setState({toast:msg}); clearTimeout(this._ft); this._ft=setTimeout(()=>this.setState({toast:null}),1600); this.saveGame(); }
+  flash(msg){ this.setState({toast:msg}); clearTimeout(this._ft); this._ft=setTimeout(()=>this.setState({toast:null}),2000); this.saveGame(); }
 
   // ---------- sortie / combat ----------
   zonePool(zoneId){
@@ -424,7 +433,7 @@ class Component extends DCLogic {
     if(this.gs.sato < price){ this.flash(this.t('shop_insufficient_sato')); return; }
     if(stock<=0){ this.flash(this.t('shop_out_of_stock')); return; }
     this.gs.sato -= price; this.gs.shopStock[key]=stock-1; this.addToVault(row.ItemID,1);
-    this.flash((this.tx(row,'ItemName')||this.eng.anyName(row.ItemID))+(this.en()?' bought':' 구매')); this.forceUpdate();
+    this.flash(this.t('shop_buy_done')); this.forceUpdate();
   }
   addToVault(id,qty){ this.stackAdd(this.gs.vault, id, qty); }
 
@@ -474,7 +483,12 @@ class Component extends DCLogic {
     this._lastScroll=st;
     if(hide!==hidden){ this._titleLock=true; this.setState({titleHidden:hide}); clearTimeout(this._titleLockT); this._titleLockT=setTimeout(()=>{ this._titleLock=false; this._lastScroll=this._titleScrollEl?this._titleScrollEl.scrollTop:st; },360); } }
   titleWrap(node){ return h('div',{style:{flex:'0 0 auto',overflow:'hidden',maxHeight:this.state.titleHidden?0:88,opacity:this.state.titleHidden?0:1,transition:'max-height .28s ease, opacity .22s ease'}}, node); }
-  toastEl(){ if(!this.state.toast) return null; return h('div',{style:{position:'absolute',bottom:104,left:'50%',transform:'translateX(-50%)',background:T.s3,border:'1px solid '+T.line2,color:T.hi,fontFamily:T.mono,fontSize:12,padding:'8px 16px',borderRadius:3,animation:'rlFade .2s',zIndex:20}}, this.eng.t(this.state.toast)); }
+  toastEl(){ if(!this.state.toast) return null; return h('div',{style:{position:'absolute',bottom:106,left:16,right:16,display:'flex',alignItems:'center',justifyContent:'center',gap:9,height:44,boxSizing:'border-box',padding:'0 20px',background:'#18191D',border:'1px solid #36383C',borderRadius:999,color:'#A1A1A1',fontFamily:T.mono,fontSize:12,animation:'rlFade .2s',zIndex:20,pointerEvents:'none'}},
+    h('svg',{key:'ic',width:15,height:15,viewBox:'123 660.2 15.6 17.2',fill:'none',style:{flex:'0 0 auto'}},
+      h('path',{key:'a',d:'M130.8 664.2C131.131 664.2 131.4 664.469 131.4 664.8V669.6C131.4 669.932 131.131 670.2 130.8 670.2C130.469 670.2 130.2 669.932 130.2 669.6V664.8C130.2 664.469 130.469 664.2 130.8 664.2Z',fill:'#A1A1A1'}),
+      h('path',{key:'b',d:'M131.6 672C131.6 672.442 131.242 672.8 130.8 672.8C130.358 672.8 130 672.442 130 672C130 671.558 130.358 671.2 130.8 671.2C131.242 671.2 131.6 671.558 131.6 672Z',fill:'#A1A1A1'}),
+      h('path',{key:'c',fillRule:'evenodd',clipRule:'evenodd',d:'M130.8 660.2C130.236 660.2 129.721 660.355 129.159 660.616C128.614 660.869 127.984 661.243 127.196 661.71L126.593 662.066C125.804 662.534 125.174 662.907 124.689 663.264C124.187 663.633 123.801 664.011 123.523 664.506C123.244 665 123.119 665.529 123.058 666.156C123 666.765 123 667.509 123 668.445V669.155C123 670.091 123 670.836 123.058 671.444C123.119 672.071 123.244 672.6 123.523 673.095C123.801 673.59 124.187 673.968 124.689 674.337C125.174 674.694 125.804 675.067 126.593 675.534L127.196 675.891C127.984 676.358 128.614 676.731 129.159 676.984C129.721 677.245 130.236 677.4 130.8 677.4C131.364 677.4 131.879 677.245 132.441 676.984C132.986 676.731 133.616 676.358 134.404 675.891L135.007 675.534C135.796 675.067 136.426 674.694 136.911 674.337C137.413 673.968 137.799 673.59 138.077 673.095C138.356 672.6 138.481 672.071 138.542 671.444C138.6 670.836 138.6 670.091 138.6 669.155V668.445C138.6 667.509 138.6 666.765 138.542 666.156C138.481 665.529 138.356 665 138.077 664.506C137.799 664.011 137.413 663.633 136.911 663.264C136.426 662.907 135.796 662.534 135.007 662.066L134.404 661.71C133.616 661.243 132.986 660.869 132.441 660.616C131.879 660.355 131.364 660.2 130.8 660.2ZM127.78 662.758C128.602 662.272 129.181 661.929 129.665 661.705C130.136 661.486 130.473 661.4 130.8 661.4C131.127 661.4 131.464 661.486 131.935 661.705C132.419 661.929 132.998 662.272 133.82 662.758L134.369 663.083C135.19 663.57 135.769 663.913 136.201 664.231C136.621 664.54 136.865 664.798 137.032 665.094C137.199 665.392 137.296 665.739 137.347 666.271C137.399 666.815 137.4 667.503 137.4 668.475V669.125C137.4 670.098 137.399 670.785 137.347 671.329C137.296 671.861 137.199 672.209 137.032 672.506C136.865 672.802 136.621 673.06 136.201 673.37C135.769 673.687 135.19 674.031 134.369 674.517L133.82 674.842C132.998 675.329 132.419 675.671 131.935 675.896C131.464 676.115 131.127 676.2 130.8 676.2C130.473 676.2 130.136 676.115 129.665 675.896C129.181 675.671 128.602 675.329 127.78 674.842L127.231 674.517C126.41 674.031 125.831 673.687 125.399 673.37C124.979 673.06 124.735 672.802 124.568 672.506C124.401 672.209 124.304 671.861 124.253 671.329C124.201 670.785 124.2 670.098 124.2 669.125V668.475C124.2 667.503 124.201 666.815 124.253 666.271C124.304 665.739 124.401 665.392 124.568 665.094C124.735 664.798 124.979 664.54 125.399 664.231C125.831 663.913 126.41 663.57 127.231 663.083L127.78 662.758Z',fill:'#A1A1A1'})),
+    h('span',{key:'tx',style:{whiteSpace:'nowrap'}}, typeof this.state.toast==='string'?this.eng.t(this.state.toast):this.state.toast)); }
 
   renderApp(){
     const s=this.state.screen;
@@ -587,13 +601,13 @@ class Component extends DCLogic {
     if(needKey){
       bottom=[
         h('div',{key:'bar',style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6,height:38,borderRadius:8,background:'rgb(26,27,33)'}}, icCaution(19,'rgb(196,103,93)'), h('span',{style:{fontFamily:T.sans,fontSize:12,color:'rgb(196,103,93)'}}, '\u201c'+keyName+'\u201d'+(this.en()?' is required.':'\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.'))),
-        h('div',{key:'btn',style:{display:'flex',justifyContent:'center',alignItems:'center',height:60,borderRadius:4,border:'1px solid rgb(75,77,82)'}}, icLock(22,'rgb(75,77,82)'))];
+        h('div',{key:'btn',style:{display:'flex',justifyContent:'center',alignItems:'center',width:'100%',boxSizing:'border-box',height:48,borderRadius:999,border:'1px solid rgb(75,77,82)',background:'#18191d'}}, icLock(22,'rgb(75,77,82)'))];
     } else if(hasKey){
       bottom=[
         h('div',{key:'bar',style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6,height:38,borderRadius:8,background:'rgb(26,27,33)'}}, icInfo(19,'rgb(204,162,110)'), h('span',{style:{fontFamily:T.sans,fontSize:12,color:'rgb(204,162,110)'}}, '\u201c'+keyName+'\u201d'+(this.en()?' will be used.':'\ub97c \uc0ac\uc6a9\ud569\ub2c8\ub2e4.'))),
-        h('button',{key:'btn',disabled:dead,onClick:dead?null:()=>this.startSortie(z.ZoneID),style:{display:'flex',justifyContent:'center',alignItems:'center',height:60,borderRadius:4,border:'1px solid rgb(204,162,110)',background:'transparent',cursor:dead?'default':'pointer',opacity:dead?.5:1}}, icUnlock(22,'rgb(204,162,110)'))];
+        h('button',{key:'btn',disabled:dead,onClick:dead?null:()=>this.startSortie(z.ZoneID),style:{display:'flex',justifyContent:'center',alignItems:'center',width:'100%',boxSizing:'border-box',height:48,borderRadius:999,border:'1px solid rgb(204,162,110)',background:'#18191d',cursor:dead?'default':'pointer',opacity:dead?.5:1}}, icUnlock(22,'rgb(204,162,110)'))];
     } else {
-      bottom=[ h('button',{key:'btn',disabled:dead,onClick:dead?null:()=>this.startSortie(z.ZoneID),style:{width:'100%',height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid '+(dead?T.line:'rgb(74,77,83)'),background:'transparent',color:dead?T.faint:T.hi,fontFamily:T.sans,fontSize:15,fontWeight:500,cursor:dead?'default':'pointer'}}, dead?this.t('heal_restore_first'):this.t('btn_confirm')) ];
+      bottom=[ h('button',{key:'btn',disabled:dead,onClick:dead?null:()=>this.startSortie(z.ZoneID),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'1px solid '+(dead?T.line:'rgb(74,77,83)'),background:'#18191d',color:dead?T.faint:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:dead?'default':'pointer'}}, dead?this.t('heal_restore_first'):this.t('btn_confirm')) ];
     }
     return h('div',{onClick:()=>this.setState({modalZone:null}),style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',display:'flex',alignItems:'flex-end',zIndex:30,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 16px',background:'rgb(24,25,29)',boxShadow:'inset 0 0 0 1px rgb(54,56,60)',borderRadius:8,padding:16,display:'flex',flexDirection:'column',gap:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
@@ -798,13 +812,12 @@ class Component extends DCLogic {
     const c=this.combat;
     const durLine=null;
     if(c.phase==='fighting') return h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
-      h('div',{style:{background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16}},
-        h('div',{style:{height:38,borderRadius:8,background:'rgb(26,27,33)',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}, icBattle(18,'rgb(204,162,110)'), h('span',{style:{fontFamily:T.sans,fontSize:12,color:'rgb(204,162,110)'}}, this.en()?'Engaging':'\uad50\uc804\uc911'))));
-    const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
+      h('div',{style:{height:64,boxSizing:'border-box',borderRadius:999,background:'#18191D',border:'1px solid #36383C',display:'flex',alignItems:'center',justifyContent:'center',gap:10}}, icBattle(18,'#6F7276'), h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#6F7276'}}, this.en()?'Engaging':'\uad50\uc804\uc911')));
+    const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
     if(c.phase==='pvpWin'||c.phase==='pvpLose') return this.pvpControls();
     const g=this.gs;
     const toRest=()=>{ this.combat.restReturn=this.combat.phase; this.combat.phase='rest'; this.combat.restFocus=null; this.forceUpdate(); };
-    const sbtn=(label,onClick,accent)=>h('button',{onClick,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:4,border:'1px solid '+(accent||'rgb(74,77,83)'),background:'transparent',color:accent||'rgb(234,235,238)',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:'pointer'}},label);
+    const sbtn=(label,onClick,accent)=>h('button',{onClick,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#1E2025',color:accent||'rgb(234,235,238)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}},label);
     const bars=h('div',{style:{display:'flex',gap:5}},
       h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_hp'),Math.round(g.hp),Math.round(g.maxHp),Math.max(0,Math.min(100,g.hp/g.maxHp*100)),'rgb(174,97,92)')),
       h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_stamina'),Math.round(g.sta),Math.round(this.staMax),Math.max(0,Math.min(100,g.sta/this.staMax*100)),'rgb(193,158,111)')));
@@ -818,7 +831,7 @@ class Component extends DCLogic {
       buttons=h('div',{style:{display:'flex',gap:8}}, sbtn(this.t('btn_confirm_result'),()=>this.death(),'rgb(196,103,93)'));
     }
     return h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
-      h('div',{style:{background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}}, bars, statusEl, buttons));
+      h('div',{style:{background:'rgb(24,25,29)',borderRadius:24,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}}, bars, statusEl, buttons));
   }
   restScreen(){
     const c=this.combat, list=this.consumables(), g=this.gs;
@@ -833,14 +846,14 @@ class Component extends DCLogic {
         : h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}, this.emptyRow(this.en()?'No food or medicine to use.':'사용할 음식이나 의약품이 없습니다.')),
       list.length? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 12px'}}, list.map((x,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===c.restFocus?'rgb(169,171,175)':'rgb(43,46,50)'}}))) : null,
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
-        h('div',{style:{background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}},
+        h('div',{style:{background:'rgb(24,25,29)',borderRadius:24,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}},
           h('div',{style:{display:'flex',gap:5}},
             h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_hp'),Math.round(g.hp),Math.round(g.maxHp),Math.max(0,Math.min(100,g.hp/g.maxHp*100)),'rgb(174,97,92)')),
             h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_stamina'),Math.round(g.sta),Math.round(this.staMax),Math.max(0,Math.min(100,g.sta/this.staMax*100)),'rgb(193,158,111)'))),
           h('div',{style:{display:'flex',gap:8}},
-            list.length? h('button',{onClick:()=>{ const inst=list[c.restFocus]; if(inst){ this.useConsumable(inst); const nl=this.consumables(); if(nl.length&&c.restFocus>=nl.length) c.restFocus=nl.length-1; this.forceUpdate(); } },style:{flex:1,height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid rgb(131,178,137)',background:'transparent',color:'rgb(131,178,137)',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:'pointer'}}, this.en()?'Use':'사용하기')
-              : h('button',{disabled:true,style:{flex:1,height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid rgb(54,56,60)',background:'transparent',color:'rgb(75,77,82)',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:'default'}}, this.en()?'Use recovery item':'회복 아이템 사용'),
-            h('button',{onClick:backToDone,style:{flex:list.length?'0 0 92px':1,height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid rgb(74,77,83)',background:'transparent',color:'rgb(169,171,175)',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:'pointer'}}, list.length?(this.en()?'Done':'완료'):(this.en()?'Continue':'계속 진행'))))));
+            list.length? h('button',{onClick:()=>{ const inst=list[c.restFocus]; if(inst){ this.useConsumable(inst); const nl=this.consumables(); if(nl.length&&c.restFocus>=nl.length) c.restFocus=nl.length-1; this.forceUpdate(); } },style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'rgb(131,178,137)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'Use':'사용하기')
+              : h('button',{disabled:true,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'rgb(75,77,82)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'default'}}, this.en()?'Use recovery item':'회복 아이템 사용'),
+            h('button',{onClick:backToDone,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'rgb(234,235,238)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, list.length?(this.en()?'Done':'완료'):(this.en()?'Continue':'계속 진행'))))));
   }
   // ---- monster card draw (S3 · 전투 진입) ----
   focusCard(i){ if(this.combat.flipped) return; this.combat.cardFocus=i; this.forceUpdate(); }
@@ -1090,10 +1103,10 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const g=this.gs;
     return h('div',{style:{flex:'0 0 auto',padding:'12px 16px 16px',borderTop:'1px solid '+T.line,background:T.s1}},
       h('div',{style:{display:'flex',gap:12,marginBottom:12}}, this.bar(this.t('stat_hp'),g.hp,g.maxHp,T.hp), this.bar(this.t('stat_stamina'),g.sta,this.staMax,T.sta)),
-      h('button',{onClick:()=>this.setState({useOpen:true}),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.good,fontFamily:T.sans,fontSize:13,fontWeight:500,padding:'11px',borderRadius:4,cursor:'pointer',marginBottom:10}}, this.t('heal_use_item')),
+      h('button',{onClick:()=>this.setState({useOpen:true}),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.good,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'11px',borderRadius:4,cursor:'pointer',marginBottom:10}}, this.t('heal_use_item')),
       h('div',{style:{display:'flex',gap:10}},
-        h('button',{onClick:()=>this.attemptFlee(),style:{flex:'0 0 auto',padding:'14px 20px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:500,borderRadius:4,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}, h('span',null,this.t('combat_flee')), h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint}}, this.fleePct()+'%')),
-        h('button',{onClick:()=>this.enterCombat(),style:{flex:1,background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:15,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer',letterSpacing:'.02em'}}, this.t('combat_start'))));
+        h('button',{onClick:()=>this.attemptFlee(),style:{flex:'0 0 auto',padding:'14px 20px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:400,borderRadius:4,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}, h('span',null,this.t('combat_flee')), h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint}}, this.fleePct()+'%')),
+        h('button',{onClick:()=>this.enterCombat(),style:{flex:1,background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer',letterSpacing:'.02em'}}, this.t('combat_start'))));
   }
   playerCompareCard(){
     const prof=this.eng.playerProfile(this.gs,false); const g=this.gs;
@@ -1134,13 +1147,13 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
                   isCenter? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'hidden'}}, flipped?(c.pvp?this.userFront(c.mProf):this.monsterFront(c.mProf)):null):null)); })),
       h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 12px'}}, ...c.cards.map((id,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===c.cardFocus?'rgb(169,171,175)':'rgb(43,46,50)'}}))),
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
-        h('div',{style:{background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:24}},
-          h('div',{style:{display:'flex',flexDirection:'column',gap:8}},
-            this.zoneBar(this.t('stat_hp'), Math.round(g.hp), Math.round(g.maxHp), Math.max(0,Math.min(100,g.hp/g.maxHp*100)), 'rgb(174,97,92)'),
-            this.zoneBar(this.t('stat_stamina'), Math.round(g.sta), Math.round(this.staMax), Math.max(0,Math.min(100,g.sta/this.staMax*100)), 'rgb(193,158,111)')),
-          h('div',{style:{display:'flex',gap:4}},
-            h('button',{disabled:!flipped,onClick:flipped?()=>this.enterCombat():null,style:{flex:1,height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid '+(flipped?'rgb(196,103,93)':'rgb(54,56,60)'),background:'transparent',color:flipped?'rgb(196,103,93)':'rgb(75,77,82)',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:flipped?'pointer':'default'}}, this.t('combat_start')),
-            h('button',{disabled:!flipped,onClick:flipped?()=>this.attemptFlee():null,style:{flex:'0 0 86px',height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid rgb(54,56,60)',background:'transparent',color:flipped?'rgb(169,171,175)':'rgb(75,77,82)',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:flipped?'pointer':'default'}}, this.t('combat_flee'))))));
+        h('div',{style:{background:'rgb(24,25,29)',borderRadius:24,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}},
+          h('div',{style:{display:'flex',gap:5}},
+            h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_hp'), Math.round(g.hp), Math.round(g.maxHp), Math.max(0,Math.min(100,g.hp/g.maxHp*100)), 'rgb(174,97,92)')),
+            h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_stamina'), Math.round(g.sta), Math.round(this.staMax), Math.max(0,Math.min(100,g.sta/this.staMax*100)), 'rgb(193,158,111)'))),
+          h('div',{style:{display:'flex',gap:8}},
+            h('button',{disabled:!flipped,onClick:flipped?()=>this.enterCombat():null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:flipped?'rgb(196,103,93)':'rgb(75,77,82)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:flipped?'pointer':'default'}}, this.t('combat_start')),
+            h('button',{disabled:!flipped,onClick:flipped?()=>this.attemptFlee():null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:flipped?'rgb(234,235,238)':'rgb(75,77,82)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:flipped?'pointer':'default'}}, this.t('combat_flee'))))));
   }
   cardBack(i,n){
     return h('button',{key:i,onClick:()=>this.pickCard(i),
@@ -1174,10 +1187,10 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
           row(this.t('combat_time_limit'), m.timeLimit+'s', T.warn))),
       h('div',{style:{flex:'0 0 auto',padding:'12px 16px 16px',borderTop:'1px solid '+T.line,background:T.s1}},
         h('div',{style:{display:'flex',gap:12,marginBottom:12}}, this.bar(this.t('stat_hp'),g.hp,g.maxHp,T.hp), this.bar(this.t('stat_stamina'),g.sta,this.staMax,T.sta)),
-        h('button',{onClick:()=>this.setState({useOpen:true}),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.good,fontFamily:T.sans,fontSize:13,fontWeight:500,padding:'11px',borderRadius:4,cursor:'pointer',marginBottom:10}}, this.t('heal_use_item')),
+        h('button',{onClick:()=>this.setState({useOpen:true}),style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.good,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'11px',borderRadius:4,cursor:'pointer',marginBottom:10}}, this.t('heal_use_item')),
         h('div',{style:{display:'flex',gap:10}},
-          h('button',{onClick:()=>this.attemptFlee(),style:{flex:'0 0 auto',padding:'14px 20px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:500,borderRadius:4,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}, h('span',null,this.t('combat_flee')), h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint}}, this.fleePct()+'%')),
-          h('button',{onClick:()=>this.enterCombat(),style:{flex:1,background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:15,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer',letterSpacing:'.02em'}}, this.t('combat_start')))));
+          h('button',{onClick:()=>this.attemptFlee(),style:{flex:'0 0 auto',padding:'14px 20px',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:400,borderRadius:4,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:1}}, h('span',null,this.t('combat_flee')), h('span',{style:{fontFamily:T.mono,fontSize:9,color:T.faint}}, this.fleePct()+'%')),
+          h('button',{onClick:()=>this.enterCombat(),style:{flex:1,background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer',letterSpacing:'.02em'}}, this.t('combat_start')))));
   }
   // ---- flee (pre-combat) : 3-card flip, master-sheet flee chance ----
   fleePct(){ return Math.round(this.eng.N(this.eng.DATA.config.flee_chance_base, 0.9) * 100); }
@@ -1215,9 +1228,9 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
               isC? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)'}}, this.fleeFront()):null)); })),
       !flipped? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 12px'}}, [0,1,2].map(i=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===(c.fleeFocus==null?1:c.fleeFocus)?'rgb(169,171,175)':'rgb(43,46,50)'}}))) : null,
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
-        h('div',{style:{background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}},
+        h('div',{style:{background:'rgb(24,25,29)',borderRadius:16,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:24,display:'flex',flexDirection:'column',gap:16}},
           flipped? h('div',{style:{height:6,borderRadius:99,overflow:'hidden',background:'rgb(43,46,50)'}}, h('div',{ref:el=>{ if(el&&!el._an){ el._an=1; el.style.width='100%'; requestAnimationFrame(()=>requestAnimationFrame(()=>{ el.style.transition='width 3s linear'; el.style.width='0%'; })); } },style:{height:'100%',width:'100%',background:ok?'rgb(131,178,137)':'rgb(165,172,178)'}})) : null,
-          h('div',{style:{height:38,borderRadius:8,background:'rgb(26,27,33)',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}, icCaution(19,flipped?col:'rgb(204,162,110)'), h('span',{style:{fontFamily:T.sans,fontSize:12,color:flipped?col:'rgb(204,162,110)'}}, flipped?foot:(this.en()?'On failure, combat starts automatically.':'도주 실패시 자동으로 전투에 돌입합니다.'))),
+          h('div',{style:{height:38,display:'flex',alignItems:'center',justifyContent:'center',gap:6}}, icCaution(19,flipped?col:'rgb(204,162,110)'), h('span',{style:{fontFamily:T.sans,fontSize:12,color:flipped?col:'rgb(204,162,110)'}}, flipped?foot:(this.en()?'On failure, combat starts automatically.':'도주 실패시 자동으로 전투에 돌입합니다.'))),
           flipped? null : h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
             h('span',{style:{fontFamily:T.sans,fontSize:13,color:'rgb(169,171,175)'}}, this.en()?'Flee chance':'도주확률'),
             h('span',{style:{fontFamily:T.mono,fontSize:13,color:'rgb(204,162,110)'}}, this.fleePct()+'%')))));
@@ -1239,16 +1252,16 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
             h('div',{style:{fontFamily:T.sans,fontSize:17,fontWeight:600,lineHeight:'20.4px',color:'rgb(234,235,238)'}}, title),
             h('div',{style:{padding:'8px 0',fontFamily:T.mono,fontSize:10.5,color:'rgb(75,77,82)'}}, sub)))),
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
-        h('div',{style:{background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}},
+        h('div',{style:{background:'rgb(24,25,29)',borderRadius:16,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:24,display:'flex',flexDirection:'column',gap:16}},
           h('div',{style:{height:6,borderRadius:99,overflow:'hidden',background:'rgb(43,46,50)'}}, h('div',{ref:el=>{ if(el&&!el._an){ el._an=1; el.style.width='100%'; requestAnimationFrame(()=>requestAnimationFrame(()=>{ el.style.transition='width 3s linear'; el.style.width='0%'; })); } },style:{height:'100%',width:'100%',background:ok?'rgb(131,178,137)':'rgb(165,172,178)'}})),
-          h('div',{style:{height:38,borderRadius:8,background:'rgb(26,27,33)',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}, icCaution(19,col), h('span',{style:{fontFamily:T.sans,fontSize:12,color:col}}, foot)))));
+          h('div',{style:{height:38,display:'flex',alignItems:'center',justifyContent:'center',gap:6}}, icCaution(19,col), h('span',{style:{fontFamily:T.sans,fontSize:12,color:col}}, foot)))));
   }
   // ---- recovery-item use ----
   consumables(){ const pool = this.inSortie() ? this.gs.bag : [...this.gs.bag, ...this.gs.vault]; return pool.filter(inst=>{ const it=this.eng.byId.item[inst.id]; return it && (it.EffectType==='heal'||it.EffectType==='stamina'); }); }
   useConsumable(inst){
     const it=this.eng.byId.item[inst.id]||{}; const v=this.eng.N(it.EffectValue);
-    if(it.EffectType==='heal'){ this.gs.hp=Math.min(this.gs.maxHp,this.gs.hp+v); this.flash(this.tx(it,'ItemName')+' · 생명력 +'+v); }
-    else if(it.EffectType==='stamina'){ this.gs.sta=Math.min(this.staMax,this.gs.sta+v); this.flash(this.tx(it,'ItemName')+' · 스태미너 +'+v); }
+    if(it.EffectType==='heal'){ this.gs.hp=Math.min(this.gs.maxHp,this.gs.hp+v); this.flash([this.t('heal_recover')+' ', h('span',{key:'n',style:{color:'#83B289'}}, '+'+v)]); }
+    else if(it.EffectType==='stamina'){ this.gs.sta=Math.min(this.staMax,this.gs.sta+v); this.flash([this.t('stamina_recover')+' ', h('span',{key:'n',style:{color:'#C19E6F'}}, '+'+v)]); }
     const dec=(arr)=>{ const i=arr.findIndex(x=>x.uid===inst.uid); if(i<0) return false; if(arr[i].qty>1) arr[i].qty--; else arr.splice(i,1); return true; };
     dec(this.gs.bag)||dec(this.gs.vault); this.forceUpdate();
   }
@@ -1379,7 +1392,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const msg=win?this.t('pvp_win_msg'):this.t('combat_escape_urge_msg');
     const focus=c.pvpFocus!=null?c.pvpFocus:Math.floor(pc.n/2);
     const done=pc.picked!=null;
-    const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:15,fontWeight:500,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
+    const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       h('div',{style:{padding:'14px 18px 13px',background:T.s1,borderBottom:'1px solid '+T.line,flex:'0 0 auto'}},
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:win?T.good:T.warn,marginBottom:6}}, (win?'VICTORY · ':'DEFEAT · ')+zoneName),
@@ -1399,7 +1412,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
   }
   pvpControls(){
     const c=this.combat, pc=c.pvpCards;
-    const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
+    const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
     const done=pc.picked!=null, win=pc.kind==='win';
     const rate=win?this.eng.N(this.eng.DATA.config.pvp_win_reward_rate,0.33):this.eng.N(this.eng.DATA.config.pvp_flee_fail_rate,0.33);
     let msg,col;
@@ -1455,8 +1468,8 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
       this._ut=setInterval(()=>{ const up=this.gs.usbUpload; if(up&&Date.now()>=up.endsAt){ clearInterval(this._ut); this._ut=null; this.completeUpload(); } else this.forceUpdate(); },500);
     }
     const label=(t)=>h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 10px'}}, t);
-    const primBtn=(t,onClick,disabled)=>h('button',{disabled,onClick:disabled?null:onClick,style:{width:'100%',background:'transparent',border:'1px solid '+(disabled?T.line:T.sato),color:disabled?T.faint:T.sato,fontFamily:T.sans,fontSize:15,fontWeight:400,padding:'14px',borderRadius:4,cursor:disabled?'default':'pointer',letterSpacing:'.02em'}}, t);
-    const ghostBtn=(t,onClick)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:13,fontWeight:500,padding:'11px',borderRadius:4,cursor:'pointer'}}, t);
+    const primBtn=(t,onClick,disabled)=>h('button',{disabled,onClick:disabled?null:onClick,style:{width:'100%',background:'transparent',border:'1px solid '+(disabled?T.line:T.sato),color:disabled?T.faint:T.sato,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'14px',borderRadius:4,cursor:disabled?'default':'pointer',letterSpacing:'.02em'}}, t);
+    const ghostBtn=(t,onClick)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'11px',borderRadius:4,cursor:'pointer'}}, t);
     let body=[];
     if(u.stage==='intro'){
       const list=this.usbOwned();
@@ -1552,8 +1565,8 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const a=this.state.apr||{}; const step=a.results?'result':(!a.liquorUid?'liquor':(!a.itemUid?'item':'confirm'));
     const label=(t)=>h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 10px'}}, t);
     const card=(sel,onClick,inner)=>h('div',{onClick,style:{border:'1px solid '+(sel?T.line2:T.line),background:sel?T.s2:T.s1,borderRadius:6,padding:'12px 14px',cursor:'pointer',marginBottom:8}}, inner);
-    const primBtn=(t,onClick,disabled)=>h('button',{disabled,onClick:disabled?null:onClick,style:{width:'100%',background:'transparent',border:'1px solid '+(disabled?T.line:T.hi),color:disabled?T.faint:T.hi,fontFamily:T.sans,fontSize:15,fontWeight:400,padding:'14px',borderRadius:4,cursor:disabled?'default':'pointer'}}, t);
-    const ghost=(t,onClick)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:13,fontWeight:500,padding:'11px',borderRadius:4,cursor:'pointer',marginTop:8}}, t);
+    const primBtn=(t,onClick,disabled)=>h('button',{disabled,onClick:disabled?null:onClick,style:{width:'100%',background:'transparent',border:'1px solid '+(disabled?T.line:T.hi),color:disabled?T.faint:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'14px',borderRadius:4,cursor:disabled?'default':'pointer'}}, t);
+    const ghost=(t,onClick)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'11px',borderRadius:4,cursor:'pointer',marginTop:8}}, t);
     let body=[], line;
     if(step==='liquor'){ line=this.t('marta_intro'); const list=this.ownedLiquor();
       body=[label(this.t('appraise_pick_liquor')), ...(list.length?list.map(inst=>{ const lq=this.eng.byId.liquor[inst.id];
@@ -1611,8 +1624,8 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const dlg=(line)=>h('div',{style:{background:T.s1,border:'1px solid '+T.line,borderRadius:6,padding:'13px 15px',marginBottom:16}},
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:7}}, this.t('vendor_park_label')),
       h('div',{style:{fontFamily:T.sans,fontSize:14,color:T.hi,lineHeight:1.65,wordBreak:'keep-all'}}, '"'+line+'"'));
-    const ghost=(t,onClick)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:13,fontWeight:500,padding:'11px',borderRadius:4,cursor:'pointer',marginTop:8}}, t);
-    const primBtn=(t,onClick,col)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+(col||T.hi),color:col||T.hi,fontFamily:T.sans,fontSize:15,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer'}}, t);
+    const ghost=(t,onClick)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'11px',borderRadius:4,cursor:'pointer',marginTop:8}}, t);
+    const primBtn=(t,onClick,col)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+(col||T.hi),color:col||T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer'}}, t);
     let body=[], line;
     if(!item){ line=this.t('module_intro'); const list=this.socketItems();
       body=[label(this.t('module_pick_item')), ...(list.length?list.map(inst=>
@@ -1797,7 +1810,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
           this.resultGrowth()),
         h('div',{style:{flex:'0 0 auto',padding:'6px 16px 22px'}},
           h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:8,padding:'15px 13px'}},
-            h('button',{onClick:()=>this.toSafehouse(),style:{width:'100%',height:51,boxSizing:'border-box',background:'transparent',border:'1px solid #4A4D53',borderRadius:4,color:'#A9ABAF',fontFamily:T.sans,fontSize:15,fontWeight:500,cursor:'pointer'}}, this.t('btn_to_safehouse')))));
+            h('button',{onClick:()=>this.toSafehouse(),style:{width:'100%',height:51,boxSizing:'border-box',background:'transparent',border:'1px solid #4A4D53',borderRadius:4,color:'#A9ABAF',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.t('btn_to_safehouse')))));
     }
     const uids=this.lootUids();
     const open=c.lootOpen||(c.lootOpen=new Set());
@@ -1815,7 +1828,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
           this.resultSato()),
         h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
           h('div',{style:{background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16}},
-            h('button',{onClick:()=>this.toSafehouse(),style:{width:'100%',height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid rgb(74,77,83)',background:'transparent',color:'rgb(169,171,175)',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:'pointer'}}, this.en()?'To Safehouse':'안전가옥으로'))));
+            h('button',{onClick:()=>this.toSafehouse(),style:{width:'100%',height:51,boxSizing:'border-box',borderRadius:4,border:'1px solid rgb(74,77,83)',background:'transparent',color:'rgb(169,171,175)',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.en()?'To Safehouse':'안전가옥으로'))));
     }
     // loot 카드 개봉 — 전투 진입 몬스터 카드 화면과 동일 (성장 정보 없음)
     const focus=c.lootFocusIdx||0;
@@ -1839,9 +1852,9 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 22px'}},
         h('div',{style:{display:'flex',gap:8,background:'#18191D',border:'1px solid #36383C',borderRadius:8,padding:'15px 13px'}},
           ...(allOpen
-            ? [ h('button',{key:'next',onClick:()=>{ this.combat.resultStage='growth'; this.forceUpdate(); },style:{flex:1,height:51,boxSizing:'border-box',background:'transparent',border:'1px solid #4A4D53',borderRadius:4,color:'#A9ABAF',fontFamily:T.sans,fontSize:15,fontWeight:500,cursor:'pointer'}}, this.en()?'Next':'다음') ]
-            : [ h('button',{key:'flip',onClick:()=>this.lootFlipAll(),style:{flex:1,height:51,boxSizing:'border-box',background:'transparent',border:'1px solid #4A4D53',borderRadius:4,color:'#A9ABAF',fontFamily:T.sans,fontSize:15,fontWeight:500,cursor:'pointer',whiteSpace:'nowrap'}}, this.t('loot_open_all')),
-                h('button',{key:'cont',onClick:()=>{ this.combat.resultStage='growth'; this.forceUpdate(); },style:{flex:'0 0 auto',padding:'0 18px',height:51,boxSizing:'border-box',background:'transparent',border:'1px solid #4A4D53',borderRadius:4,color:'#A9ABAF',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:'pointer',whiteSpace:'nowrap'}}, this.t('btn_continue')) ]))));
+            ? [ h('button',{key:'next',onClick:()=>{ this.combat.resultStage='growth'; this.forceUpdate(); },style:{flex:1,height:51,boxSizing:'border-box',background:'transparent',border:'1px solid #4A4D53',borderRadius:4,color:'#A9ABAF',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.en()?'Next':'다음') ]
+            : [ h('button',{key:'flip',onClick:()=>this.lootFlipAll(),style:{flex:1,height:51,boxSizing:'border-box',background:'transparent',border:'1px solid #4A4D53',borderRadius:4,color:'#A9ABAF',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer',whiteSpace:'nowrap'}}, this.t('loot_open_all')),
+                h('button',{key:'cont',onClick:()=>{ this.combat.resultStage='growth'; this.forceUpdate(); },style:{flex:'0 0 auto',padding:'0 18px',height:51,boxSizing:'border-box',background:'transparent',border:'1px solid #4A4D53',borderRadius:4,color:'#A9ABAF',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer',whiteSpace:'nowrap'}}, this.t('btn_continue')) ]))));
   }
   aggLoot(list){ const m={}; for(const l of list){ m[l.id]=(m[l.id]||0)+l.qty; } return Object.entries(m).map(([id,qty])=>({id,qty})); }
   // 전투 후 전리품 개봉 — 몬스터 조우 카드와 동일한 중앙 캐러셀 · 탭하면 플립 (§5 공용 카드)
@@ -2090,24 +2103,24 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
       // 업데이트된 카드 (전리품 카드와 동일)
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
         h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig(inst,true))),
-      // 하단 토스트 모달 — 버튼만
-      h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:8,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
-        isConsum?h('div',{style:{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}, this.fbar(this.t('stat_hp'),this.gs.hp,this.gs.maxHp,'#ae615c'), this.fbar(this.t('stat_stamina'),this.gs.sta,this.staMax,'#c19e6f')):null,
+      // 하단 액션 박스 (아이템 카테고리별 버튼 구성)
+      h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
+        isConsum?h('div',{style:{display:'flex',gap:5,marginBottom:16}}, h('div',{style:{flex:1}},this.fbar(this.t('stat_hp'),this.gs.hp,this.gs.maxHp,'#ae615c')), h('div',{style:{flex:1}},this.fbar(this.t('stat_stamina'),this.gs.sta,this.staMax,'#c19e6f'))):null,
         stackable? h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}},
-          h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#a9abaf'}}, this.t('usb_submit_qty')),
+          h('span',{style:{fontFamily:T.sans,fontSize:10,color:'#a9abaf'}}, this.t('usb_submit_qty')),
           this.fstepper(q,inst.qty)) : null,
-        h('div',{style:{display:'flex',gap:4}},
-          isConsum?this.fbtn(this.t('heal_use_item'),'#83b289',()=>this.useConsumable(inst)):null,
-          equippable?this.fbtn(equipped?this.t('equip_unequip'):this.t('equip_equip'),equipped?'#a9abaf':'#eaebee',()=>this.toggleEquip(inst)):null,
-          this.fbtn((inVault?this.t('btn_to_belongings'):this.t('btn_to_vault'))+(stackable?(' '+q+(this.en()?'':this.t('frag_count'))):''),'#a9abaf',()=>{this.moveStack(inst.uid,q);this.setState({sel:null,moveQty:null});}))));
+        h('div',{style:{display:'flex',gap:8}},
+          isConsum?this.fbtn(this.t('heal_use_item'),'#83b289',()=>this.useConsumable(inst),true):null,
+          equippable?this.fbtn(equipped?this.t('equip_unequip_btn'):this.t('equip_equip'),equipped?'#a9abaf':'#eaebee',()=>this.toggleEquip(inst),true):null,
+          this.fbtn((inVault?this.t('btn_to_belongings'):this.t('btn_to_vault'))+(stackable?(' '+q+(this.en()?'':this.t('frag_count'))):''),'#eaebee',()=>{this.moveStack(inst.uid,q);this.setState({sel:null,moveQty:null});},true))));
   }
 
-  fbtn(label,color,onClick){ return h('button',{onClick,style:{flex:1,minWidth:0,background:'transparent',border:'1px solid #4a4d53',borderRadius:4,color,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'15px 6px',lineHeight:'21px',cursor:'pointer',whiteSpace:'nowrap'}}, label); }
+  fbtn(label,color,onClick,pill){ return h('button',{onClick,style:pill?{flex:1,minWidth:0,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color,fontFamily:T.sans,fontSize:12,fontWeight:400,padding:'0 6px',cursor:'pointer',whiteSpace:'nowrap',display:'flex',alignItems:'center',justifyContent:'center'}:{flex:1,minWidth:0,background:'transparent',border:'1px solid #4a4d53',borderRadius:4,color,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'15px 6px',lineHeight:'21px',cursor:'pointer',whiteSpace:'nowrap'}}, label); }
   fbar(label,val,max,color){ const pct=max>0?Math.max(0,Math.min(100,val/max*100)):0; return h('div',null,
     h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:4}}, h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#6f7276'}},label), h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#a9abaf'}}, Math.round(val)+' / '+Math.round(max))),
     h('div',{style:{height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:color}}))); }
   fstepper(q,max){ const box=(t,fn)=>h('button',{onClick:fn,style:{width:30,height:30,background:'transparent',border:'1px solid #4a4d53',borderRadius:4,color:'#a9abaf',fontFamily:T.mono,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0}},t);
-    return h('div',{style:{display:'flex',alignItems:'center',gap:12}}, box('−',()=>this.setState({moveQty:Math.max(1,q-1)})), h('span',{style:{fontFamily:T.mono,fontSize:15,color:'#eaebee',minWidth:45,textAlign:'center'}}, q+' / '+max), box('+',()=>this.setState({moveQty:Math.min(max,q+1)}))); }
+    return h('div',{style:{display:'flex',alignItems:'center',gap:12}}, box('−',()=>this.setState({moveQty:Math.max(1,q-1)})), h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#eaebee',minWidth:45,textAlign:'center'}}, q+' / '+max), box('+',()=>this.setState({moveQty:Math.min(max,q+1)}))); }
   frow(label,val,color,divider){ return h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:36,borderTop:divider?'1px solid #36383c':'none'}}, h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#a9abaf'}},label), h('span',{style:{fontFamily:T.mono,fontSize:13,color:color||'#a9abaf'}},val)); }
   // ---- character ----
   character(){
@@ -2182,8 +2195,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
               h('div',{style:{height:6,flex:1,borderRadius:999,overflow:'hidden',background:T.s3}}, h('div',{style:{height:'100%',borderRadius:999,background:st==='destroyed'?T.danger:st==='broken'?T.warn:'rgb(165,172,178)',width:(inst.maxDur?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0)+'%'}})),
               h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid,flex:'0 0 auto'}}, this.durTxt(inst)))); })),
       h('div',{style:{flex:'0 0 auto',padding:'6px 16px 22px'}},
-        h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:8,padding:'15px 13px'}},
-          h('button',{onClick:()=>this.go('character'),style:{width:'100%',height:51,boxSizing:'border-box',background:'transparent',border:'1px solid #4A4D53',borderRadius:4,color:'#A9ABAF',fontFamily:T.sans,fontSize:15,fontWeight:500,cursor:'pointer'}}, this.en()?'Back':'뒤로'))));
+        h('button',{onClick:()=>this.go('character'),style:{width:'100%',height:48,boxSizing:'border-box',background:'#18191d',border:'1px solid #4A4D53',borderRadius:999,color:'#A9ABAF',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.en()?'Back':'뒤로')));
   }
   equipCardModal(){
     const inst=this.eng.instById(this.gs,this.state.equipCard); if(!inst) return null;
@@ -2193,7 +2205,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
         h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig(inst,true))),
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',padding:'0 16px 22px'}},
         h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:8,padding:'15px 13px'}},
-          h('button',{onClick:close,style:{width:'100%',height:51,boxSizing:'border-box',background:'transparent',border:'1px solid #4A4D53',borderRadius:4,color:'#A9ABAF',fontFamily:T.sans,fontSize:15,fontWeight:500,cursor:'pointer'}}, this.t('btn_confirm')))));
+          h('button',{onClick:close,style:{width:'100%',height:51,boxSizing:'border-box',background:'transparent',border:'1px solid #4A4D53',borderRadius:4,color:'#A9ABAF',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.t('btn_confirm')))));
   }
 
   // ---- shop (clinic) ----
@@ -2295,8 +2307,8 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
           icCaution(18,'#cca26e',1.7),
           h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#cca26e',lineHeight:1.4}}, this.t('repair_fail_warn'))),
         h('div',{style:{display:'flex',gap:4}},
-          h('button',{disabled:!aff,onClick:()=>this.doRepair(inst),style:{flex:1,background:'transparent',border:'1px solid '+(aff?'#cca26e':T.line),borderRadius:4,color:aff?'#cca26e':T.faint,fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'15px',cursor:aff?'pointer':'default'}}, aff?this.t('repair_execute'):this.t('shop_insufficient_sato')),
-          h('button',{onClick:()=>this.setState({repairSel:null}),style:{flex:'0 0 92px',background:'transparent',border:'1px solid #4a4d53',borderRadius:4,color:'#a9abaf',fontFamily:T.sans,fontSize:14,fontWeight:500,padding:'15px',cursor:'pointer'}}, this.t('btn_cancel')))));
+          h('button',{disabled:!aff,onClick:()=>this.doRepair(inst),style:{flex:1,background:'transparent',border:'1px solid '+(aff?'#cca26e':T.line),borderRadius:4,color:aff?'#cca26e':T.faint,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'15px',cursor:aff?'pointer':'default'}}, aff?this.t('repair_execute'):this.t('shop_insufficient_sato')),
+          h('button',{onClick:()=>this.setState({repairSel:null}),style:{flex:'0 0 92px',background:'transparent',border:'1px solid #4a4d53',borderRadius:4,color:'#a9abaf',fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'15px',cursor:'pointer'}}, this.t('btn_cancel')))));
   }
   // ---- vendor (구매/판매/수리 · Services 기반) ----
   vendorScreen(){
@@ -2321,7 +2333,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     );
   }
   shopPill(txt,color){ return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'5px 8px',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:color,whiteSpace:'nowrap'}}, txt); }
-  shopRow(o){ return h('div',{key:o.key,onClick:o.disabled?null:o.onClick,style:{display:'flex',flexDirection:'column',gap:8,padding:'16px 18px',borderBottom:'1px solid rgb(54,56,60)',cursor:o.disabled?'default':'pointer',opacity:o.disabled?0.5:1}},
+  shopRow(o){ return h('div',{key:o.key,onClick:o.disabled?null:o.onClick,style:{display:'flex',flexDirection:'column',gap:8,padding:'16px 18px',borderBottom:'1px solid rgb(54,56,60)',cursor:o.disabled?'default':'pointer',opacity:(o.disabled||o.dim)?0.5:1}},
       h('div',{style:{display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8}},
         this.catChip(o.cat,false),
         h('div',{style:{display:'flex',flexDirection:'row',gap:4,alignItems:'center',flexShrink:0}}, this.shopPill(o.priceLabel,o.priceColor), this.shopPill(o.countLabel,'rgb(169,171,175)'))),
@@ -2345,71 +2357,92 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
   sellPrice(inst){ const e=this.eng.byId; const it=e.weapon[inst.id]||e.armor[inst.id]||e.artifact[inst.id]||(e.liquor&&e.liquor[inst.id])||e.item[inst.id]; return it?this.eng.N(it.SellPrice):0; }
   sellItem(inst){ const p=this.sellPrice(inst); if(p<=0){this.flash(this.t('shop_no_sale'));return;} if(this.isEquipped(inst.uid)){this.flash(this.t('equip_worn_nosale'));return;}
     this.gs.sato+=p; const dec=(arr)=>{const i=arr.findIndex(x=>x.uid===inst.uid);if(i<0)return false; if((arr[i].qty||1)>1)arr[i].qty--; else arr.splice(i,1); return true;}; dec(this.gs.vault)||dec(this.gs.bag);
-    this.flash(this.eng.anyName(inst.id)+(' '+this.t('frag_sell_plus'))+p); this.forceUpdate(); }
+    this.flash(this.t('shop_sell_done')); this.forceUpdate(); }
   vendorSell(v){
     const list=this.sellables(v);
     return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px'}},
-      list.length? list.map(inst=>{ const p=this.sellPrice(inst); const can=p>0&&!this.isEquipped(inst.uid); const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]; const md=this.eng.byId.module&&this.eng.byId.module[inst.id]; const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id]; const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
-        return this.shopRow({key:inst.uid,cat,name:this.itemLabel(inst),desc:this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'',priceLabel:'SELL '+p.toLocaleString(),priceColor:'rgb(204,162,110)',countLabel:(this.en()?'Owned ':'소지 ')+String(inst.qty||1).padStart(2,'0'),onClick:()=>this.sellItem(inst),disabled:!can}); })
+      list.length? list.map(inst=>{ const p=this.sellPrice(inst); const eq=this.isEquipped(inst.uid); const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]; const md=this.eng.byId.module&&this.eng.byId.module[inst.id]; const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id]; const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
+        return this.shopRow({key:inst.uid,cat,name:this.itemLabel(inst),desc:this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'',priceLabel:'SELL '+p.toLocaleString(),priceColor:'rgb(204,162,110)',countLabel:(this.en()?'Owned ':'소지 ')+String(inst.qty||1).padStart(2,'0'),onClick:()=>this.sellItem(inst),dim:eq}); })
         : this.emptyRow(this.en()?'No items to sell.':'판매 가능한 아이템이 없습니다.'));
   }
-  healCooldown(){ return Math.max(1, this.eng.N(this.eng.DATA.config.heal_cooldown_sorties, 1)); }
-  healAvailAt(){ return (this.gs.lastHealSortie==null)?0:(this.gs.lastHealSortie + this.healCooldown()); }
-  healAvailable(){ return this.gs.sorties >= this.healAvailAt(); }
   healCost(){ return Math.max(0, Math.ceil((this.gs.maxHp - this.gs.hp) * this.eng.N(this.eng.DATA.config.heal_cost_per_hp, 2))); }
-  doHeal(){ const g=this.gs; if(!this.healAvailable()){ this.flash(this.t('heal_not_yet')); return; } if(g.hp>=g.maxHp){ this.flash(this.t('heal_already_full')); return; } const cost=this.healCost(); if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; } g.sato-=cost; g.hp=g.maxHp; g.lastHealSortie=g.sorties; this.flash(this.t('heal_done')); this.forceUpdate(); }
+  // 게이지 차오름 애니메이션: fill width + 숫자 카운트업 + 샤이머/리딩엣지(rcv-on) + 완료 펄스(rcv-done)
+  animRecover(fillEl,numEl,barEl,startVal,endVal,maxVal){
+    return new Promise(resolve=>{
+      if(!fillEl){ resolve(); return; }
+      const startPct=maxVal>0?Math.max(0,Math.min(100,startVal/maxVal*100)):0;
+      if(barEl) barEl.classList.add('rcv-on');
+      const dur=1100, ease=t=>1-Math.pow(1-t,3); let st=null;
+      const tick=now=>{
+        if(st==null)st=now;
+        const t=Math.min(1,(now-st)/dur), f=ease(t);
+        fillEl.style.width=(startPct+(100-startPct)*f)+'%';
+        if(numEl) numEl.textContent=Math.round(startVal+(endVal-startVal)*f)+' / '+Math.round(maxVal);
+        if(t<1) requestAnimationFrame(tick);
+        else{
+          fillEl.style.width='100%';
+          if(numEl) numEl.textContent=Math.round(maxVal)+' / '+Math.round(maxVal);
+          if(barEl){ barEl.classList.remove('rcv-on'); barEl.classList.add('rcv-done'); setTimeout(()=>{ if(barEl) barEl.classList.remove('rcv-done'); },520); }
+          resolve();
+        }
+      };
+      requestAnimationFrame(tick);
+    });
+  }
+  doHeal(){ const g=this.gs; if(g.hp>=g.maxHp){ this.flash(this.t('heal_already_full')); return; } const cost=this.healCost(); if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
+    if(this._rcvAnim) return; const startHp=g.hp; g.sato-=cost; this._rcvAnim=true;
+    this.animRecover(this._hpFill,this._hpNum,this._hpBar,startHp,g.maxHp,g.maxHp).then(()=>{
+      g.hp=g.maxHp; this._rcvAnim=false; this.flash(this.t('heal_done')); this.forceUpdate(); this.saveGame(); }); }
   vendorHeal(v){
-    const g=this.gs; const cost=this.healCost(); const avail=this.healAvailable(); const cd=this.healCooldown();
-    const full=g.hp>=g.maxHp; const aff=g.sato>=cost; const can=avail&&!full&&aff;
-    const nextIn=avail?0:(this.healAvailAt()-g.sorties);
+    const g=this.gs; const cost=this.healCost();
+    const full=g.hp>=g.maxHp; const aff=g.sato>=cost; const can=!full&&aff;
     const pct=g.maxHp>0?Math.max(0,Math.min(100,g.hp/g.maxHp*100)):0;
     const irow=(label,val,col,first)=>h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:40,borderTop:first?'none':'1px solid #36383c'}},
       h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#a9abaf'}},label), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col}},val));
-    const btnLabel=full?this.t('heal_already_full'):(!avail?((nextIn+(this.en()?' ':'')+this.t('frag_sorties_until'))):(!aff?this.t('shop_insufficient_sato'):this.t('heal_get')));
+    const btnLabel=full?this.t('heal_already_full'):(!aff?this.t('shop_insufficient_sato'):this.t('heal_get'));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       h('div',{style:{flex:1,overflowY:'auto',padding:'8px 16px'}},
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:'#4b4d52',margin:'8px 0 12px'}}, this.t('heal_full_label')),
         h('div',{style:{marginBottom:16}},
           h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8}},
             h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#6f7276',letterSpacing:'.05em'}}, this.t('stat_hp')),
-            h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#a9abaf',letterSpacing:'.05em'}}, Math.round(g.hp)+' / '+Math.round(g.maxHp))),
-          h('div',{style:{height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:'#ae615c'}}))),
+            h('span',{ref:el=>this._hpNum=el,style:{fontFamily:T.mono,fontSize:10,color:'#a9abaf',letterSpacing:'.05em'}}, Math.round(g.hp)+' / '+Math.round(g.maxHp))),
+          h('div',{className:'rcv-bar',ref:el=>this._hpBar=el,style:{position:'relative',height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden','--rcv-edge':'#d68f7f','--rcv-pulse':'rgba(131,178,137,.55)'}},
+            h('div',{className:'rcv-fill',ref:el=>this._hpFill=el,style:{width:pct+'%',background:'#ae615c'}}),
+            h('div',{className:'rcv-shim'}))),
         h('div',{style:{background:'#18191d',border:'1px solid #36383c',borderRadius:4,padding:'0 14px'}},
           irow(this.t('heal_amount'), (this.en()?'HP 100% (+':'생명력 100% (+')+Math.round(g.maxHp-g.hp)+')', '#83b289', true),
-          irow(this.t('heal_cost'), cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85b3c5':T.danger, false),
-          irow(this.t('usage_condition'), (this.en()?('1 / '+cd+' sorties'):(cd+'출정당 1회')), '#a9abaf', false))),
+          irow(this.t('heal_cost'), cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85b3c5':T.danger, false))),
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
-        h('div',{style:{height:83,boxSizing:'border-box',background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',alignItems:'center'}},
-          h('button',{disabled:!can,onClick:can?()=>this.doHeal():null,style:{flex:1,height:51,background:'transparent',border:'1px solid '+(can?'#83b289':'#4a4d53'),borderRadius:4,color:can?'#83b289':'#4b4d52',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:can?'pointer':'default'}}, btnLabel))));
+        h('button',{disabled:!can,onClick:can?()=>this.doHeal():null,style:{width:'100%',height:48,boxSizing:'border-box',background:'#18191d',border:'1px solid '+(can?'#83b289':'#4a4d53'),borderRadius:999,color:can?'#83b289':'#4b4d52',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:can?'pointer':'default'}}, btnLabel)));
   }
-  feedCooldown(){ return Math.max(1, this.eng.N(this.eng.DATA.config.stamina_cooldown_sorties, 1)); }
-  feedAvailAt(){ return (this.gs.lastFeedSortie==null)?0:(this.gs.lastFeedSortie + this.feedCooldown()); }
-  feedAvailable(){ return this.gs.sorties >= this.feedAvailAt(); }
   feedCost(){ return Math.max(0, Math.ceil((this.staMax - this.gs.sta) * this.eng.N(this.eng.DATA.config.stamina_cost_per_point, 2))); }
-  doFeed(){ const g=this.gs; if(!this.feedAvailable()){ this.flash(this.en()?'Not available yet':'아직 이용할 수 없습니다'); return; } if(g.sta>=this.staMax){ this.flash(this.en()?'Stamina already full':'스태미너가 가득 찼습니다'); return; } const cost=this.feedCost(); if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; } g.sato-=cost; g.sta=this.staMax; g.lastFeedSortie=g.sorties; this.flash(this.en()?'Meal served':'식사 완료'); this.forceUpdate(); }
+  doFeed(){ const g=this.gs; if(g.sta>=this.staMax){ this.flash(this.en()?'Stamina already full':'스태미너가 가득 찼습니다'); return; } const cost=this.feedCost(); if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
+    if(this._rcvAnim) return; const startSta=g.sta; g.sato-=cost; this._rcvAnim=true;
+    this.animRecover(this._staFill,this._staNum,this._staBar,startSta,this.staMax,this.staMax).then(()=>{
+      g.sta=this.staMax; this._rcvAnim=false; this.flash(this.t('feed_done')); this.forceUpdate(); this.saveGame(); }); }
   vendorFeed(v){
-    const g=this.gs; const cost=this.feedCost(); const avail=this.feedAvailable(); const cd=this.feedCooldown();
-    const full=g.sta>=this.staMax; const aff=g.sato>=cost; const can=avail&&!full&&aff;
-    const nextIn=avail?0:(this.feedAvailAt()-g.sorties);
+    const g=this.gs; const cost=this.feedCost();
+    const full=g.sta>=this.staMax; const aff=g.sato>=cost; const can=!full&&aff;
     const pct=this.staMax>0?Math.max(0,Math.min(100,g.sta/this.staMax*100)):0;
     const irow=(label,val,col,first)=>h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:40,borderTop:first?'none':'1px solid #36383c'}},
       h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#a9abaf'}},label), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col}},val));
-    const btnLabel=full?(this.en()?'Stamina full':'스태미너 가득 참'):(!avail?((nextIn+(this.en()?' ':'')+this.t('frag_sorties_until'))):(!aff?this.t('shop_insufficient_sato'):(this.en()?'Recover':'회복하기')));
+    const btnLabel=full?(this.en()?'Stamina full':'스태미너 가득 참'):(!aff?this.t('shop_insufficient_sato'):(this.en()?'Recover':'회복하기'));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       h('div',{style:{flex:1,overflowY:'auto',padding:'8px 16px'}},
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:'#4b4d52',margin:'8px 0 12px'}}, this.en()?'FULL RECOVERY':'완전 회복'),
         h('div',{style:{marginBottom:16}},
           h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8}},
             h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#6f7276',letterSpacing:'.05em'}}, this.t('stat_stamina')),
-            h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#a9abaf',letterSpacing:'.05em'}}, Math.round(g.sta)+' / '+Math.round(this.staMax))),
-          h('div',{style:{height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:'#c19e6f'}}))),
+            h('span',{ref:el=>this._staNum=el,style:{fontFamily:T.mono,fontSize:10,color:'#a9abaf',letterSpacing:'.05em'}}, Math.round(g.sta)+' / '+Math.round(this.staMax))),
+          h('div',{className:'rcv-bar',ref:el=>this._staBar=el,style:{position:'relative',height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden','--rcv-edge':'#e0c39a','--rcv-pulse':'rgba(193,158,111,.55)'}},
+            h('div',{className:'rcv-fill',ref:el=>this._staFill=el,style:{width:pct+'%',background:'#c19e6f'}}),
+            h('div',{className:'rcv-shim'}))),
         h('div',{style:{background:'#18191d',border:'1px solid #36383c',borderRadius:4,padding:'0 14px'}},
           irow(this.en()?'Recover amount':'회복량', (this.en()?'STA 100% (+':'스태미너 100% (+')+Math.round(this.staMax-g.sta)+')', '#c19e6f', true),
-          irow(this.en()?'Cost':'비용', cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85b3c5':T.danger, false),
-          irow(this.t('usage_condition'), (this.en()?('1 / '+cd+' sorties'):(cd+'출정당 1회')), '#a9abaf', false))),
+          irow(this.en()?'Cost':'비용', cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85b3c5':T.danger, false))),
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
-        h('div',{style:{height:83,boxSizing:'border-box',background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',alignItems:'center'}},
-          h('button',{disabled:!can,onClick:can?()=>this.doFeed():null,style:{flex:1,height:51,background:'transparent',border:'1px solid '+(can?'#c19e6f':'#4a4d53'),borderRadius:4,color:can?'#c19e6f':'#4b4d52',fontFamily:T.sans,fontSize:14,fontWeight:500,cursor:can?'pointer':'default'}}, btnLabel))));
+        h('button',{disabled:!can,onClick:can?()=>this.doFeed():null,style:{width:'100%',height:48,boxSizing:'border-box',background:'#18191d',border:'1px solid '+(can?'#c19e6f':'#4a4d53'),borderRadius:999,color:can?'#c19e6f':'#4b4d52',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:can?'pointer':'default'}}, btnLabel)));
   }
   vendorRepair(){
     const list=this.repairables();

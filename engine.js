@@ -132,6 +132,13 @@ const V3_STRINGS = {
   save_reset:['세이브 초기화','Reset save'],
   save_reset_done:['세이브를 초기화했습니다','Save reset'],
   save_autosaved:['자동 저장됨','Autosaved'],
+  // toast messages (sheet UIString wins; these are offline fallbacks)
+  shop_buy_done:['아이템 구매 완료','Item purchased'],
+  shop_sell_done:['아이템 판매 완료','Item sold'],
+  feed_done:['식사 완료','Meal served'],
+  heal_recover:['생명력 회복','HP recovered'],
+  stamina_recover:['스태미너 회복','Stamina recovered'],
+  equip_unequip_btn:['해제','Unequip'],
 };
 export function invalidateUi(){ _uiById = null; _uiByKr = null; }
 
