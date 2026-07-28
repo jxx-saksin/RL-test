@@ -49,6 +49,7 @@
   @keyframes rlHitFlash{0%{opacity:0}10%{opacity:1}100%{opacity:0}}
   @keyframes rlShakeScreen{0%{transform:translate(0,0)}14%{transform:translate(-6px,4px)}28%{transform:translate(6px,-4px)}42%{transform:translate(-5px,3px)}58%{transform:translate(4px,-2px)}74%{transform:translate(-2px,1px)}100%{transform:translate(0,0)}}
   @keyframes rlVignette{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
+  /* --- PvP 패배: 아이템 강탈 — 붉은 비네트 + Silk 잠식은 JS/WebGL(mountLossFx)로 구동 --- */
   @keyframes rlDmgFloat{0%{opacity:0;transform:translate(-50%,8px) scale(.6)}14%{opacity:1;transform:translate(-50%,-2px) scale(1.15)}32%{opacity:1;transform:translate(-50%,-9px) scale(1)}100%{opacity:0;transform:translate(-50%,-36px) scale(1)}}
   @keyframes rlCritPop{0%{opacity:0;transform:translate(-50%,6px) scale(.4)}14%{opacity:1;transform:translate(-50%,-5px) scale(1.55)}34%{opacity:1;transform:translate(-50%,-13px) scale(1.15)}100%{opacity:0;transform:translate(-50%,-46px) scale(1.05)}}
   @keyframes rlMiss{0%{opacity:0;transform:translate(-50%,5px)}22%{opacity:1;transform:translate(-50%,-4px)}78%{opacity:.9;transform:translate(-50%,-11px)}100%{opacity:0;transform:translate(-50%,-18px)}}
@@ -324,7 +325,7 @@ class Component extends DCLogic {
         c.ups = this.eng.applyGrowth(this.gs, res.triggers);
         const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp;
         this.setupPvpReward(); c.phase='pvpWin';
-      } else if(res.winner==='monster'){ this.setupPvpFlee(); c.phase='pvpLose'; }
+      } else if(res.winner==='monster'){ c.satoGained=0; this.setupPvpFlee(); c.phase='pvpLose'; }  // PvP 패배 = 이번 출정 사토 몰수(사망과 동일)
       else { c.phase='timeout'; }
       this.forceUpdate(); return;
     }
@@ -361,6 +362,7 @@ class Component extends DCLogic {
   addToBag(id, qty, opts){ return this.stackAdd(this.gs.bag, id, qty, opts); }
   extract(){ if(this.combat && !this.combat.satoPaid){ this.gs.sato+=this.eng.N(this.combat.satoGained,0); this.combat.satoPaid=true; } this.setState({ screen:'result' }); this.combat.result='extract'; if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate(); }
   death(){
+    this.gs.hp = 1;   // 사망(몬스터·PvP) 귀환 시 체력 1로 생존
     // 소지품(bag)은 전부 잃되, 착용 중인 장비는 유지된다
     this.gs.bag = this.gs.bag.filter(x=>this.isEquipped(x.uid));
     const eq = [this.gs.equip.weapon,this.gs.equip.head,this.gs.equip.body,this.gs.equip.artifact1,this.gs.equip.artifact2].filter(Boolean);
@@ -710,17 +712,19 @@ class Component extends DCLogic {
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:T.faint,margin:'2px 0'}}, 'STAT'),
       ...rows.map((r,i)=>h('div',{key:i,style:{display:'flex',gap:16}}, cell(r[0],r[1],r[2]), cell(r[3],r[4],r[5]))));
   }
-  combatStats(prof,pen){
+  combatStats(prof,pen,masked){
     const vc=pen?'#CB6D62':T.hi;
-    const cell=(k,v)=>h('div',{style:{flex:1,display:'flex',justifyContent:'space-between',gap:8,minWidth:0}}, h('span',{style:{color:T.lo}},k), h('span',{style:{color:vc}},v));
+    const V=(x)=>masked?'??':x;
+    const cell=(k,v)=>h('div',{style:{flex:1,display:'flex',justifyContent:'space-between',gap:8,minWidth:0}}, h('span',{style:{color:T.lo}},k), h('span',{style:{color:masked?T.mid:vc,letterSpacing:masked?'.06em':'normal'}},v));
     return h('div',{style:{display:'flex',flexDirection:'column',gap:6,fontFamily:T.mono,fontSize:11}},
-      h('div',{style:{display:'flex',gap:18}}, cell(this.t('stat_atk'), Math.round(prof.minAtk)+'~'+Math.round(prof.maxAtk)), cell(this.t('stat_def'), String(Math.round(prof.defense)))),
-      h('div',{style:{display:'flex',gap:18}}, cell(this.t('stat_atk_speed'), (prof.atkSpeed!=null?prof.atkSpeed:1).toFixed(1)), cell(this.t('stat_evasion'), Math.round(prof.evasion||0)+'%'))); }
+      h('div',{style:{display:'flex',gap:18}}, cell(this.t('stat_atk'), V(Math.round(prof.minAtk)+'~'+Math.round(prof.maxAtk))), cell(this.t('stat_def'), V(String(Math.round(prof.defense))))),
+      h('div',{style:{display:'flex',gap:18}}, cell(this.t('stat_atk_speed'), V((prof.atkSpeed!=null?prof.atkSpeed:1).toFixed(1))), cell(this.t('stat_evasion'), V(Math.round(prof.evasion||0)+'%')))); }
   combatantCard(prof,isMonster,cur,animate){
     const pct=Math.max(0,Math.min(100,cur/prof.maxHp*100));
     const md=isMonster?(this.eng.byId.monster[prof.id]||{}):null;
     const pen=!isMonster && this.combat && this.combat.staZero;
     const side=isMonster?'monster':'player';
+    const masked=isMonster && !!prof.isUser;   // PvP(콜드데이터) 상대 = 수치 마스킹
     const fx=(this.combat&&this.combat.fx&&this.combat.fx.target===side)?this.combat.fx:null;
     const isHit=!!fx&&(fx.type==='hit'||fx.type==='crit');
     return h('div',{style:{position:'relative'}},
@@ -744,8 +748,8 @@ class Component extends DCLogic {
           AT(prof.attribute)?this.statusChip(prof.attribute):null),
         h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
           h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99}}, h('div',{ref:el=>{ if(el && isHit && el._hp!==fx.seq){ el._hp=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHpGlow .5s ease-out'; } },style:{width:pct+'%',height:'100%',background:T.hp,borderRadius:99,transition:'width .3s ease-out'}})),
-          h('span',{style:{fontFamily:T.mono,fontSize:10,color:pen?'#CB6D62':T.mid,minWidth:56,textAlign:'right'}}, Math.round(cur)+'/'+prof.maxHp)),
-        this.combatStats(prof,pen))));
+          h('span',{style:{fontFamily:T.mono,fontSize:10,color:pen?'#CB6D62':T.mid,minWidth:56,textAlign:'right',letterSpacing:masked?'.06em':'normal'}}, masked?'???':(Math.round(cur)+'/'+prof.maxHp))),
+        this.combatStats(prof,pen,masked))));
   }
   combatElapsed(){ const c=this.combat; if(!c||!c.res) return 0; const r=c.res.log.slice(0,c.revealed); const last=r[r.length-1]; return last?last.t:0; }
   timeLimitBar(){ const c=this.combat; const lim=c.mProf.timeLimit||20; const rem=Math.max(0,lim-this.combatElapsed()); const pct=Math.max(0,Math.min(100,(rem/lim)*100));
@@ -1142,7 +1146,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
               return h('div',{key:i,onClick:()=>{ if(this._moved||flipped) return; isCenter?this.flipCenter():this.focusCard(i); },
                 style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(473px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isCenter?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',perspective:'1200px',pointerEvents:(flipped&&!isCenter)?'none':'auto'}},
                 h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
-                  h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 8px, oklch(0.235 0.008 264) 8px 9px)',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}},
+                  h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'url(assets/art/card_back/monster_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}},
                     isBossBack? h('div',{style:{position:'absolute',inset:0,pointerEvents:'none',borderRadius:8,animation:'rlBossTell 5.5s ease-in-out infinite'}}):null),
                   isCenter? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'hidden'}}, flipped?(c.pvp?this.userFront(c.mProf):this.monsterFront(c.mProf)):null):null)); })),
       h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 12px'}}, ...c.cards.map((id,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===c.cardFocus?'rgb(169,171,175)':'rgb(43,46,50)'}}))),
@@ -1198,7 +1202,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:4}},
       h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, placeTitle),
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.2px',color:'rgb(111,114,118)',lineHeight:'100%'}}, 'ENCOUNTER · '+zoneName+' · '+(this.en()?('Encounter #'+(enc+1)):((enc+1)+'전 조우'))))); }
-  cardFace(){ return h('div',{style:{width:342,height:'min(442px, 100%)',borderRadius:8,background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 8px, oklch(0.235 0.008 264) 8px 9px)',border:'1px solid '+T.line2,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}); }
+  cardFace(){ return h('div',{style:{width:342,height:'min(442px, 100%)',borderRadius:8,background:T.s2,backgroundImage:'url(assets/art/card_back/flee_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}); }
   placeTitleFor(c){ const zObj=this.eng.byId.zone[c.zoneId]; const zoneName=zObj?this.tx(zObj,'ZoneName'):''; const cityObj=zObj&&this.eng.byId.city?this.eng.byId.city[zObj.CityID]:null; return {zoneName, placeTitle:(cityObj?(this.tx(cityObj,'CityName')||'')+' · ':'')+zoneName}; }
   attemptFlee(){ Object.assign(this.combat,{phase:'fleeCards', fleeFocus:1, fleeFlipped:false, fleeSuccess:null}); if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate(); }
   flipFlee(){ const c=this.combat; if(c.fleeFlipped) return; const p=this.eng.N(this.eng.DATA.config.flee_chance_base,0.9); c.fleeSuccess=Math.random()<p; c.fleeFlipped=true; this.forceUpdate();
@@ -1308,10 +1312,8 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
   // 승리 → 결과 카드 round(1/pvp_win_reward_rate)장 중 1장 당첨 (복제 · 상대 무손실)
   setupPvpReward(){
     const c=this.combat;
-    const pool=this.eng.coldEquippedList(c.pvp);
-    const nCards=Math.max(1,Math.round(1/this.eng.N(this.eng.DATA.config.pvp_win_reward_rate,0.33)));
-    const prize=pool.length?pool[Math.floor(Math.random()*pool.length)]:null;
-    c.pvpCards={ kind:'win', n:nCards, hit:prize?Math.floor(Math.random()*nCards):-1, prize, picked:null, got:null, lost:null }; c.pvpFocus=Math.floor(nCards/2);
+    const n=3;   // PvP 승리 드로우 = 무조건 3장. 전리품 획득은 뒤집을 때 pvp_win_reward_rate로 판정(pickPvpCard)
+    c.pvpCards={ kind:'win', n, hit:-1, prize:null, picked:null, got:null, lost:null }; c.pvpFocus=Math.floor(n/2);
   }
   // 패배 → 도주 카드 round(1/pvp_flee_fail_rate)장 중 1장 실패 (내 착용템 1개 영구 소실)
   setupPvpFlee(){
@@ -1325,7 +1327,13 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const c=this.combat, pc=c.pvpCards; if(!pc||pc.picked!=null) return;
     pc.picked=i;
     if(pc.kind==='win'){
-      if(i===pc.hit&&pc.prize){ const clone=this.eng.cloneGearInstance(pc.prize); this.gs.bag.push(clone); pc.got=clone; c.runLoot.push({id:clone.id,qty:1}); }
+      // 뒤집은(선택한) 카드에서 전리품 획득 여부 판정 = pvp_win_reward_rate
+      const rate=this.eng.N(this.eng.DATA.config.pvp_win_reward_rate,0.33);
+      const pool=this.eng.coldEquippedList(c.pvp)||[];
+      if(pool.length && Math.random()<rate){
+        const prize=pool[Math.floor(Math.random()*pool.length)];
+        const clone=this.eng.cloneGearInstance(prize); this.gs.bag.push(clone); pc.got=clone; pc.prize=prize; c.runLoot.push({id:clone.id,qty:1});
+      }
     } else {
       if(i===pc.hit&&pc.lossUid){
         const inst=this.eng.instById(this.gs,pc.lossUid); pc.lost=inst;
@@ -1370,7 +1378,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
         h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:500,color:col}}, label),
         h('div',{style:{fontFamily:T.sans,fontSize:13,color:T.mid,lineHeight:1.5,wordBreak:'keep-all'}}, sub)));
   }
-  pvpCardHeight(){ const pc=this.combat.pvpCards; if(pc&&pc.kind==='win'&&pc.got) return this.lootCardH(pc.got); return 442; }
+  pvpCardHeight(){ const pc=this.combat.pvpCards; if(pc&&pc.kind==='win'&&pc.got) return this.lootCardH(pc.got); if(pc&&pc.kind==='flee'&&pc.picked===pc.hit&&pc.lost) return this.lootCardH(pc.lost); return 442; }
   // card-action-Search-Failed (.fig 2163:8068) — PvP 전리품 획득 실패
   searchFailedCard(){
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', PVP='rgb(196,103,93)';
@@ -1385,7 +1393,89 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
         h('div',{style:{height:30,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'8px 0',display:'flex',alignItems:'center'}}, h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:MUT,whiteSpace:'nowrap'}}, this.t('search_failed_desc')))),
       h('div',{style:{width:340,height:60,flexShrink:0,boxSizing:'border-box',borderRight:'1px solid '+LN,borderBottom:'1px solid '+LN,borderLeft:'1px solid '+LN}}));
   }
-  pvpResultCardFace(i){ const pc=this.combat.pvpCards; if(pc.kind==='win'&&i===pc.hit&&pc.got) return this.lootCardBig(pc.got,true); if(pc.kind==='win') return this.searchFailedCard(); return this.pvpResultCard(i); }
+  // 패배+안뺏김 = 도주 성공 씬 카드 (flee-Success.jpg · searchFailedCard 레이아웃)
+  escapeSafeCard(){
+    const C1='rgb(24,25,29)', LN='rgb(54,56,60)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', GOOD='rgb(131,178,137)', PVP='rgb(196,103,93)';
+    return h('div',{style:{width:342,height:'min(442px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
+      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,alignSelf:'stretch',background:'#0f1013',backgroundImage:'url(assets/art/scenes/flee-Success.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
+        h('div',{style:{position:'absolute',right:17,top:15,width:38,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',padding:'0 8px'}},
+          h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:PVP,whiteSpace:'nowrap'}}, 'PVP')),
+        h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
+        h('span',{style:{position:'absolute',left:15,bottom:13,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:GOOD,whiteSpace:'nowrap'}}, this.t('kicker_escape'))),
+      h('div',{style:{height:64,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
+        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.t('combat_flee_success'))),
+        h('div',{style:{height:30,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'8px 0',display:'flex',alignItems:'center'}}, h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:MUT,whiteSpace:'nowrap'}}, this.t('combat_escaped')))),
+      h('div',{style:{width:340,height:60,flexShrink:0,boxSizing:'border-box',borderRight:'1px solid '+LN,borderBottom:'1px solid '+LN,borderLeft:'1px solid '+LN}}));
+  }
+  // 패배+뺏김 = 잃은 내 아이템 카드 + 빨간 비네트 → 글리치 소멸 연출
+  lostItemCard(inst){
+    if(!inst) return this.escapeSafeCard();
+    return h('div',{className:'pvp-loss',style:{position:'relative',width:342,height:'100%'}},
+      h('div',{className:'pvp-loss-card',style:{position:'absolute',inset:0,willChange:'opacity,filter'}}, this.lootCardBig(inst,true)),
+      h('canvas',{ref:el=>this.mountLossFx(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',borderRadius:8,pointerEvents:'none',zIndex:8,opacity:0}}),
+      h('div',{className:'pvp-loss-vig',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9,borderRadius:8,boxShadow:'inset 0 0 60px 16px rgba(196,44,40,.75)',opacity:0}}));
+  }
+  mountLossFx(el){ if(!el || el._glInit) return; el._glInit=true; try{ this._initLossFx(el); }catch(e){} }
+  _initLossFx(canvas){
+    var gl=null; try{ gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:false,antialias:true})||canvas.getContext('experimental-webgl'); }catch(e){ return; }
+    if(!gl) return;
+    var dpr=Math.min((window.devicePixelRatio||1),2);
+    var VERT='attribute vec2 p;varying vec2 vUv;void main(){vUv=p*0.5+0.5;gl_Position=vec4(p,0.0,1.0);}';
+    var FRAG=`precision highp float;
+varying vec2 vUv;
+uniform float uTime;uniform vec3 uColor;uniform float uSpeed;uniform float uScale;uniform float uRotation;uniform float uNoiseIntensity;uniform float uReveal;
+const float e=2.71828182845904523536;
+float noise(vec2 texCoord){float G=e;vec2 r=(G*sin(G*texCoord));return fract(r.x*r.y*(1.0+texCoord.x));}
+vec2 rotateUvs(vec2 uv,float angle){float c=cos(angle);float s=sin(angle);mat2 rot=mat2(c,-s,s,c);return rot*uv;}
+void main(){
+  float rnd=noise(gl_FragCoord.xy);
+  vec2 uv=rotateUvs(vUv*uScale,uRotation);
+  vec2 tex=uv*uScale;
+  float tOffset=uSpeed*uTime;
+  tex.y+=0.03*sin(8.0*tex.x-tOffset);
+  float pattern=0.6+0.4*sin(5.0*(tex.x+tex.y+cos(3.0*tex.x+5.0*tex.y)+0.02*tOffset)+sin(20.0*(tex.x+tex.y-0.1*tOffset)));
+  vec3 rgb=uColor*pattern-rnd/15.0*uNoiseIntensity;
+  float thr=mix(1.16,0.06,uReveal);
+  float a=smoothstep(thr-0.16,thr+0.16,pattern);
+  a=clamp(a-rnd*0.10*(1.0-uReveal),0.0,1.0);
+  gl_FragColor=vec4(rgb,a);
+}`;
+    function mk(t,s){var sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);return gl.getShaderParameter(sh,gl.COMPILE_STATUS)?sh:null;}
+    var vs=mk(gl.VERTEX_SHADER,VERT), fs=mk(gl.FRAGMENT_SHADER,FRAG); if(!vs||!fs) return;
+    var prog=gl.createProgram();gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog,gl.LINK_STATUS)) return;
+    gl.useProgram(prog);
+    var buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+    var loc=gl.getAttribLocation(prog,'p');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+    var U={};['uTime','uColor','uSpeed','uScale','uRotation','uNoiseIntensity','uReveal'].forEach(function(n){U[n]=gl.getUniformLocation(prog,n);});
+    gl.uniform3f(U.uColor,0.86,0.19,0.16);gl.uniform1f(U.uSpeed,2.5);gl.uniform1f(U.uScale,1.0);gl.uniform1f(U.uRotation,0.0);gl.uniform1f(U.uNoiseIntensity,1.5);gl.uniform1f(U.uReveal,0.0);
+    function size(){var w=canvas.clientWidth||342,hh=canvas.clientHeight||460;canvas.width=Math.max(1,Math.round(w*dpr));canvas.height=Math.max(1,Math.round(hh*dpr));gl.viewport(0,0,canvas.width,canvas.height);}
+    size();
+    var wrap=canvas.parentElement;
+    var cardEl=wrap?wrap.querySelector('.pvp-loss-card'):null, vigEl=wrap?wrap.querySelector('.pvp-loss-vig'):null;
+    var uTime=0,last=0,start=0,raf=0,LEAD=560;
+    function clamp(x){return x<0?0:(x>1?1:x);}
+    function seg(t,a,b){return clamp((t-a)/(b-a));}
+    function ease(x){return x*x*(3.0-2.0*x);}
+    function stop(){ try{cancelAnimationFrame(raf);var ext=gl.getExtension('WEBGL_lose_context');if(ext)ext.loseContext();}catch(_){} }
+    function frame(now){
+      if(!canvas.isConnected){ stop(); return; }
+      raf=requestAnimationFrame(frame);
+      if(!last){last=now;start=now;}
+      var dt=(now-last)/1000; last=now;
+      if(canvas.clientWidth>0 && canvas.width!==Math.round(canvas.clientWidth*dpr)) size();
+      uTime+=0.6*dt;
+      gl.uniform1f(U.uTime,uTime); gl.drawArrays(gl.TRIANGLES,0,3);
+      var el=(now-start)-LEAD; if(el<0) el=0;
+      var vg=Math.min(seg(el,0,500),1-seg(el,2700,3550)); if(vigEl) vigEl.style.opacity=vg.toFixed(3);
+      var so=Math.min(seg(el,350,900),1-seg(el,2700,3550)); canvas.style.opacity=so.toFixed(3);
+      var rev=ease(seg(el,550,2500)); gl.uniform1f(U.uReveal,rev);
+      if(cardEl){ cardEl.style.opacity=(1-ease(seg(el,750,2450))).toFixed(3); cardEl.style.filter='saturate('+(1-0.45*rev).toFixed(3)+') brightness('+(1-0.32*rev).toFixed(3)+')'; }
+      if(el>3650){ stop(); }
+    }
+    raf=requestAnimationFrame(frame);
+  }
+  pvpResultCardFace(i){ const pc=this.combat.pvpCards; if(pc.kind==='win') return pc.got? this.lootCardBig(pc.got,true) : this.searchFailedCard(); if(pc.kind==='flee'&&i===pc.hit&&pc.lossUid) return this.lostItemCard(pc.lost); return this.escapeSafeCard(); }
   pvpResultScreen(){
     const c=this.combat, pc=c.pvpCards, win=pc.kind==='win';
     const zoneName=this.eng.byId.zone[c.zoneId]?this.tx(this.eng.byId.zone[c.zoneId],'ZoneName'):'';
@@ -1404,11 +1494,13 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
             return h('div',{key:i,onClick:()=>{ if(this._pmoved||pc.picked!=null) return; isCenter?this.flipPvp():this.focusPvp(i); },
               style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isCenter?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:pc.picked!=null?'default':'pointer',perspective:'1200px',pointerEvents:(done&&!flippedThis)?'none':'auto'}},
               h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
-                h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 8px, oklch(0.235 0.008 264) 8px 9px)',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
+                h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'url(assets/art/card_back/pvp_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
                 flippedThis? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'hidden'}}, this.pvpResultCardFace(i)):null)); })),
       !done? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 14px'}}, ...Array.from({length:pc.n}).map((_,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===focus?T.mid:T.s3}}))) : null,
-      done? h('div',{style:{flex:'0 0 auto',padding:'12px 16px 16px',borderTop:'1px solid '+T.line,background:T.s1,display:'flex',gap:10}},
-        win?btn(this.t('btn_continue'),()=>this.drawCards()):null, btn(this.t('btn_return'),()=>this.extract(),!win)) : null);
+      done? h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
+        h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24,display:'flex',gap:8}},
+          win?h('button',{onClick:()=>this.drawCards(),style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_continue')):null,
+          h('button',{onClick:()=>{ win?this.extract():this.death(); },style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:win?'#EAEBEE':'#C4675D',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_return')))) : null);
   }
   pvpControls(){
     const c=this.combat, pc=c.pvpCards;
@@ -1422,7 +1514,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
       h('div',{style:{marginBottom:10,fontFamily:T.mono,fontSize:11,color:col,lineHeight:1.5}}, msg),
       (win&&c.ups.length)?h('div',{style:{marginBottom:10,fontFamily:T.mono,fontSize:11,color:T.growth}}, (this.t('frag_growth')+' ')+c.ups.map(u=>({str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')}[u.stat]+' Lv'+u.to)).join(' · ')):null,
       this.pvpCardRow(),
-      done? h('div',{style:{display:'flex',gap:10}}, win?btn(this.t('btn_continue'),()=>this.drawCards()):null, btn(this.t('btn_return'),()=>this.extract(),!win)) : null);
+      done? h('div',{style:{display:'flex',gap:10}}, win?btn(this.t('btn_continue'),()=>this.drawCards()):null, btn(this.t('btn_return'),()=>{ win?this.extract():this.death(); },!win)) : null);
   }
 
   // ---- USB 성장 (미스터 박 · vendor_usb_tech · usbload 플로우) ----
@@ -1879,7 +1971,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
           return h('div',{key:uid,onClick:()=>{ if(this._lmoved) return; if(!isCenter){ this.lootFocus(i); return; } if(!flipped) this.lootFlipOne(i); },
             style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+(x*fit)+'px), -50%) scale('+s+')',opacity:o,zIndex:isCenter?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:'pointer',perspective:'1200px',pointerEvents:abs>1?'none':'auto'}},
             h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
-              h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'repeating-linear-gradient(45deg, transparent 0 8px, oklch(0.235 0.008 264) 8px 9px)',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
+              h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
               h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'auto'}}, flipped?this.lootCardBig(inst,true):null))); })),
       !allOpen? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 10px'}}, ...uids.map((_,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===focus?T.mid:(open.has(i)?T.line2:T.s3)}}))) : null,
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 22px'}},
