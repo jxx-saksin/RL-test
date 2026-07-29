@@ -120,9 +120,13 @@ const statusIcon=(key,sz=16)=>{ const s=STATUS_ICONS[key]; if(!s) return null; r
 const statusChip=(key,label)=>{ const s=STATUS_ICONS[key]||{c:'rgb(169,171,175)'}; return h('div',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid '+s.c,padding:'3px 8px'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:1,letterSpacing:'1.33px',color:s.c,whiteSpace:'nowrap'}}, label)); };
 const icBattle=(sz=18,c='rgb(204,162,110)')=>h('svg',{width:sz,height:sz,viewBox:'0 0 17.5 17.5',fill:c,style:{display:'block',animation:'rlSpin 3s linear infinite'}}, h('path',{fillRule:'evenodd',d:'M 8.75 0 C 9.164 0 9.5 0.336 9.5 0.75 L 9.5 3.15 C 9.5 3.564 9.164 3.9 8.75 3.9 C 8.336 3.9 8 3.564 8 3.15 L 8 0.75 C 8 0.336 8.336 0 8.75 0 Z M 14.937 2.563 C 15.23 2.856 15.23 3.331 14.937 3.623 L 13.24 5.321 C 12.947 5.613 12.472 5.613 12.179 5.321 C 11.887 5.028 11.887 4.553 12.179 4.26 L 13.877 2.563 C 14.169 2.27 14.644 2.27 14.937 2.563 Z M 2.563 2.563 C 2.855 2.27 3.33 2.27 3.623 2.563 L 5.32 4.26 C 5.613 4.553 5.613 5.028 5.32 5.321 C 5.027 5.614 4.553 5.614 4.26 5.321 L 2.563 3.624 C 2.27 3.331 2.27 2.856 2.563 2.563 Z M 0 8.75 C 0 8.336 0.336 8 0.75 8 L 3.15 8 C 3.564 8 3.9 8.336 3.9 8.75 C 3.9 9.164 3.564 9.5 3.15 9.5 L 0.75 9.5 C 0.336 9.5 0 9.164 0 8.75 Z M 13.6 8.75 C 13.6 8.336 13.936 8 14.35 8 L 16.75 8 C 17.164 8 17.5 8.336 17.5 8.75 C 17.5 9.164 17.164 9.5 16.75 9.5 L 14.35 9.5 C 13.936 9.5 13.6 9.164 13.6 8.75 Z M 5.321 12.179 C 5.613 12.472 5.613 12.947 5.321 13.24 L 3.623 14.937 C 3.331 15.23 2.856 15.23 2.563 14.937 C 2.27 14.644 2.27 14.169 2.563 13.877 L 4.26 12.179 C 4.553 11.887 5.028 11.887 5.321 12.179 Z M 12.179 12.18 C 12.472 11.887 12.947 11.887 13.24 12.18 L 14.937 13.877 C 15.23 14.17 15.23 14.644 14.937 14.937 C 14.644 15.23 14.169 15.23 13.876 14.937 L 12.179 13.24 C 11.886 12.947 11.886 12.473 12.179 12.18 Z M 8.75 13.6 C 9.164 13.6 9.5 13.936 9.5 14.35 L 9.5 16.75 C 9.5 17.164 9.164 17.5 8.75 17.5 C 8.336 17.5 8 17.164 8 16.75 L 8 14.35 C 8 13.936 8.336 13.6 8.75 13.6 Z'}));
 const icDuel=(sz=16,c='rgb(169,171,175)')=>h('div',{style:{width:20,height:20,borderRadius:99,background:'rgb(43,46,50)',border:'1px solid rgb(74,77,83)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}, h('svg',{width:sz,height:sz,viewBox:'0 0 16 16',fill:c,style:{display:'block'}}, h('path',{fillRule:'evenodd',d:'M 7.398 0 C 3.447 0.293 0.293 3.447 0 7.398 L 2.384 7.398 C 2.717 7.398 2.986 7.668 2.986 8 C 2.986 8.332 2.717 8.602 2.384 8.602 L 0 8.602 C 0.293 12.553 3.447 15.707 7.398 16 L 7.398 13.616 C 7.398 13.283 7.668 13.014 8 13.014 C 8.332 13.014 8.602 13.283 8.602 13.616 L 8.602 16 C 12.553 15.707 15.707 12.553 16 8.602 L 13.616 8.602 C 13.283 8.602 13.014 8.332 13.014 8 C 13.014 7.668 13.283 7.398 13.616 7.398 L 16 7.398 C 15.707 3.447 12.553 0.293 8.602 0 L 8.602 2.384 C 8.602 2.717 8.332 2.986 8 2.986 C 7.668 2.986 7.398 2.717 7.398 2.384 L 7.398 0 Z M 5.794 8 C 5.794 7.668 6.063 7.398 6.396 7.398 L 7.398 7.398 L 7.398 6.396 C 7.398 6.063 7.668 5.794 8 5.794 C 8.332 5.794 8.602 6.063 8.602 6.396 L 8.602 7.398 L 9.604 7.398 C 9.937 7.398 10.206 7.668 10.206 8 C 10.206 8.332 9.937 8.602 9.604 8.602 L 8.602 8.602 L 8.602 9.604 C 8.602 9.937 8.332 10.206 8 10.206 C 7.668 10.206 7.398 9.937 7.398 9.604 L 7.398 8.602 L 6.396 8.602 C 6.063 8.602 5.794 8.332 5.794 8 Z'})));
+// 카드 넘김 화살표(screen-card-select-arrow.svg 쉐브론) — 카드 좌우 엣지·세로 중앙
+const chev=(dir,c='#EAEBEE')=>h('svg',{width:16,height:33,viewBox:(dir<0?'26':'363')+' 349 13 27',fill:c,style:{display:'block',filter:'drop-shadow(0 0 4px rgba(0,0,0,0.7))'}},h('path',{fillRule:'evenodd',clipRule:'evenodd',d:dir<0?'M37.9813 375.512C37.4781 375.943 36.7206 375.885 36.2893 375.382L26.6893 364.182C26.3041 363.732 26.3041 363.069 26.6893 362.62L36.2893 351.42C36.7206 350.917 37.4781 350.858 37.9813 351.29C38.4845 351.721 38.5428 352.479 38.1115 352.982L29.1809 363.401L38.1115 373.82C38.5428 374.323 38.4845 375.081 37.9813 375.512Z':'M364.019 350.488C364.522 350.057 365.279 350.115 365.711 350.618L375.311 361.818C375.696 362.268 375.696 362.931 375.311 363.38L365.711 374.58C365.279 375.083 364.522 375.142 364.019 374.71C363.515 374.279 363.457 373.521 363.889 373.018L372.819 362.599L363.889 352.18C363.457 351.677 363.515 350.919 364.019 350.488Z'}));
+// 양끝에 도달하면 반대편 화살표만 노출(focus>0 → 왼쪽, focus<n-1 → 오른쪽)
+const cardNav=(focus,n,onPrev,onNext)=>{ const mk=(dir,on)=>h('button',{key:dir<0?'navL':'navR',onClick:(e)=>{e.stopPropagation();on();},style:{position:'absolute',top:'50%',left:'50%',transform:'translate(calc(-50% '+(dir<0?'- 171px':'+ 171px')+'), -50%)',width:44,height:72,display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',padding:0,cursor:'pointer',zIndex:30,WebkitTapHighlightColor:'transparent'}}, chev(dir)); return [ focus>0?mk(-1,onPrev):null, focus<n-1?mk(1,onNext):null ]; };
 
 class Component extends DCLogic {
-  state = { ready:false, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null };
+  state = { ready:false, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };
   async componentDidMount(){
     try{
       const eng = await import('./engine.js');
@@ -428,14 +432,26 @@ class Component extends DCLogic {
     }
     this.setState({screen:'vendor',vendor:id,vtab:first,sel:null,repairSel:null,modalZone:null,apr:null,mod:null}); }
   // ---------- shop ----------
-  buy(shopId, row){
+  buy(shopId, row, qty){
+    qty=Math.max(1, qty||1);
     const price=this.eng.N(row.BuyPrice);
     const key=shopId+'|'+row.ItemID;
     const stock = this.gs.shopStock[key]!=null ? this.gs.shopStock[key] : this.eng.N(row.StockMax,99);
-    if(this.gs.sato < price){ this.flash(this.t('shop_insufficient_sato')); return; }
+    const total=price*qty;
+    if(this.gs.sato < total){ this.flash(this.t('shop_insufficient_sato')); return; }
+    if(stock < qty){ this.flash(this.t('shop_out_of_stock')); return; }
+    this.gs.sato -= total; this.gs.shopStock[key]=stock-qty; this.addToVault(row.ItemID,qty);
+    this.flash(this.t('shop_buy_done')); this.setState({buySel:null,buyQty:1});
+  }
+  // 상점 구매: 행 클릭 → 상세카드+수량박스 모달 (즉시구매 금지)
+  openBuy(shopId,row){
+    const price=this.eng.N(row.BuyPrice);
+    const key=shopId+'|'+row.ItemID;
+    const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(row.StockMax,99);
+    if(this.gs.sato<price){ this.flash(this.t('shop_insufficient_sato')); return; }
     if(stock<=0){ this.flash(this.t('shop_out_of_stock')); return; }
-    this.gs.sato -= price; this.gs.shopStock[key]=stock-1; this.addToVault(row.ItemID,1);
-    this.flash(this.t('shop_buy_done')); this.forceUpdate();
+    this._buyPrev=this.eng.mkInstance(row.ItemID,1);   // 미리보기 인스턴스 1회 생성(재렌더 재롤 방지)
+    this.setState({buySel:{shopId,row},buyQty:1});
   }
   addToVault(id,qty){ this.stackAdd(this.gs.vault, id, qty); }
 
@@ -505,7 +521,7 @@ class Component extends DCLogic {
     else if(s==='vendor') body=this.vendorScreen();
     else if(s==='settings') body=this.settings();
     const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='equipment';
-    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null);
+    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null);
   }
 
   // ---- safehouse ----
@@ -609,7 +625,7 @@ class Component extends DCLogic {
         h('div',{key:'bar',style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6,height:38,borderRadius:8,background:'rgb(26,27,33)'}}, icInfo(19,'rgb(204,162,110)'), h('span',{style:{fontFamily:T.sans,fontSize:12,color:'rgb(204,162,110)'}}, '\u201c'+keyName+'\u201d'+(this.en()?' will be used.':'\ub97c \uc0ac\uc6a9\ud569\ub2c8\ub2e4.'))),
         h('button',{key:'btn',disabled:dead,onClick:dead?null:()=>this.startSortie(z.ZoneID),style:{display:'flex',justifyContent:'center',alignItems:'center',width:'100%',boxSizing:'border-box',height:48,borderRadius:999,border:'1px solid rgb(204,162,110)',background:'#18191d',cursor:dead?'default':'pointer',opacity:dead?.5:1}}, icUnlock(22,'rgb(204,162,110)'))];
     } else {
-      bottom=[ h('button',{key:'btn',disabled:dead,onClick:dead?null:()=>this.startSortie(z.ZoneID),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'1px solid '+(dead?T.line:'rgb(74,77,83)'),background:'#18191d',color:dead?T.faint:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:dead?'default':'pointer'}}, dead?this.t('heal_restore_first'):this.t('btn_confirm')) ];
+      bottom=[ h('button',{key:'btn',disabled:dead,onClick:dead?null:()=>this.startSortie(z.ZoneID),style:{marginTop:8,width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'1px solid '+(dead?T.line:'rgb(74,77,83)'),background:'#18191d',color:dead?T.faint:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:dead?'default':'pointer'}}, dead?this.t('heal_restore_first'):this.t('btn_confirm')) ];   // 스태미너 바↔확인 간격: flex gap16 + marginTop8 = 24
     }
     return h('div',{onClick:()=>this.setState({modalZone:null}),style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',display:'flex',alignItems:'flex-end',zIndex:30,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 16px',background:'rgb(24,25,29)',boxShadow:'inset 0 0 0 1px rgb(54,56,60)',borderRadius:8,padding:16,display:'flex',flexDirection:'column',gap:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
@@ -848,7 +864,7 @@ class Component extends DCLogic {
           list.map((inst,i)=>{ const off=i-c.restFocus, abs=Math.abs(off); const isC=off===0; const x=off*250, s=isC?1:0.9, o=isC?1:0.5;
             return h('div',{key:inst.uid,onClick:()=>{ if(!isC){c.restFocus=i;this.forceUpdate();} },style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(442px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'default':'pointer'}}, this.lootCardBig(inst)); }))
         : h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}, this.emptyRow(this.en()?'No food or medicine to use.':'사용할 음식이나 의약품이 없습니다.')),
-      list.length? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 12px'}}, list.map((x,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===c.restFocus?'rgb(169,171,175)':'rgb(43,46,50)'}}))) : null,
+      list.length? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 12px'}}, list.map((x,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===c.restFocus?'rgb(169,171,175)':'rgb(43,46,50)'}}))) : null,
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
         h('div',{style:{background:'rgb(24,25,29)',borderRadius:24,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}},
           h('div',{style:{display:'flex',gap:5}},
@@ -1148,8 +1164,9 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
                 h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
                   h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'url(assets/art/card_back/monster_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}},
                     isBossBack? h('div',{style:{position:'absolute',inset:0,pointerEvents:'none',borderRadius:8,animation:'rlBossTell 5.5s ease-in-out infinite'}}):null),
-                  isCenter? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'hidden'}}, flipped?(c.pvp?this.userFront(c.mProf):this.monsterFront(c.mProf)):null):null)); })),
-      h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 12px'}}, ...c.cards.map((id,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===c.cardFocus?'rgb(169,171,175)':'rgb(43,46,50)'}}))),
+                  isCenter? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'hidden'}}, flipped?(c.pvp?this.userFront(c.mProf):this.monsterFront(c.mProf)):null):null)); }),
+        (!flipped? cardNav(c.cardFocus, c.cards.length, ()=>this.focusCard(Math.max(0,c.cardFocus-1)), ()=>this.focusCard(Math.min(c.cards.length-1,c.cardFocus+1))) : null)),
+      h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 12px'}}, ...c.cards.map((id,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===c.cardFocus?'rgb(169,171,175)':'rgb(43,46,50)'}}))),
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
         h('div',{style:{background:'rgb(24,25,29)',borderRadius:24,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}},
           h('div',{style:{display:'flex',gap:5}},
@@ -1229,8 +1246,9 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
           return h('div',{key:i,onClick:()=>{ if(this._fmoved||flipped)return; isC?this.flipFlee():(c.fleeFocus=i,this.forceUpdate()); },style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(442px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%)',opacity:o,zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',perspective:'1200px',pointerEvents:(flipped&&!isC)?'none':'auto'}},
             h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
               h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden'}}, this.cardFace()),
-              isC? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)'}}, this.fleeFront()):null)); })),
-      !flipped? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 12px'}}, [0,1,2].map(i=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===(c.fleeFocus==null?1:c.fleeFocus)?'rgb(169,171,175)':'rgb(43,46,50)'}}))) : null,
+              isC? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)'}}, this.fleeFront()):null)); }),
+        (!flipped? cardNav(c.fleeFocus==null?1:c.fleeFocus, 3, ()=>{const ff=c.fleeFocus==null?1:c.fleeFocus; c.fleeFocus=Math.max(0,ff-1); this.forceUpdate();}, ()=>{const ff=c.fleeFocus==null?1:c.fleeFocus; c.fleeFocus=Math.min(2,ff+1); this.forceUpdate();}) : null)),
+      !flipped? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 12px'}}, [0,1,2].map(i=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===(c.fleeFocus==null?1:c.fleeFocus)?'rgb(169,171,175)':'rgb(43,46,50)'}}))) : null,
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
         h('div',{style:{background:'rgb(24,25,29)',borderRadius:16,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:24,display:'flex',flexDirection:'column',gap:16}},
           flipped? h('div',{style:{height:6,borderRadius:99,overflow:'hidden',background:'rgb(43,46,50)'}}, h('div',{ref:el=>{ if(el&&!el._an){ el._an=1; el.style.width='100%'; requestAnimationFrame(()=>requestAnimationFrame(()=>{ el.style.transition='width 3s linear'; el.style.width='0%'; })); } },style:{height:'100%',width:'100%',background:ok?'rgb(131,178,137)':'rgb(165,172,178)'}})) : null,
@@ -1495,8 +1513,9 @@ void main(){
               style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isCenter?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:pc.picked!=null?'default':'pointer',perspective:'1200px',pointerEvents:(done&&!flippedThis)?'none':'auto'}},
               h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
                 h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'url(assets/art/card_back/pvp_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
-                flippedThis? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'hidden'}}, this.pvpResultCardFace(i)):null)); })),
-      !done? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 14px'}}, ...Array.from({length:pc.n}).map((_,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===focus?T.mid:T.s3}}))) : null,
+                flippedThis? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'hidden'}}, this.pvpResultCardFace(i)):null)); }),
+        (!done? cardNav(focus, pc.n, ()=>this.focusPvp(focus-1), ()=>this.focusPvp(focus+1)) : null)),
+      !done? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 14px'}}, ...Array.from({length:pc.n}).map((_,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===focus?T.mid:T.s3}}))) : null,
       done? h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
         h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24,display:'flex',gap:8}},
           win?h('button',{onClick:()=>this.drawCards(),style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_continue')):null,
@@ -1802,42 +1821,44 @@ void main(){
       if(box) box.textContent=String(fromLv);
       if(fill) fill.style.width=fromP+'%';
     });
+    if(!rows.length){ this.runSatoCount(el); return; }   // 성장한 스탯 없음 → 바로 사토
     const easeOut=t=>1-Math.pow(1-t,4);   // 뒤로 갈수록 느려짐
-    let i=0;
-    const runOne=()=>{
-      if(this._resSkip) return;
-      if(i>=rows.length){ this.runSatoCount(el); return; }
-      const row=rows[i];
+    // 힘·민첩·체력·의지 4스탯 동시 연출 (2.5초, 감속). 전부 끝난 뒤 사토.
+    const anims=rows.map(row=>{
       const num=row.querySelector('[data-num]'), box=row.querySelector('[data-lvlbox]'), fill=row.querySelector('[data-fill]'), shim=row.querySelector('[data-shimmer]');
       const fromLv=parseInt(row.getAttribute('data-fl'),10)||0, fromP=parseFloat(row.getAttribute('data-fp'))||0;
       const toLv=parseInt(row.getAttribute('data-tl'),10)||0, toP=parseFloat(row.getAttribute('data-tp'))||0;
       const span=(toLv>fromLv)?((100-fromP)+(toLv-fromLv-1)*100+toP):Math.max(0,toP-fromP);
       if(num){ num.style.transition='transform .2s ease-out'; num.style.transform='scale(1.2)'; }
       if(shim) shim.style.animation='rlShimmer 1.4s linear infinite';
-      let lastLv=fromLv; const dur=2000; let st=null;
-      const tick=now=>{
-        if(this._resSkip) return;
-        if(st==null)st=now;
-        const t=Math.min(1,(now-st)/dur), f=easeOut(t);
-        let level=fromLv, p=fromP+span*f;
-        while(p>=100 && level<toLv){ p-=100; level++; }
-        if(t>=1){ level=toLv; p=toP; }
+      return {num,box,fill,shim,fromLv,fromP,toLv,toP,span,lastLv:fromLv};
+    });
+    const dur=2500; let st=null;
+    const tick=now=>{
+      if(this._resSkip) return;
+      if(st==null)st=now;
+      const t=Math.min(1,(now-st)/dur), f=easeOut(t);
+      anims.forEach(a=>{
+        let level=a.fromLv, p=a.fromP+a.span*f;
+        while(p>=100 && level<a.toLv){ p-=100; level++; }
+        if(t>=1){ level=a.toLv; p=a.toP; }
         const pc=Math.max(0,Math.min(100,p));
-        if(fill) fill.style.width=pc+'%';
-        if(num) num.textContent=pc.toFixed(2)+'%';
-        if(level!==lastLv){ const prev=lastLv; lastLv=level; this.rollLevel(box, prev, level); }
-        if(t<1) requestAnimationFrame(tick);
-        else {
-          if(num){ num.textContent=toP.toFixed(2)+'%'; num.style.transform='scale(1)'; }
-          if(box) box.textContent=String(toLv);
-          if(fill) fill.style.width=toP+'%';
-          if(shim) shim.style.animation='';
-          i++; setTimeout(runOne,220);
-        }
-      };
-      requestAnimationFrame(tick);
+        if(a.fill) a.fill.style.width=pc+'%';
+        if(a.num) a.num.textContent=pc.toFixed(2)+'%';
+        if(level!==a.lastLv){ const prev=a.lastLv; a.lastLv=level; this.rollLevel(a.box, prev, level); }
+      });
+      if(t<1) requestAnimationFrame(tick);
+      else{
+        anims.forEach(a=>{
+          if(a.num){ a.num.textContent=a.toP.toFixed(2)+'%'; a.num.style.transform='scale(1)'; }
+          if(a.box) a.box.textContent=String(a.toLv);
+          if(a.fill) a.fill.style.width=a.toP+'%';
+          if(a.shim) a.shim.style.animation='';
+        });
+        setTimeout(()=>this.runSatoCount(el), 220);   // 4스탯 전부 끝난 뒤 사토 연출
+      }
     };
-    runOne();
+    requestAnimationFrame(tick);
   }
   rollLevel(box, from, to){
     if(!box) return;
@@ -1972,8 +1993,9 @@ void main(){
             style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+(x*fit)+'px), -50%) scale('+s+')',opacity:o,zIndex:isCenter?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:'pointer',perspective:'1200px',pointerEvents:abs>1?'none':'auto'}},
             h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
               h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
-              h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'auto'}}, flipped?this.lootCardBig(inst,true):null))); })),
-      !allOpen? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:7,padding:'0 0 10px'}}, ...uids.map((_,i)=>h('div',{key:i,style:{width:7,height:7,borderRadius:99,background:i===focus?T.mid:(open.has(i)?T.line2:T.s3)}}))) : null,
+              h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'auto'}}, flipped?this.lootCardBig(inst,true):null))); }),
+        cardNav(focus, uids.length, ()=>this.lootFocus(focus-1), ()=>this.lootFocus(focus+1))),
+      !allOpen? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 10px'}}, ...uids.map((_,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===focus?T.mid:(open.has(i)?T.line2:T.s3)}}))) : null,
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 22px'}},
         h('div',{style:{display:'flex',gap:8,background:'#18191D',border:'1px solid #36383C',borderRadius:8,padding:'15px 13px'}},
           ...(allOpen
@@ -2116,12 +2138,15 @@ void main(){
   }
   durTxt(inst, sep){ sep=sep||'/'; const mx=Math.round(this.eng.N(inst.maxDur)), d=Math.round(this.eng.N(inst.dur)); return (this.eng.N(inst.maxDur)>0&&this.eng.N(inst.dur)<=0)?(this.t('item_damaged')+sep+mx):(d+sep+mx); }
   itemLabel(inst){ const base=this.eng.anyName(inst.id); if(!inst||!inst.affixes||!inst.affixes.length) return base; const pre=inst.affixes.find(a=>a.type==='prefix'); const suf=inst.affixes.find(a=>a.type==='suffix'); return (pre?this.eng.affixName(pre)+' ':'')+(suf?this.eng.affixName(suf)+' ':'')+base; }
+  // 인벤 리스트 수량 칩 — 최대스택≥2 아이템에만(현재수량/최대, 최대치는 MAX). svg screen-list.svg 참고
+  qtyChip(inst,ms){ return h('span',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',color:'rgb(169,171,175)'}}, ((inst.qty||1)>=ms?'MAX':(inst.qty||1))+'/'+ms); }
   invRow(inst,seg,catOf){
     const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||{};
     const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id];
     const md=this.eng.byId.module&&this.eng.byId.module[inst.id];
     const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id];
     const name=this.itemLabel(inst);
+    const ms=this.maxStack(inst.id);   // 스택 상한(아이템 탭 MaxStack; 장비·비스택은 1)
     const equippable = inst.kind==='weapon'||inst.kind==='armor'||inst.kind==='artifact';
     const equipped = this.isEquipped(inst.uid);
     const attr = s.Attribute;
@@ -2143,10 +2168,9 @@ void main(){
           ...this.growthChips(inst),
           st==='destroyed'?this.subTag(this.t('item_destroyed')):null),
         equippable?h('button',{onClick:(e)=>{e.stopPropagation();this.toggleEquip(inst);},
-          style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,cursor:'pointer',whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',color:'rgb(169,171,175)'}}, equipped?(this.en()?'Unequip':'해제'):(this.en()?'Equip':'착용')):null),
+          style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,cursor:'pointer',whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',color:'rgb(169,171,175)'}}, equipped?(this.en()?'Unequip':'해제'):(this.en()?'Equip':'착용')):(ms>=2?this.qtyChip(inst,ms):null)),
       h('div',{style:{display:'flex',alignItems:'center',gap:8,alignSelf:'stretch',flexWrap:'wrap',marginTop:8}},
         h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:400,color:T.hi}}, name),
-        inst.qty>1?h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid}}, '×'+inst.qty):null,
         (inst.sockets&&inst.sockets.length)?this.socketRow(inst,{size:9}):null),
       desc?h('div',{style:{alignSelf:'stretch',marginTop:4}}, h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:1,WebkitBoxOrient:'vertical',overflow:'hidden',textOverflow:'ellipsis'}}, desc)):null);
   }
@@ -2227,7 +2251,7 @@ void main(){
     return h('div',{onClick:()=>this.setState({sel:null,moveQty:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
       // 업데이트된 카드 (전리품 카드와 동일)
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig(inst,'fit'))),
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...inst,qty:1},'fit'))),
       // 하단 액션 박스 (아이템 카테고리별 버튼 구성)
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
         isConsum?h('div',{style:{display:'flex',gap:5,marginBottom:16}}, h('div',{style:{flex:1}},this.fbar(this.t('stat_hp'),this.gs.hp,this.gs.maxHp,'#ae615c')), h('div',{style:{flex:1}},this.fbar(this.t('stat_stamina'),this.gs.sta,this.staMax,'#c19e6f'))):null,
@@ -2237,7 +2261,52 @@ void main(){
         h('div',{style:{display:'flex',gap:8}},
           isConsum?this.fbtn(this.t('heal_use_item'),'#83b289',()=>this.useConsumable(inst),true):null,
           equippable?this.fbtn(equipped?this.t('equip_unequip_btn'):this.t('equip_equip'),equipped?'#a9abaf':'#eaebee',()=>this.toggleEquip(inst),true):null,
-          this.fbtn((inVault?this.t('btn_to_belongings'):this.t('btn_to_vault'))+(stackable?(' '+q+(this.en()?'':this.t('frag_count'))):''),'#eaebee',()=>{this.moveStack(inst.uid,q);this.setState({sel:null,moveQty:null});},true))));
+          this.fbtn((inVault?this.t('btn_to_belongings'):this.t('btn_to_vault')),'#eaebee',()=>{this.moveStack(inst.uid,q);this.setState({sel:null,moveQty:null});},true))));
+  }
+
+  // 상점 구매 모달 — itemSheet 패턴 재사용(상세카드 + 수량 스테퍼 + 닫기/구매하기)
+  buySheet(){
+    const sel=this.state.buySel; if(!sel) return null;
+    const {shopId,row}=sel; const inst=this._buyPrev; if(!inst) return null;
+    const price=this.eng.N(row.BuyPrice);
+    const key=shopId+'|'+row.ItemID;
+    const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(row.StockMax,99);
+    const qmax=Math.max(1, Math.min(stock, Math.floor(this.gs.sato/Math.max(1,price))));
+    const q=Math.max(1, Math.min(this.state.buyQty||1, qmax));
+    const total=price*q;
+    return h('div',{onClick:()=>this.setState({buySel:null,buyQty:1}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
+      h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...inst,qty:1},'fit'))),
+      h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}},
+          h('span',{style:{fontFamily:T.sans,fontSize:10,color:'#a9abaf'}}, this.en()?'Qty':'수량'),
+          this.qstepper(q,qmax,'buyQty')),
+        this.frow(this.en()?'Cost':'구매 비용', total.toLocaleString(), '#85b3c5', true),
+        h('div',{style:{display:'flex',gap:8,marginTop:12}},
+          this.fbtn(this.en()?'Buy':'구매하기','#eaebee',()=>this.buy(shopId,row,q),true),
+          this.fbtn(this.en()?'Close':'닫기','#a9abaf',()=>this.setState({buySel:null,buyQty:1}),true))));
+  }
+  qstepper(q,max,key){ const box=(t,fn)=>h('button',{onClick:fn,style:{width:30,height:30,background:'transparent',border:'1px solid #4a4d53',borderRadius:4,color:'#a9abaf',fontFamily:T.mono,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0}},t);
+    return h('div',{style:{display:'flex',alignItems:'center',gap:12}}, box('−',()=>this.setState({[key]:Math.max(1,q-1)})), h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#eaebee',minWidth:45,textAlign:'center'}}, q+' / '+max), box('+',()=>this.setState({[key]:Math.min(max,q+1)}))); }
+  // 판매 모달 — buySheet 대칭(상세카드 + 수량 + 판매 비용 + 닫기/판매하기)
+  sellSheet(){
+    const sel=this.state.sellSel; if(!sel||!sel.uids) return null;
+    const insts=sel.uids.map(u=>this.eng.instById(this.gs,u)).filter(Boolean); if(!insts.length) return null;
+    const rep=insts[0];
+    const price=this.sellPrice(rep); const qmax=Math.max(1, insts.reduce((s,x)=>s+(x.qty||1),0));
+    const q=Math.max(1, Math.min(this.state.sellQty||1, qmax));
+    const total=price*q;
+    return h('div',{onClick:()=>this.setState({sellSel:null,sellQty:1}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
+      h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...rep,qty:1},'fit'))),
+      h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}},
+          h('span',{style:{fontFamily:T.sans,fontSize:10,color:'#a9abaf'}}, this.en()?'Qty':'수량'),
+          this.qstepper(q,qmax,'sellQty')),
+        this.frow(this.en()?'Revenue':'판매 비용', total.toLocaleString(), '#cca26e', true),
+        h('div',{style:{display:'flex',gap:8,marginTop:12}},
+          this.fbtn(this.en()?'Sell':'판매하기','#eaebee',()=>this.sellGroup(sel.uids,q),true),
+          this.fbtn(this.en()?'Close':'닫기','#a9abaf',()=>this.setState({sellSel:null,sellQty:1}),true))));
   }
 
   fbtn(label,color,onClick,pill){ return h('button',{onClick,style:pill?{flex:1,minWidth:0,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color,fontFamily:T.sans,fontSize:12,fontWeight:400,padding:'0 6px',cursor:'pointer',whiteSpace:'nowrap',display:'flex',alignItems:'center',justifyContent:'center'}:{flex:1,minWidth:0,background:'transparent',border:'1px solid #4a4d53',borderRadius:4,color,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'15px 6px',lineHeight:'21px',cursor:'pointer',whiteSpace:'nowrap'}}, label); }
@@ -2328,7 +2397,7 @@ void main(){
     const close=()=>this.setState({equipCard:null});
     return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig(inst,'fit'))),
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...inst,qty:1},'fit'))),
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',padding:'0 16px 22px'}},
         h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
           h('button',{onClick:close,style:{width:'100%',height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_confirm')))));
@@ -2470,8 +2539,15 @@ void main(){
       tabs.length? h('div',{style:{display:'flex',flex:'0 0 auto',background:'rgb(24,25,29)',borderBottom:'1px solid rgb(54,56,60)'}},
         ...tabs.map(([k,l])=>{ const on=tab===k;
           return h('button',{key:k,onClick:()=>this.setState({vtab:k}),style:{flex:1,background:'none',border:'none',borderBottom:'2px solid '+(on?'rgb(169,171,175)':'transparent'),padding:'13px 0',cursor:'pointer',fontFamily:T.sans,fontSize:14,fontWeight:500,textAlign:'center',color:on?'rgb(234,235,238)':'rgb(111,114,118)'}}, l); })) : null,
-      tab==='buy'?this.vendorBuy(v):tab==='sell'?this.vendorSell(v):tab==='repair'?this.vendorRepair():tab==='feed'?this.vendorFeed(v):tab==='load'?this.vendorLoad(v):tab==='appraise'?this.vendorAppraise(v):tab==='module'?this.vendorModule(v):this.vendorHeal(v)
+      tab==='buy'?this.vendorBuy(v):tab==='sell'?this.vendorSell(v):tab==='repair'?this.vendorRepair():tab==='feed'?this.vendorFeed(v):tab==='load'?this.vendorLoad(v):tab==='appraise'?this.vendorAppraise(v):tab==='module'?this.vendorModule(v):this.vendorHeal(v),
+      (tab==='buy'||tab==='sell')?this.shopExitBox():null
     );
+  }
+  // 상점 하단 나가기 박스(box-back.svg) — 구매·판매 탭에만. 수리·회복 등 특수 서비스 탭엔 표시 안 함.
+  shopExitBox(){
+    return h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
+      h('div',{style:{background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:24}},
+        h('button',{onClick:()=>this.go('safehouse'),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#eaebee',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'Exit':'나가기')));
   }
   shopPill(txt,color){ return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'5px 8px',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:color,whiteSpace:'nowrap'}}, txt); }
   shopRow(o){ return h('div',{key:o.key,onClick:o.disabled?null:o.onClick,style:{display:'flex',flexDirection:'column',gap:8,padding:'16px 18px',borderBottom:'1px solid rgb(54,56,60)',cursor:o.disabled?'default':'pointer',opacity:(o.disabled||o.dim)?0.5:1}},
@@ -2486,7 +2562,7 @@ void main(){
     return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px'}},
       rows.length? rows.map(r=>{ const price=this.eng.N(r.BuyPrice); const key=v.ShopID+'|'+r.ItemID; const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(r.StockMax,99); const aff=this.gs.sato>=price&&stock>0; const liq=this.eng.byId.liquor&&this.eng.byId.liquor[r.ItemID]; const md=this.eng.byId.module&&this.eng.byId.module[r.ItemID]; const usb=this.eng.byId.usb&&this.eng.byId.usb[r.ItemID]; const src=this.eng.byId.item[r.ItemID]||this.eng.byId.weapon[r.ItemID]||this.eng.byId.armor[r.ItemID]||this.eng.byId.artifact[r.ItemID]||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
         const desc=(this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'')+(src.EffectValue?((' '+this.t('frag_dot_heal'))+src.EffectValue):'');
-        return this.shopRow({key:r.ItemID,cat,name:this.tx(r,'ItemName')||this.eng.anyName(r.ItemID),desc,priceLabel:'BUY '+price.toLocaleString(),priceColor:'rgb(133,179,197)',countLabel:(this.en()?'Stock ':'재고 ')+String(stock).padStart(2,'0'),onClick:()=>this.buy(v.ShopID,r),disabled:!aff}); })
+        return this.shopRow({key:r.ItemID,cat,name:this.tx(r,'ItemName')||this.eng.anyName(r.ItemID),desc,priceLabel:'BUY '+price.toLocaleString(),priceColor:'rgb(133,179,197)',countLabel:(this.en()?'Stock ':'재고 ')+String(stock).padStart(2,'0'),onClick:()=>this.openBuy(v.ShopID,r),disabled:!aff}); })
         : this.emptyRow(this.en()?'No items to sell.':'판매 가능한 아이템이 없습니다.'));
   }
   sellables(v){
@@ -2496,14 +2572,48 @@ void main(){
     return [...this.gs.vault,...this.gs.bag].filter(inst=>match(catOf(inst)) && this.sellPrice(inst)>0);
   }
   sellPrice(inst){ const e=this.eng.byId; const it=e.weapon[inst.id]||e.armor[inst.id]||e.artifact[inst.id]||(e.liquor&&e.liquor[inst.id])||e.item[inst.id]; return it?this.eng.N(it.SellPrice):0; }
-  sellItem(inst){ const p=this.sellPrice(inst); if(p<=0){this.flash(this.t('shop_no_sale'));return;} if(this.isEquipped(inst.uid)){this.flash(this.t('equip_worn_nosale'));return;}
-    this.gs.sato+=p; const dec=(arr)=>{const i=arr.findIndex(x=>x.uid===inst.uid);if(i<0)return false; if((arr[i].qty||1)>1)arr[i].qty--; else arr.splice(i,1); return true;}; dec(this.gs.vault)||dec(this.gs.bag);
-    this.flash(this.t('shop_sell_done')); this.forceUpdate(); }
+  // 판매 리스트 병합: 스택 가능 아이템은 창고+가방 모든 더미를 종류별 1행으로 합산.
+  // 장비(무기·방어구·애장품 = 최대스택1)는 인스턴스마다 롤이 달라 개별 행 유지.
+  sellGroups(v){
+    const groups=[]; const byId={};
+    for(const inst of this.sellables(v)){
+      if(this.maxStack(inst.id)>1){
+        let g=byId[inst.id];
+        if(!g){ g=byId[inst.id]={rep:inst, uids:[], total:0, price:this.sellPrice(inst)}; groups.push(g); }
+        g.uids.push(inst.uid); g.total+=(inst.qty||1);
+      } else {
+        groups.push({rep:inst, uids:[inst.uid], total:(inst.qty||1), price:this.sellPrice(inst)});
+      }
+    }
+    return groups;
+  }
+  // 판매: 행 클릭 → 상세카드+수량박스 모달 (즉시판매 금지)
+  openSell(g){
+    if(g.price<=0){ this.flash(this.t('shop_no_sale')); return; }
+    if(this.isEquipped(g.rep.uid)){ this.flash(this.t('equip_worn_nosale')); return; }
+    this.setState({sellSel:{uids:g.uids.slice(), id:g.rep.id}, sellQty:1});
+  }
+  // qty만큼 여러 더미에서 순서대로 차감(창고→가방)
+  sellGroup(uids, qty){
+    const insts=uids.map(u=>this.eng.instById(this.gs,u)).filter(Boolean); if(!insts.length) return;
+    const rep=insts[0];
+    if(this.isEquipped(rep.uid)){ this.flash(this.t('equip_worn_nosale')); return; }
+    const price=this.sellPrice(rep); if(price<=0){ this.flash(this.t('shop_no_sale')); return; }
+    const total=insts.reduce((s,x)=>s+(x.qty||1),0);
+    qty=Math.max(1, Math.min(qty||1, total));
+    this.gs.sato+=price*qty;
+    let left=qty;
+    for(const inst of insts){ if(left<=0) break; const have=inst.qty||1; const take=Math.min(have,left);
+      if(take>=have){ const rm=(arr)=>{const i=arr.findIndex(x=>x.uid===inst.uid); if(i>=0){arr.splice(i,1);return true;} return false;}; rm(this.gs.vault)||rm(this.gs.bag); }
+      else { inst.qty=have-take; }
+      left-=take; }
+    this.flash(this.t('shop_sell_done')); this.setState({sellSel:null,sellQty:1});
+  }
   vendorSell(v){
-    const list=this.sellables(v);
+    const groups=this.sellGroups(v);
     return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px'}},
-      list.length? list.map(inst=>{ const p=this.sellPrice(inst); const eq=this.isEquipped(inst.uid); const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]; const md=this.eng.byId.module&&this.eng.byId.module[inst.id]; const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id]; const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
-        return this.shopRow({key:inst.uid,cat,name:this.itemLabel(inst),desc:this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'',priceLabel:'SELL '+p.toLocaleString(),priceColor:'rgb(204,162,110)',countLabel:(this.en()?'Owned ':'소지 ')+String(inst.qty||1).padStart(2,'0'),onClick:()=>this.sellItem(inst),dim:eq}); })
+      groups.length? groups.map(g=>{ const inst=g.rep; const eq=this.isEquipped(inst.uid); const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]; const md=this.eng.byId.module&&this.eng.byId.module[inst.id]; const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id]; const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
+        return this.shopRow({key:g.uids[0],cat,name:this.itemLabel(inst),desc:this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'',priceLabel:'SELL '+g.price.toLocaleString(),priceColor:'rgb(204,162,110)',countLabel:(this.en()?'Owned ':'소지 ')+String(g.total).padStart(2,'0'),onClick:()=>this.openSell(g),dim:eq}); })
         : this.emptyRow(this.en()?'No items to sell.':'판매 가능한 아이템이 없습니다.'));
   }
   healCost(){ return Math.max(0, Math.ceil((this.gs.maxHp - this.gs.hp) * this.eng.N(this.eng.DATA.config.heal_cost_per_hp, 2))); }
