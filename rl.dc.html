@@ -494,13 +494,6 @@ class Component extends DCLogic {
   screenTitle(kicker,title){ return h('div',{style:{padding:'18px 18px 14px',flex:'0 0 auto'}},
     h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:T.faint,marginBottom:6}}, this.eng.t(kicker)),
     h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:400,color:T.hi,letterSpacing:'-.01em'}}, this.eng.t(title))); }
-  onContentScroll(e){ const el=e.target; this._titleScrollEl=el; const st=el.scrollTop;
-    if(this._titleLock) return; // 타이틀 접힘/펼침 리플로우로 유발되는 스크롤 이벤트 무시(진동 방지)
-    const prev=this._lastScroll==null?st:this._lastScroll; const hidden=!!(this.state&&this.state.titleHidden); let hide=hidden;
-    if(st<=6)hide=false; else if(st>prev+6)hide=true; else if(st<prev-6)hide=false;
-    this._lastScroll=st;
-    if(hide!==hidden){ this._titleLock=true; this.setState({titleHidden:hide}); clearTimeout(this._titleLockT); this._titleLockT=setTimeout(()=>{ this._titleLock=false; this._lastScroll=this._titleScrollEl?this._titleScrollEl.scrollTop:st; },360); } }
-  titleWrap(node){ return h('div',{style:{flex:'0 0 auto',overflow:'hidden',maxHeight:this.state.titleHidden?0:88,opacity:this.state.titleHidden?0:1,transition:'max-height .28s ease, opacity .22s ease'}}, node); }
   toastEl(){ if(!this.state.toast) return null; return h('div',{style:{position:'absolute',bottom:106,left:16,right:16,display:'flex',alignItems:'center',justifyContent:'center',gap:9,height:44,boxSizing:'border-box',padding:'0 20px',background:'#18191D',border:'1px solid #36383C',borderRadius:999,color:'#A1A1A1',fontFamily:T.mono,fontSize:12,animation:'rlFade .2s',zIndex:20,pointerEvents:'none'}},
     h('svg',{key:'ic',width:15,height:15,viewBox:'123 660.2 15.6 17.2',fill:'none',style:{flex:'0 0 auto'}},
       h('path',{key:'a',d:'M130.8 664.2C131.131 664.2 131.4 664.469 131.4 664.8V669.6C131.4 669.932 131.131 670.2 130.8 670.2C130.469 670.2 130.2 669.932 130.2 669.6V664.8C130.2 664.469 130.469 664.2 130.8 664.2Z',fill:'#A1A1A1'}),
@@ -531,12 +524,12 @@ class Component extends DCLogic {
     const ord=(v)=>{ const i=ORDER.indexOf(v.ShopID); return i<0?99:i; };
     const vendors=this.eng.DATA.vendors.slice().sort((a,b)=>ord(a)-ord(b));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-      this.titleWrap(this.screenTitle(this.t('kicker_safehouse'),'안전가옥')),
       this.state.resumeBanner? h('div',{style:{display:'flex',alignItems:'center',gap:10,margin:'0 16px 4px',padding:'9px 12px',background:T.s1,border:'1px solid '+T.line,borderRadius:4,flex:'0 0 auto'}},
         h('span',{style:{flex:1,fontFamily:T.mono,fontSize:11,color:T.mid,letterSpacing:'.04em'}}, this.t('save_resuming')),
         h('button',{onClick:()=>{try{localStorage.removeItem('rl_save_v1');}catch(_){ } this.newRun(true); this.setState({resumeBanner:false}); this.saveGame(); this.flash(this.t('save_reset_done'));},style:{background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:12,padding:'5px 11px',borderRadius:4,cursor:'pointer'}}, this.t('save_new_game')),
         h('button',{onClick:()=>this.setState({resumeBanner:false}),style:{background:'transparent',border:'none',color:T.faint,fontSize:15,cursor:'pointer',padding:'0 4px',lineHeight:1}}, '×')):null,
-      h('div',{onScroll:(e)=>this.onContentScroll(e),style:{padding:'20px 16px 100px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:16}},
+      h('div',{style:{padding:'0 16px 100px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:16}},
+        h('div',{style:{margin:'0 -16px',flex:'0 0 auto'}}, this.screenTitle(this.t('kicker_safehouse'),'안전가옥')),
         ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Feed')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Module')||svc.includes('Sell'); const act=()=>this.openVendor(v.VendorID);
             const CHIP={ shop_clinic:['치료','Heal'], shop_hardware:['수리','Repair'], shop_canteen:['배식','Ration'], shop_data_center:['데이터','Data'], shop_pawnshop:['감정','Appraise'], shop_blackmarket:['거래','Trade'], shop_auction:['거래소','Exchange'] };
             const chipTxt=(CHIP[v.ShopID]||[])[this.en()?1:0]||'';
@@ -1221,7 +1214,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.2px',color:'rgb(111,114,118)',lineHeight:'100%'}}, 'ENCOUNTER · '+zoneName+' · '+(this.en()?('Encounter #'+(enc+1)):((enc+1)+'전 조우'))))); }
   cardFace(){ return h('div',{style:{width:342,height:'min(442px, 100%)',borderRadius:8,background:T.s2,backgroundImage:'url(assets/art/card_back/flee_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}); }
   placeTitleFor(c){ const zObj=this.eng.byId.zone[c.zoneId]; const zoneName=zObj?this.tx(zObj,'ZoneName'):''; const cityObj=zObj&&this.eng.byId.city?this.eng.byId.city[zObj.CityID]:null; return {zoneName, placeTitle:(cityObj?(this.tx(cityObj,'CityName')||'')+' · ':'')+zoneName}; }
-  attemptFlee(){ Object.assign(this.combat,{phase:'fleeCards', fleeFocus:1, fleeFlipped:false, fleeSuccess:null}); if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate(); }
+  attemptFlee(){ ['flee-Success','flee-Failed'].forEach(n=>{ const im=new Image(); im.src='assets/art/scenes/'+n+'.jpg'; }); Object.assign(this.combat,{phase:'fleeCards', fleeFocus:1, fleeFlipped:false, fleeSuccess:null}); if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate(); }
   flipFlee(){ const c=this.combat; if(c.fleeFlipped) return; const p=this.eng.N(this.eng.DATA.config.flee_chance_base,0.9); c.fleeSuccess=Math.random()<p; c.fleeFlipped=true; this.forceUpdate();
     if(this._ct) clearTimeout(this._ct); this._ct=setTimeout(()=>{ if(this.combat&&this.combat.fleeSuccess){ this.flash(this.t('combat_flee_success')); this.extract(); } else if(this.combat){ this.enterCombat(); } }, 3000); }
   fleeFront(){
@@ -1246,7 +1239,7 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
           return h('div',{key:i,onClick:()=>{ if(this._fmoved||flipped)return; isC?this.flipFlee():(c.fleeFocus=i,this.forceUpdate()); },style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(442px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%)',opacity:o,zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',perspective:'1200px',pointerEvents:(flipped&&!isC)?'none':'auto'}},
             h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
               h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden'}}, this.cardFace()),
-              isC? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)'}}, this.fleeFront()):null)); }),
+              (isC&&flipped)? h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)'}}, this.fleeFront()):null)); }),
         (!flipped? cardNav(c.fleeFocus==null?1:c.fleeFocus, 3, ()=>{const ff=c.fleeFocus==null?1:c.fleeFocus; c.fleeFocus=Math.max(0,ff-1); this.forceUpdate();}, ()=>{const ff=c.fleeFocus==null?1:c.fleeFocus; c.fleeFocus=Math.min(2,ff+1); this.forceUpdate();}) : null)),
       !flipped? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 12px'}}, [0,1,2].map(i=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===(c.fleeFocus==null?1:c.fleeFocus)?'rgb(169,171,175)':'rgb(43,46,50)'}}))) : null,
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
@@ -2330,8 +2323,8 @@ void main(){
     const slotDefs=[['weapon','무기'],['body','갑옷'],['head','투구'],['artifact1','아티팩트'],['artifact2','아티팩트']];
     const kick=(t)=>h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:10}}, t);
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-      this.titleWrap(this.screenTitle('CHARACTER','nav_character')),
-      h('div',{onScroll:(e)=>this.onContentScroll(e),style:{flex:1,margin:'0 16px 16px',background:'#18191D',border:'1px solid #36383C',borderRadius:8,overflowY:'auto',padding:'14px 14px 110px'}},
+      this.screenTitle('CHARACTER','nav_character'),
+      h('div',{style:{flex:1,margin:'0 16px 16px',background:'#18191D',border:'1px solid #36383C',borderRadius:8,overflowY:'auto',padding:'14px 14px 110px'}},
         h('div',{style:{height:104,borderRadius:8,overflow:'hidden',marginBottom:16,background:'linear-gradient(180deg, oklch(0.30 0.01 264) 0%, oklch(0.19 0.008 264) 100%)'}}),
         h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:3}},
           h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:600,color:T.hi}}, this.en()?'Player':'플레이어'),
