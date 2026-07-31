@@ -11,7 +11,7 @@ export function anyItem(id){ return byId.item[id] || byId.weapon[id] || byId.arm
 export function anyName(id){
   const o = anyItem(id);
   if (o){
-    const base = o.ItemID ? 'ItemName' : o.WeaponID ? 'WeaponName' : o.ArmorID ? 'ArmorName' : 'ArtifactName';
+    const base = o.ItemID ? 'ItemName' : o.WeaponID ? 'WeaponName' : o.ArmorID ? 'ArmorName' : 'AccessoryName';
     return tr(o, base) || id;
   }
   const u = (DATA.usb || []).find(x => x.USBID === id);
@@ -109,7 +109,7 @@ const V3_STRINGS = {
   item_desc_label:['아이템 설명','Item description'],
   item_head:['방어구','Head'], item_body:['갑옷','Body'], item_food:['음식','Food'],
   item_junk:['정크','Junk'], item_quest:['퀘스트','Quest'], item_key:['키','Key'],
-  item_artifact:['아티팩트','Artifact'], item_material_type:['재질','Material'],
+  item_accessory:['장신구','Accessory'], item_material_type:['재질','Material'],
   common_me:['나','Me'],
   stat_max_dur:['최대 내구도','Max Durability'], stat_growth_tags:['성장 태그','Growth Tags'],
   item_liquor:['술','Liquor'], item_module:['모듈','Module'], item_data:['데이터','Data'],
@@ -184,9 +184,8 @@ export function startingState() {
       if (a && a.Category === 'Body' && !equip.body) equip.body = it.uid;
     }
     else if (it.kind === 'artifact') {
-      const af = byId.artifact[it.id];
-      if (af && af.Category === 'Artifact_Carried' && !equip.artifact2) equip.artifact2 = it.uid;
-      else if (!equip.artifact1) equip.artifact1 = it.uid;
+      // 장신구는 artifact1 슬롯 전용. artifact2 슬롯은 부적(별도 탭·미구현)용으로 예약.
+      if (!equip.artifact1) equip.artifact1 = it.uid;
     }
   }
   return {
@@ -243,9 +242,13 @@ export function mkInstance(id, qty = 1, opts = {}) {
   const inst = { uid: nextUid(), id, kind, qty };
   if (kind === 'weapon' || kind === 'armor' || kind === 'artifact') { inst.dur = maxDur; inst.maxDur = maxDur; }
 
-  if (af) { // artifacts: 소켓·감정 없음 (현행 유지)
+  if (af) { // 장신구: 소켓·감정 없음. 옵션 롤 + 성장태그 랜덤(감정 없이 항상 공개)
     inst.stat1 = randInt(N(af.Value1_Low), N(af.Value1_High));
     if (af.Stat2 && af.Stat2 !== '-') inst.stat2 = randInt(N(af.Value2_Low), N(af.Value2_High));
+    // 성장태그 0~2개: str/dex/vit/will 중 랜덤(중복 허용). accP마다 독립 시도 → 0:25% / 1:50% / 2:25%.
+    const accP = clamp(N(C.accessory_growth_tag_chance, 0.5), 0, 1);
+    let nTags = 0; if (Math.random() < accP) nTags++; if (Math.random() < accP) nTags++;
+    inst.growthTags = Array.from({ length: nTags }, () => STAT_KEYS[randInt(0, 3)]);
     return inst;
   }
   if (!w && !a) {
@@ -702,9 +705,9 @@ export function rollLoot(monsterId, zoneId) {
 // ---------- growth ----------
 export function growthMultiplier(state, stat) {
   let tags = 0;
-  for (const uid of [state.equip.weapon, state.equip.head, state.equip.body]) {
+  for (const uid of [state.equip.weapon, state.equip.head, state.equip.body, state.equip.artifact1, state.equip.artifact2]) {
     if (!uid) continue; const inst = instById(state, uid); if (!inst) continue;
-    tags += growthTagsActive(inst).filter(t => t === stat).length; // v3: 확정·활성 태그만
+    tags += growthTagsActive(inst).filter(t => t === stat).length; // v3: 확정·활성 태그만 (무기·방어구·장신구·부적)
   }
   return N(C.growth_tag_mult_base, 0.25) + N(C.growth_tag_mult_step, 0.25) * tags;
 }

@@ -94,7 +94,7 @@ const T = {
 const ATTR = { bleed:{kr:'출혈',c:T.bleed}, stun:{kr:'기절',c:T.stun}, pierce:{kr:'관통',c:T.pierce}, rupture:{kr:'파열',c:T.rupture}, sever:{kr:'절단',c:T.mid} };
 // safe lookup — items/monsters may carry an Attribute like "none" or a value absent from the map
 const AT = (x)=> (x && ATTR[x]) ? ATTR[x] : null;
-const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Quest:'퀘스트', Key:'키', Artifact:'아티팩트', Artifact_Worn:'아티팩트', Artifact_Carried:'아티팩트', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소' };
+const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Quest:'퀘스트', Key:'키', Accessory:'장신구', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소' };
 // tiny inline icons
 const ICON = {
   home:'M3 11.5 12 4l9 7.5M5 10v10h14V10',
@@ -1787,13 +1787,16 @@ void main(){
     return h('div',{ref:el=>this.runGrowthSeq(el),style:{alignSelf:'stretch',margin:'0 16px',background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:'4px 16px'}},
       ...prim.map(([k,kr],idx)=>{
         const g=this.gs.growth[k]; const pct=this.eng.growthPct(this.gs,k);
+        const gtb=this.eng.growthMultiplier(this.gs,k)-this.eng.N(this.eng.DATA.config.growth_tag_mult_base,0.25);
         const s=snap?snap[k]:{level:g.level,pct:pct};
         const fromLv=s.level, fromP=Math.max(0,Math.min(100,s.pct));
         const toLv=g.level, toP=Math.max(0,Math.min(100,pct));
         const lvUp=Math.max(0,toLv-fromLv);
         const grew=(toLv>fromLv)||(toP>fromP+0.005);
         return h('div',{key:k,'data-grow':idx,'data-fl':fromLv,'data-fp':fromP.toFixed(4),'data-tl':toLv,'data-tp':toP.toFixed(4),'data-gain':grew?'1':'0',style:{padding:'12px 0',borderTop:idx>0?'1px solid rgb(54,56,60)':'none'}},
-          h('div',{style:{fontFamily:T.sans,fontSize:12.5,fontWeight:500,color:'rgb(234,235,238)'}}, kr),
+          h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
+            h('div',{style:{fontFamily:T.sans,fontSize:12.5,fontWeight:500,color:'rgb(234,235,238)'}}, kr),
+            gtb>0.001?h('span',{style:{fontFamily:T.mono,fontSize:11,color:'#7683F3',background:'#212327',borderRadius:4,padding:'3px 8px',lineHeight:'100%'}}, 'X'+gtb.toFixed(2)):null),
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:24}},
             h('span',{'data-lvl':'1',style:{fontFamily:T.mono,fontSize:11,display:'inline-flex',alignItems:'center',lineHeight:'12px',color:'rgb(169,171,175)'}}, 'Lv ', h('span',{'data-lvlbox':'1',style:{display:'inline-block',overflow:'hidden',height:'12px',lineHeight:'12px'}}, String(toLv))),
             h('span',{'data-num':'1',style:{fontFamily:T.mono,fontSize:10.5,display:'inline-block',transformOrigin:'right center',willChange:'transform',color:grew?'rgb(131,178,137)':'rgb(75,77,82)'}}, toP.toFixed(2)+'%')),
@@ -2101,13 +2104,13 @@ void main(){
       isGear?h('div',{style:{alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'3px 15px 16px',display:'flex',alignItems:'flex-start'}},
         h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:1.5,color:desc?SUB:MUT,maxWidth:'100%'}}, desc||this.t('item_desc_label'))):null);
   }
-  catKey(cat){ const map={Weapon:'item_slot_weapon',Head:'item_head',Body:'item_body',Medicine:'item_medicine',Food:'item_food',Junk:'item_junk',Quest:'item_quest',Key:'item_key',Artifact:'item_artifact',USB:'usb_decode',Material:'item_material_type'}; return map[cat]||cat; }
+  catKey(cat){ const map={Weapon:'item_slot_weapon',Head:'item_head',Body:'item_body',Medicine:'item_medicine',Food:'item_food',Junk:'item_junk',Quest:'item_quest',Key:'item_key',Accessory:'item_accessory',USB:'usb_decode',Material:'item_material_type'}; return map[cat]||cat; }
 
   // ---- inventory ----
   inventory(){
     const seg=this.state.seg, filter=this.state.filter;
     const list=(seg==='vault'?this.gs.vault:this.gs.bag);
-    const cats=[['전체','common_all'],['무기','item_weapon'],['갑옷','item_armor_body'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['아티팩트','item_artifact'],['술','item_liquor'],['모듈','item_module'],['데이터','item_data'],['퀘스트','item_quest']];
+    const cats=[['전체','common_all'],['무기','item_weapon'],['갑옷','item_armor_body'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['술','item_liquor'],['모듈','item_module'],['데이터','item_data'],['퀘스트','item_quest']];
     const catOf=(inst)=>{ if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]) return '술'; if(this.eng.byId.module&&this.eng.byId.module[inst.id]) return '모듈'; if(this.eng.byId.usb&&this.eng.byId.usb[inst.id]) return '데이터'; const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]; if(!s) return ''; return CATKR[s.Category]||s.Category; };
     const rows=list.filter(inst=>filter==='전체'||catOf(inst)===filter).sort((a,b)=>(this.isEquipped(b.uid)?1:0)-(this.isEquipped(a.uid)?1:0));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
@@ -2171,7 +2174,7 @@ void main(){
   slotOf(inst){
     if(inst.kind==='weapon') return 'weapon';
     if(inst.kind==='armor'){ const a=this.eng.byId.armor[inst.id]; return a&&a.Category==='Head'?'head':'body'; }
-    if(inst.kind==='artifact'){ const af=this.eng.byId.artifact[inst.id]; return af&&af.Category==='Artifact_Carried'?'artifact2':'artifact1'; }
+    if(inst.kind==='artifact'){ return 'artifact1'; }
     return null;
   }
   isEquipped(uid){ const e=this.gs.equip; return e.weapon===uid||e.head===uid||e.body===uid||e.artifact1===uid||e.artifact2===uid; }
@@ -2213,7 +2216,7 @@ void main(){
       if(s1) out.push([this.t('item_effect'), s1]);
       const s2v=(inst.stat2!=null?inst.stat2:this.eng.N(af.Value2_Low)); const s2=(af.Stat2_KR&&af.Stat2_KR!=='-')?(af.Stat2_KR+' '+(s2v>=0?'+':'')+s2v):null;
       if(s2) out.push([this.t('item_effect2'), s2]);
-      out.push([this.t('item_slot'), af.Category==='Artifact_Carried'?this.t('artifact_carried'):this.t('artifact_worn')], [this.t('item_durability'), this.durTxt(inst)]);
+      out.push([this.t('item_slot'), this.t('item_accessory')], [this.t('item_durability'), this.durTxt(inst)]);
     } else { const it=this.eng.byId.item[inst.id]||{};
       if(it.EffectType==='heal'){ out.push([this.t('heal_hp'), (it.EffectValue?(N(it.EffectValue)):'—'), 'rgb(131,178,137)']); }
       else if(it.EffectType==='stamina'){ out.push([this.t('stamina_restore'), (it.EffectValue?(N(it.EffectValue)):'—'), 'rgb(193,158,111)']); }
@@ -2320,7 +2323,7 @@ void main(){
     const pctId=(id)=>['sec_accuracy','sec_evasion','sec_status_resist','sec_crit_chance','sec_crit_resist'].includes(id);
     const fmt=(id,v)=> pctId(id)?(Math.round(v*10)/10+'%'):(id==='sec_atk_speed'?Number(v).toFixed(2):String(Math.round(v)));
     const dfmt=(id,d)=> pctId(id)?(Math.round(Math.abs(d)*10)/10+'%'):(id==='sec_atk_speed'?Math.abs(d).toFixed(2):String(Math.round(Math.abs(d))));
-    const slotDefs=[['weapon','무기'],['body','갑옷'],['head','투구'],['artifact1','아티팩트'],['artifact2','아티팩트']];
+    const slotDefs=[['weapon','무기'],['body','갑옷'],['head','투구'],['artifact1','장신구'],['artifact2','부적']];
     const kick=(t)=>h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:10}}, t);
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       this.screenTitle('CHARACTER','nav_character'),
@@ -2337,8 +2340,11 @@ void main(){
             return (this.en()&&i===2)?[chip,h('div',{key:'brk',style:{flexBasis:'100%',height:0}})]:[chip]; })),
         h('div',{style:{display:'flex',flexDirection:'column',gap:16,marginBottom:24}},
           ...prim.map(([k,kr])=>{ const pv=this.eng.growthPct(g,k); const bo=bonus[k]||0;
+            const gtb=this.eng.growthMultiplier(g,k)-this.eng.N(this.eng.DATA.config.growth_tag_mult_base,0.25);
             return h('div',{key:k},
-              h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi,marginBottom:6}}, kr),
+              h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}},
+                h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, kr),
+                gtb>0.001?h('span',{style:{fontFamily:T.mono,fontSize:11,color:'#7683F3',background:'#212327',borderRadius:4,padding:'3px 8px',lineHeight:'100%'}}, 'X'+gtb.toFixed(2)):null),
               h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:6}},
                 h('div',{style:{display:'flex',alignItems:'baseline',gap:6}},
                   h('span',{style:{fontFamily:T.mono,fontSize:12,color:T.mid}}, 'Lv '+g.growth[k].level),
@@ -2358,7 +2364,7 @@ void main(){
   // ---- equipment (착용 장비) ----
   equipment(){
     const g=this.gs; const ABBR={str:'STR',dex:'DEX',vit:'VIT',will:'WILL'};
-    const slotDefs=[['weapon','무기'],['body','갑옷'],['head','투구'],['artifact1','아티팩트'],['artifact2','아티팩트']];
+    const slotDefs=[['weapon','무기'],['body','갑옷'],['head','투구'],['artifact1','장신구'],['artifact2','부적']];
     const gpill=(t,col)=>h('span',{key:t,style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.4)',border:'1px solid '+(col||T.line2),padding:'3px 7px',boxSizing:'border-box',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'.06em',color:col||'rgb(169,171,175)',whiteSpace:'nowrap'}}, t);
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       h('div',{style:{padding:'18px 18px 14px',flex:'0 0 auto',fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:T.faint}}, 'EQUIPMENT'),

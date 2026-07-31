@@ -5,7 +5,7 @@
 
 export const SHEET_ID = '1d-LNhcuFo1dKO1zzszDNAXXT-zDqffatr1aCe3yB8ls';
 export const TABS = ['Config','PrimaryStat','SecondaryStat','StatusEffect','WeaponAttribute',
-  'Weapon','Armor','Item','Monster','City','Zone','Vendor','Shop','LootTable','Artifact','Affix','SpawnTable','CombatLog',
+  'Weapon','Armor','Item','Monster','City','Zone','Vendor','Shop','LootTable','Accessory','Affix','SpawnTable','CombatLog',
   'USB','ColdData','NpcDialogue','UIString',
   'Liquor','Module','LootGroup','LootGroupItem'];
 // tabs that may not exist yet in older sheets — a failed fetch is non-fatal
@@ -33,7 +33,7 @@ export function parseCSV(text) {
 // Stable gid map for this workbook (fallback if live discovery fails).
 export const GIDS = {
   Config:'618819984', PrimaryStat:'1912326207', SecondaryStat:'1392044965', WeaponAttribute:'1086480785',
-  StatusEffect:'669993744', Affix:'1902981873', Artifact:'876429288', Shop:'543913112', Item:'799451703',
+  StatusEffect:'669993744', Affix:'1902981873', Accessory:'876429288', Shop:'543913112', Item:'799451703',
   City:'1696147459', Zone:'761789751', Vendor:'259794886', Monster:'1464124612', Weapon:'1482785136',
   Armor:'540890839', All_IDs:'220464388', LootTable:'290666291'
 };
@@ -111,7 +111,7 @@ export function shape(rowsByTab) {
     shops: pfx(toObjs(rowsByTab.Shop), 'ShopID', 'shop_'),
     lootTable: toObjs(rowsByTab.LootTable).map(r => (r.ItemID ? r : { ...r, ItemID: r.itemID })).filter(r => String(r.MonsterID || '').startsWith('monster_') && r.ItemID),
     spawnTable: toObjs(rowsByTab.SpawnTable || []).filter(r => String(r.ZoneID || '').startsWith('city_') && String(r.MonsterID || '').startsWith('monster_')),
-    artifacts: toObjs(rowsByTab.Artifact || []),
+    artifacts: toObjs(rowsByTab.Accessory || []),
     affixes: toObjs(rowsByTab.Affix || []).filter(r => String(r.AffixID || '').trim()),
     combatLog: toObjs(rowsByTab.CombatLog || []).filter(r => String(r.LineID || '').trim()),
     ui: toObjs(rowsByTab.UIString || []).filter(r => String(r.StringID || '').trim()),
@@ -131,7 +131,7 @@ export function buildIndex(DATA) {
     weapon: Object.fromEntries(DATA.weapons.map(x => [x.WeaponID, x])),
     armor: Object.fromEntries(DATA.armor.map(x => [x.ArmorID, x])),
     monster: Object.fromEntries(DATA.monsters.map(x => [x.MonsterID, x])),
-    artifact: Object.fromEntries((DATA.artifacts || []).map(x => [x.ArtifactID, x])),
+    artifact: Object.fromEntries((DATA.artifacts || []).map(x => [x.AccessoryID, x])),
     zone: Object.fromEntries(DATA.zones.map(x => [x.ZoneID, x])),
     city: Object.fromEntries(DATA.cities.map(x => [x.CityID, x])),
     vendor: Object.fromEntries(DATA.vendors.map(x => [x.VendorID, x])),
