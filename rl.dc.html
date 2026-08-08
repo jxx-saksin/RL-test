@@ -94,7 +94,7 @@ const T = {
 const ATTR = { bleed:{kr:'출혈',c:T.bleed}, stun:{kr:'기절',c:T.stun}, pierce:{kr:'관통',c:T.pierce}, rupture:{kr:'파열',c:T.rupture}, sever:{kr:'절단',c:T.mid} };
 // safe lookup — items/monsters may carry an Attribute like "none" or a value absent from the map
 const AT = (x)=> (x && ATTR[x]) ? ATTR[x] : null;
-const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Quest:'퀘스트', Key:'키', Accessory:'장신구', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소' };
+const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'부적', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소' };
 // tiny inline icons
 const ICON = {
   home:'M3 11.5 12 4l9 7.5M5 10v10h14V10',
@@ -270,7 +270,7 @@ class Component extends DCLogic {
     const isPvp = this.isPvpZone(zone);
     const userChance = zone ? this.eng.N(String(zone.UserDataChance==null?'':zone.UserDataChance).replace('%',''))/100 : 0;
     // 조우 카드: PvP 존에서는 각 카드가 UserDataChance(%)로 몬스터/유저(콜드데이터) 확정 (§6-6)
-    const cards = this.eng.drawCards(this.combat.zoneId, n).map(id=>{
+    const cards = this.eng.drawCards(this.combat.zoneId, n, (this.combat.encounter||0)+1).map(id=>{
       if(isPvp && Math.random()<userChance){
         const bot=this.eng.pickColdOpponent(this.gs, zone.CityID);
         if(bot) return { type:'user', bot };
@@ -721,13 +721,23 @@ class Component extends DCLogic {
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:T.faint,margin:'2px 0'}}, 'STAT'),
       ...rows.map((r,i)=>h('div',{key:i,style:{display:'flex',gap:16}}, cell(r[0],r[1],r[2]), cell(r[3],r[4],r[5]))));
   }
-  combatStats(prof,pen,masked){
+  // 전투 표시용 유효 스탯 — 현재 HP 기준 부적 조건부 효과(공속·피해감소) 반영. 이득=파랑/손해=빨강.
+  combatEff(prof, cur){
+    const mf = (prof && prof.maxHp>0) ? Math.max(0,Math.min(1,(cur!=null?cur:prof.maxHp)/prof.maxHp)) : 1;
+    const mods = (prof && this.eng.talismanStatMods) ? (this.eng.talismanStatMods(prof, mf)||{}) : {};
+    const sm = mods.attack_speed || 1, dm = mods.damage_taken || 1;
+    const base = (prof && prof.atkSpeed!=null) ? prof.atkSpeed : 1;
+    return { spd: base*sm, spdUp: sm>1.0001, spdDown: sm<0.9999, dmgActive: Math.abs(dm-1)>0.0001, dmgRed: Math.round((1-dm)*100) };
+  }
+  combatStats(prof,pen,masked,cur){
     const vc=pen?'#CB6D62':T.hi;
     const V=(x)=>masked?'??':x;
-    const cell=(k,v)=>h('div',{style:{flex:1,display:'flex',justifyContent:'space-between',gap:8,minWidth:0}}, h('span',{style:{color:T.lo}},k), h('span',{style:{color:masked?T.mid:vc,letterSpacing:masked?'.06em':'normal'}},v));
+    const eff=this.combatEff(prof,cur);
+    const cell=(k,v,cc)=>h('div',{style:{flex:1,display:'flex',justifyContent:'space-between',gap:8,minWidth:0}}, h('span',{style:{color:T.lo}},k), h('span',{style:{color:masked?T.mid:(cc||vc),letterSpacing:masked?'.06em':'normal'}},v));
+    const spdCol=(!masked&&eff.spdUp)?'#7CA5BB':(!masked&&eff.spdDown)?'#CB6D62':null;
     return h('div',{style:{display:'flex',flexDirection:'column',gap:6,fontFamily:T.mono,fontSize:11}},
       h('div',{style:{display:'flex',gap:18}}, cell(this.t('stat_atk'), V(Math.round(prof.minAtk)+'~'+Math.round(prof.maxAtk))), cell(this.t('stat_def'), V(String(Math.round(prof.defense))))),
-      h('div',{style:{display:'flex',gap:18}}, cell(this.t('stat_atk_speed'), V((prof.atkSpeed!=null?prof.atkSpeed:1).toFixed(1))), cell(this.t('stat_evasion'), V(Math.round(prof.evasion||0)+'%')))); }
+      h('div',{style:{display:'flex',gap:18}}, cell(this.t('stat_atk_speed'), V(eff.spd.toFixed(1)), spdCol), cell(this.t('stat_evasion'), V(Math.round(prof.evasion||0)+'%')))); }
   combatantCard(prof,isMonster,cur,animate){
     const pct=Math.max(0,Math.min(100,cur/prof.maxHp*100));
     const md=isMonster?(this.eng.byId.monster[prof.id]||{}):null;
@@ -758,7 +768,7 @@ class Component extends DCLogic {
         h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
           h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99}}, h('div',{ref:el=>{ if(el && isHit && el._hp!==fx.seq){ el._hp=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHpGlow .5s ease-out'; } },style:{width:pct+'%',height:'100%',background:T.hp,borderRadius:99,transition:'width .3s ease-out'}})),
           h('span',{style:{fontFamily:T.mono,fontSize:10,color:pen?'#CB6D62':T.mid,minWidth:56,textAlign:'right',letterSpacing:masked?'.06em':'normal'}}, masked?'???':(Math.round(cur)+'/'+prof.maxHp))),
-        this.combatStats(prof,pen,masked))));
+        this.combatStats(prof,pen,masked,cur))));
   }
   combatElapsed(){ const c=this.combat; if(!c||!c.res) return 0; const r=c.res.log.slice(0,c.revealed); const last=r[r.length-1]; return last?last.t:0; }
   timeLimitBar(){ const c=this.combat; const lim=c.mProf.timeLimit||20; const rem=Math.max(0,lim-this.combatElapsed()); const pct=Math.max(0,Math.min(100,(rem/lim)*100));
@@ -768,7 +778,8 @@ class Component extends DCLogic {
   }
   speedDuel(){
     const c=this.combat; const animate=c.phase==='fighting';
-    const mSpd=c.mProf.atkSpeed||1, pSpd=(c.prof&&c.prof.atkSpeed)||1;
+    const pEff=this.combatEff(c.prof, c.res?this.combatHp('player'):((c.prof&&c.prof.maxHp)||1));
+    const mSpd=c.mProf.atkSpeed||1, pSpd=(pEff&&pEff.spd)||1;
     const mdur=(1/Math.max(0.1,mSpd)).toFixed(2), pdur=(1/Math.max(0.1,pSpd)).toFixed(2);
     const lim=c.mProf.timeLimit||20; const rem=Math.max(0,lim-this.combatElapsed());
     const mmss=Math.floor(rem/60)+':'+String(Math.floor(rem%60)).padStart(2,'0');
@@ -1063,10 +1074,13 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const attrCol=AT(prof.attribute)?((ATTR[prof.attribute]&&ATTR[prof.attribute].c)||'rgb(124,165,187)'):HI;
     const pen=this.combat&&this.combat.staZero;
     const VC=pen?'#CB6D62':HI;
+    const cur=(this.combat&&this.combat.res)?this.combatHp('player'):this.gs.hp;
+    const eff=this.combatEff(prof,cur);
+    const spdCol=eff.spdUp?'#7CA5BB':eff.spdDown?'#CB6D62':VC;
     const stats=[
       [this.t('stat_atk'), Math.round(prof.minAtk)+'~'+Math.round(prof.maxAtk), VC],
       [this.t('stat_def'), String(Math.round(prof.defense)), VC],
-      [this.t('stat_atk_speed'), (prof.atkSpeed!=null?prof.atkSpeed:1).toFixed(1), VC],
+      [this.t('stat_atk_speed'), eff.spd.toFixed(1), spdCol],
       [this.t('stat_accuracy'), String(Math.round(prof.accuracy||0)), VC],
       [this.t('stat_evasion'), Math.round(prof.evasion||0)+'%', VC],
       [this.t('stat_crit_chance'), Math.round(prof.critChance||0)+'%', VC],
@@ -1075,10 +1089,11 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
       [this.t('status_effect'), AT(prof.attribute)?this.t('status_'+prof.attribute):'-', attrCol],
       [this.t('stat_potency'), String(Math.round(prof.potency||0)), VC],
     ];
+    const nr=Math.ceil(stats.length/2);
     const cell=(k,v,vc,i)=>h('div',{key:i,style:{borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'7px 0',justifyContent:'space-between',alignItems:'flex-start',boxSizing:'border-box'}},
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:LO,whiteSpace:'nowrap'}}, k),
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:vc||HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
-    const pct=Math.max(0,Math.min(100,this.gs.hp/prof.maxHp*100));
+    const pct=Math.max(0,Math.min(100,cur/prof.maxHp*100));
     return h('div',{style:{width:342,height:fixed?'auto':'min(473px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
       h('div',{style:{position:'relative',...artP,alignSelf:'stretch',background:ART}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
@@ -1086,16 +1101,16 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
         h('div',{style:{position:'absolute',right:16,top:16,width:45,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',justifyContent:'center',padding:'0 8px'}},
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:HI,whiteSpace:'nowrap'}}, 'USER')),
         h('span',{style:{position:'absolute',left:14,bottom:14,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, this.t('common_me'))),
-      h('div',{style:{height:245,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
+      h('div',{style:{minHeight:245,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
         h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0}}, h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.t('common_me'))),
         h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('stat_hp')),
           h('div',{style:{height:6,flexGrow:1,borderRadius:999,overflow:'hidden',background:ART}}, h('div',{style:{height:6,borderRadius:999,background:HPC,width:pct+'%'}})),
-          h('span',{style:{width:64,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:'100%',color:pen?'#CB6D62':MID,flexShrink:0}}, Math.round(this.gs.hp)+'/'+prof.maxHp)),
+          h('span',{style:{width:64,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:'100%',color:pen?'#CB6D62':MID,flexShrink:0}}, Math.round(cur)+'/'+prof.maxHp)),
         h('div',{style:{height:28,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'15px 0',display:'flex',alignItems:'flex-start'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:MUT}}, 'STAT')),
-        h('div',{style:{height:157,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'2px 0'}},
-          h('div',{style:{height:155,display:'grid',gridTemplateRows:'31px 31px 31px 31px 31px',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}},
+        h('div',{style:{minHeight:157,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'2px 0'}},
+          h('div',{style:{height:nr*31,display:'grid',gridTemplateRows:('31px '.repeat(nr)).trim(),gridTemplateColumns:'1fr 1fr',gap:'0 16px'}},
             ...stats.map((s2,i)=>cell(s2[0],s2[1],s2[2],i))))),
       h('div',{style:{width:340,height:36,flexShrink:0,boxSizing:'border-box',borderRight:'1px solid '+LN,borderBottom:'1px solid '+LN,borderLeft:'1px solid '+LN}}));
   }
@@ -2049,7 +2064,7 @@ void main(){
   }
   lootCardBig(inst,fixed){
     const artP=fixed?{height:190,flexShrink:0}:{flex:'1 1 auto',minHeight:60};
-    const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||{};
+    const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||{};
     const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id];
     const md=this.eng.byId.module&&this.eng.byId.module[inst.id];
     const isGear=inst.kind==='weapon'||inst.kind==='armor';
@@ -2060,7 +2075,7 @@ void main(){
     const cat=liq?this.t('appraise_tab'):md?(this.t('module_tab')+' · '+(md.HexCode||'')):usb?this.t('usb_decode'):(CATKR[s.Category]?this.t(this.catKey(s.Category)):(s.Category||''));
     const allStats=usb?[[this.t('usb_permanent_growth'),this.eng.substUsbTokens('{STAT}',usb)],[this.t('combat_time_limit'),this.eng.N(usb.UploadMinutes,1)+(this.en()?'m':'분')]]:((isGear||liq||md||s.Category==='Medicine'||s.Category==='Food')?this.itemDetailStats(inst):[]);
     const stats=allStats.filter(([k])=>k!==this.t('item_durability'));
-    const desc=this.tx(s,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||(usb&&this.tx(usb,'Description'))||'';
+    const desc=this.tx(s,'Description')||(inst.kind==='talisman'&&(this.tx(s,'EffectDesc')||s.EffectDesc_KR))||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||(usb&&this.tx(usb,'Description'))||'';
     const hasSockets=isGear&&inst.sockets&&inst.sockets.length;
     const abbr={str:'STR',dex:'DEX',vit:'VIT',will:'WILL'};
     const gtags=this.eng.growthTagsActive(inst);
@@ -2104,14 +2119,14 @@ void main(){
       isGear?h('div',{style:{alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'3px 15px 16px',display:'flex',alignItems:'flex-start'}},
         h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:1.5,color:desc?SUB:MUT,maxWidth:'100%'}}, desc||this.t('item_desc_label'))):null);
   }
-  catKey(cat){ const map={Weapon:'item_slot_weapon',Head:'item_head',Body:'item_body',Medicine:'item_medicine',Food:'item_food',Junk:'item_junk',Quest:'item_quest',Key:'item_key',Accessory:'item_accessory',USB:'usb_decode',Material:'item_material_type'}; return map[cat]||cat; }
+  catKey(cat){ const map={Weapon:'item_slot_weapon',Head:'item_head',Body:'item_body',Medicine:'item_medicine',Food:'item_food',Junk:'item_junk',Quest:'item_quest',Key:'item_key',Accessory:'item_accessory',Talisman:'item_talisman',USB:'usb_decode',Material:'item_material_type'}; return map[cat]||cat; }
 
   // ---- inventory ----
   inventory(){
     const seg=this.state.seg, filter=this.state.filter;
     const list=(seg==='vault'?this.gs.vault:this.gs.bag);
-    const cats=[['전체','common_all'],['무기','item_weapon'],['갑옷','item_armor_body'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['술','item_liquor'],['모듈','item_module'],['데이터','item_data'],['퀘스트','item_quest']];
-    const catOf=(inst)=>{ if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]) return '술'; if(this.eng.byId.module&&this.eng.byId.module[inst.id]) return '모듈'; if(this.eng.byId.usb&&this.eng.byId.usb[inst.id]) return '데이터'; const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]; if(!s) return ''; return CATKR[s.Category]||s.Category; };
+    const cats=[['전체','common_all'],['무기','item_weapon'],['갑옷','item_armor_body'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['부적','item_talisman'],['술','item_liquor'],['모듈','item_module'],['데이터','item_data'],['퀘스트','item_quest']];
+    const catOf=(inst)=>{ if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]) return '술'; if(this.eng.byId.module&&this.eng.byId.module[inst.id]) return '모듈'; if(this.eng.byId.usb&&this.eng.byId.usb[inst.id]) return '데이터'; const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id]); if(!s) return ''; return CATKR[s.Category]||s.Category; };
     const rows=list.filter(inst=>filter==='전체'||catOf(inst)===filter).sort((a,b)=>(this.isEquipped(b.uid)?1:0)-(this.isEquipped(a.uid)?1:0));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       h('div',{style:{padding:'16px 18px 12px',flex:'0 0 auto',display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center'}},
@@ -2137,18 +2152,18 @@ void main(){
   // 인벤 리스트 수량 칩 — 최대스택≥2 아이템에만(현재수량/최대, 최대치는 MAX). svg screen-list.svg 참고
   qtyChip(inst,ms){ return h('span',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',color:'rgb(169,171,175)'}}, ((inst.qty||1)>=ms?'MAX':(inst.qty||1))+'/'+ms); }
   invRow(inst,seg,catOf){
-    const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||{};
+    const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||{};
     const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id];
     const md=this.eng.byId.module&&this.eng.byId.module[inst.id];
     const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id];
     const name=this.itemLabel(inst);
     const ms=this.maxStack(inst.id);   // 스택 상한(아이템 탭 MaxStack; 장비·비스택은 1)
-    const equippable = inst.kind==='weapon'||inst.kind==='armor'||inst.kind==='artifact';
+    const equippable = inst.kind==='weapon'||inst.kind==='armor'||inst.kind==='artifact'||inst.kind==='talisman';
     const equipped = this.isEquipped(inst.uid);
     const attr = s.Attribute;
     const st = this.eng.itemState(inst);
     const gearSub=(inst.kind==='weapon'||inst.kind==='armor')?[s.Material,(AT(s.Attribute)?this.t('status_'+s.Attribute):null)].filter(Boolean).join(' · '):'';
-    const desc=this.tx(s,'Description')||(liq&&(this.tx(this.eng.byId.liquor[inst.id],'Description')||this.tx(this.eng.byId.liquor[inst.id],'Notes')))||(md&&(this.eng.tr(md,'TargetStat')+' +'+md.Value_Min+'~'+md.Value_Max))||(usb&&this.eng.substUsbTokens(this.tx(usb,'Description')||usb.Description||'', usb))||gearSub||'';
+    const desc=this.tx(s,'Description')||(inst.kind==='talisman'&&(this.tx(s,'EffectDesc')||s.EffectDesc_KR))||(liq&&(this.tx(this.eng.byId.liquor[inst.id],'Description')||this.tx(this.eng.byId.liquor[inst.id],'Notes')))||(md&&(this.eng.tr(md,'TargetStat')+' +'+md.Value_Min+'~'+md.Value_Max))||(usb&&this.eng.substUsbTokens(this.tx(usb,'Description')||usb.Description||'', usb))||gearSub||'';
     return h('div',{key:inst.uid,
       onPointerDown:(e)=>{ if(equipped) return; this._sw={uid:inst.uid,x0:e.clientX,el:e.currentTarget,moved:false}; },
       onPointerMove:(e)=>{ if(!this._sw||this._sw.uid!==inst.uid) return; let dx=e.clientX-this._sw.x0; const allowR=seg==='bag',allowL=seg==='vault'; if((dx>0&&!allowR)||(dx<0&&!allowL)) dx=0; if(Math.abs(dx)>6)this._sw.moved=true; this._sw.el.style.transition='none'; this._sw.el.style.transform='translateX('+Math.max(-120,Math.min(120,dx))+'px)'; },
@@ -2175,6 +2190,7 @@ void main(){
     if(inst.kind==='weapon') return 'weapon';
     if(inst.kind==='armor'){ const a=this.eng.byId.armor[inst.id]; return a&&a.Category==='Head'?'head':'body'; }
     if(inst.kind==='artifact'){ return 'artifact1'; }
+    if(inst.kind==='talisman'){ return 'artifact2'; }
     return null;
   }
   isEquipped(uid){ const e=this.gs.equip; return e.weapon===uid||e.head===uid||e.body===uid||e.artifact1===uid||e.artifact2===uid; }
@@ -2230,10 +2246,10 @@ void main(){
   itemSheet(){
     const inst=this.eng.instById(this.gs,this.state.sel); if(!inst){ return null; }
     const usbRow=this.eng.byId.usb?this.eng.byId.usb[inst.id]:null;
-    const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(usbRow?{Category:'USB',Description:usbRow.Description}:{});
+    const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||(usbRow?{Category:'USB',Description:usbRow.Description}:{});
     const name=this.itemLabel(inst);
     const catOf=(CATKR[s.Category]||s.Category||'');
-    const equippable=inst.kind==='weapon'||inst.kind==='armor'||inst.kind==='artifact';
+    const equippable=inst.kind==='weapon'||inst.kind==='armor'||inst.kind==='artifact'||inst.kind==='talisman';
     const equipped=this.isEquipped(inst.uid);
     const attr=s.Attribute;
     const st=this.eng.itemState(inst);
@@ -2370,7 +2386,7 @@ void main(){
       h('div',{style:{padding:'18px 18px 14px',flex:'0 0 auto',fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:T.faint}}, 'EQUIPMENT'),
       h('div',{style:{flex:1,overflowY:'auto',padding:'0 18px 16px',display:'flex',flexDirection:'column',gap:12}},
         ...slotDefs.map(([slot,kr])=>{ const uid=g.equip[slot]; const inst=uid?this.eng.instById(g,uid):null;
-          const src=inst?(this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.artifact[inst.id]||{}):null;
+          const src=inst?(this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||{}):null;
           const attr=src?src.Attribute:null; const st=inst?this.eng.itemState(inst):null;
           const gtags=inst?this.eng.growthTagsActive(inst):[];
           if(!inst) return h('div',{key:slot,style:{display:'flex',alignItems:'center',justifyContent:'space-between',background:T.s1,border:'1px solid '+T.line,borderRadius:8,padding:'16px 15px',opacity:.55}},
@@ -2559,7 +2575,7 @@ void main(){
   vendorBuy(v){
     const rows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID);
     return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px'}},
-      rows.length? rows.map(r=>{ const price=this.eng.N(r.BuyPrice); const key=v.ShopID+'|'+r.ItemID; const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(r.StockMax,99); const aff=this.gs.sato>=price&&stock>0; const liq=this.eng.byId.liquor&&this.eng.byId.liquor[r.ItemID]; const md=this.eng.byId.module&&this.eng.byId.module[r.ItemID]; const usb=this.eng.byId.usb&&this.eng.byId.usb[r.ItemID]; const src=this.eng.byId.item[r.ItemID]||this.eng.byId.weapon[r.ItemID]||this.eng.byId.armor[r.ItemID]||this.eng.byId.artifact[r.ItemID]||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
+      rows.length? rows.map(r=>{ const price=this.eng.N(r.BuyPrice); const key=v.ShopID+'|'+r.ItemID; const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(r.StockMax,99); const aff=this.gs.sato>=price&&stock>0; const liq=this.eng.byId.liquor&&this.eng.byId.liquor[r.ItemID]; const md=this.eng.byId.module&&this.eng.byId.module[r.ItemID]; const usb=this.eng.byId.usb&&this.eng.byId.usb[r.ItemID]; const src=this.eng.byId.item[r.ItemID]||this.eng.byId.weapon[r.ItemID]||this.eng.byId.armor[r.ItemID]||this.eng.byId.artifact[r.ItemID]||(this.eng.byId.talisman&&this.eng.byId.talisman[r.ItemID])||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
         const desc=(this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'')+(src.EffectValue?((' '+this.t('frag_dot_heal'))+src.EffectValue):'');
         return this.shopRow({key:r.ItemID,cat,name:this.tx(r,'ItemName')||this.eng.anyName(r.ItemID),desc,priceLabel:'BUY '+price.toLocaleString(),priceColor:'rgb(133,179,197)',countLabel:(this.en()?'Stock ':'재고 ')+String(stock).padStart(2,'0'),onClick:()=>this.openBuy(v.ShopID,r),disabled:!aff}); })
         : this.emptyRow(this.en()?'No items to sell.':'판매 가능한 아이템이 없습니다.'));
@@ -2570,7 +2586,7 @@ void main(){
     const match=(cat)=> tc.includes(cat) || ((cat==='Head'||cat==='Body')&&tc.includes('Armor'));
     return [...this.gs.vault,...this.gs.bag].filter(inst=>match(catOf(inst)) && this.sellPrice(inst)>0);
   }
-  sellPrice(inst){ const e=this.eng.byId; const it=e.weapon[inst.id]||e.armor[inst.id]||e.artifact[inst.id]||(e.liquor&&e.liquor[inst.id])||e.item[inst.id]; return it?this.eng.N(it.SellPrice):0; }
+  sellPrice(inst){ const e=this.eng.byId; const it=e.weapon[inst.id]||e.armor[inst.id]||e.artifact[inst.id]||(e.talisman&&e.talisman[inst.id])||(e.liquor&&e.liquor[inst.id])||e.item[inst.id]; return it?this.eng.N(it.SellPrice):0; }
   // 판매 리스트 병합: 스택 가능 아이템은 창고+가방 모든 더미를 종류별 1행으로 합산.
   // 장비(무기·방어구·애장품 = 최대스택1)는 인스턴스마다 롤이 달라 개별 행 유지.
   sellGroups(v){
@@ -2611,7 +2627,7 @@ void main(){
   vendorSell(v){
     const groups=this.sellGroups(v);
     return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px'}},
-      groups.length? groups.map(g=>{ const inst=g.rep; const eq=this.isEquipped(inst.uid); const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]; const md=this.eng.byId.module&&this.eng.byId.module[inst.id]; const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id]; const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
+      groups.length? groups.map(g=>{ const inst=g.rep; const eq=this.isEquipped(inst.uid); const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]; const md=this.eng.byId.module&&this.eng.byId.module[inst.id]; const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id]; const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
         return this.shopRow({key:g.uids[0],cat,name:this.itemLabel(inst),desc:this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'',priceLabel:'SELL '+g.price.toLocaleString(),priceColor:'rgb(204,162,110)',countLabel:(this.en()?'Owned ':'소지 ')+String(g.total).padStart(2,'0'),onClick:()=>this.openSell(g),dim:eq}); })
         : this.emptyRow(this.en()?'No items to sell.':'판매 가능한 아이템이 없습니다.'));
   }

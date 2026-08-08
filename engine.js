@@ -7,11 +7,11 @@ import { buildIndex } from './sheet-loader.js';
 export let DATA = FALLBACK;
 export let byId = buildIndex(FALLBACK).byId;
 let C = DATA.config;
-export function anyItem(id){ return byId.item[id] || byId.weapon[id] || byId.armor[id] || byId.artifact[id] || null; }
+export function anyItem(id){ return byId.item[id] || byId.weapon[id] || byId.armor[id] || byId.artifact[id] || (byId.talisman && byId.talisman[id]) || null; }
 export function anyName(id){
   const o = anyItem(id);
   if (o){
-    const base = o.ItemID ? 'ItemName' : o.WeaponID ? 'WeaponName' : o.ArmorID ? 'ArmorName' : 'AccessoryName';
+    const base = o.ItemID ? 'ItemName' : o.WeaponID ? 'WeaponName' : o.ArmorID ? 'ArmorName' : o.TalismanID ? 'TalismanName' : 'AccessoryName';
     return tr(o, base) || id;
   }
   const u = (DATA.usb || []).find(x => x.USBID === id);
@@ -109,7 +109,7 @@ const V3_STRINGS = {
   item_desc_label:['아이템 설명','Item description'],
   item_head:['방어구','Head'], item_body:['갑옷','Body'], item_food:['음식','Food'],
   item_junk:['정크','Junk'], item_quest:['퀘스트','Quest'], item_key:['키','Key'],
-  item_accessory:['장신구','Accessory'], item_material_type:['재질','Material'],
+  item_accessory:['장신구','Accessory'], item_talisman:['부적','Talisman'], dmg_reduce:['피해 감소','Damage Reduced'], item_material_type:['재질','Material'],
   common_me:['나','Me'],
   stat_max_dur:['최대 내구도','Max Durability'], stat_growth_tags:['성장 태그','Growth Tags'],
   item_liquor:['술','Liquor'], item_module:['모듈','Module'], item_data:['데이터','Data'],
@@ -184,8 +184,12 @@ export function startingState() {
       if (a && a.Category === 'Body' && !equip.body) equip.body = it.uid;
     }
     else if (it.kind === 'artifact') {
-      // 장신구는 artifact1 슬롯 전용. artifact2 슬롯은 부적(별도 탭·미구현)용으로 예약.
+      // 장신구는 artifact1 슬롯 전용.
       if (!equip.artifact1) equip.artifact1 = it.uid;
+    }
+    else if (it.kind === 'talisman') {
+      // 부적은 artifact2 슬롯 전용.
+      if (!equip.artifact2) equip.artifact2 = it.uid;
     }
   }
   return {
@@ -234,11 +238,12 @@ function seedOpt(kind, key, w, a){
 
 // v3 instance: 베이스ID · sockets[] · unappraised[] · rolls{} · growthTags[] · dur/maxDur
 export function mkInstance(id, qty = 1, opts = {}) {
-  const w = byId.weapon[id], a = byId.armor[id], it = byId.item[id], af = byId.artifact[id];
+  const w = byId.weapon[id], a = byId.armor[id], it = byId.item[id], af = byId.artifact[id], tal = byId.talisman && byId.talisman[id];
   let kind = 'item', maxDur = 0;
   if (w) { kind = 'weapon'; maxDur = N(w.MaxDurability); }
   else if (a) { kind = 'armor'; maxDur = N(a.MaxDurability); }
   else if (af) { kind = 'artifact'; maxDur = N(af.MaxDurability); }
+  else if (tal) { kind = 'talisman'; }   // 부적: 내구도·롤·소켓 없음. 효과 참조만 (Stage 2에서 발동)
   const inst = { uid: nextUid(), id, kind, qty };
   if (kind === 'weapon' || kind === 'armor' || kind === 'artifact') { inst.dur = maxDur; inst.maxDur = maxDur; }
 
@@ -395,6 +400,7 @@ export function playerProfile(state, staminaZero = false) {
     weaponMaxDmg: w ? wOpt('maxAtk') : 2,
     primAdd,
     sec,
+    talismans: activeTalismans(state),
   };
 }
 
@@ -413,6 +419,41 @@ export function monsterProfile(m) {
 
 export function instById(state, uid) {
   return state.vault.find(x => x.uid === uid) || state.bag.find(x => x.uid === uid) || null;
+}
+
+// 부적(Talisman) 발동 효과 — 장착 슬롯에서 byId.talisman 개체만 추출해 정규화.
+// 스탯 가감 없음(장신구와 별개). simulateCombat이 prof.talismans로 읽어 전투 훅 적용.
+export function activeTalismans(state) {
+  const out = [];
+  for (const uid of [state.equip.artifact1, state.equip.artifact2]) {
+    if (!uid) continue;
+    const inst = instById(state, uid); if (!inst) continue;
+    const tl = byId.talisman && byId.talisman[inst.id]; if (!tl) continue;
+    out.push({
+      id: tl.TalismanID,
+      trigger: String(tl.TriggerType || '').trim(),
+      compare: String(tl.TriggerCompare || '').trim(),
+      triggerValue: N(tl.TriggerValue),
+      effect: String(tl.EffectType || '').trim(),
+      stat: String(tl.EffectStat || '').trim(),
+      value: N(tl.EffectValue),
+    });
+  }
+  return out;
+}
+
+// 현재 체력비율(0~1)에서 조건 충족한 부적 stat_buff의 유효 배수. UI 전투표시 동적갱신용.
+// (simulateCombat의 hp_threshold 로직과 동일 공식을 표시 목적으로 미러)
+export function talismanStatMods(prof, hpFrac) {
+  const mods = {};
+  const list = (prof && prof.talismans) || [];
+  for (const e of list) {
+    if (e.effect !== 'stat_buff' || e.trigger !== 'hp_threshold') continue;
+    const ok = e.compare === 'gte' ? hpFrac >= e.triggerValue : e.compare === 'lte' ? hpFrac <= e.triggerValue : false;
+    if (!ok) continue;
+    mods[e.stat] = (mods[e.stat] || 1) * (1 + e.value);
+  }
+  return mods;
 }
 
 // ---------- combat resolution helpers ----------
@@ -450,6 +491,8 @@ const DEFAULT_TPL = {
   lose: '쓰러졌다… ({Elapsed}s)',
   timeout: '제한시간 초과 — {MonsterName} 을(를) 쓰러뜨리지 못했다.',
   loot: '적에게서 무언가를 획득했다.',
+  talisman_extra: '▶ ⟪부적⟫ 연격',
+  talisman_heal: '▶ ⟪부적⟫ 처치 회복 +{Amount} · HP {CurrentHP}',
 };
 const DEFAULT_TPL_EN = {
   start: 'Encountered {MonsterName} ({Grade}). Time limit {TimeLimit}s.',
@@ -466,6 +509,8 @@ const DEFAULT_TPL_EN = {
   lose: 'You collapsed… ({Elapsed}s)',
   timeout: 'Time out — failed to bring down {MonsterName}.',
   loot: 'Recovered something from the enemy.',
+  talisman_extra: '▶ ⟪Charm⟫ extra strike',
+  talisman_heal: '▶ ⟪Charm⟫ kill heal +{Amount} · HP {CurrentHP}',
 };
 const uiT = (k) => t(k);
 export function logTpl(id, vars) {
@@ -503,56 +548,48 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     return 1;
   }
 
-  while (A.hp > 0 && B.hp > 0 && t <= limit && guard++ < 400) {
-    // whoever acts next
-    const actor = A.next <= B.next ? A : B;
-    const foe = actor === A ? B : A;
-    t = actor.next;
-    if (t > limit) break;
+  // --- 부적(Talisman) 효과 정규화 · 플레이어 A 전용 ---
+  const TAL = { firstCrit: 0, speed: [], dmgTaken: [], onHitExtra: [], onKillHeal: 0 };
+  for (const e of (pProf.talismans || [])) {
+    if (e.trigger === 'combat_start' && e.effect === 'guaranteed_crit') TAL.firstCrit += Math.max(1, e.value || 1);
+    else if (e.trigger === 'hp_threshold' && e.effect === 'stat_buff' && e.stat === 'attack_speed') TAL.speed.push({ cmp: e.compare, thr: e.triggerValue, mult: 1 + e.value });
+    else if (e.trigger === 'hp_threshold' && e.effect === 'stat_buff' && e.stat === 'damage_taken') TAL.dmgTaken.push({ cmp: e.compare, thr: e.triggerValue, mult: 1 + e.value }); // value 음수 = 감소
+    else if (e.trigger === 'on_hit' && e.effect === 'extra_attack') TAL.onHitExtra.push({ chance: e.triggerValue, count: Math.max(1, e.value || 1) });
+    else if (e.trigger === 'on_kill' && e.effect === 'heal_maxhp_pct') TAL.onKillHeal += e.value;
+  }
+  let firstCritLeft = TAL.firstCrit;
+  const hpFrac = () => (A.maxHp > 0 ? A.hp / A.maxHp : 0);
+  const cmpOk = (cmp, frac, thr) => cmp === 'gte' ? frac >= thr : cmp === 'lte' ? frac <= thr : false;
+  const playerSpeed = () => { let m = 1; for (const s of TAL.speed) if (cmpOk(s.cmp, hpFrac(), s.thr)) m *= s.mult; return A.atkSpeed * m; };
+  const playerDmgTakenMult = () => { let m = 1; for (const d of TAL.dmgTaken) if (cmpOk(d.cmp, hpFrac(), d.thr)) m *= d.mult; return m; };
 
-    // bleed dot resolves as time passes on this actor
-    for (const b of actor.bleed) {
-      while (b.nextTick <= t && b.until >= b.nextTick) {
-        actor.hp -= b.dmg;
-        push(actor.side, 'dot', logTpl('dot_bleed', { Target: actor.side === 'player' ? ME : actor.name, Damage: b.dmg.toFixed(0), CurrentHP: Math.max(0, actor.hp).toFixed(0) }));
-        b.nextTick += b.interval;
-        if (actor.hp <= 0) break;
-      }
-    }
-    actor.bleed = actor.bleed.filter(b => b.until > t);
-    if (actor.hp <= 0) break;
-
-    if (actor.stunUntil > t) { // stunned: skip, reschedule
-      push(actor.side, 'stun', logTpl('stun_skip', { Target: actor.side === 'player' ? ME : actor.name }));
-      actor.next = actor.stunUntil + 1 / actor.atkSpeed;
-      continue;
-    }
-
-    // attempt hit
-    const hc = hitChance(actor.accuracy, foe.evasion);
+  // 타격 처리(명중→데미지→크리→관통→상태이상). 일반 공격 = opts 없이 호출(기존 동작 동일).
+  // 추가타(부적)는 allowExtra:false로 재귀 1회 — 재프록·시간소모 없음.
+  function strike(actor, foe, opts) {
+    opts = opts || {};
     const nm = actor.side === 'player' ? ME : actor.name;
     const fnm = foe.side === 'player' ? ME : foe.name;
-    if (Math.random() > hc) {
+    const hc = hitChance(actor.accuracy, foe.evasion);
+    if (!opts.forceHit && Math.random() > hc) {
       push(actor.side, 'miss', logTpl('miss', { Attacker: nm, Target: fnm, HitPct: (hc * 100).toFixed(0) }));
       if (foe.side === 'player') triggers.evades++;
-      actor.next = t + 1 / actor.atkSpeed;
-      continue;
+      return;
     }
-    // damage
     let dmg = rand(actor.minAtk, actor.maxAtk) * ruptureMult(actor, t);
-    const isCrit = Math.random() < critChance(actor.critChance, foe.critResist);
+    const isCrit = opts.forceCrit || Math.random() < critChance(actor.critChance, foe.critResist);
     if (isCrit) { dmg *= N(C.crit_damage_mult, 1.5); if (actor.side === 'player') triggers.critsLanded++; }
-    // pierce (attacker attribute)
     let pierceFrac = 0;
     if (actor.attribute === 'pierce' && Math.random() < statusChance(actor.potency, foe.statusResist)) {
       pierceFrac = rand(N(byId.status.pierce?.Value, 0.05), N(byId.status.pierce?.ValueMax, 0.4));
     }
-    const final = defMitigate(dmg, foe.defense, pierceFrac);
+    let final = defMitigate(dmg, foe.defense, pierceFrac);
+    if (foe === A) final *= playerDmgTakenMult();   // 부적: 받는 피해 감소 (피격 전 체력 조건)
     foe.hp -= final;
     if (actor.side === 'player') triggers.hitsLanded++;
     if (foe.side === 'player') triggers.hitsTaken++;
     let text = logTpl(isCrit ? 'crit' : 'hit', { Attacker: nm, Target: fnm, Damage: final.toFixed(0), TargetHP: Math.max(0, foe.hp).toFixed(0), TargetMaxHP: foe.maxHp });
     if (pierceFrac > 0) text += logTpl('pierce_suffix', { PiercePct: (pierceFrac * 100).toFixed(0) });
+    if (opts.talismanCrit) text += (LANG === 'en' ? '  ⟪Charm⟫' : '  ⟪부적⟫');
     push(actor.side, isCrit ? 'crit' : 'hit', text);
 
     // status application (non-pierce)
@@ -580,7 +617,57 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
         }
       }
     }
-    actor.next = t + 1 / actor.atkSpeed;
+
+    // 부적: 처치 회복 (플레이어가 몬스터 처치 시 — 이번 전투 종료 후 HP로 이월)
+    if (actor === A && foe === B && foe.hp <= 0 && TAL.onKillHeal) {
+      const heal = A.maxHp * TAL.onKillHeal;
+      A.hp = Math.min(A.maxHp, A.hp + heal);
+      push('player', 'heal', logTpl('talisman_heal', { Amount: heal.toFixed(0), CurrentHP: Math.round(A.hp) }));
+    }
+    // 부적: 추가타 (플레이어 타격 후 · 대상 생존 · 재프록/시간소모 없음)
+    if (opts.allowExtra && actor === A && foe.hp > 0 && TAL.onHitExtra.length) {
+      for (const ex of TAL.onHitExtra) {
+        for (let k = 0; k < ex.count && foe.hp > 0; k++) {
+          if (Math.random() < ex.chance) {
+            push('player', 'extra', logTpl('talisman_extra', {}));
+            strike(actor, foe, { allowExtra: false });
+          }
+        }
+      }
+    }
+  }
+
+  while (A.hp > 0 && B.hp > 0 && t <= limit && guard++ < 400) {
+    // whoever acts next
+    const actor = A.next <= B.next ? A : B;
+    const foe = actor === A ? B : A;
+    t = actor.next;
+    if (t > limit) break;
+
+    // bleed dot resolves as time passes on this actor
+    for (const b of actor.bleed) {
+      while (b.nextTick <= t && b.until >= b.nextTick) {
+        actor.hp -= b.dmg;
+        push(actor.side, 'dot', logTpl('dot_bleed', { Target: actor.side === 'player' ? ME : actor.name, Damage: b.dmg.toFixed(0), CurrentHP: Math.max(0, actor.hp).toFixed(0) }));
+        b.nextTick += b.interval;
+        if (actor.hp <= 0) break;
+      }
+    }
+    actor.bleed = actor.bleed.filter(b => b.until > t);
+    if (actor.hp <= 0) break;
+
+    if (actor.stunUntil > t) { // stunned: skip, reschedule
+      push(actor.side, 'stun', logTpl('stun_skip', { Target: actor.side === 'player' ? ME : actor.name }));
+      actor.next = actor.stunUntil + 1 / (actor === A ? playerSpeed() : actor.atkSpeed);
+      continue;
+    }
+
+    // 부적: 첫 스윙 명중+치명 확정 (플레이어 A만 · 1회 소모)
+    const opts = { allowExtra: true };
+    if (actor === A && firstCritLeft > 0) { opts.forceHit = true; opts.forceCrit = true; opts.talismanCrit = true; firstCritLeft--; }
+    strike(actor, foe, opts);
+    // 다음 행동 스케줄 (플레이어는 부적 공속 버프 반영)
+    actor.next = t + 1 / (actor === A ? playerSpeed() : actor.atkSpeed);
   }
 
   let winner = 'timeout';
@@ -650,19 +737,25 @@ export function repair(state, inst) {
 // ---------- monster spawn & card draw (RL_SpawnTable) ----------
 // per-zone distribution: specials use SpawnChance %, the single IsBase monster
 // fills the remainder (100 - sum of specials). Missing monsters are skipped.
-export function spawnDistribution(zoneId) {
+// depth = 이번 출정의 조우 회차(1-based, "N전"). 회차가 오를수록 보스 등장 %p가 선형 가산되고
+// 베이스 몬스터가 자동으로 그만큼 차감됨(100 - 스페셜합). 다른 등급은 불변.
+export function spawnDistribution(zoneId, depth = 0) {
   const rows = (DATA.spawnTable || []).filter(r => r.ZoneID === zoneId && byId.monster[r.MonsterID]);
   if (!rows.length) return null;
   const base = rows.find(r => N(r.IsBase) === 1);
   const specials = rows.filter(r => N(r.IsBase) !== 1);
-  const specialSum = specials.reduce((s, r) => s + N(r.SpawnChance), 0);
-  const dist = specials.map(r => ({ id: r.MonsterID, chance: N(r.SpawnChance) }));
+  const ramp = clamp(N(depth) / Math.max(1, N(C.grade_ramp_fights, 10)), 0, 1);
+  const isBoss = id => String((byId.monster[id] || {}).Grade || '').trim() === 'Boss';
+  const bossRows = specials.filter(r => isBoss(r.MonsterID));
+  const perBoss = bossRows.length ? (N(C.boss_spawn_bonus, 0.05) * 100 * ramp) / bossRows.length : 0;
+  const dist = specials.map(r => ({ id: r.MonsterID, chance: N(r.SpawnChance) + (isBoss(r.MonsterID) ? perBoss : 0) }));
+  const specialSum = dist.reduce((s, d) => s + d.chance, 0);
   if (base) dist.push({ id: base.MonsterID, chance: Math.max(0, 100 - specialSum), base: true });
   return dist.filter(d => d.chance > 0);
 }
 // one weighted draw; falls back to any same-zone/legacy monster if no table
-export function drawMonster(zoneId) {
-  const dist = spawnDistribution(zoneId);
+export function drawMonster(zoneId, depth = 0) {
+  const dist = spawnDistribution(zoneId, depth);
   if (!dist || !dist.length) {
     const pool = DATA.monsters.filter(m => String(m.SpawnZones || '').split(',').map(s => s.trim()).includes(zoneId));
     const use = pool.length ? pool : DATA.monsters;
@@ -674,8 +767,8 @@ export function drawMonster(zoneId) {
   return dist[dist.length - 1].id;
 }
 // n independent draws (cards may repeat) for the pre-combat card pick
-export function drawCards(zoneId, n) {
-  const out = []; for (let i = 0; i < Math.max(1, n); i++) out.push(drawMonster(zoneId)); return out;
+export function drawCards(zoneId, n, depth = 0) {
+  const out = []; for (let i = 0; i < Math.max(1, n); i++) out.push(drawMonster(zoneId, depth)); return out;
 }
 
 // ---------- loot ----------
