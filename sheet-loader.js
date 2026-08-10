@@ -5,11 +5,11 @@
 
 export const SHEET_ID = '1d-LNhcuFo1dKO1zzszDNAXXT-zDqffatr1aCe3yB8ls';
 export const TABS = ['Config','PrimaryStat','SecondaryStat','StatusEffect','WeaponAttribute',
-  'Weapon','Armor','Item','Monster','City','Zone','Vendor','Shop','LootTable','Accessory','Talisman','Affix','SpawnTable','CombatLog',
+  'Weapon','Armor','Item','Monster','City','Zone','Vendor','Shop','LootTable','Accessory','Talisman','Bag','Affix','SpawnTable','CombatLog',
   'USB','ColdData','NpcDialogue','UIString',
   'Liquor','Module','LootGroup','LootGroupItem'];
 // tabs that may not exist yet in older sheets — a failed fetch is non-fatal
-const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString','Liquor','Module','LootGroup','LootGroupItem','Talisman']);
+const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString','Liquor','Module','LootGroup','LootGroupItem','Talisman','Bag']);
 
 // --- RFC4180-ish CSV parser (handles quoted commas + newlines) ---
 export function parseCSV(text) {
@@ -113,6 +113,7 @@ export function shape(rowsByTab) {
     spawnTable: toObjs(rowsByTab.SpawnTable || []).filter(r => String(r.ZoneID || '').startsWith('city_') && String(r.MonsterID || '').startsWith('monster_')),
     artifacts: toObjs(rowsByTab.Accessory || []),
     talismans: toObjs(rowsByTab.Talisman || []).filter(r => String(r.TalismanID || '').trim()),
+    bags: toObjs(rowsByTab.Bag || []).filter(r => String(r.BagID || '').trim()),
     affixes: toObjs(rowsByTab.Affix || []).filter(r => String(r.AffixID || '').trim()),
     combatLog: toObjs(rowsByTab.CombatLog || []).filter(r => String(r.LineID || '').trim()),
     ui: toObjs(rowsByTab.UIString || []).filter(r => String(r.StringID || '').trim()),
@@ -134,6 +135,7 @@ export function buildIndex(DATA) {
     monster: Object.fromEntries(DATA.monsters.map(x => [x.MonsterID, x])),
     artifact: Object.fromEntries((DATA.artifacts || []).map(x => [x.AccessoryID, x])),
     talisman: Object.fromEntries((DATA.talismans || []).map(x => [x.TalismanID, x])),
+    bag: Object.fromEntries((DATA.bags || []).map(x => [x.BagID, x])),
     zone: Object.fromEntries(DATA.zones.map(x => [x.ZoneID, x])),
     city: Object.fromEntries(DATA.cities.map(x => [x.CityID, x])),
     vendor: Object.fromEntries(DATA.vendors.map(x => [x.VendorID, x])),

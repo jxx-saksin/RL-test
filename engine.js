@@ -2,16 +2,16 @@
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
 import { DATA as FALLBACK } from './data/game-data.js';
-import { buildIndex } from './sheet-loader.js';
+import { buildIndex } from './sheet-loader.js?v=bag1';
 
 export let DATA = FALLBACK;
 export let byId = buildIndex(FALLBACK).byId;
 let C = DATA.config;
-export function anyItem(id){ return byId.item[id] || byId.weapon[id] || byId.armor[id] || byId.artifact[id] || (byId.talisman && byId.talisman[id]) || null; }
+export function anyItem(id){ return byId.item[id] || byId.weapon[id] || byId.armor[id] || byId.artifact[id] || (byId.talisman && byId.talisman[id]) || (byId.bag && byId.bag[id]) || null; }
 export function anyName(id){
   const o = anyItem(id);
   if (o){
-    const base = o.ItemID ? 'ItemName' : o.WeaponID ? 'WeaponName' : o.ArmorID ? 'ArmorName' : o.TalismanID ? 'TalismanName' : 'AccessoryName';
+    const base = o.ItemID ? 'ItemName' : o.WeaponID ? 'WeaponName' : o.ArmorID ? 'ArmorName' : o.TalismanID ? 'TalismanName' : o.BagID ? 'BagName' : 'AccessoryName';
     return tr(o, base) || id;
   }
   const u = (DATA.usb || []).find(x => x.USBID === id);
@@ -238,12 +238,13 @@ function seedOpt(kind, key, w, a){
 
 // v3 instance: 베이스ID · sockets[] · unappraised[] · rolls{} · growthTags[] · dur/maxDur
 export function mkInstance(id, qty = 1, opts = {}) {
-  const w = byId.weapon[id], a = byId.armor[id], it = byId.item[id], af = byId.artifact[id], tal = byId.talisman && byId.talisman[id];
+  const w = byId.weapon[id], a = byId.armor[id], it = byId.item[id], af = byId.artifact[id], tal = byId.talisman && byId.talisman[id], bg = byId.bag && byId.bag[id];
   let kind = 'item', maxDur = 0;
   if (w) { kind = 'weapon'; maxDur = N(w.MaxDurability); }
   else if (a) { kind = 'armor'; maxDur = N(a.MaxDurability); }
   else if (af) { kind = 'artifact'; maxDur = N(af.MaxDurability); }
   else if (tal) { kind = 'talisman'; }   // 부적: 내구도·롤·소켓 없음. 효과 참조만 (Stage 2에서 발동)
+  else if (bg) { kind = 'bag'; }          // 가방: 용량(Capacity)만. 내구도·롤 없음
   const inst = { uid: nextUid(), id, kind, qty };
   if (kind === 'weapon' || kind === 'armor' || kind === 'artifact') { inst.dur = maxDur; inst.maxDur = maxDur; }
 
@@ -440,6 +441,13 @@ export function activeTalismans(state) {
     });
   }
   return out;
+}
+
+// 착용 가방(equip.bag)의 용량(전리품 슬롯 수). 미착용=0 → 런에서는 주머니(잠금) 2칸만.
+export function equippedBagCapacity(state) {
+  const uid = state && state.equip && state.equip.bag; if (!uid) return 0;
+  const inst = instById(state, uid); if (!inst) return 0;
+  const b = byId.bag && byId.bag[inst.id]; return b ? N(b.Capacity) : 0;
 }
 
 // 현재 체력비율(0~1)에서 조건 충족한 부적 stat_buff의 유효 배수. UI 전투표시 동적갱신용.
