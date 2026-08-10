@@ -355,7 +355,12 @@ class Component extends DCLogic {
       c.ups = this.eng.applyGrowth(this.gs, res.triggers);
       const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp;
       c.phase='won';
-      if(c.lootDraw && c.lootDraw.length){ this.state.lm={view:'field',focus:0,fromCombat:true,field:c.lootDraw.slice(),bag:[]}; this.setState({screen:'lootmanage'}); return; }
+      if(c.lootDraw && c.lootDraw.length){
+        // 사전소지품(주머니/가방)을 드랍 화면에 함께 표시 — gs.bag의 미착용 아이템을 lm.bag으로 이동(중복 방지), 커밋 시 되돌림.
+        const lm={view:'field',focus:0,fromCombat:true,field:c.lootDraw.slice(),bag:[]}; const keep=[];
+        for(const it of this.gs.bag){ if(this.isEquipped(it.uid)){ keep.push(it); continue; } it.locked=(it.loc==='pocket'); it.pre=true; lm.bag.push(it); }
+        this.gs.bag=keep; this.state.lm=lm; this.setState({screen:'lootmanage'}); return;
+      }
     } else if(res.winner==='monster'){ c.phase='dead'; }
     else { c.phase='timeout'; }
     this.forceUpdate();
@@ -537,7 +542,6 @@ class Component extends DCLogic {
         h('button',{onClick:()=>this.setState({resumeBanner:false}),style:{background:'transparent',border:'none',color:T.faint,fontSize:15,cursor:'pointer',padding:'0 4px',lineHeight:1}}, '×')):null,
       h('div',{style:{padding:'0 16px 100px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:16}},
         h('div',{style:{margin:'0 -16px',flex:'0 0 auto'}}, this.screenTitle(this.t('kicker_safehouse'),'안전가옥')),
-        h('button',{onClick:()=>this.openLootDebug(),style:{flex:'0 0 auto',alignSelf:'flex-start',background:'transparent',border:'1px dashed '+T.line2,color:T.mid,fontFamily:T.mono,fontSize:11,padding:'7px 12px',borderRadius:6,cursor:'pointer'}}, '🧪 루팅 화면 테스트'),
         ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Feed')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Module')||svc.includes('Sell'); const act=()=>this.openVendor(v.VendorID);
             const CHIP={ shop_clinic:['치료','Heal'], shop_hardware:['수리','Repair'], shop_canteen:['배식','Ration'], shop_data_center:['데이터','Data'], shop_pawnshop:['감정','Appraise'], shop_blackmarket:['거래','Trade'], shop_auction:['거래소','Exchange'] };
             const chipTxt=(CHIP[v.ShopID]||[])[this.en()?1:0]||'';
@@ -865,27 +869,90 @@ class Component extends DCLogic {
     return h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
       h('div',{style:{background:'rgb(24,25,29)',borderRadius:24,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}}, bars, statusEl, buttons));
   }
+  // 휴식하기: 회복 아이템을 낱장 코버플로우로, 위로 올려 사용(보건소식 게이지 차오름), 하단은 완료 1개.
+  restCards(){ return this.consumables().flatMap(inst=>Array.from({length:inst.qty||1},()=>Object.assign({},inst,{qty:1}))); }
+  restNav(d){ const c=this.combat, n=this.restCards().length; c.restFocus=Math.max(0,Math.min(n-1,(c.restFocus||0)+d)); this.forceUpdate(); }
+  restCenterHandlers(){ return {
+    // 드래그 중엔 코버플로우 컨테이너 언클립 + zIndex 상승 → 카드가 최상단에서 모든 UI를 덮음
+    onPointerDown:(e)=>{ this._rvy=e.clientY; this._rvc=e.currentTarget; const p=e.currentTarget.parentElement; this._rvp=p; if(p){ p.style.overflow='visible'; p.style.zIndex='100'; } e.currentTarget.style.zIndex='100'; },
+    onPointerMove:(e)=>{ if(this._rvy==null)return; const dy=e.clientY-this._rvy; const el=this._rvc; if(!el)return; el.style.transition='none'; el.style.zIndex='100'; el.style.transform='translate(-50%, calc(-50% + '+dy+'px)) scale(1)'; },
+    onPointerUp:(e)=>{ if(this._rvy==null)return; const dy=e.clientY-this._rvy; const el=this._rvc; const p=this._rvp; this._rvy=null; this._rvp=null; const restore=()=>{ if(p){ p.style.overflow='hidden'; p.style.zIndex=''; } if(el) el.style.zIndex=''; };
+      const card=dy>70?this.restCards()[this.combat.restFocus]:null;
+      const it=card?this.eng.byId.item[card.id]:null; const heal=it&&it.EffectType!=='stamina';
+      const canUse=!!it && !this._restAnim && (heal? this.gs.hp<this.gs.maxHp : this.gs.sta<this.staMax);
+      if(canUse){
+        // 사용 확정 → 드래그 방향(아래)으로 날아가며 사라짐(최상단 레이어)
+        if(el){ el.style.transition='transform .42s cubic-bezier(.4,0,.7,.2), opacity .42s ease-in'; el.style.transform='translate(-50%, calc(-50% + 940px)) scale(.86)'; el.style.opacity='0'; }
+        this.restUse(card);
+        setTimeout(restore,460);
+      } else {
+        // 사용 불가(가득참 등) → 제자리 복귀, 필요 시 restUse가 안내 플래시
+        if(el){ el.style.transition='transform .3s'; el.style.transform='translate(-50%,-50%) scale(1)'; el.style.opacity='1'; }
+        if(card) this.restUse(card);
+        setTimeout(restore,320);
+      } }
+  }; }
+  restUse(card){ if(this._restAnim) return; const it=this.eng.byId.item[card.id]||{}; const v=this.eng.N(it.EffectValue); const g=this.gs;
+    const heal=it.EffectType!=='stamina'; const cur=heal?g.hp:g.sta, max=heal?g.maxHp:this.staMax;
+    if(cur>=max){ this.flash(heal?(this.en()?'HP already full':'생명력이 가득 찼습니다'):(this.en()?'Stamina already full':'스태미너가 가득 찼습니다')); return; }
+    const end=Math.min(max, cur+v); this._restAnim=true;
+    this.restGlow(heal?'hp':'sta');
+    const fill=heal?this._rHpFill:this._rStaFill, num=heal?this._rHpNum:this._rStaNum, barEl=heal?this._rHpBar:this._rStaBar;
+    this.animRecover(fill,num,barEl,cur,end,max).then(()=>{
+      if(heal) g.hp=end; else g.sta=end;
+      const dec=(arr)=>{ const i=arr.findIndex(x=>x.uid===card.uid); if(i<0) return false; if((arr[i].qty||1)>1) arr[i].qty--; else arr.splice(i,1); return true; };
+      dec(g.bag)||dec(g.vault); this._restAnim=false;
+      const nl=this.restCards(); if(this.combat.restFocus>=nl.length) this.combat.restFocus=Math.max(0,nl.length-1);
+      this.forceUpdate(); this.saveGame();
+      this.normFocusCard('[data-rscard="focus"]'); }); // 재사용된 포커스 카드에 남은 날아가기 스타일 정상화
+  }
+  // 프레임워크가 위치기준 노드 재사용 + vdom 미변경 시 스타일 갱신을 스킵하므로,
+  // 액션 후 재사용된 포커스 카드의 인라인 스타일(날아가기 잔여)을 중앙/불투명으로 직접 정상화한다.
+  normFocusCard(sel){ const fc=document.querySelector(sel); if(!fc) return;
+    fc.style.transition='none'; fc.style.transform='translate(-50%, -50%) scale(1)'; fc.style.opacity='1'; fc.style.zIndex='20';
+    setTimeout(()=>{ if(fc) fc.style.transition='transform .4s cubic-bezier(.16,1,.3,1),opacity .3s'; }, 30);
+  }
+  // 회복 시 화면 테두리 이너글로우 — HP=초록 #83B289 · 스태미너=노랑 #C19E6F, 은은하게 페이드 인·아웃
+  restGlow(kind){ const el=this._restGlowEl; if(!el) return; const col=kind==='sta'?'#C19E6F':'#83B289';
+    clearTimeout(this._glowT);
+    el.style.boxShadow='inset 0 0 60px 6px '+col;
+    el.style.transition='opacity .3s ease-out'; el.style.opacity='0.5';
+    this._glowT=setTimeout(()=>{ if(!this._restGlowEl)return; this._restGlowEl.style.transition='opacity 1s ease-in'; this._restGlowEl.style.opacity='0'; }, 750);
+  }
   restScreen(){
-    const c=this.combat, list=this.consumables(), g=this.gs;
-    if(c.restFocus==null||c.restFocus>=list.length) c.restFocus=Math.max(0,Math.floor(list.length/2));
+    const c=this.combat, list=this.restCards(), g=this.gs;
+    if(c.restFocus==null||c.restFocus>=list.length) c.restFocus=0;
     const {zoneName,placeTitle}=this.placeTitleFor(c);
     const backToDone=()=>{ this.combat.phase=this.combat.restReturn||'won'; this.forceUpdate(); };
-    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+    const hpPct=Math.max(0,Math.min(100,g.hp/g.maxHp*100)), staPct=Math.max(0,Math.min(100,g.sta/this.staMax*100));
+    const gbar=(label,barRef,fillRef,numRef,curV,maxV,pct,fill,edge,pulse)=> h('div',{style:{flex:1}},
+      h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:6}},
+        h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#6f7276',letterSpacing:'.05em'}}, label),
+        h('span',{ref:numRef,style:{fontFamily:T.mono,fontSize:10,color:'#a9abaf',letterSpacing:'.05em'}}, Math.round(curV)+' / '+Math.round(maxV))),
+      h('div',{className:'rcv-bar',ref:barRef,style:{position:'relative',height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden','--rcv-edge':edge,'--rcv-pulse':pulse}},
+        h('div',{className:'rcv-fill',ref:fillRef,style:{width:pct+'%',background:fill}}),
+        h('div',{className:'rcv-shim'})));
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}},
+      // 회복 시 화면 테두리 이너글로우 (ref 직접 제어, 평소 opacity 0)
+      h('div',{ref:el=>this._restGlowEl=el,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:60,opacity:0,boxShadow:'inset 0 0 60px 6px #83B289'}}),
       this.battleBanner(placeTitle,zoneName,c.encounter),
-      list.length? h('div',{style:{flex:1,position:'relative',overflow:'hidden'}},
-          list.map((inst,i)=>{ const off=i-c.restFocus, abs=Math.abs(off); const isC=off===0; const x=off*250, s=isC?1:0.9, o=isC?1:0.5;
-            return h('div',{key:inst.uid,onClick:()=>{ if(!isC){c.restFocus=i;this.forceUpdate();} },style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(442px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'default':'pointer'}}, this.lootCardBig(inst)); }))
-        : h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}, this.emptyRow(this.en()?'No food or medicine to use.':'사용할 음식이나 의약품이 없습니다.')),
-      list.length? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 12px'}}, list.map((x,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===c.restFocus?'rgb(169,171,175)':'rgb(43,46,50)'}}))) : null,
+      // 낱장 코버플로우
+      h('div',{onPointerDown:(e)=>{this._rsx=e.clientX;this._rmoved=false;},onPointerMove:(e)=>{if(this._rsx!=null&&Math.abs(e.clientX-this._rsx)>8)this._rmoved=true;},onPointerUp:(e)=>{if(this._rsx==null)return;const dx=e.clientX-this._rsx;this._rsx=null;if(Math.abs(dx)>30){ if(dx<0)this.restNav(1); else this.restNav(-1);} },style:{flex:'1 1 auto',position:'relative',overflow:'hidden'}},
+        list.length? list.map((card,i)=>{ const off=i-c.restFocus, abs=Math.abs(off), isC=off===0; const x=off*250, s=isC?1:0.9, o=isC?1:0.42;
+            const handlers=isC?this.restCenterHandlers():{onClick:()=>{ if(!this._rmoved){c.restFocus=i;this.forceUpdate();} }};
+            return h('div',Object.assign({key:card.uid+'#'+i,'data-rscard':isC?'focus':null},handlers,{style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(482px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'grab':'pointer',touchAction:'none'}}), this.lootCardBig(card)); })
+          : h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}, this.emptyRow(this.en()?'No food or medicine to use.':'사용할 음식이나 의약품이 없습니다.'))),
+      // 힌트 (위로 올려 사용)
+      list.length? h('div',{style:{flex:'0 0 auto',padding:'6px 16px 16px'}},
+        this.lmChevron('down'),
+        h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, this.en()?'Pull down to use':'아래로 내려 사용하기')) : null,
+      // 하단 패널: 게이지 + 완료
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
         h('div',{style:{background:'rgb(24,25,29)',borderRadius:24,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}},
-          h('div',{style:{display:'flex',gap:5}},
-            h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_hp'),Math.round(g.hp),Math.round(g.maxHp),Math.max(0,Math.min(100,g.hp/g.maxHp*100)),'rgb(174,97,92)')),
-            h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_stamina'),Math.round(g.sta),Math.round(this.staMax),Math.max(0,Math.min(100,g.sta/this.staMax*100)),'rgb(193,158,111)'))),
-          h('div',{style:{display:'flex',gap:8}},
-            list.length? h('button',{onClick:()=>{ const inst=list[c.restFocus]; if(inst){ this.useConsumable(inst); const nl=this.consumables(); if(nl.length&&c.restFocus>=nl.length) c.restFocus=nl.length-1; this.forceUpdate(); } },style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'rgb(131,178,137)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'Use':'사용하기')
-              : h('button',{disabled:true,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'rgb(75,77,82)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'default'}}, this.en()?'Use recovery item':'회복 아이템 사용'),
-            h('button',{onClick:backToDone,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'rgb(234,235,238)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, list.length?(this.en()?'Done':'완료'):(this.en()?'Continue':'계속 진행'))))));
+          h('div',{style:{display:'flex',gap:12}},
+            gbar(this.t('stat_hp'), el=>this._rHpBar=el, el=>this._rHpFill=el, el=>this._rHpNum=el, g.hp, g.maxHp, hpPct, '#ae615c', '#d68f7f', 'rgba(174,97,92,.55)'),
+            gbar(this.t('stat_stamina'), el=>this._rStaBar=el, el=>this._rStaFill=el, el=>this._rStaNum=el, g.sta, this.staMax, staPct, '#c19e6f', '#e0c39a', 'rgba(193,158,111,.55)')),
+          h('button',{onClick:backToDone,style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'rgb(234,235,238)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, list.length?(this.en()?'Done':'완료'):(this.en()?'Continue':'계속 진행')))));
   }
   // ---- monster card draw (S3 · 전투 진입) ----
   focusCard(i){ if(this.combat.flipped) return; this.combat.cardFocus=i; this.forceUpdate(); }
@@ -1973,9 +2040,9 @@ void main(){
         h('div',{style:{flex:1,overflowY:'auto',padding:'6px 0 16px'}},
           h('div',{style:{fontFamily:T.mono,fontSize:11,letterSpacing:'1.1px',color:'rgb(75,77,82)',margin:'0 16px 10px'}}, this.en()?'GROWTH THIS SORTIE':'이번 출정 성장'),
           this.resultGrowth()),
-        h('div',{style:{flex:'0 0 auto',padding:'6px 16px 22px'}},
-          h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:8,padding:'15px 13px'}},
-            h('button',{onClick:()=>this.toSafehouse(),style:{width:'100%',height:51,boxSizing:'border-box',background:'transparent',border:'1px solid #4A4D53',borderRadius:4,color:'#A9ABAF',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.t('btn_to_safehouse')))));
+        h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
+          h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
+            h('button',{onClick:()=>this.toSafehouse(),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_to_safehouse')))));
     }
     const uids=this.lootUids();
     const open=c.lootOpen||(c.lootOpen=new Set());
@@ -2015,11 +2082,11 @@ void main(){
               h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'auto'}}, flipped?this.lootCardBig(inst,true):null))); }),
         cardNav(focus, uids.length, ()=>this.lootFocus(focus-1), ()=>this.lootFocus(focus+1))),
       !allOpen? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 10px'}}, ...uids.map((_,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===focus?T.mid:(open.has(i)?T.line2:T.s3)}}))) : null,
-      h('div',{style:{flex:'0 0 auto',padding:'0 16px 22px'}},
-        h('div',{style:{display:'flex',gap:8,background:'#18191D',border:'1px solid #36383C',borderRadius:8,padding:'15px 13px'}},
-          ...(allOpen
-            ? [ h('button',{key:'next',onClick:()=>{ this.combat.resultStage='growth'; this.forceUpdate(); },style:{flex:1,height:51,boxSizing:'border-box',background:'transparent',border:'1px solid #4A4D53',borderRadius:4,color:'#A9ABAF',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.en()?'Next':'다음') ]
-            : [ h('button',{key:'skip',onClick:()=>this.skipLootReveal(),style:{flex:1,height:51,boxSizing:'border-box',background:'transparent',border:'1px solid #4A4D53',borderRadius:4,color:'#A9ABAF',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer',whiteSpace:'nowrap'}}, this.en()?'Skip':'건너뛰기') ]))));
+      h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
+        h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
+          allOpen
+            ? h('button',{key:'next',onClick:()=>{ this.combat.resultStage='growth'; this.forceUpdate(); },style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'Next':'다음')
+            : h('button',{key:'skip',onClick:()=>this.skipLootReveal(),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'Skip':'건너뛰기'))));
   }
   aggLoot(list){ const m={}; for(const l of list){ m[l.id]=(m[l.id]||0)+l.qty; } return Object.entries(m).map(([id,qty])=>({id,qty})); }
   // 전투 후 전리품 개봉 — 몬스터 조우 카드와 동일한 중앙 캐러셀 · 탭하면 플립 (§5 공용 카드)
@@ -2089,6 +2156,8 @@ void main(){
     const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id];
     if(usb) return this.dataCardBig(inst, usb, fixed);
     const cat=liq?this.t('appraise_tab'):md?(this.t('module_tab')+' · '+(md.HexCode||'')):usb?this.t('usb_decode'):(CATKR[s.Category]?this.t(this.catKey(s.Category)):(s.Category||''));
+    // 스택 가능한 일반 아이템(약품·음식·정크·퀘스트 등)만: 카테고리 우측에 MAX STACK N 표시
+    const itRow=this.eng.byId.item[inst.id]; const maxStk=(itRow&&!liq&&!md&&!usb)?this.eng.N(itRow.MaxStack):0;
     const allStats=usb?[[this.t('usb_permanent_growth'),this.eng.substUsbTokens('{STAT}',usb)],[this.t('combat_time_limit'),this.eng.N(usb.UploadMinutes,1)+(this.en()?'m':'분')]]:(isBag?[[this.en()?'Slots':'슬롯',String(this.eng.N(s.Capacity)),'#83B289']]:((isGear||liq||md||s.Category==='Medicine'||s.Category==='Food')?this.itemDetailStats(inst):[]));
     const stats=allStats.filter(([k])=>k!==this.t('item_durability'));
     const desc=this.tx(s,'Description')||(inst.kind==='talisman'&&(this.tx(s,'EffectDesc')||s.EffectDesc_KR))||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||(usb&&this.tx(usb,'Description'))||'';
@@ -2110,7 +2179,8 @@ void main(){
         gtags.length?h('div',{style:{position:'absolute',right:15,top:15,display:'flex',flexDirection:'row-reverse',gap:7}},
           ...gtags.map((tg,i)=>h('div',{key:i,style:{height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'0 8px',display:'flex',alignItems:'center'}},
             h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:HI,whiteSpace:'nowrap'}}, abbr[tg]||tg)))):null,
-        h('span',{style:{position:'absolute',left:15,bottom:13,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, cat)),
+        h('span',{style:{position:'absolute',left:15,bottom:13,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, cat),
+        maxStk>1?h('span',{style:{position:'absolute',right:15,bottom:13,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, 'MAX STACK '+maxStk):null),
       // BODY
       h('div',{style:{alignSelf:'stretch',flexGrow:1,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start',minHeight:0}},
         h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center'}},
@@ -2150,7 +2220,7 @@ void main(){
   openLootDebug(){ window.__L=this; this.state.lm=Object.assign({view:'field',focus:0,fromCombat:false},this.lmSample()); this.setState({screen:'lootmanage',modalZone:null,sel:null}); }
   // 전투 루팅 커밋: 담은(lm.bag) 것만 gs.bag으로(잠금→주머니 loc). 안 챙긴(field) 것은 두고 옴.
   commitLootDraw(){ const lm=this.state.lm, c=this.combat; if(!lm) return;
-    (lm.bag||[]).forEach(entry=>{ entry.loc = entry.locked?'pocket':'bag'; delete entry.locked; this.gs.bag.push(entry); if(c){ (c.runLootInsts||(c.runLootInsts=[])).push(entry.uid); } });
+    (lm.bag||[]).forEach(entry=>{ const wasPre=entry.pre; entry.loc = entry.locked?'pocket':'bag'; delete entry.locked; delete entry.pre; this.gs.bag.push(entry); if(!wasPre && c){ (c.runLootInsts||(c.runLootInsts=[])).push(entry.uid); } });
     const kept=(lm.bag||[]).length, left=(lm.field||[]).length;
     this.saveGame(); this.setState({screen:'combat'});
     this.flash(this.en()?('Stashed '+kept+(left?' · left '+left:'')):(kept+'개 담음'+(left?(' · '+left+'개 두고 옴'):''))); }
@@ -2185,6 +2255,7 @@ void main(){
       else { lm.bag.splice(i,1); entry.locked=false; entry.qty=1; lm.field.push(entry); lm.opened.add(entry.uid); }
       this.flash(this.en()?'Pulled out':'전리품으로 꺼냄'); }
     this.lmFix(); this.forceUpdate();
+    this.normFocusCard('[data-lmcard="focus"]'); // 재사용된 포커스 카드에 남은 날아가기 스타일 정상화
   }
   lmToggleLock(){ const lm=this.state.lm; if(lm.view!=='bag') return; const entry=lm.bag[Math.max(0,Math.min(lm.focus||0,lm.bag.length-1))]; if(!entry) return;
     if(entry.locked){
@@ -2196,9 +2267,24 @@ void main(){
     this.forceUpdate();
   }
   lmCenterHandlers(){ return {
-    onPointerDown:(e)=>{ this._lmy=e.clientY; this._lmc=e.currentTarget; },
-    onPointerMove:(e)=>{ if(this._lmy==null)return; const dy=e.clientY-this._lmy; const el=this._lmc; if(!el)return; el.style.transition='none'; el.style.transform='translate(-50%, calc(-50% + '+dy+'px)) scale(1)'; el.style.opacity=Math.max(.5,1-Math.abs(dy)/240); },
-    onPointerUp:(e)=>{ if(this._lmy==null)return; const dy=e.clientY-this._lmy; const el=this._lmc; this._lmy=null; if(el){ el.style.transition='transform .3s, opacity .3s'; el.style.transform='translate(-50%,-50%) scale(1)'; el.style.opacity='1'; } if(Math.abs(dy)>70){ this.lmDepth(dy<0?'up':'down'); } else { this.lmTapFlip(); } }
+    // 드래그 중 코버플로우 언클립 + zIndex 상승 → 카드가 최상단에서 UI를 덮음(안 잘림)
+    onPointerDown:(e)=>{ this._lmy=e.clientY; this._lmx=e.clientX; this._lmc=e.currentTarget; const p=e.currentTarget.parentElement; this._lmp=p; if(p){ p.style.overflow='visible'; p.style.zIndex='100'; } e.currentTarget.style.zIndex='100'; },
+    onPointerMove:(e)=>{ if(this._lmy==null)return; const dy=e.clientY-this._lmy; const el=this._lmc; if(!el)return; el.style.transition='none'; el.style.zIndex='100'; el.style.transform='translate(-50%, calc(-50% + '+dy+'px)) scale(1)'; },
+    onPointerUp:(e)=>{ if(this._lmy==null)return; const dy=e.clientY-this._lmy; const dx=this._lmx!=null?e.clientX-this._lmx:0; const el=this._lmc; const p=this._lmp; this._lmy=null; this._lmx=null; this._lmp=null; const restore=()=>{ if(p){ p.style.overflow='hidden'; p.style.zIndex=''; } if(el) el.style.zIndex=''; };
+      const lm=this.state.lm, isField=lm.view==='field'; const arr=isField?lm.field:lm.bag; const fc=arr[Math.max(0,Math.min(lm.focus||0,arr.length-1))];
+      // 유효 동작(위=가방뷰 꺼내기 / 아래=필드 개봉된 카드 넣기)일 때만 날려보냄
+      let fly=false; if(Math.abs(dy)>70&&fc){ fly = dy<0 ? !isField : (isField && !!(lm.opened&&lm.opened.has(fc.uid))); }
+      if(fly){
+        // 드래그 방향으로 날아가며 사라짐(최상단 레이어), 애니 후 실제 이동
+        if(el){ el.style.transition='transform .38s cubic-bezier(.4,0,.7,.2), opacity .38s ease-in'; el.style.transform='translate(-50%, calc(-50% + '+(dy<0?-940:940)+'px)) scale(.86)'; el.style.opacity='0'; }
+        setTimeout(()=>{ this.lmDepth(dy<0?'up':'down'); restore(); }, 300);
+      } else {
+        // 무효 스와이프/탭 → 제자리 복귀 (lmDepth가 안내 플래시, 탭은 플립)
+        if(el){ el.style.transition='transform .3s'; el.style.transform='translate(-50%,-50%) scale(1)'; el.style.opacity='1'; }
+        // 세로>70=넣기/빼기, 그 외엔 '실제 탭'(가로·세로 이동 모두 작을 때)만 플립 — 가로 스와이프(이동)는 플립 안 함
+        if(Math.abs(dy)>70){ this.lmDepth(dy<0?'up':'down'); } else if(Math.abs(dx)<10&&Math.abs(dy)<10){ this.lmTapFlip(); }
+        setTimeout(restore,320);
+      } }
   }; }
   lmTapFlip(){ const lm=this.state.lm; if(!lm||lm.view!=='field') return; const inst=lm.field[Math.max(0,Math.min(lm.focus||0,lm.field.length-1))]; if(!inst) return; if(!lm.opened) lm.opened=new Set(); if(!lm.opened.has(inst.uid)){ lm.opened.add(inst.uid); this.forceUpdate(); } }
   lmChevron(dir){ const anim=dir==='down'?'rlBounceDn':'rlBounceUp';
@@ -2252,7 +2338,7 @@ void main(){
       // footer — 플로팅 둥근 컨테이너
       h('div',{style:{flex:'0 0 auto',margin:'0 12px 14px',padding:10,borderRadius:20,background:T.s1,border:'1px solid '+T.line,display:'flex',gap:10,boxShadow:'0 8px 28px rgba(0,0,0,.45)'}},
         h('button',{onClick:()=>{ lm.view=isField?'bag':'field'; lm.focus=0; this.forceUpdate(); },style:{flex:1,height:46,borderRadius:999,border:'1px solid '+T.line2,background:'transparent',color:T.mid,fontFamily:T.sans,fontSize:13,cursor:'pointer'}}, isField?(this.en()?'Bag':'가방'):(this.en()?'Loot':'전리품')),
-        h('button',{onClick:()=>{ if(lm.fromCombat){ this.commitLootDraw(); } else { lm.field=this.lmSample().field; lm.view='field'; lm.focus=0; this.flash(this.en()?'Next fight — new loot':'다음 전투 — 새 전리품'); this.forceUpdate(); } },style:{flex:1,height:46,borderRadius:999,border:'none',background:T.hi,color:'#111',fontFamily:T.sans,fontSize:13,fontWeight:500,cursor:'pointer'}}, lm.fromCombat?(this.en()?'Done':'담기 완료'):(this.en()?'Proceed':'진행하기'))));
+        h('button',{onClick:()=>{ if(lm.fromCombat){ this.commitLootDraw(); } else { lm.field=this.lmSample().field; lm.view='field'; lm.focus=0; this.flash(this.en()?'Next fight — new loot':'다음 전투 — 새 전리품'); this.forceUpdate(); } },style:{flex:1,height:46,borderRadius:999,border:'none',background:T.hi,color:'#111',fontFamily:T.sans,fontSize:13,fontWeight:500,cursor:'pointer'}}, lm.fromCombat?(this.en()?'Done':'완료'):(this.en()?'Proceed':'진행하기'))));
   }
 
   // ---- inventory ----
@@ -2323,10 +2409,10 @@ void main(){
       h('span',{style:{display:'inline-flex',alignItems:'center',gap:5,borderRadius:4,border:'1px solid '+T.line2,padding:'3px 8px',fontFamily:T.mono,fontSize:9.5,color:T.faint}}, h('span',{style:{width:5,height:5,borderRadius:999,background:T.faint}}), this.en()?'Empty':'빈 슬롯'));
   }
   invGearRow(inst,catOf){
-    return h('div',{key:inst.uid,style:{borderBottom:'1px solid '+T.line,background:T.bg,padding:'14px 15px'}},
+    return h('div',{key:inst.uid,onClick:()=>this.setState({sel:inst.uid,moveQty:null}),style:{borderBottom:'1px solid '+T.line,background:T.bg,padding:'14px 15px',cursor:'pointer'}},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}},
         this.catChip(catOf(inst),true),
-        h('button',{onClick:()=>this.gearOff(inst),style:{fontFamily:T.mono,fontSize:9.5,padding:'4px 9px',borderRadius:4,cursor:'pointer',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',color:'rgb(169,171,175)'}}, this.en()?'Unequip':'해제')),
+        h('button',{onClick:(e)=>{ e.stopPropagation(); this.gearOff(inst); },style:{fontFamily:T.mono,fontSize:9.5,padding:'4px 9px',borderRadius:4,cursor:'pointer',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',color:'rgb(169,171,175)'}}, this.en()?'Unequip':'해제')),
       h('div',{style:{fontFamily:T.sans,fontSize:14,color:T.hi,marginTop:8}}, this.itemLabel(inst)));
   }
   gearOff(inst){
@@ -2409,7 +2495,8 @@ void main(){
   isEquipped(uid){ const e=this.gs.equip; return e.weapon===uid||e.head===uid||e.body===uid||e.artifact1===uid||e.artifact2===uid||e.bag===uid; }
   toggleEquip(inst){
     const slot=this.slotOf(inst); if(!slot) return;
-    if(this.gs.equip[slot]===inst.uid){ this.gs.equip[slot]=null; this.flash(this.t('equip_unequip')); }
+    // 해제는 gearOff로 위임 — 장비·가방 모두 금고(가방은 내용물까지)로 보냄
+    if(this.gs.equip[slot]===inst.uid){ this.gearOff(inst); return; }
     else { this.gs.equip[slot]=inst.uid; this.moveToBag(inst.uid); this.flash(this.eng.anyName(inst.id)+(this.en()?' equipped':' 착용')); }
     const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp);
     this.forceUpdate();
@@ -2452,7 +2539,7 @@ void main(){
       if(it.EffectType==='heal'){ out.push([this.t('heal_hp'), (it.EffectValue?(N(it.EffectValue)):'—'), 'rgb(131,178,137)']); }
       else if(it.EffectType==='stamina'){ out.push([this.t('stamina_restore'), (it.EffectValue?(N(it.EffectValue)):'—'), 'rgb(193,158,111)']); }
       else { const eff={buff:this.t('item_effect_buff'),none:'—'}[it.EffectType]||it.EffectType; if(it.EffectType&&it.EffectType!=='none') out.push([this.t('item_effect'), eff+(it.EffectValue?(' +'+it.EffectValue):'')]); }
-      if(N(it.MaxStack)>1) out.push([this.t('item_max_stack'), N(it.MaxStack)]);
+      // 최대 스택 행은 상세 스탯에서 제거 — 카드 중단부 카테고리 우측에 'MAX STACK N'으로 표시(lootCardBig)
     }
     return out;
   }
