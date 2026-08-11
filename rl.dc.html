@@ -378,8 +378,9 @@ class Component extends DCLogic {
     if(this.lootUids().length){ this.combat.resultStage='loot'; if(this._lootRevealTimer)clearTimeout(this._lootRevealTimer); this._lootRevealTimer=setTimeout(()=>this.startLootReveal(), 450); } }
   death(){
     this.gs.hp = 1;   // 사망(몬스터·PvP) 귀환 시 체력 1로 생존
-    // 소지품(bag)은 전부 잃되, 착용 중인 장비는 유지된다
-    this.gs.bag = this.gs.bag.filter(x=>this.isEquipped(x.uid) || x.loc==='pocket'); // 착용 장비 + 주머니(잠금)만 생존
+    // 사망 시 유지: 주머니 2슬롯 + 착용 장비(투구·갑옷·무기·악세서리·부적). 가방(및 가방 속 전리품)은 착용템이라도 예외로 전부 소멸.
+    this.gs.equip.bag = null; // 가방 슬롯 먼저 해제 → 가방 인스턴스가 isEquipped=false가 되어 아래 필터에서 제거됨
+    this.gs.bag = this.gs.bag.filter(x=>this.isEquipped(x.uid) || x.loc==='pocket'); // 착용 장비 + 주머니만 생존 (가방·배낭 내용물은 제외됨)
     const eq = [this.gs.equip.weapon,this.gs.equip.head,this.gs.equip.body,this.gs.equip.artifact1,this.gs.equip.artifact2].filter(Boolean);
     let broke=null;
     if(eq.length){ const uid=eq[Math.floor(Math.random()*eq.length)]; const inst=this.eng.instById(this.gs,uid);
@@ -2230,10 +2231,16 @@ void main(){
   lmFocus(d){ const lm=this.state.lm; const n=this.lmCards(lm).length; lm.focus=Math.max(0,Math.min(n-1,(lm.focus||0)+d)); this.forceUpdate(); }
   lmSetFocus(i){ this.state.lm.focus=i; this.forceUpdate(); }
   lmFix(){ const lm=this.state.lm; const n=this.lmCards(lm).length; if(lm.focus>=n) lm.focus=Math.max(0,n-1); }
-  lmReject(msg){ // 포커스 카드의 "내부 카드"만 흔든다(코버플로우 래퍼 transform 건드리지 않음)
-    const w=document.querySelector('[data-lmcard="focus"]'); const el=w&&w.firstElementChild;
-    if(el&&el.animate){ el.animate([{transform:'translateX(0)'},{transform:'translateX(-7px)'},{transform:'translateX(7px)'},{transform:'translateX(-5px)'},{transform:'translateX(3px)'},{transform:'translateX(0)'}],{duration:340,easing:'ease-in-out'});
-      if(el.style){ el.style.transition='box-shadow .1s'; el.style.boxShadow='0 0 0 2px #CB6D62, 0 14px 44px rgba(0,0,0,.5)'; setTimeout(()=>{ if(el.style)el.style.boxShadow='0 14px 44px rgba(0,0,0,.5)'; },340); } }
+  lmCanStash(inst){ const lm=this.state.lm; if(!lm||!inst) return false; const ms=this.maxStack(inst.id);
+    const bagTgt=ms>1&&lm.bag.some(x=>x.id===inst.id&&!x.locked&&(x.qty||1)<ms);
+    const pkTgt=ms>1&&lm.bag.some(x=>x.id===inst.id&&x.locked&&(x.qty||1)<ms);
+    const bagRoom=lm.bag.filter(x=>!x.locked).length<this.lmBagCap();
+    const pkRoom=this.lmLocked(lm)<2;
+    return bagTgt||bagRoom||pkTgt||pkRoom; }
+  lmReject(msg){ // 포커스 카드 흔들기 — 바깥 래퍼를 흔들어 안쪽 flip(rotateY 180)을 유지(뒷면 노출 방지). 보더 글로우 없음.
+    const w=document.querySelector('[data-lmcard="focus"]');
+    if(w&&w.animate){ const base=w.style.transform||'translate(-50%, -50%) scale(1)';
+      w.animate([{transform:base},{transform:base+' translateX(-7px)'},{transform:base+' translateX(7px)'},{transform:base+' translateX(-5px)'},{transform:base+' translateX(3px)'},{transform:base}],{duration:340,easing:'ease-in-out'}); }
     this.flash(msg||(this.en()?'Full':'가득 찼어요')); }
   lmDepth(dir){ const lm=this.state.lm;
     if(lm.view==='field'){ if(dir!=='down') return; const i=Math.max(0,Math.min(lm.focus||0,lm.field.length-1)); const inst=lm.field[i]; if(!inst) return;
@@ -2273,7 +2280,7 @@ void main(){
     onPointerUp:(e)=>{ if(this._lmy==null)return; const dy=e.clientY-this._lmy; const dx=this._lmx!=null?e.clientX-this._lmx:0; const el=this._lmc; const p=this._lmp; this._lmy=null; this._lmx=null; this._lmp=null; const restore=()=>{ if(p){ p.style.overflow='hidden'; p.style.zIndex=''; } if(el) el.style.zIndex=''; };
       const lm=this.state.lm, isField=lm.view==='field'; const arr=isField?lm.field:lm.bag; const fc=arr[Math.max(0,Math.min(lm.focus||0,arr.length-1))];
       // 유효 동작(위=가방뷰 꺼내기 / 아래=필드 개봉된 카드 넣기)일 때만 날려보냄
-      let fly=false; if(Math.abs(dy)>70&&fc){ fly = dy<0 ? !isField : (isField && !!(lm.opened&&lm.opened.has(fc.uid))); }
+      let fly=false; if(Math.abs(dy)>70&&fc){ fly = dy<0 ? !isField : (isField && !!(lm.opened&&lm.opened.has(fc.uid)) && this.lmCanStash(fc)); }
       if(fly){
         // 드래그 방향으로 날아가며 사라짐(최상단 레이어), 애니 후 실제 이동
         if(el){ el.style.transition='transform .38s cubic-bezier(.4,0,.7,.2), opacity .38s ease-in'; el.style.transform='translate(-50%, calc(-50% + '+(dy<0?-940:940)+'px)) scale(.86)'; el.style.opacity='0'; }
@@ -2326,8 +2333,8 @@ void main(){
           const handlers=isC?this.lmCenterHandlers():{onClick:()=>{ if(!this._lmoved)this.lmSetFocus(i); }};
           return h('div',Object.assign({key:inst.uid,'data-lmcard':isC?'focus':null},handlers,{style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+sc+')',opacity:o,zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'grab':'pointer',touchAction:'none',perspective:'1200px'}}),
             h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+(flipped?180:0)+'deg)'}},
-              h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
-              h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',borderRadius:8,overflow:'hidden',boxShadow:lk?('0 0 0 2px '+blue):'none'}}, flipped?this.lootCardBig(inst,true):null))); })
+              h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
+              h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',background:'#18191d',borderRadius:8,overflow:'hidden',boxShadow:lk?('0 0 0 2px '+blue):'none'}}, flipped?this.lootCardBig(inst,true):null))); })
           : h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, isField?(this.en()?'No loot on the field':'필드에 남은 전리품 없음'):(this.en()?'Bag empty':'가방이 비었음')),
         cards.length>1? cardNav(focus, cards.length, ()=>this.lmFocus(-1), ()=>this.lmFocus(1)) : null),
       // 셰브론 + 힌트 (카드 아래)
@@ -2389,17 +2396,20 @@ void main(){
   }
   invSlotRow(inst,sec,catOf){
     const ms=this.maxStack(inst.id); const desc=this.shortDesc(inst);
+    // 드래그 핸들 = 긴 세로 라운드 바(주머니=블루35% / 배낭=골드35%). 장비는 이동 불가라 핸들 없음(invGearRow).
+    const barCol=sec==='pocket'?'rgba(124,165,187,0.35)':'rgba(216,178,90,0.35)';
     return h('div',{key:inst.uid,'data-invslot':'1','data-sec':sec,'data-uid':inst.uid,
       onPointerDown:(e)=>{ if(e.target.closest('[data-invgrip]'))return; this._isw={uid:inst.uid,x0:e.clientX,el:e.currentTarget,moved:false}; },
       onPointerMove:(e)=>{ if(!this._isw||this._isw.uid!==inst.uid)return; let dx=Math.max(0,e.clientX-this._isw.x0); if(Math.abs(dx)>6)this._isw.moved=true; this._isw.el.style.transition='none'; this._isw.el.style.transform='translateX('+Math.min(dx,120)+'px)'; },
       onPointerUp:(e)=>{ if(!this._isw||this._isw.uid!==inst.uid)return; const dx=e.clientX-this._isw.x0,el=this._isw.el,moved=this._isw.moved; el.style.transition='transform .2s';el.style.transform='none'; this._isw=null; if(!moved){ this.setState({sel:inst.uid,moveQty:null}); return; } if(dx>72){ this.flash(this.t('btn_to_vault')); this.moveItem(inst.uid); } },
       onPointerCancel:()=>{ if(this._isw){ this._isw.el.style.transition='transform .2s'; this._isw.el.style.transform='none'; this._isw=null; } },
-      style:{position:'relative',borderBottom:'1px solid '+T.line,background:T.bg,padding:'14px 15px',touchAction:'pan-y'}},
+      style:{position:'relative',borderBottom:'1px solid '+T.line,background:T.bg,padding:'14px 15px 14px 30px',touchAction:'pan-y'}},
+      h('div',{'data-invgrip':'1',onPointerDown:(e)=>this.invGripDown(e,inst.uid),style:{position:'absolute',left:0,top:0,bottom:0,width:28,cursor:'grab',touchAction:'none'}},
+        h('div',{style:{position:'absolute',left:11,top:14,bottom:14,width:4,borderRadius:2,background:barCol,pointerEvents:'none'}})),
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}},
         this.catChip(catOf(inst),false),
         ms>=2?this.qtyChip(inst,ms):null),
-      h('div',{style:{display:'flex',alignItems:'center',gap:9,marginTop:8}},
-        h('span',{'data-invgrip':'1',onPointerDown:(e)=>this.invGripDown(e,inst.uid),style:{cursor:'grab',color:T.faint,fontSize:15,lineHeight:1,touchAction:'none'}},'⠿'),
+      h('div',{style:{marginTop:8}},
         h('span',{style:{fontFamily:T.sans,fontSize:14,color:T.hi}}, this.itemLabel(inst))),
       desc?h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,marginTop:4,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, desc):null);
   }
@@ -2574,7 +2584,7 @@ void main(){
           this.fstepper(q,inst.qty)) : null,
         h('div',{style:{display:'flex',gap:8}},
           isConsum?this.fbtn(this.t('heal_use_item'),'#83b289',()=>this.useConsumable(inst),true):null,
-          equippable?this.fbtn(equipped?this.t('equip_unequip_btn'):this.t('equip_equip'),equipped?'#a9abaf':'#eaebee',()=>this.toggleEquip(inst),true):null,
+          equippable?this.fbtn(equipped?this.t('equip_unequip_btn'):this.t('equip_equip'),equipped?'#a9abaf':'#eaebee',()=>{ const wasEq=equipped; this.toggleEquip(inst); if(wasEq) this.setState({sel:null,moveQty:null}); },true):null,
           this.fbtn((inVault?this.t('btn_to_belongings'):this.t('btn_to_vault')),'#eaebee',()=>{this.moveStack(inst.uid,q);this.setState({sel:null,moveQty:null});},true))));
   }
 
@@ -2881,7 +2891,7 @@ void main(){
   vendorBuy(v){
     const rows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID);
     return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px'}},
-      rows.length? rows.map(r=>{ const price=this.eng.N(r.BuyPrice); const key=v.ShopID+'|'+r.ItemID; const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(r.StockMax,99); const aff=this.gs.sato>=price&&stock>0; const liq=this.eng.byId.liquor&&this.eng.byId.liquor[r.ItemID]; const md=this.eng.byId.module&&this.eng.byId.module[r.ItemID]; const usb=this.eng.byId.usb&&this.eng.byId.usb[r.ItemID]; const src=this.eng.byId.item[r.ItemID]||this.eng.byId.weapon[r.ItemID]||this.eng.byId.armor[r.ItemID]||this.eng.byId.artifact[r.ItemID]||(this.eng.byId.talisman&&this.eng.byId.talisman[r.ItemID])||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
+      rows.length? rows.map(r=>{ const price=this.eng.N(r.BuyPrice); const key=v.ShopID+'|'+r.ItemID; const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(r.StockMax,99); const aff=this.gs.sato>=price&&stock>0; const liq=this.eng.byId.liquor&&this.eng.byId.liquor[r.ItemID]; const md=this.eng.byId.module&&this.eng.byId.module[r.ItemID]; const usb=this.eng.byId.usb&&this.eng.byId.usb[r.ItemID]; const src=this.eng.byId.item[r.ItemID]||this.eng.byId.weapon[r.ItemID]||this.eng.byId.armor[r.ItemID]||this.eng.byId.artifact[r.ItemID]||(this.eng.byId.talisman&&this.eng.byId.talisman[r.ItemID])||(this.eng.byId.bag&&this.eng.byId.bag[r.ItemID])||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
         const desc=(this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'')+(src.EffectValue?((' '+this.t('frag_dot_heal'))+src.EffectValue):'');
         return this.shopRow({key:r.ItemID,cat,name:this.tx(r,'ItemName')||this.eng.anyName(r.ItemID),desc,priceLabel:'BUY '+price.toLocaleString(),priceColor:'rgb(133,179,197)',countLabel:(this.en()?'Stock ':'재고 ')+String(stock).padStart(2,'0'),onClick:()=>this.openBuy(v.ShopID,r),disabled:!aff}); })
         : this.emptyRow(this.en()?'No items to sell.':'판매 가능한 아이템이 없습니다.'));
