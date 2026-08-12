@@ -406,7 +406,19 @@ class Component extends DCLogic {
     if(cap0){ if(cap0.room<=0){ this.flash(cap0.label+(this.en()?(' slots full ('+cap0.max+')'):(' 소지 한도 '+cap0.max+'개'))); return; } if((inVault0.qty||1)>cap0.room){ this.moveStack(uid, cap0.room); return; } }
     const merge=(dst,inst)=>{ if(this.maxStack(inst.id)>1){ this.stackAdd(dst, inst.id, inst.qty||1, {unappraisedMult:inst.unappraisedMult}); return true; } return false; };
     const inV = this.gs.vault.findIndex(x=>x.uid===uid);
-    if(inV>=0){ const [it]=this.gs.vault.splice(inV,1); if(!merge(this.gs.bag,it)) this.gs.bag.push(it); }
+    if(inV>=0){ const it=this.gs.vault[inV];
+      // 스택 아이템이고 소지품에 같은 더미가 있으면 거기 병합(새 칸 안 먹음)
+      const hasDump=this.maxStack(it.id)>1 && this.gs.bag.some(x=>x.id===it.id && !this.isEquipped(x.uid));
+      if(hasDump){ this.gs.vault.splice(inV,1); this.stackAdd(this.gs.bag,it.id,it.qty||1,{unappraisedMult:it.unappraisedMult}); }
+      else {
+        // 새 칸 필요: 배낭(착용 가방 용량) 우선 → 없으면 주머니 2칸 → 둘 다 가득이면 거부.
+        const bagCap=this.eng.equippedBagCapacity?this.eng.equippedBagCapacity(this.gs):0;
+        const bagUsed=this.gs.bag.filter(x=>!this.isEquipped(x.uid)&&x.loc!=='pocket').length;
+        const pkUsed=this.gs.bag.filter(x=>!this.isEquipped(x.uid)&&x.loc==='pocket').length;
+        const loc = bagUsed<bagCap ? 'bag' : (pkUsed<2 ? 'pocket' : null);
+        if(!loc){ this.flash(this.en()?'Bag & pocket full':'가방·주머니 가득 참'); return; }
+        this.gs.vault.splice(inV,1); it.loc=loc; this.gs.bag.push(it);
+      } }
     else { const inB=this.gs.bag.findIndex(x=>x.uid===uid); if(inB>=0){
       // 착용 중인 장비는 금고로 보낼 수 없다 — 옮기면 자동 해제
       if(this.isEquipped(uid)){ const e=this.gs.equip; ['weapon','head','body','artifact1','artifact2'].forEach(s=>{ if(e[s]===uid) e[s]=null; }); const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp); }
@@ -1734,6 +1746,11 @@ void main(){
       return h('div',{key:i,onClick:opt.onPick?()=>opt.onPick(i):null,title:filled?this.eng.tr(this.eng.byId.module[s.moduleId],'ColorName'):'',
         style:{width:sz,height:sz,borderRadius:'50%',border:'1.5px solid '+(filled?col:T.line2),background:filled?col:'transparent',cursor:opt.onPick?'pointer':'default',boxShadow:filled?'0 0 6px '+col:'none',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.mono,fontSize:sz*0.5,color:T.faint,boxSizing:'border-box',flex:'0 0 auto'}},
         ''); })); }
+  // 소켓 = 작은 세로 직사각형(svg item-list-soket-new: 6×12 rx2, 채움=모듈색 / 빈=#36383C). 원형 socketRow 대체.
+  socketBars(inst){ if(!inst||!inst.sockets||!inst.sockets.length) return null;
+    return h('div',{style:{display:'flex',gap:2,alignItems:'center',flexShrink:0}},
+      ...inst.sockets.map((sk,i)=>h('div',{key:i,title:sk?this.eng.tr(this.eng.byId.module[sk.moduleId],'ColorName'):'',
+        style:{width:6,height:12,borderRadius:2,background:sk?this.moduleColor(sk.moduleId):'#36383C',flexShrink:0}}))); }
   unappBadge(sz){ return h('span',{style:{display:'inline-flex',alignItems:'center',gap:3,fontFamily:T.mono,fontSize:sz||9.5,fontWeight:500,letterSpacing:'.05em',color:T.warn,border:'1px solid '+T.warn,borderRadius:2,padding:'1px 5px',whiteSpace:'nowrap'}}, '◇ '+this.t('appraise_unappraised')); }
   ownedBy(pred){ return [...this.gs.bag,...this.gs.vault].filter(pred); }
   ownedLiquor(){ return this.ownedBy(x=>this.eng.byId.liquor&&this.eng.byId.liquor[x.id]); }
@@ -2179,14 +2196,17 @@ void main(){
         h('div',{style:{position:'absolute',left:0,bottom:0,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         gtags.length?h('div',{style:{position:'absolute',right:15,top:15,display:'flex',flexDirection:'row-reverse',gap:7}},
           ...gtags.map((tg,i)=>h('div',{key:i,style:{height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'0 8px',display:'flex',alignItems:'center'}},
-            h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:HI,whiteSpace:'nowrap'}}, abbr[tg]||tg)))):null,
+            h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:HI,whiteSpace:'nowrap'}}, abbr[tg]||tg))))
+          // 성장 태그가 미감정이면 태그 자리에 미감정 배지(성장색 #7683F3) — 어디가 미감정인지 알림
+          :(this.eng.isHidden(inst,'growthTags')?h('div',{style:{position:'absolute',right:15,top:15,display:'flex'}},
+            h('div',{style:{height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(118,131,243,0.55)',padding:'0 8px',display:'flex',alignItems:'center',gap:3}},
+              h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'0.6px',color:'#7683F3',whiteSpace:'nowrap'}}, this.t('appraise_unappraised')))):null),
         h('span',{style:{position:'absolute',left:15,bottom:13,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, cat),
         maxStk>1?h('span',{style:{position:'absolute',right:15,bottom:13,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, 'MAX STACK '+maxStk):null),
       // BODY
       h('div',{style:{alignSelf:'stretch',flexGrow:1,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start',minHeight:0}},
         h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center'}},
-          h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.itemLabel(inst)+((inst.qty||1)>1?' ×'+inst.qty:'')),
-          hasSockets?this.socketRow(inst,{size:13}):null),
+          h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.itemLabel(inst)+((inst.qty||1)>1?' ×'+inst.qty:''))),
         (!isGear&&desc)?h('div',{style:{alignSelf:'stretch',flexShrink:0,padding:'8px 0 2px',fontFamily:T.sans,fontSize:12.5,lineHeight:1.5,color:SUB}}, desc):null,
         isGear?h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('item_durability')),
@@ -2198,8 +2218,11 @@ void main(){
             ...stats.map((st,i)=>cell(st[0],st[1],i,st[2])))):null,
         hasSockets?h('div',{style:{height:29,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'15px 0 2px',display:'flex',alignItems:'flex-start'}}, secLabel('MODULE')):null,
         hasSockets?h('div',{style:{alignSelf:'stretch',flexShrink:0}}, ...inst.sockets.map((sk,i)=>{ const mo=sk?this.eng.byId.module[sk.moduleId]:null;
-          return h('div',{key:i,style:{height:33,boxSizing:'border-box',borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'6px 0 11px',justifyContent:'space-between',alignItems:'flex-start'}},
-            h('span',{style:{whiteSpace:'nowrap'}}, h('span',{style:{fontFamily:T.mono,fontSize:11.5,fontWeight:500,lineHeight:'100%',color:LO}}, this.t('socket_label')), h('span',{style:{fontFamily:T.mono,fontSize:11.5,lineHeight:'100%',color:sk?MID:MUT}}, '  '+(sk?this.eng.tr(mo,'ColorName'):this.t('common_empty')))),
+          return h('div',{key:i,style:{height:33,boxSizing:'border-box',borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'6px 0 11px',justifyContent:'space-between',alignItems:'center'}},
+            h('div',{style:{display:'flex',alignItems:'center',gap:8,whiteSpace:'nowrap'}},
+              h('span',{style:{fontFamily:T.mono,fontSize:11.5,fontWeight:500,lineHeight:'100%',color:LO}}, this.t('socket_label')),
+              h('div',{style:{width:6,height:12,borderRadius:2,background:sk?this.moduleColor(sk.moduleId):'#36383C',flexShrink:0}}),
+              h('span',{style:{fontFamily:T.mono,fontSize:11.5,lineHeight:'100%',color:sk?MID:MUT}}, sk?this.eng.tr(mo,'ColorName'):this.t('common_empty'))),
             h('span',{style:{fontFamily:T.mono,fontSize:11.5,lineHeight:'100%',color:HI,textAlign:'right',whiteSpace:'nowrap'}}, sk?(this.eng.tr(mo,'TargetStat')+' +'+sk.value):'-')); })):null,
         h('div',{style:{flexGrow:1,minHeight:0}})),
       // FOOTER — 장비만 (소모품/정크/모듈/술은 설명이 제목 아래로 이동)
@@ -2490,7 +2513,7 @@ void main(){
           style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,cursor:'pointer',whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',color:'rgb(169,171,175)'}}, equipped?(this.en()?'Unequip':'해제'):(this.en()?'Equip':'착용')):(ms>=2?this.qtyChip(inst,ms):null)),
       h('div',{style:{display:'flex',alignItems:'center',gap:8,alignSelf:'stretch',flexWrap:'wrap',marginTop:8}},
         h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:400,color:T.hi}}, name),
-        (inst.sockets&&inst.sockets.length)?this.socketRow(inst,{size:9}):null),
+        (inst.sockets&&inst.sockets.length)?this.socketBars(inst):null),
       desc?h('div',{style:{alignSelf:'stretch',marginTop:4}}, h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:1,WebkitBoxOrient:'vertical',overflow:'hidden',textOverflow:'ellipsis'}}, desc)):null);
   }
   // ---- equip helpers ----
