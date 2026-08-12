@@ -96,7 +96,7 @@ const T = {
 const ATTR = { bleed:{kr:'출혈',c:T.bleed}, stun:{kr:'기절',c:T.stun}, pierce:{kr:'관통',c:T.pierce}, rupture:{kr:'파열',c:T.rupture}, sever:{kr:'절단',c:T.mid} };
 // safe lookup — items/monsters may carry an Attribute like "none" or a value absent from the map
 const AT = (x)=> (x && ATTR[x]) ? ATTR[x] : null;
-const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'부적', Bag:'가방', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소' };
+const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소' };
 // tiny inline icons
 const ICON = {
   home:'M3 11.5 12 4l9 7.5M5 10v10h14V10',
@@ -131,8 +131,8 @@ class Component extends DCLogic {
   state = { ready:false, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=bag1');
-      const loader = await import('./sheet-loader.js?v=bag1');
+      const eng = await import('./engine.js?v=bag2');
+      const loader = await import('./sheet-loader.js?v=bag2');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -2375,7 +2375,7 @@ void main(){
   inventory(){
     const seg=this.state.seg, filter=this.state.filter;
     const list=(seg==='vault'?this.gs.vault:this.gs.bag);
-    const cats=[['전체','common_all'],['무기','item_weapon'],['갑옷','item_armor_body'],['가방','item_bag'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['부적','item_talisman'],['술','item_liquor'],['모듈','item_module'],['데이터','item_data'],['퀘스트','item_quest']];
+    const cats=[['전체','common_all'],['무기','item_weapon'],['갑옷','item_armor_body'],['가방','item_bag'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['징표','item_talisman'],['술','item_liquor'],['모듈','item_module'],['데이터','item_data'],['퀘스트','item_quest']];
     const catOf=(inst)=>{ if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]) return '술'; if(this.eng.byId.module&&this.eng.byId.module[inst.id]) return '모듈'; if(this.eng.byId.usb&&this.eng.byId.usb[inst.id]) return '데이터'; const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||(this.eng.byId.bag&&this.eng.byId.bag[inst.id]); if(!s) return ''; return CATKR[s.Category]||s.Category; };
     const rows=list.filter(inst=>filter==='전체'||catOf(inst)===filter).sort((a,b)=>(this.isEquipped(b.uid)?1:0)-(this.isEquipped(a.uid)?1:0));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
@@ -2674,7 +2674,7 @@ void main(){
     const pctId=(id)=>['sec_accuracy','sec_evasion','sec_status_resist','sec_crit_chance','sec_crit_resist'].includes(id);
     const fmt=(id,v)=> pctId(id)?(Math.round(v*10)/10+'%'):(id==='sec_atk_speed'?Number(v).toFixed(2):String(Math.round(v)));
     const dfmt=(id,d)=> pctId(id)?(Math.round(Math.abs(d)*10)/10+'%'):(id==='sec_atk_speed'?Math.abs(d).toFixed(2):String(Math.round(Math.abs(d))));
-    const slotDefs=[['weapon','무기'],['body','갑옷'],['head','투구'],['artifact1','장신구'],['artifact2','부적'],['bag','가방']];
+    const slotDefs=[['weapon','무기'],['body','갑옷'],['head','투구'],['artifact1','장신구'],['artifact2','징표'],['bag','가방']];
     const kick=(t)=>h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:10}}, t);
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       this.screenTitle('CHARACTER','nav_character'),
@@ -2715,7 +2715,7 @@ void main(){
   // ---- equipment (착용 장비) ----
   equipment(){
     const g=this.gs; const ABBR={str:'STR',dex:'DEX',vit:'VIT',will:'WILL'};
-    const slotDefs=[['weapon','무기'],['body','갑옷'],['head','투구'],['artifact1','장신구'],['artifact2','부적'],['bag','가방']];
+    const slotDefs=[['weapon','무기'],['body','갑옷'],['head','투구'],['artifact1','장신구'],['artifact2','징표'],['bag','가방']];
     const gpill=(t,col)=>h('span',{key:t,style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.4)',border:'1px solid '+(col||T.line2),padding:'3px 7px',boxSizing:'border-box',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'.06em',color:col||'rgb(169,171,175)',whiteSpace:'nowrap'}}, t);
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       h('div',{style:{padding:'18px 18px 14px',flex:'0 0 auto',fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:T.faint}}, 'EQUIPMENT'),

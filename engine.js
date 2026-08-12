@@ -109,7 +109,7 @@ const V3_STRINGS = {
   item_desc_label:['아이템 설명','Item description'],
   item_head:['방어구','Head'], item_body:['갑옷','Body'], item_food:['음식','Food'],
   item_junk:['정크','Junk'], item_quest:['퀘스트','Quest'], item_key:['키','Key'],
-  item_accessory:['장신구','Accessory'], item_talisman:['부적','Talisman'], dmg_reduce:['피해 감소','Damage Reduced'], item_material_type:['재질','Material'],
+  item_accessory:['장신구','Accessory'], item_talisman:['징표','Token'], dmg_reduce:['피해 감소','Damage Reduced'], item_material_type:['재질','Material'],
   common_me:['나','Me'],
   stat_max_dur:['최대 내구도','Max Durability'], stat_growth_tags:['성장 태그','Growth Tags'],
   item_liquor:['술','Liquor'], item_module:['모듈','Module'], item_data:['데이터','Data'],
@@ -499,8 +499,8 @@ const DEFAULT_TPL = {
   lose: '쓰러졌다… ({Elapsed}s)',
   timeout: '제한시간 초과 — {MonsterName} 을(를) 쓰러뜨리지 못했다.',
   loot: '적에게서 무언가를 획득했다.',
-  talisman_extra: '▶ ⟪부적⟫ 연격',
-  talisman_heal: '▶ ⟪부적⟫ 처치 회복 +{Amount} · HP {CurrentHP}',
+  talisman_extra: '▶ ⟪징표⟫ 연격',
+  talisman_heal: '▶ ⟪징표⟫ 처치 회복 +{Amount} · HP {CurrentHP}',
 };
 const DEFAULT_TPL_EN = {
   start: 'Encountered {MonsterName} ({Grade}). Time limit {TimeLimit}s.',
@@ -597,7 +597,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     if (foe.side === 'player') triggers.hitsTaken++;
     let text = logTpl(isCrit ? 'crit' : 'hit', { Attacker: nm, Target: fnm, Damage: final.toFixed(0), TargetHP: Math.max(0, foe.hp).toFixed(0), TargetMaxHP: foe.maxHp });
     if (pierceFrac > 0) text += logTpl('pierce_suffix', { PiercePct: (pierceFrac * 100).toFixed(0) });
-    if (opts.talismanCrit) text += (LANG === 'en' ? '  ⟪Charm⟫' : '  ⟪부적⟫');
+    if (opts.talismanCrit) text += (LANG === 'en' ? '  ⟪Token⟫' : '  ⟪징표⟫');
     push(actor.side, isCrit ? 'crit' : 'hit', text);
 
     // status application (non-pierce)
