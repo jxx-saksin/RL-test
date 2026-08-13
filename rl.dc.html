@@ -2307,11 +2307,33 @@ void main(){
     if(n>0) h += 29 + n*33;   // MODULE 라벨 + 소켓 행
     return Math.max(FLOOR, h);
   }
+  // USB 카드 글리치 텍스트 레이어 (LetterGlitch 이식). 노드 detach 시 자동 정지, 노드당 1회 init.
+  mountGlitch(canvas){
+    if(!canvas || canvas._glx) return; canvas._glx=true;
+    const ctx=canvas.getContext('2d'); if(!ctx){ canvas._glx=false; return; }
+    const COLORS=['#2b4539','#61dca3','#61b3dc'], FONT=18, SPEED=170, INT=0.01;
+    const CHARS='ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$&*()-_+=/[]{};:<>.,0123456789'.split('');
+    const cw=FONT*0.625, chh=FONT*1.25;
+    let letters=[], cols=0, rows=0, last=0, raf=null;
+    const rc=()=>COLORS[Math.floor(Math.random()*COLORS.length)];
+    const rch=()=>CHARS[Math.floor(Math.random()*CHARS.length)];
+    const h2r=(hx)=>{const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hx);return m?{r:parseInt(m[1],16),g:parseInt(m[2],16),b:parseInt(m[3],16)}:{r:255,g:255,b:255};};
+    const lerp=(a,b,f)=>'rgb('+Math.round(a.r+(b.r-a.r)*f)+','+Math.round(a.g+(b.g-a.g)*f)+','+Math.round(a.b+(b.b-a.b)*f)+')';
+    const dprW=()=>Math.round((canvas.clientWidth||342)*(window.devicePixelRatio||1));
+    const size=()=>{const dpr=window.devicePixelRatio||1;const w=canvas.clientWidth||342,hh=canvas.clientHeight||246;canvas.width=Math.max(1,Math.round(w*dpr));canvas.height=Math.max(1,Math.round(hh*dpr));ctx.setTransform(dpr,0,0,dpr,0,0);cols=Math.ceil(w/cw);rows=Math.ceil(hh/chh);letters=Array.from({length:cols*rows},()=>({c:rch(),col:rc(),t:rc(),p:1}));};
+    const draw=()=>{const w=canvas.clientWidth,hh=canvas.clientHeight;ctx.clearRect(0,0,w,hh);ctx.font=FONT+'px monospace';ctx.textBaseline='top';for(let i=0;i<letters.length;i++){const x=(i%cols)*cw,y=Math.floor(i/cols)*chh;ctx.fillStyle=letters[i].col;ctx.fillText(letters[i].c,x,y);}};
+    const upd=()=>{const n=Math.max(1,Math.floor(letters.length*INT));for(let i=0;i<n;i++){const l=letters[Math.floor(Math.random()*letters.length)];if(!l)continue;l.c=rch();l.t=rc();l.p=0;}};
+    const smooth=()=>{let rd=false;for(let i=0;i<letters.length;i++){const l=letters[i];if(l.p<1){l.p+=0.05;if(l.p>1)l.p=1;l.col=lerp(h2r(l.col),h2r(l.t),l.p);rd=true;}}if(rd)draw();};
+    const loop=(t)=>{ if(!document.contains(canvas)){ if(raf)cancelAnimationFrame(raf); canvas._glx=false; return; }
+      if(canvas.clientWidth>0 && canvas.width!==dprW()) size();
+      if(t-last>=SPEED){upd();draw();last=t;} smooth(); raf=requestAnimationFrame(loop); };
+    size(); raf=requestAnimationFrame(loop);
+  }
   dataCardBig(inst, usb, fixed){
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)';
     const mid=usb.MonsterID||usb.SourceMonsterID; const mon=mid?this.eng.byId.monster[mid]:null;
     const grade=String(usb.Grade||(mon&&mon.Grade)||'COMMON').toUpperCase();
-    const artUrl=(mon&&(mon.Image||mon.ArtURL||mon.Art))||usb.Image||usb.ArtURL;
+    const artUrl=(mid?('assets/art/monsters/'+mid+'.jpg'):null)||(mon&&(mon.Image||mon.ArtURL||mon.Art))||usb.Image||usb.ArtURL;
     const mins=this.eng.N(usb.UploadMinutes,1);
     const statName=this.eng.substUsbTokens('{STAT}',usb)||this.t('usb_permanent_growth');
     const gv=this.eng.N(usb.GrantValue,1);
@@ -2320,7 +2342,7 @@ void main(){
     const cell=(k,v,i)=>h('div',{key:i,style:{borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'7px 0',justifyContent:'space-between',alignItems:'flex-start',boxSizing:'border-box'}},
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:LO,whiteSpace:'nowrap'}}, k),
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
-    return h('div',{style:{width:342,height:fixed?this.lootCardH(inst):'100%',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
+    return h('div',{style:{position:'relative',width:342,height:fixed?this.lootCardH(inst):'100%',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
       h('div',{style:{position:'relative',height:246,alignSelf:'stretch',flexShrink:0,backgroundColor:ART,backgroundImage:artUrl?('url('+artUrl+')'):'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)',backgroundSize:'cover',backgroundPosition:'center',backgroundRepeat:'no-repeat'}},
         h('div',{style:{position:'absolute',left:0,top:166,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         h('div',{style:{position:'absolute',top:15,right:17,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'3px 8px',display:'inline-flex',alignItems:'center'}},
@@ -2334,7 +2356,11 @@ void main(){
         desc?h('div',{style:{alignSelf:'stretch',flexShrink:0,padding:'8px 0 2px',fontFamily:T.sans,fontSize:12.5,lineHeight:1.5,color:SUB}}, desc):null,
         h('div',{style:{height:28,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'15px 0',display:'flex',alignItems:'flex-start'}}, h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:MUT}}, 'EFFECT')),
         h('div',{style:{alignSelf:'stretch',flexShrink:0}}, ...rows.map((st,i)=>cell(st[0],st[1],i))),
-        h('div',{style:{flexGrow:1,minHeight:12}})));
+        h('div',{style:{flexGrow:1,minHeight:12}})),
+      // 카드 전역 글리치 텍스트 레이어 (최상단·screen) — 아트+본문 전체에 뿌림
+      h('canvas',{ref:el=>this.mountGlitch(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',mixBlendMode:'screen',opacity:0.15,pointerEvents:'none',zIndex:5}}),
+      // 외곽 비네트
+      h('div',{style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,background:'radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,1) 100%)'}}));
   }
   lootCardBig(inst,fixed){
     const artP=fixed?{height:190,flexShrink:0}:{flex:'1 1 auto',minHeight:60};
