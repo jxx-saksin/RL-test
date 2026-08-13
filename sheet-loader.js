@@ -7,9 +7,9 @@ export const SHEET_ID = '1d-LNhcuFo1dKO1zzszDNAXXT-zDqffatr1aCe3yB8ls';
 export const TABS = ['Config','PrimaryStat','SecondaryStat','StatusEffect','WeaponAttribute',
   'Weapon','Armor','Item','Monster','City','Zone','Vendor','Shop','LootTable','Accessory','Talisman','Bag','Affix','SpawnTable','CombatLog',
   'USB','ColdData','NpcDialogue','UIString',
-  'Liquor','Module','LootGroup','LootGroupItem'];
+  'Liquor','Module','LootGroup','LootGroupItem','Tip'];
 // tabs that may not exist yet in older sheets — a failed fetch is non-fatal
-const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString','Liquor','Module','LootGroup','LootGroupItem','Talisman','Bag']);
+const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString','Liquor','Module','LootGroup','LootGroupItem','Talisman','Bag','Tip']);
 
 // --- RFC4180-ish CSV parser (handles quoted commas + newlines) ---
 export function parseCSV(text) {
@@ -124,6 +124,7 @@ export function shape(rowsByTab) {
     modules: toObjs(rowsByTab.Module || []).filter(r => String(r.ModuleID || '').trim()),
     lootGroups: toObjs(rowsByTab.LootGroup || []).filter(r => String(r.GroupID || '').trim()),
     lootGroupItems: toObjs(rowsByTab.LootGroupItem || []).filter(r => String(r.GroupID || '').trim() && String(r.MemberItemID || '').trim()),
+    tips: toObjs(rowsByTab.Tip || []).filter(r => String(r.TipID || '').trim() && String(r.Status || '').toLowerCase() !== 'cut'),
   };
 }
 

@@ -64,6 +64,7 @@
   @keyframes rlBossTell{0%,100%{box-shadow:inset 0 0 30px 4px rgba(196,60,50,0)}50%{box-shadow:inset 0 0 34px 7px rgba(196,60,50,.16)}}
   @keyframes rlBossEdge{0%,100%{box-shadow:inset 0 0 0 1px rgba(196,60,50,.25),0 0 16px rgba(150,20,16,.12)}50%{box-shadow:inset 0 0 0 1.5px rgba(230,80,68,.48),0 0 26px rgba(180,26,20,.28)}}
   @keyframes rlVigIn{0%{opacity:0}100%{opacity:1}}
+  @keyframes rlKenBurns{from{transform:scale(1)}to{transform:scale(1.14)}}
   @keyframes rlEdgeFlash{0%{opacity:0}14%{opacity:1}44%{opacity:.32}100%{opacity:.32}}
 </style>
 </helmet>
@@ -97,6 +98,16 @@ const ATTR = { bleed:{kr:'출혈',c:T.bleed}, stun:{kr:'기절',c:T.stun}, pierc
 // safe lookup — items/monsters may carry an Attribute like "none" or a value absent from the map
 const AT = (x)=> (x && ATTR[x]) ? ATTR[x] : null;
 const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소' };
+// 몬스터 아트 보유 목록 — 출정 로딩 배경 랜덤 픽 판정용(assets/art/monsters/*.jpg). 아트 추가 시 갱신.
+const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_malfunctioning_surgeon','monster_pale_lynx','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_wandering_sentry']);
+// 로딩 화면 팁 — 시트 Tip 탭 미로드/폴백용(로컬 번들 등). 시트에 값 있으면 그쪽 우선.
+const TIP_FALLBACK = [
+  ['죽으면 가방과 그 안의 전리품을 모두 잃는다. 주머니 2칸과 착용 장비만 살아남는다.','On death you lose your bag and all its loot — only your 2 pocket slots and equipped gear survive.'],
+  ['어떤 징표는 체력이 낮을 때만 발동한다. 위기의 순간을 노려보자.','Some Tokens trigger only at low HP — save them for a pinch.'],
+  ['미감정 아이템은 감정소에서 술로 숨은 옵션을 밝힐 수 있다.','Unappraised items can have hidden options revealed at the appraiser.'],
+  ['수리는 완벽 확률이 있어, 실패하면 최대 내구도가 영구히 줄어든다.','Repairs can fail — each failed point permanently lowers max durability.'],
+  ['무기 소켓에 모듈을 끼우면 능력치를 강화할 수 있다.','Slot modules into weapon sockets to boost your stats.'],
+];
 // tiny inline icons
 const ICON = {
   home:'M3 11.5 12 4l9 7.5M5 10v10h14V10',
@@ -131,15 +142,18 @@ class Component extends DCLogic {
   state = { ready:false, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=bag2');
-      const loader = await import('./sheet-loader.js?v=bag2');
+      const eng = await import('./engine.js?v=bag3');
+      const loader = await import('./sheet-loader.js?v=bag3');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
+      const t0=performance.now();
       await this.loadData();
+      const rest=4000-(performance.now()-t0); if(rest>0) await new Promise(r=>setTimeout(r,rest)); // 부팅 로딩 최소 4초 강제
       const sv=this.readSave();
       if(sv){ this.applySave(sv); this.setState({ ready:true, resumeBanner:true }); }
       else { this.newRun(true); this.setState({ ready:true }); }
+      this.stopGyro(); // 부팅 로딩 종료 — 자이로 리스너 해제
       this.bootFromQuery();
     }catch(e){ console.error('engine load failed', e); this.setState({ ready:true, err:String(e) }); }
   }
@@ -271,7 +285,13 @@ class Component extends DCLogic {
     this.combat = { zoneId, encounter:0, runLoot:[], runLootInsts:[], satoGained:0 };
     // 귀환 화면 성장 그래프용 — 출정 시작 시점 스냅샷
     this.combat.gSnap = Object.fromEntries(['str','dex','vit','will'].map(k=>[k,{ level:this.gs.growth[k].level, pct:this.eng.growthPct(this.gs,k) }]));
-    this.setState({ screen:'combat', modalZone:null });
+    // 출정 로딩 화면(강제 2.5초) → beginSortieCombat에서 실제 카드 드로우
+    this._sortieTip=this.pickTip(); this._sortieBg=this.sortieMonsterBg(zoneId); this._sortieLoadStarted=false;
+    this.setState({ screen:'sortieLoad', sortieZone:zoneId, modalZone:null });
+  }
+  beginSortieCombat(){
+    this._sortieLoadStarted=false;
+    this.setState({ screen:'combat' });
     this.drawCards();
     const over=[]; if(this.bagMedicineQty()>this.medicineMax()) over.push(this.en()?'medicine':'의약품'); if(this.bagFoodQty()>this.foodMax()) over.push(this.en()?'food':'음식');
     if(over.length) setTimeout(()=>this.flash(this.en()?(over.join(' & ')+' over slot limit'):(over.join('·')+' 제한 갯수 초과')),120);
@@ -502,7 +522,81 @@ class Component extends DCLogic {
 
   // ================= RENDER =================
   renderVals(){ let screenEl; try{ screenEl = this.state.ready ? this.renderApp() : this.loading(); }catch(e){ console.error('renderApp threw:', e); screenEl = this.loading(); } return { screenEl }; }
-  loading(){ return this.phone(h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:T.lo,fontFamily:T.mono,fontSize:13}}, this.state && this.state.err ? ((this.eng?this.t('frag_error'):'오류:')+' '+this.state.err) : (this.eng?this.t('common_loading'):'불러오는 중…'))); }
+  // 로딩 팁 1개 픽 — 시트 Tip 탭 랜덤, 없으면 폴백. (호출 시점 1회 고정해 쓰도록 저장해두고 재사용)
+  pickTip(){ const arr=(this.eng&&this.eng.DATA&&this.eng.DATA.tips)||[];
+    if(arr.length){ const r=arr[Math.floor(Math.random()*arr.length)]; const t=this.tx(r,'Text'); if(t) return t; }
+    const f=TIP_FALLBACK[Math.floor(Math.random()*TIP_FALLBACK.length)]; return this.en()?f[1]:f[0]; }
+  // 로딩 게이지 0→100 rAF 카운트업 (막대 width + 숫자 직접 갱신, 재렌더 없음). 끝나면 onDone.
+  animLoad(fillEl, numEl, durMs, onDone){ const t0=performance.now();
+    const tick=(now)=>{ const p=Math.max(0,Math.min(1,(now-t0)/durMs)); const v=Math.round(p*100);
+      if(fillEl) fillEl.style.width=v+'%'; if(numEl) numEl.textContent=v;
+      if(p<1){ requestAnimationFrame(tick); } else if(onDone){ onDone(); } };
+    requestAnimationFrame(tick); }
+  // 자이로 패럴랙스 — 기기 기울임(deviceorientation)으로 배경·독수리를 서로 다르게 이동(rAF lerp로 부드럽게).
+  // iOS13+는 권한 필요(자동 화면이라 권한 없으면 이벤트 미수신 → 확대만). 안드로이드는 바로 작동.
+  startGyro(){ if(this._gyroRAF) return;
+    this._gyroTarget={x:0,y:0}; this._gyroCur={x:0,y:0};
+    this._gyroHandler=(e)=>{ const g=e.gamma||0, b=e.beta||0;
+      this._gyroTarget.x=Math.max(-1,Math.min(1, g/28));
+      this._gyroTarget.y=Math.max(-1,Math.min(1, (b-45)/28)); };
+    try{ window.addEventListener('deviceorientation', this._gyroHandler, true); }catch(_){}
+    const loop=()=>{ const c=this._gyroCur,t=this._gyroTarget; c.x+=(t.x-c.x)*0.08; c.y+=(t.y-c.y)*0.08;
+      if(this._bootBgEl) this._bootBgEl.style.transform='translate('+(c.x*-14).toFixed(2)+'px,'+(c.y*-10).toFixed(2)+'px)';
+      if(this._bootFgEl) this._bootFgEl.style.transform='translate('+(c.x*34).toFixed(2)+'px,'+(c.y*22).toFixed(2)+'px)';
+      this._gyroRAF=requestAnimationFrame(loop); };
+    this._gyroRAF=requestAnimationFrame(loop); }
+  stopGyro(){ if(this._gyroHandler){ try{ window.removeEventListener('deviceorientation', this._gyroHandler, true); }catch(_){}; this._gyroHandler=null; }
+    if(this._gyroRAF){ cancelAnimationFrame(this._gyroRAF); this._gyroRAF=null; } this._gyroOn=false; }
+  // 공용 로딩 뷰 (svg screen-boot-loading 기준): 배경 + 하단 그라데이션(이미지 덮개) + 팁(라벨+숫자·본문) + 최하단 풀폭 프로그레스
+  loadingView(opts){ opts=opts||{};
+    return h('div',{style:{flex:1,position:'relative',overflow:'hidden',background:T.bg}},
+      // 패럴랙스 2레이어(부팅): 배경(도시) + 전경(독수리). 자이로로 서로 다르게 이동, 독수리는 아주 느린 확대.
+      opts.bg? h('div',{ref:opts.bgRef,style:{position:'absolute',inset:0,willChange:'transform'}},
+        h('div',{style:{position:'absolute',inset:'-7%',backgroundImage:'url('+opts.bg+')',backgroundSize:'cover',backgroundPosition:'center'}})):null,
+      opts.fg? h('div',{ref:opts.fgRef,style:{position:'absolute',left:'-43.8%',top:0,width:'143.8%',willChange:'transform',pointerEvents:'none'}},
+        h('img',{src:opts.fg,style:{width:'100%',display:'block',transformOrigin:'50% 32%',animation:'rlKenBurns 28s ease-out both'}})):null,
+      // 단일 배경(출정): 몬스터 아트 켄번즈
+      (!opts.bg&&opts.bgImage)? h('div',{style:{position:'absolute',inset:0,backgroundImage:'url('+opts.bgImage+')',backgroundSize:'cover',backgroundPosition:'center',transformOrigin:'center',animation:'rlKenBurns 16s ease-out both'}}):null,
+      // 하단 그라데이션 — 이미지를 덮어 텍스트 가독성 확보(y486~828 투명→#18191D)
+      h('div',{style:{position:'absolute',left:0,right:0,bottom:0,height:342,background:'linear-gradient(180deg, rgba(24,25,29,0) 0%, #18191D 100%)',pointerEvents:'none'}}),
+      // 팁 블록 (중앙 정렬) — TIP 라벨 / 본문
+      h('div',{style:{position:'absolute',left:0,right:0,bottom:52,padding:'0 24px',display:'flex',flexDirection:'column',alignItems:'center',gap:9,textAlign:'center'}},
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.6px',color:'#83B289'}}, 'TIP'),
+        opts.tip? h('div',{style:{fontFamily:T.sans,fontSize:12,lineHeight:1.55,color:'#EDEDED'}}, opts.tip):null),
+      // 00% — 프로그레스 바로 위, 중앙
+      h('div',{style:{position:'absolute',left:0,right:0,bottom:13,textAlign:'center',fontFamily:T.mono,fontSize:11,color:'#A9ABAF'}},
+        h('span',{ref:opts.numRef}, '0'), '%'),
+      // 프로그레스 — 화면 최하단 풀폭 4px (트랙 #2B2E32 / 채움 #A5ACB2)
+      h('div',{style:{position:'absolute',left:0,right:0,bottom:0,height:4,background:'#2B2E32'}},
+        h('div',{ref:opts.fillRef,style:{height:'100%',width:'0%',background:'#A5ACB2'}})));
+  }
+  // 부팅 로딩(시트 로드 대기 + 최소 3초 강제) — ready 전 표시
+  loading(){
+    if(this.state && this.state.err) return this.phone(h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:T.lo,fontFamily:T.mono,fontSize:13}}, (this.eng?this.t('frag_error'):'오류:')+' '+this.state.err));
+    if(!this._bootTip) this._bootTip = this.pickTip ? this.pickTip() : (this.en()?TIP_FALLBACK[0][1]:TIP_FALLBACK[0][0]);
+    return this.phone(this.loadingView({
+      bg:'assets/art/loading/001/haram_city.jpg', fg:'assets/art/loading/001/haram_eagle.png',
+      bgRef:el=>{ this._bootBgEl=el; }, fgRef:el=>{ this._bootFgEl=el; if(el && !this._gyroOn){ this._gyroOn=true; this.startGyro(); } },
+      tip:this._bootTip,
+      fillRef:el=>{ if(el && !this._bootLoadStarted){ this._bootLoadStarted=true; this.animLoad(el, this._bootNumEl, 4000); } },
+      numRef:el=>{ this._bootNumEl=el; } }));
+  }
+  // 출정 로딩(강제 2.5초) — 확인 후 카드 드로우 전 삽입
+  // 출정 로딩 배경 = 해당 존 스폰 몬스터 중 아트 있는 것 랜덤(없으면 전체 아트 폴백)
+  sortieMonsterBg(zoneId){
+    const spawn=(this.eng.DATA.spawnTable||[]).filter(r=>r.ZoneID===zoneId).map(r=>r.MonsterID);
+    let pool=spawn.filter(id=>MONSTER_ART.has(id));
+    if(!pool.length) pool=[...MONSTER_ART];
+    if(!pool.length) return null;
+    return 'assets/art/monsters/'+pool[Math.floor(Math.random()*pool.length)]+'.jpg';
+  }
+  sortieLoadScreen(){
+    const z=this.state.sortieZone;
+    return this.loadingView({
+      bgImage:this._sortieBg, tip:this._sortieTip,
+      fillRef:el=>{ if(el && !this._sortieLoadStarted){ this._sortieLoadStarted=true; this.animLoad(el, this._sortieNumEl, 3000, ()=>this.beginSortieCombat()); } },
+      numRef:el=>{ this._sortieNumEl=el; } });
+  }
   phone(...kids){ return h('div',{className:'rl-frame',style:{background:T.bg,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}}, ...kids); }
 
   bar(label, val, max, color){
@@ -559,7 +653,8 @@ class Component extends DCLogic {
     else if(s==='vendor') body=this.vendorScreen();
     else if(s==='settings') body=this.settings();
     else if(s==='lootmanage') body=this.lootManage();
-    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='equipment' && s!=='lootmanage';
+    else if(s==='sortieLoad') body=this.sortieLoadScreen();
+    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad';
     return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null);
   }
 
