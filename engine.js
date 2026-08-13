@@ -175,7 +175,7 @@ export function startingState() {
   const vaultIds = String(C.start_vault_items || 'weapon_wooden_sword,armor_cloth_hood').split(',').map(s => s.trim()).filter(Boolean);
   const vault = vaultIds.map(id => mkInstance(id));
   // auto-equip the starting weapon + head/body if present in vault
-  const equip = { weapon: null, head: null, body: null, artifact1: null, artifact2: null };
+  const equip = { weapon: null, head: null, body: null, artifact1: null, artifact2: null, bag: null };
   for (const it of vault) {
     if (it.kind === 'weapon' && !equip.weapon) equip.weapon = it.uid;
     else if (it.kind === 'armor') {
@@ -190,6 +190,10 @@ export function startingState() {
     else if (it.kind === 'talisman') {
       // 부적은 artifact2 슬롯 전용.
       if (!equip.artifact2) equip.artifact2 = it.uid;
+    }
+    else if (it.kind === 'bag') {
+      // 가방: bag 슬롯 전용. 자동 장착 → 시작 시 배낭 용량 개방.
+      if (!equip.bag) equip.bag = it.uid;
     }
   }
   return {
