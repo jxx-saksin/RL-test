@@ -265,7 +265,7 @@ class Component extends DCLogic {
   }
   moveToBag(uid){ const i=this.gs.vault.findIndex(x=>x.uid===uid); if(i>=0){ const [it]=this.gs.vault.splice(i,1); this.gs.bag.push(it); } }
   rest(){ const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=full.maxHp; this.gs.sta=this.staMax; this.saveGame(); }
-  go(screen){ if(this._t){clearInterval(this._t); this._t=null;} if(this._ut){clearInterval(this._ut); this._ut=null;} this._lastScroll=0; this._titleLock=false; clearTimeout(this._titleLockT); this.setState({ screen, modalZone:null, sel:null, titleHidden:false }); if(screen==='safehouse') this.saveGame(); }
+  go(screen){ if(this._t){clearInterval(this._t); this._t=null;} if(this._ut){clearInterval(this._ut); this._ut=null;} this._lastScroll=0; this._titleLock=false; clearTimeout(this._titleLockT); if(screen==='settings') this.requestGyroPerm(); this.setState({ screen, modalZone:null, sel:null, titleHidden:false }); if(screen==='safehouse') this.saveGame(); }
   flash(msg){ this.setState({toast:msg}); clearTimeout(this._ft); this._ft=setTimeout(()=>this.setState({toast:null}),2000); this.saveGame(); }
 
   // ---------- sortie / combat ----------
@@ -534,6 +534,14 @@ class Component extends DCLogic {
     requestAnimationFrame(tick); }
   // 자이로 패럴랙스 — 기기 기울임(deviceorientation)으로 배경·독수리를 서로 다르게 이동(rAF lerp로 부드럽게).
   // iOS13+는 권한 필요(자동 화면이라 권한 없으면 이벤트 미수신 → 확대만). 안드로이드는 바로 작동.
+  // iOS13+ 자이로 권한 요청 — 반드시 사용자 제스처(설정 진입 탭) 안에서 호출. 한 번 허용하면 세션 유지.
+  requestGyroPerm(){
+    try{ const D=window.DeviceOrientationEvent;
+      if(D && typeof D.requestPermission==='function'){
+        D.requestPermission().then(s=>{ this._gyroGranted=(s==='granted'); }).catch(()=>{});
+      }
+    }catch(_){}
+  }
   startGyro(){ if(this._gyroRAF) return;
     this._gyroTarget={x:0,y:0}; this._gyroCur={x:0,y:0};
     this._gyroHandler=(e)=>{ const g=e.gamma||0, b=e.beta||0;
