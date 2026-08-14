@@ -2589,7 +2589,12 @@ void main(){
     // 드래그 중 코버플로우 언클립 + zIndex 상승 → 카드가 최상단에서 UI를 덮음(안 잘림)
     onPointerDown:(e)=>{ this._lmy=e.clientY; this._lmx=e.clientX; this._lmc=e.currentTarget; const p=e.currentTarget.parentElement; this._lmp=p; if(p){ p.style.overflow='visible'; p.style.zIndex='100'; } e.currentTarget.style.zIndex='100'; },
     onPointerMove:(e)=>{ if(this._lmy==null)return; const dy=e.clientY-this._lmy; const el=this._lmc; if(!el)return; el.style.transition='none'; el.style.zIndex='100'; el.style.transform='translate(-50%, calc(-50% + '+dy+'px)) scale(1)'; },
-    onPointerUp:(e)=>{ if(this._lmy==null)return; const dy=e.clientY-this._lmy; const dx=this._lmx!=null?e.clientX-this._lmx:0; const el=this._lmc; const p=this._lmp; this._lmy=null; this._lmx=null; this._lmp=null; const restore=()=>{ if(p){ p.style.overflow='hidden'; p.style.zIndex=''; } if(el) el.style.zIndex=''; };
+    // ⚠️ zIndex 복원은 ''(auto)가 아니라 vdom 정본값 '20'으로 — 프레임워크가 vdom 미변경 시 스타일 갱신을
+    // 스킵하므로 ''로 지우면 중앙 카드가 auto로 떨어져 사이드 카드(z 9~10)가 위에 합성됨(반투명처럼 보이는 버그의 진짜 원인)
+    onPointerCancel:(e)=>{ if(this._lmy==null)return; const el=this._lmc, p=this._lmp; this._lmy=null; this._lmx=null; this._lmp=null;
+      if(el){ el.style.transition='transform .3s'; el.style.transform='translate(-50%,-50%) scale(1)'; el.style.opacity='1'; el.style.zIndex='20'; }
+      if(p){ p.style.overflow='hidden'; p.style.zIndex=''; } },
+    onPointerUp:(e)=>{ if(this._lmy==null)return; const dy=e.clientY-this._lmy; const dx=this._lmx!=null?e.clientX-this._lmx:0; const el=this._lmc; const p=this._lmp; this._lmy=null; this._lmx=null; this._lmp=null; const restore=()=>{ if(p){ p.style.overflow='hidden'; p.style.zIndex=''; } if(el) el.style.zIndex='20'; };
       const lm=this.state.lm, isField=lm.view==='field'; const arr=isField?lm.field:lm.bag; const fc=arr[Math.max(0,Math.min(lm.focus||0,arr.length-1))];
       // 유효 동작(위=가방뷰 꺼내기 / 아래=필드 개봉된 카드 넣기)일 때만 날려보냄
       let fly=false; if(Math.abs(dy)>70&&fc){ fly = dy<0 ? !isField : (isField && !!(lm.opened&&lm.opened.has(fc.uid)) && this.lmCanStash(fc)); }
@@ -2644,11 +2649,8 @@ void main(){
           const flipped=!isField||(lm.opened&&lm.opened.has(inst.uid)); const ch=flipped?this.lootCardH(inst):482;
           const settled=this.flipSettled(lm,'lm'+inst.uid,flipped); const flat=settled||!(flipped&&isC);
           const handlers=isC?this.lmCenterHandlers():{onClick:()=>{ if(!this._lmoved)this.lmSetFocus(i); }};
-          // 모바일 반투명 버그 픽스: 다중 드랍 시 플립 settle 시점에 key를 바꿔 3D를 겪은 노드를 버리고
-          // 새 노드로 리마운트 → GPU 스테일 텍스처 강제 재래스터 (스타일 패치로는 무효화 안 됨)
-          const remKey=(cards.length>1&&settled)?'s':'a';
           return h('div',Object.assign({key:inst.uid,'data-lmcard':isC?'focus':null},handlers,{style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+sc+')',opacity:isC?1:o,zIndex:isC?20:10-abs,transition:isC?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'grab':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'})}}),
-            h('div',{key:remKey,style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+(flipped?180:0)+'deg)'}},
+            h('div',{style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+(flipped?180:0)+'deg)'}},
               (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
               (flat&&!flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden',boxShadow:lk?('0 0 0 2px '+blue):'none'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden',boxShadow:lk?('0 0 0 2px '+blue):'none'}}, flipped?this.lootCardBig(inst,true):null))); })
           : h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, isField?(this.en()?'No loot on the field':'필드에 남은 전리품 없음'):(this.en()?'Bag empty':'가방이 비었음')),
