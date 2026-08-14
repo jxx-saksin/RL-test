@@ -70,14 +70,8 @@
   @keyframes rlVigIn{0%{opacity:0}100%{opacity:1}}
   @keyframes rlKenBurns{from{transform:scale(1)}to{transform:scale(1.14)}}
   @keyframes rlEdgeFlash{0%{opacity:0}14%{opacity:1}44%{opacity:.32}100%{opacity:.32}}
-  /* 타이틀 "TAP TO START"(SVG 벡터, #5BFF52) 글리치 — 평소 잔잔, 주기적 번쩍+RGB분리 지터. 3중 SVG 레이어(초록 베이스+시안/마젠타 고스트) */
-  .rl-tap-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-  .rl-tap-base{animation:rlTapFlick 3.2s infinite steps(1)}
-  .rl-tap-c{mix-blend-mode:screen;opacity:0;animation:rlTapC 3.2s infinite steps(1)}
-  .rl-tap-m{mix-blend-mode:screen;opacity:0;animation:rlTapM 3.2s infinite steps(1)}
-  @keyframes rlTapFlick{0%,86%,100%{opacity:1}88%{opacity:.3}90%{opacity:1}92%{opacity:.6}94%{opacity:1}96%{opacity:.85}}
-  @keyframes rlTapC{0%,86%,100%{opacity:0;transform:translate(0,0)}87%{opacity:.85;transform:translate(-2px,-1px)}91%{transform:translate(2px,1px)}95%{transform:translate(-2px,0)}97%{opacity:0}}
-  @keyframes rlTapM{0%,86%,100%{opacity:0;transform:translate(0,0)}87%{opacity:.85;transform:translate(2px,1px)}93%{transform:translate(-2px,-1px)}96%{transform:translate(2px,0)}98%{opacity:0}}
+  /* 타이틀 "TAP TO START" — 천천히 숨쉬는 표현(글리치 삭제) */
+  @keyframes rlBreath{0%,100%{opacity:.32}50%{opacity:1}}
 </style>
 </helmet>
 <template id="__bundler_thumbnail">
@@ -114,8 +108,11 @@ const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품'
 const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_malfunctioning_surgeon','monster_pale_lynx','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_wandering_sentry','monster_abandoned_chihuahua']);
 // 출정 로딩 패럴랙스 세트 보유 몬스터 — assets/art/loading/battle/<id>/{bg.jpg, fg.png}. 있으면 2레이어+자이로, 없으면 단일 켄번즈.
 const PARALLAX_MONSTERS = new Set(['monster_abandoned_chihuahua']);
-// 메인 타이틀 "TAP TO START" 벡터 패스(screen-main-title.svg 원본, 402×828 좌표계, 초록 #5BFF52). 폰트 그대로 재현.
-const TAP_START_PATH = "M160.42 758.75V765H159.58V758.75H157.25V758.02H162.75V758.75H160.42ZM169.206 765L168.616 763.01H166.166L165.576 765H164.706L166.846 758.02H167.956L170.096 765H169.206ZM167.436 758.91H167.346L166.366 762.28H168.416L167.436 758.91ZM172.692 765V758.02H175.232C175.879 758.02 176.372 758.197 176.712 758.55C177.052 758.903 177.222 759.397 177.222 760.03C177.222 760.663 177.052 761.157 176.712 761.51C176.372 761.863 175.879 762.04 175.232 762.04H173.532V765H172.692ZM173.532 761.31H175.212C175.566 761.31 175.839 761.223 176.032 761.05C176.232 760.87 176.332 760.617 176.332 760.29V759.77C176.332 759.443 176.232 759.193 176.032 759.02C175.839 758.84 175.566 758.75 175.212 758.75H173.532V761.31ZM190.004 758.75V765H189.164V758.75H186.834V758.02H192.334V758.75H190.004ZM196.98 765.12C196.554 765.12 196.187 765.04 195.88 764.88C195.574 764.713 195.32 764.477 195.12 764.17C194.92 763.863 194.774 763.487 194.68 763.04C194.587 762.593 194.54 762.083 194.54 761.51C194.54 760.943 194.587 760.437 194.68 759.99C194.774 759.537 194.92 759.157 195.12 758.85C195.32 758.543 195.574 758.31 195.88 758.15C196.187 757.983 196.554 757.9 196.98 757.9C197.407 757.9 197.774 757.983 198.08 758.15C198.387 758.31 198.64 758.543 198.84 758.85C199.04 759.157 199.187 759.537 199.28 759.99C199.374 760.437 199.42 760.943 199.42 761.51C199.42 762.083 199.374 762.593 199.28 763.04C199.187 763.487 199.04 763.863 198.84 764.17C198.64 764.477 198.387 764.713 198.08 764.88C197.774 765.04 197.407 765.12 196.98 765.12ZM196.98 764.39C197.26 764.39 197.497 764.337 197.69 764.23C197.884 764.117 198.044 763.96 198.17 763.76C198.297 763.56 198.387 763.32 198.44 763.04C198.5 762.753 198.53 762.433 198.53 762.08V760.94C198.53 760.593 198.5 760.277 198.44 759.99C198.387 759.703 198.297 759.46 198.17 759.26C198.044 759.06 197.884 758.907 197.69 758.8C197.497 758.687 197.26 758.63 196.98 758.63C196.7 758.63 196.464 758.687 196.27 758.8C196.077 758.907 195.917 759.06 195.79 759.26C195.664 759.46 195.57 759.703 195.51 759.99C195.457 760.277 195.43 760.593 195.43 760.94V762.08C195.43 762.433 195.457 762.753 195.51 763.04C195.57 763.32 195.664 763.56 195.79 763.76C195.917 763.96 196.077 764.117 196.27 764.23C196.464 764.337 196.7 764.39 196.98 764.39ZM211.753 765.12C211.126 765.12 210.613 765.007 210.213 764.78C209.813 764.547 209.483 764.25 209.223 763.89L209.833 763.39C210.106 763.73 210.393 763.983 210.693 764.15C210.999 764.317 211.363 764.4 211.783 764.4C212.289 764.4 212.676 764.283 212.943 764.05C213.209 763.817 213.343 763.49 213.343 763.07C213.343 762.73 213.246 762.467 213.053 762.28C212.859 762.087 212.523 761.95 212.043 761.87L211.263 761.74C210.923 761.68 210.636 761.59 210.403 761.47C210.176 761.35 209.993 761.207 209.853 761.04C209.713 760.867 209.613 760.68 209.553 760.48C209.493 760.273 209.463 760.06 209.463 759.84C209.463 759.2 209.673 758.717 210.093 758.39C210.513 758.063 211.079 757.9 211.793 757.9C212.353 757.9 212.823 757.993 213.203 758.18C213.589 758.367 213.899 758.63 214.133 758.97L213.543 759.48C213.349 759.227 213.116 759.02 212.843 758.86C212.569 758.7 212.216 758.62 211.783 758.62C211.309 758.62 210.946 758.72 210.693 758.92C210.439 759.12 210.313 759.42 210.313 759.82C210.313 760.133 210.406 760.39 210.593 760.59C210.786 760.783 211.129 760.923 211.623 761.01L212.373 761.14C212.713 761.2 212.999 761.29 213.233 761.41C213.466 761.53 213.653 761.673 213.793 761.84C213.939 762.007 214.043 762.193 214.103 762.4C214.163 762.607 214.193 762.823 214.193 763.05C214.193 763.697 213.979 764.203 213.553 764.57C213.133 764.937 212.533 765.12 211.753 765.12ZM219.589 758.75V765H218.749V758.75H216.419V758.02H221.919V758.75H219.589ZM228.375 765L227.785 763.01H225.335L224.745 765H223.875L226.015 758.02H227.125L229.265 765H228.375ZM226.605 758.91H226.515L225.535 762.28H227.585L226.605 758.91ZM232.701 765H231.861V758.02H234.401C235.048 758.02 235.541 758.197 235.881 758.55C236.221 758.903 236.391 759.397 236.391 760.03C236.391 760.597 236.244 761.05 235.951 761.39C235.658 761.73 235.231 761.927 234.671 761.98L236.451 765H235.511L233.811 762.02H232.701V765ZM234.381 761.31C234.734 761.31 235.008 761.223 235.201 761.05C235.401 760.87 235.501 760.617 235.501 760.29V759.77C235.501 759.443 235.401 759.193 235.201 759.02C235.008 758.84 234.734 758.75 234.381 758.75H232.701V761.31H234.381ZM241.777 758.75V765H240.937V758.75H238.607V758.02H244.107V758.75H241.777Z";
+// 메인 타이틀에 랜덤 재생할 영상(둘 중 하나). monster/mp4 → assets/art/loading/title/.
+const TITLE_VIDEOS = ['monster_security_camera.mp4','monster_gutter_roach.mp4'];
+// 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
+const TITLE_VER = 1;
+const TITLE_DATE = '0814';
 // 로딩 화면 팁 — 시트 Tip 탭 미로드/폴백용(로컬 번들 등). 시트에 값 있으면 그쪽 우선.
 const TIP_FALLBACK = [
   ['죽으면 가방과 그 안의 전리품을 모두 잃는다. 주머니 2칸과 착용 장비만 살아남는다.','On death you lose your bag and all its loot — only your 2 pocket slots and equipped gear survive.'],
@@ -626,23 +623,27 @@ class Component extends DCLogic {
   // 좌표는 SVG 원본(402×828) 그대로. 402폭 스테이지를 프레임 폭에 맞춰 균일 스케일(상단 앵커, 여백=검정 배경).
   splashScreen(){
     if(this.state && this.state.err) return this.phone(h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:T.lo,fontFamily:T.mono,fontSize:13}}, (this.eng?this.t('frag_error'):'오류:')+' '+this.state.err));
-    const tap=(cls,fill)=>h('svg',{className:'rl-tap-svg '+cls,viewBox:'0 0 402 828'}, h('path',{d:TAP_START_PATH,fill:fill}));
+    // 영상은 콜드스타트마다 2개 중 랜덤 1개 고정(재렌더에도 유지)
+    if(!this._titleVid) this._titleVid = TITLE_VIDEOS[Math.floor(Math.random()*TITLE_VIDEOS.length)];
+    const verTxt = 'ver A0.'+String(TITLE_VER).padStart(4,'0')+' (-'+TITLE_DATE+')';
     return this.phone(h('div',{onClick:()=>this._startBoot(),style:{flex:1,position:'relative',overflow:'hidden',background:'#010101',cursor:'pointer'}},
       h('div',{ref:el=>{ if(el){ const pw=el.parentElement&&el.parentElement.clientWidth; if(pw) el.style.transform='scale('+(pw/402)+')'; } },
         style:{position:'absolute',left:0,top:0,width:402,height:828,transformOrigin:'0 0'}},
-        // 영상: SVG image0 자리 = x -1, y 0, 403×403(상단 정사각). mp4 960×960 → cover(무왜곡).
+        // 영상: SVG image1 자리 = x -1, y 0, 403×403(상단 정사각). cover(무왜곡/크롭).
         h('video',{key:'titlevid',ref:el=>{ if(el){ el.muted=true; try{ const p=el.play(); if(p&&p.catch) p.catch(()=>{}); }catch(_){} } },
-          src:'assets/art/loading/title/monster_security_camera.mp4',
+          src:'assets/art/loading/title/'+this._titleVid,
           autoPlay:true, muted:true, loop:true, playsInline:true, preload:'auto',
           style:{position:'absolute',left:-1,top:0,width:403,height:403,objectFit:'cover',pointerEvents:'none'}}),
         // 그라데이션: y 68, 402×342, 투명→#010101
         h('div',{style:{position:'absolute',left:0,top:68,width:402,height:342,background:'linear-gradient(180deg, rgba(1,1,1,0) 0%, #010101 100%)',pointerEvents:'none'}}),
-        // 로고 image1(THE 404): x 37, y 282, 151×151
-        h('img',{src:'assets/art/loading/title/title_a.png',style:{position:'absolute',left:37,top:282,width:151,height:151,pointerEvents:'none'}}),
-        // 로고 image2(옅은 오버레이): x 18, y 371, 277×277
-        h('img',{src:'assets/art/loading/title/title_b.png',style:{position:'absolute',left:18,top:371,width:277,height:277,pointerEvents:'none'}}),
-        // TAP TO START — 벡터 그대로(#5BFF52) + RGB 글리치(시안/마젠타 고스트 아래, 초록 베이스 위)
-        tap('rl-tap-c','#44ddee'), tap('rl-tap-m','#ee44ff'), tap('rl-tap-base','#5BFF52'))));
+        // THE 404 로고(image2): x 23, y 245, 189×189
+        h('img',{src:'assets/art/loading/title/the404_title.png',style:{position:'absolute',left:23,top:245,width:189,height:189,pointerEvents:'none'}}),
+        // 부트로그(image0): x -1, y 473, 335×335 (FATAL ERROR·바코드·Wing Lok 등)
+        h('img',{src:'assets/art/loading/title/the404_bootlog.png',style:{position:'absolute',left:-1,top:473,width:335,height:335,pointerEvents:'none'}}),
+        // TAP TO START… — 초록 #5BFF52, 천천히 숨쉬기(글리치 없음). SVG 좌표 x41.4 y483(cap-top)
+        h('div',{style:{position:'absolute',left:41,top:479,fontFamily:T.mono,fontSize:10.5,fontWeight:500,letterSpacing:'0.5px',color:'#5BFF52',whiteSpace:'nowrap',pointerEvents:'none',animation:'rlBreath 3.4s ease-in-out infinite'}}, 'TAP TO START...'),
+        // ver — 회색 #454545, SVG 좌표 x38.6 y503(cap-top). 배포마다 숫자+월일.
+        h('div',{style:{position:'absolute',left:39,top:499,fontFamily:T.mono,fontSize:10.5,fontWeight:400,letterSpacing:'0.5px',color:'#454545',whiteSpace:'nowrap',pointerEvents:'none'}}, verTxt))));
   }
   // 부팅 로딩(탭 후) — 게이지 4초 + 데이터 로드. ready 전 표시.
   loading(){
