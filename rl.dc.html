@@ -63,6 +63,10 @@
   @keyframes rlLvlPop{0%{transform:scale(1)}35%{transform:scale(1.4)}100%{transform:scale(1)}}
   @keyframes rlBossTell{0%,100%{box-shadow:inset 0 0 30px 4px rgba(196,60,50,0)}50%{box-shadow:inset 0 0 34px 7px rgba(196,60,50,.16)}}
   @keyframes rlBossEdge{0%,100%{box-shadow:inset 0 0 0 1px rgba(196,60,50,.25),0 0 16px rgba(150,20,16,.12)}50%{box-shadow:inset 0 0 0 1.5px rgba(230,80,68,.48),0 0 26px rgba(180,26,20,.28)}}
+  /* 보스 카드 금색 일렁이는 테두리 (#D89B00) */
+  @keyframes rlGoldShimmer{0%,100%{box-shadow:inset 0 0 0 0.5px rgba(216,155,0,.5),0 0 4px -2px rgba(216,155,0,.4)}50%{box-shadow:inset 0 0 0 1px rgba(216,155,0,1),0 0 11px -1px rgba(216,155,0,.85)}}
+  /* 보스 조우 화면 전체 붉은 테두리 글로우 — 숨쉬듯 맥동 */
+  @keyframes rlBossScreen{0%,100%{opacity:.45}50%{opacity:1}}
   @keyframes rlVigIn{0%{opacity:0}100%{opacity:1}}
   @keyframes rlKenBurns{from{transform:scale(1)}to{transform:scale(1.14)}}
   @keyframes rlEdgeFlash{0%{opacity:0}14%{opacity:1}44%{opacity:.32}100%{opacity:.32}}
@@ -1135,6 +1139,76 @@ class Component extends DCLogic {
     if(card.type==='user'){ c.pvp=card.bot; c.mProf=this.eng.coldProfile(card.bot); }
     else { const m=this.eng.byId.monster[card.id]; if(!m) return; c.pvp=null; c.mProf=this.eng.monsterProfile(m); }
     c.picked=c.cardFocus; c.flipped=true; this.forceUpdate(); }
+  // 보스 카드 내부 이펙트 — LightTunnel (raw WebGL2 포팅). 노드 detach 시 정지+컨텍스트 회수.
+  // config: speed0.03·outward·pulseSpeed8·pulseLen0.81·pulseBlend1·pulseWidth3·cable20·thick0.4·rim0.12·wav0.03·sway0.8
+  //         size1·fadeNear1.05·fadeFar3.4·glow1.75·bright1.55·opacity0.1·grain0.05 · cable#D89B00·pulse#E64B34·tunnel#3a0e0a·tunOp0.9 · blend lighten
+  mountTunnel(canvas){
+    if(!canvas || canvas._tun) return; canvas._tun=true;
+    let gl; try{ gl=canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:true,antialias:false}); }catch(_){}
+    if(!gl){ canvas._tun=false; return; }
+    const VERT='#version 300 es\nin vec2 position;\nvoid main(){ gl_Position=vec4(position,0.0,1.0); }';
+    const FRAG='#version 300 es\nprecision highp float;\nuniform vec2 iResolution; uniform float iTime;\nuniform float uSpeed,uFlowDir,uPulseSpeed,uPulseLength,uPulseBlend,uPulseWidth,uCableCount,uThickness,uRimWidth,uWaviness,uSway,uSize;\nuniform vec2 uCenter;\nuniform float uGlow,uFadeNear,uFadeFar,uBrightness,uColorVariance,uOpacity;\nuniform vec3 uCableColor,uPulseColor,uTunnelColor; uniform float uTunnelOpacity,uGrain,uGrainIntensity;\nout vec4 fragColor;\nvoid mainImage(out vec4 o,in vec2 fragCoord){\n float size=uSize*2.0; float speedBase=uSpeed*4.0*uFlowDir;\n float waviness=uWaviness*0.15; float rotationOsc=uSway*0.5; float baseThick=uThickness*0.35+0.05;\n float borderWeight=uRimWidth*0.15+0.01; float cablesCount=floor(uCableCount);\n vec2 res=iResolution.xy; vec2 uv=(fragCoord-0.5*res)/min(res.y,res.x); uv-=uCenter; uv/=(size+0.0001);\n float r=length(uv); float angle=atan(uv.y,uv.x); float depth=-log(r+0.0001);\n float swing=sin(iTime*(uSpeed*0.5+0.1))*rotationOsc; float waveOffset=sin(depth*1.2+iTime*speedBase*0.25)*waviness;\n float finalAngle=fract((angle/6.2831853)+0.5+waveOffset+swing);\n float cableID=floor(finalAngle*cablesCount); float gvX=(fract(finalAngle*cablesCount)-0.5);\n float rand=fract(sin(cableID*12.9898)*43758.5453); float randSpeed=(0.4+rand*0.6)*speedBase*uPulseSpeed; float cableThick=baseThick*(0.6+rand*0.4);\n vec3 cableCol=uCableColor; cableCol*=1.0+(rand-0.5)*0.4*uColorVariance; cableCol=mix(cableCol,uPulseColor,rand*0.25*uColorVariance);\n float scroll=depth+(iTime*randSpeed); float pulseFact=fract(scroll);\n float distToCore=abs(gvX); float wireMask=smoothstep(cableThick,cableThick-0.05,distToCore); float rimGlow=smoothstep(borderWeight,0.0,abs(distToCore-cableThick));\n float pulseThick=cableThick*uPulseWidth; float pulseMask=smoothstep(pulseThick,pulseThick-0.05*uPulseWidth,distToCore);\n float pulseDist=abs(pulseFact-0.5); float pulseTotal=uPulseLength; float pulseCore=pulseTotal*(1.0-uPulseBlend);\n float pulseLo=min(pulseCore,pulseTotal-max(fwidth(scroll),1e-4)); float dataPulse=1.0-smoothstep(pulseLo,pulseTotal,pulseDist);\n float aBody=wireMask*uTunnelOpacity; float aRim=rimGlow; float aPulse=clamp(dataPulse*pulseMask,0.0,1.0);\n vec3 fiberCol=uTunnelColor*aBody+cableCol*aRim*1.3*uGlow+uPulseColor*dataPulse*3.0*pulseMask;\n float distFade=smoothstep(0.0,uFadeNear,r)*smoothstep(uFadeFar,uFadeFar-0.9,r);\n float inten=clamp(aBody+aRim+aPulse,0.0,1.0)*distFade;\n vec3 finalCol=fiberCol*uBrightness; float alpha=clamp(inten,0.0,1.0)*uOpacity; vec3 outRgb=finalCol*alpha;\n if(uGrain>0.5){ float gv=(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233))+iTime)*43758.5453)-0.5)*uGrainIntensity; outRgb=clamp(outRgb+gv,0.0,1.0); alpha=clamp(alpha+gv,0.0,1.0);}\n o=vec4(outRgb,alpha);\n}\nvoid main(){ vec4 o=vec4(0.0); mainImage(o,gl_FragCoord.xy); fragColor=o; }';
+    const sh=(t,s)=>{const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);return x;};
+    const prog=gl.createProgram();gl.attachShader(prog,sh(gl.VERTEX_SHADER,VERT));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FRAG));gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){ canvas._tun=false; return; }
+    gl.useProgram(prog);
+    const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+    const pos=gl.getAttribLocation(prog,'position');gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
+    gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.clearColor(0,0,0,0);
+    const u=n=>gl.getUniformLocation(prog,n);
+    // 정적 uniform 1회 세팅
+    gl.uniform1f(u('uSpeed'),0.1);gl.uniform1f(u('uFlowDir'),-1);gl.uniform1f(u('uPulseSpeed'),1.1);
+    gl.uniform1f(u('uPulseLength'),0.35);gl.uniform1f(u('uPulseBlend'),1);gl.uniform1f(u('uPulseWidth'),1.85);
+    gl.uniform1f(u('uCableCount'),16);gl.uniform1f(u('uThickness'),0.67);gl.uniform1f(u('uRimWidth'),0.23);
+    gl.uniform1f(u('uWaviness'),0);gl.uniform1f(u('uSway'),0.5);gl.uniform1f(u('uSize'),1.1);
+    gl.uniform2f(u('uCenter'),0,0);gl.uniform1f(u('uGlow'),1);gl.uniform1f(u('uFadeNear'),0.5);gl.uniform1f(u('uFadeFar'),2);
+    gl.uniform1f(u('uBrightness'),1);gl.uniform1f(u('uColorVariance'),1);gl.uniform1f(u('uOpacity'),0.45);
+    gl.uniform3f(u('uCableColor'),0.1490,0.1490,0.1490);gl.uniform3f(u('uPulseColor'),0.7725,0.5961,0.1059);gl.uniform3f(u('uTunnelColor'),0.5412,0.0,0.0);
+    gl.uniform1f(u('uTunnelOpacity'),0);gl.uniform1f(u('uGrain'),1);gl.uniform1f(u('uGrainIntensity'),0.05);
+    const uRes=u('iResolution'), uT=u('iTime');
+    let raf=null; const t0=performance.now();
+    const dprW=()=>Math.round((canvas.clientWidth||342)*Math.min(window.devicePixelRatio||1,2));
+    const size=()=>{const dpr=Math.min(window.devicePixelRatio||1,2);const w=canvas.clientWidth||342,hh=canvas.clientHeight||440;canvas.width=Math.max(1,Math.round(w*dpr));canvas.height=Math.max(1,Math.round(hh*dpr));gl.viewport(0,0,canvas.width,canvas.height);};
+    const loop=(t)=>{
+      if(!document.contains(canvas)){ if(raf)cancelAnimationFrame(raf); canvas._tun=false; try{const e=gl.getExtension('WEBGL_lose_context'); if(e)e.loseContext();}catch(_){}; return; }
+      if(canvas.clientWidth>0 && canvas.width!==dprW()) size();
+      gl.useProgram(prog); gl.uniform2f(uRes,canvas.width,canvas.height); gl.uniform1f(uT,(t-t0)*0.001);
+      gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLES,0,3); raf=requestAnimationFrame(loop);
+    };
+    size(); raf=requestAnimationFrame(loop);
+  }
+  // 유니크 카드 내부 이펙트 — Beams(세로 광선) raw WebGL2 근사. detach 시 정지+컨텍스트 회수.
+  // config: beamNumber10·beamWidth1·beamHeight0.9·speed1.85·noiseInt1.85·scale0.9·rot34°·opacity0.48 · lightColor#7CA5BB · blend screen
+  mountBeams(canvas){
+    if(!canvas || canvas._bms) return; canvas._bms=true;
+    let gl; try{ gl=canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:true,antialias:false}); }catch(_){}
+    if(!gl){ canvas._bms=false; return; }
+    const VERT='#version 300 es\nin vec2 position;\nvoid main(){ gl_Position=vec4(position,0.0,1.0); }';
+    const NOISE='\nfloat rnd(vec2 st){return fract(sin(dot(st.xy,vec2(12.9898,78.233)))*43758.5453123);}\nfloat vnoise(vec2 st){vec2 i=floor(st);vec2 f=fract(st);float a=rnd(i);float b=rnd(i+vec2(1.,0.));float c=rnd(i+vec2(0.,1.));float d=rnd(i+vec2(1.,1.));vec2 u=f*f*(3.-2.*f);return mix(a,b,u.x)+(c-a)*u.y*(1.-u.x)+(d-b)*u.x*u.y;}\nvec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x,289.0);}\nvec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}\nvec3 fade(vec3 t){return t*t*t*(t*(t*6.0-15.0)+10.0);}\nfloat cnoise(vec3 P){vec3 Pi0=floor(P);vec3 Pi1=Pi0+vec3(1.0);Pi0=mod(Pi0,289.0);Pi1=mod(Pi1,289.0);vec3 Pf0=fract(P);vec3 Pf1=Pf0-vec3(1.0);vec4 ix=vec4(Pi0.x,Pi1.x,Pi0.x,Pi1.x);vec4 iy=vec4(Pi0.yy,Pi1.yy);vec4 iz0=Pi0.zzzz;vec4 iz1=Pi1.zzzz;vec4 ixy=permute(permute(ix)+iy);vec4 ixy0=permute(ixy+iz0);vec4 ixy1=permute(ixy+iz1);vec4 gx0=ixy0/7.0;vec4 gy0=fract(floor(gx0)/7.0)-0.5;gx0=fract(gx0);vec4 gz0=vec4(0.5)-abs(gx0)-abs(gy0);vec4 sz0=step(gz0,vec4(0.0));gx0-=sz0*(step(0.0,gx0)-0.5);gy0-=sz0*(step(0.0,gy0)-0.5);vec4 gx1=ixy1/7.0;vec4 gy1=fract(floor(gx1)/7.0)-0.5;gx1=fract(gx1);vec4 gz1=vec4(0.5)-abs(gx1)-abs(gy1);vec4 sz1=step(gz1,vec4(0.0));gx1-=sz1*(step(0.0,gx1)-0.5);gy1-=sz1*(step(0.0,gy1)-0.5);vec3 g000=vec3(gx0.x,gy0.x,gz0.x);vec3 g100=vec3(gx0.y,gy0.y,gz0.y);vec3 g010=vec3(gx0.z,gy0.z,gz0.z);vec3 g110=vec3(gx0.w,gy0.w,gz0.w);vec3 g001=vec3(gx1.x,gy1.x,gz1.x);vec3 g101=vec3(gx1.y,gy1.y,gz1.y);vec3 g011=vec3(gx1.z,gy1.z,gz1.z);vec3 g111=vec3(gx1.w,gy1.w,gz1.w);vec4 norm0=taylorInvSqrt(vec4(dot(g000,g000),dot(g010,g010),dot(g100,g100),dot(g110,g110)));g000*=norm0.x;g010*=norm0.y;g100*=norm0.z;g110*=norm0.w;vec4 norm1=taylorInvSqrt(vec4(dot(g001,g001),dot(g011,g011),dot(g101,g101),dot(g111,g111)));g001*=norm1.x;g011*=norm1.y;g101*=norm1.z;g111*=norm1.w;float n000=dot(g000,Pf0);float n100=dot(g100,vec3(Pf1.x,Pf0.yz));float n010=dot(g010,vec3(Pf0.x,Pf1.y,Pf0.z));float n110=dot(g110,vec3(Pf1.xy,Pf0.z));float n001=dot(g001,vec3(Pf0.xy,Pf1.z));float n101=dot(g101,vec3(Pf1.x,Pf0.y,Pf1.z));float n011=dot(g011,vec3(Pf0.x,Pf1.yz));float n111=dot(g111,Pf1);vec3 fade_xyz=fade(Pf0);vec4 n_z=mix(vec4(n000,n100,n010,n110),vec4(n001,n101,n011,n111),fade_xyz.z);vec2 n_yz=mix(n_z.xy,n_z.zw,fade_xyz.y);float n_xyz=mix(n_yz.x,n_yz.y,fade_xyz.x);return 2.2*n_xyz;}\n';
+    const FRAG='#version 300 es\nprecision highp float;\nuniform vec2 iResolution;uniform float iTime;\nuniform float uBeams,uWidth,uHeight,uSpeed,uNoiseInt,uScale,uRot,uOpacity;uniform vec3 uColor;\nout vec4 fragColor;'+NOISE+'void main(){\n vec2 res=iResolution.xy; vec2 uv=(gl_FragCoord.xy-0.5*res)/res.y;\n float c=cos(uRot),s=sin(uRot); uv=mat2(c,-s,s,c)*uv;\n float span=1.8; float bx=(uv.x/span+0.5)*uBeams; float beamId=floor(bx); float local=fract(bx)-0.5;\n float halfW=clamp(uWidth*0.5,0.03,0.5); float beamMask=smoothstep(halfW,halfW*0.35,abs(local));\n float n=cnoise(vec3(beamId*0.7, uv.y*uScale*3.0 - iTime*uSpeed*0.3, iTime*0.1));\n float flow=0.45+0.55*n;\n float vfall=smoothstep(uHeight,0.0,abs(uv.y));\n float grain=vnoise(gl_FragCoord.xy*0.5+iTime);\n float bright=beamMask*flow*vfall; bright-=grain/15.0*uNoiseInt; bright=clamp(bright,0.0,1.0);\n vec3 col=uColor*bright; float alpha=bright*uOpacity;\n fragColor=vec4(col*alpha,alpha);\n}';
+    const sh=(t,x)=>{const o=gl.createShader(t);gl.shaderSource(o,x);gl.compileShader(o);return o;};
+    const prog=gl.createProgram();gl.attachShader(prog,sh(gl.VERTEX_SHADER,VERT));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FRAG));gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){ canvas._bms=false; return; }
+    gl.useProgram(prog);
+    const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+    const pos=gl.getAttribLocation(prog,'position');gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
+    gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.clearColor(0,0,0,0);
+    const u=n=>gl.getUniformLocation(prog,n);
+    gl.uniform1f(u('uBeams'),10);gl.uniform1f(u('uWidth'),1);gl.uniform1f(u('uHeight'),0.9);
+    gl.uniform1f(u('uSpeed'),1.85);gl.uniform1f(u('uNoiseInt'),1.85);gl.uniform1f(u('uScale'),0.9);
+    gl.uniform1f(u('uRot'),0.5934);gl.uniform1f(u('uOpacity'),0.48);gl.uniform3f(u('uColor'),0.4863,0.6471,0.7333);
+    const uRes=u('iResolution'), uT=u('iTime');
+    let raf=null; const t0=performance.now();
+    const dprW=()=>Math.round((canvas.clientWidth||342)*Math.min(window.devicePixelRatio||1,2));
+    const size=()=>{const dpr=Math.min(window.devicePixelRatio||1,2);const w=canvas.clientWidth||342,hh=canvas.clientHeight||440;canvas.width=Math.max(1,Math.round(w*dpr));canvas.height=Math.max(1,Math.round(hh*dpr));gl.viewport(0,0,canvas.width,canvas.height);};
+    const loop=(t)=>{
+      if(!document.contains(canvas)){ if(raf)cancelAnimationFrame(raf); canvas._bms=false; try{const e=gl.getExtension('WEBGL_lose_context'); if(e)e.loseContext();}catch(_){}; return; }
+      if(canvas.clientWidth>0 && canvas.width!==dprW()) size();
+      gl.useProgram(prog); gl.uniform2f(uRes,canvas.width,canvas.height); gl.uniform1f(uT,(t-t0)*0.001);
+      gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLES,0,3); raf=requestAnimationFrame(loop);
+    };
+    size(); raf=requestAnimationFrame(loop);
+  }
   mountPillar(el){ if(!el || el._glInit) return; el._glInit=true; try{ this._initPillar(el); }catch(e){} }
   _initPillar(canvas){
     var gl=null; try{ gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:false,antialias:false})||canvas.getContext('experimental-webgl'); }catch(e){ return; }
@@ -1282,15 +1356,16 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:vc||HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
     const desc=md.Description?this.tx(md,'Description'):(this.tx(md,'Flavor')||'');
     return h('div',{style:{position:'relative',width:342,height:fixed?'auto':'min(473px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
-      (isBoss&&!fixed)? h('canvas',{key:'pillar',ref:el=>this.mountPillar(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:5,pointerEvents:'none',mixBlendMode:'screen'}}):null,
-      // 등급 비네트(카드 전체) — 보스는 레드, 그 외는 등급색
-      fx? h('div',{key:'gvig',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,borderRadius:8,
-        boxShadow:isBoss?'inset 0 0 48px 13px rgba(150,20,16,.6)':('inset 0 0 30px 7px '+rgba(gcol,VIGA[gk]||0.16)),
+      (isBoss&&!fixed)? h('canvas',{key:'tunnel',ref:el=>this.mountTunnel(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:5,pointerEvents:'none',mixBlendMode:'screen'}}):null,
+      (gk==='unique'&&!fixed)? h('canvas',{key:'beams',ref:el=>this.mountBeams(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:5,pointerEvents:'none',mixBlendMode:'screen'}}):null,
+      // 등급 비네트(카드 전체) — 보스는 카드 비네트 제거(붉은 글로우는 화면 전체 테두리로 이동), 그 외는 등급색
+      (fx&&!isBoss)? h('div',{key:'gvig',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,borderRadius:8,
+        boxShadow:'inset 0 0 30px 7px '+rgba(gcol,VIGA[gk]||0.16),
         animation:'rlVigIn .7s ease-out forwards'}}):null,
-      // 등급 테두리(카드 전체) — 보스는 붉은 심박 무한, 그 외는 플래시 1회 후 유지
+      // 등급 테두리(카드 전체) — 보스는 금색(#D89B00) 일렁임, 그 외는 플래시 1회 후 유지
       fx? h('div',{key:'gedge',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:7,borderRadius:8,
         boxShadow:isBoss?undefined:('inset 0 0 0 1px '+gcol+', 0 0 13px -2px '+gcol),
-        animation:isBoss?'rlBossEdge 3.8s ease-in-out infinite':'rlEdgeFlash .9s ease-out forwards'}}):null,
+        animation:isBoss?'rlGoldShimmer 2.2s ease-in-out infinite':'rlEdgeFlash .9s ease-out forwards'}}):null,
       // ART 190
       h('div',{style:{position:'relative',...artP,alignSelf:'stretch',background:ART}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
@@ -1409,7 +1484,10 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const cityName=cityObj?(this.tx(cityObj,'CityName')||''):'';
     const placeTitle=(cityName?cityName+' · ':'')+zoneName;
     const flipped=c.flipped;
-    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+    const bossFrame = flipped && String((c.mProf&&c.mProf.grade)||'').toLowerCase()==='boss';
+    return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      // 보스 조우: 화면 전체 붉은 테두리 글로우 (구 카드 이너글로우 대체)
+      bossFrame? h('div',{key:'bossframe',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:40,boxShadow:'inset 0 0 60px 7px rgba(150,20,16,.55)',animation:'rlBossScreen 3.4s ease-in-out infinite'}}):null,
       h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/art/zones/'+c.zoneId+'.jpg), url(assets/battle/encounter-banner.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
         h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:4}},
           h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, placeTitle),
