@@ -111,8 +111,8 @@ const PARALLAX_MONSTERS = new Set(['monster_abandoned_chihuahua']);
 // 메인 타이틀에 랜덤 재생할 영상(둘 중 하나). monster/mp4 → assets/art/loading/title/.
 const TITLE_VIDEOS = ['monster_security_camera.mp4','monster_gutter_roach.mp4'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 2;
-const TITLE_DATE = '0814';
+const TITLE_VER = 3;
+const TITLE_DATE = '0815';
 // 로딩 화면 팁 — 시트 Tip 탭 미로드/폴백용(로컬 번들 등). 시트에 값 있으면 그쪽 우선.
 const TIP_FALLBACK = [
   ['죽으면 가방과 그 안의 전리품을 모두 잃는다. 주머니 2칸과 착용 장비만 살아남는다.','On death you lose your bag and all its loot — only your 2 pocket slots and equipped gear survive.'],
@@ -345,7 +345,8 @@ class Component extends DCLogic {
   enterCombat(){
     if(typeof navigator!=='undefined' && navigator.vibrate){ try{ navigator.vibrate(40); }catch(e){} } // 제스처 결합 진동(활성화 확보 + 전투 시작 피드백)
     const mProf = this.combat.mProf;
-    this.gs.sta = Math.max(0, this.gs.sta - mProf.staminaCost);
+    // 탈진 판정 = 진입 시점 스태미너 0(이전 전투 누적). 이번 전투 소모는 종료 후(finishCombat)로 이동 —
+    // 그래야 7스태미너로 보스(8소모) 돌입해도 이번 전투는 정상, 다음 전투부터 탈진.
     const staZero = this.gs.sta <= 0;
     const full = this.eng.playerProfile(this.gs,false);
     const prof = this.eng.playerProfile(this.gs, staZero); prof.maxHp = full.maxHp;
@@ -377,6 +378,8 @@ class Component extends DCLogic {
   finishCombat(){
     const c=this.combat, res=c.res;
     this.gs.hp = res.playerHpEnd;
+    // 전투 종료 후 몬스터 등급만큼 스태미너 소모(진입 전이 아니라 종료 후). 도주 성공은 여기 안 옴 = 소모 없음.
+    this.gs.sta = Math.max(0, this.gs.sta - this.eng.N(c.mProf.staminaCost, 0));
     c.durChanges = this.eng.applyDurabilityWear(this.gs, res.triggers) || [];
     // ---- PvP(콜드데이터) 승패는 카드 트랙으로만 처리 (§6-6, death_durability_loss 미적용) ----
     if(c.pvp){
@@ -907,7 +910,9 @@ class Component extends DCLogic {
     return (last.who===applier && last.type==='status')?[{key:attr,count:1}]:[];
   }
   statusChip(key){ const col=(ATTR[key]&&ATTR[key].c)||T.mid; return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid '+col,padding:'3px 8px',whiteSpace:'nowrap'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:1,letterSpacing:'1.33px',color:col}}, this.eng.t('status_'+key))); }
-  plainChip(label,col){ return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid '+col,padding:'3px 8px',whiteSpace:'nowrap'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:1,letterSpacing:'1.33px',color:col}}, label)); }
+  plainChip(label,col,anim){ return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid '+col,padding:'3px 8px',whiteSpace:'nowrap',animation:anim||'none'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:1,letterSpacing:'1.33px',color:col}}, label)); }
+  // 저스태미너 경보 = 이번 전투가 스태미너를 0으로 만드는가(현재−몬스터소모≤0). 전투 후 소모 로직과 일치.
+  staWarn(){ const m=this.combat&&this.combat.mProf; return !!(m && this.gs.sta - this.eng.N(m.staminaCost,0) <= 0); }
   statusIcons(side){ const list=this.activeStatuses(side); const out=[]; list.forEach(s=>{ const n=Math.min(s.count,8); for(let i=0;i<n;i++) out.push(h('span',{key:s.key+i,style:{display:'inline-flex'}}, this.statusIcon(s.key,15))); }); return out; }
   statLines(prof,isMonster){
     const md=isMonster?(this.eng.byId.monster[prof.id]||{}):null;
@@ -956,7 +961,8 @@ class Component extends DCLogic {
   combatantCard(prof,isMonster,cur,animate){
     const pct=Math.max(0,Math.min(100,cur/prof.maxHp*100));
     const md=isMonster?(this.eng.byId.monster[prof.id]||{}):null;
-    const pen=!isMonster && this.combat && this.combat.staZero;
+    const pen=!isMonster && this.combat && this.combat.staZero;   // 실제 페널티(진입 시 탈진) = 스탯 빨강
+    const warn=!isMonster && this.staWarn();                       // 경보(이번 전투가 탈진시킴) = [탈진] 칩 반짝
     const side=isMonster?'monster':'player';
     const masked=isMonster && !!prof.isUser;   // PvP(콜드데이터) 상대 = 수치 마스킹
     const fx=(this.combat&&this.combat.fx&&this.combat.fx.target===side)?this.combat.fx:null;
@@ -978,7 +984,7 @@ class Component extends DCLogic {
           h('span',{style:{fontFamily:T.sans,fontSize:13,fontWeight:500,color:T.hi,flex:'0 1 auto',minWidth:0,maxWidth:'55%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, isMonster?prof.name:this.t('common_me')),
           h('div',{style:{flex:1}}),
           ...this.statusIcons(isMonster?'monster':'player'),
-          pen? this.plainChip(this.en()?'FATIGUED':'탈진','rgb(169,171,175)'):null,
+          warn? this.plainChip(this.en()?'FATIGUED':'탈진','#C19E6F','rlBreath 2.6s ease-in-out infinite'):null,
           AT(prof.attribute)?this.statusChip(prof.attribute):null),
         h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
           h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99}}, h('div',{ref:el=>{ if(el && isHit && el._hp!==fx.seq){ el._hp=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHpGlow .5s ease-out'; } },style:{width:pct+'%',height:'100%',background:T.hp,borderRadius:99,transition:'width .3s ease-out'}})),
@@ -1030,7 +1036,12 @@ class Component extends DCLogic {
     const revealed=c.res.log.slice(0,c.revealed);
     const dead=c.phase==='dead';
     const fx=c.fx;
+    const hw=this.hpWarnTier(); if(hw){ this._hpWarnAmp=hw.amp; this._hpWarnOp=hw.op; }
     return h('div',{ref:el=>{ if(el && fx && fx.crit && el._shk!==fx.seq){ el._shk=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlShakeScreen .34s ease-out'; } },style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}},
+      // 저스태미너 경보 — 이번 전투가 탈진시키면 화면 전체 호박색(PrismaticBurst, 전투 중에만)
+      (c.phase==='fighting'&&this.staWarn())?h('canvas',{key:'stawarn',ref:el=>this.mountStaWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:4,mixBlendMode:'screen',opacity:0.37}}):null,
+      // 저체력 경보 — 적색 Aurora(상단). 30%↓부터, 20·10%로 amplitude·투명도 강해짐
+      hw?h('canvas',{key:'hpwarn',ref:el=>this.mountHpWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:5,mixBlendMode:'plus-lighter',opacity:hw.op,transition:'opacity .6s ease-out'}}):null,
       (fx&&fx.crit)?h('div',{key:'vig'+fx.seq,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,boxShadow:'inset 0 0 80px 24px rgba(200,44,40,.6)',animation:'rlVignette .4s ease-out'}}):null,
       dead?h('div',{style:{position:'absolute',top:0,left:0,right:0,height:'65%',pointerEvents:'none',zIndex:5}},
         h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, #3E0018 0%, rgba(62,0,24,0.5) 40%, rgba(17,19,21,0) 70%)'}}),
@@ -1298,7 +1309,10 @@ void main(){
     raf=requestAnimationFrame(frame);
   }
   mountBurst(el){ if(!el || el._glInit) return; el._glInit=true; try{ this._initBurst(el); }catch(e){} }
-  _initBurst(canvas){
+  // 저스태미너 경보 = 같은 PrismaticBurst를 호박색으로(전투 후 스태미너 0 되는 전투). 위젯 튜닝값.
+  mountStaWarn(el){ if(!el || el._glInit) return; el._glInit=true; try{ this._initBurst(el,{colors:['#f4a952','#7a4e18','#c19e6f','#f2e2c2'],cfg:{intensity:1.2,speed:0.42,animType:1,distort:1.85,noise:0.08,rayCount:21}}); }catch(e){} }
+  _initBurst(canvas,opts){
+    opts=opts||{};
     var gl=null; try{ gl=canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:false,antialias:false}); }catch(e){ return; }
     if(!gl) return;
     var mobile=/Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test((navigator&&navigator.userAgent)||'');
@@ -1331,13 +1345,13 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     var b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
     var loc=gl.getAttribLocation(prog,'position');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
     var U={};['uResolution','uTime','uIntensity','uSpeed','uAnimType','uColorCount','uDistort','uOffset','uGradient','uNoiseAmount','uRayCount'].forEach(function(n){U[n]=gl.getUniformLocation(prog,n);});
-    var COLS=['#3a1f45','#7a3d8f','#B27EAD','#efd9ec'];
+    var COLS=opts.colors||['#3a1f45','#7a3d8f','#B27EAD','#efd9ec'];
     var data=new Uint8Array(COLS.length*4);
     for(var i=0;i<COLS.length;i++){var v=parseInt(COLS[i].replace('#',''),16);data[i*4]=(v>>16)&255;data[i*4+1]=(v>>8)&255;data[i*4+2]=v&255;data[i*4+3]=255;}
     var tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,COLS.length,1,0,gl.RGBA,gl.UNSIGNED_BYTE,data);
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-    var CFG={intensity:1.6,speed:0.5,animType:1,distort:1.0,noise:0.8,rayCount:24};
+    var CFG=Object.assign({intensity:1.6,speed:0.5,animType:1,distort:1.0,noise:0.8,rayCount:24},opts.cfg||{});
     var t0=null,last=0,raf=0;
     function size(){var w=canvas.clientWidth||342,hh=canvas.clientHeight||190;canvas.width=Math.max(1,Math.round(w*dpr));canvas.height=Math.max(1,Math.round(hh*dpr));}
     size();
@@ -1356,6 +1370,69 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
       gl.drawArrays(gl.TRIANGLES,0,3);
     }
     raf=requestAnimationFrame(frame);
+  }
+  // 저체력 경보 = 적색 Aurora(상단). 공통값 고정(blend .89·speed 1.4·flip 1·적3색), amplitude만 구간별 라이브(this._hpWarnAmp).
+  mountHpWarn(el){ if(!el || el._glInit) return; el._glInit=true; try{ this._initAurora(el); }catch(e){} }
+  _initAurora(canvas){
+    var self=this;
+    var gl=null; try{ gl=canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:true,antialias:true}); }catch(e){ return; }
+    if(!gl) return;
+    var mobile=/Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test((navigator&&navigator.userAgent)||'');
+    var dpr=Math.min((window.devicePixelRatio||1), mobile?1.0:2), minMs=mobile?33:16;
+    gl.clearColor(0,0,0,0);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);
+    var VERT='#version 300 es\nin vec2 position;\nvoid main(){gl_Position=vec4(position,0.0,1.0);}';
+    var FRAG=`#version 300 es
+precision highp float;
+uniform float uTime;uniform float uAmplitude;uniform vec3 uColorStops[3];uniform vec2 uResolution;uniform float uBlend;uniform float uFlip;
+out vec4 fragColor;
+vec3 permute(vec3 x){return mod(((x*34.0)+1.0)*x,289.0);}
+float snoise(vec2 v){const vec4 C=vec4(0.211324865405187,0.366025403784439,-0.577350269189626,0.024390243902439);vec2 i=floor(v+dot(v,C.yy));vec2 x0=v-i+dot(i,C.xx);vec2 i1=(x0.x>x0.y)?vec2(1.0,0.0):vec2(0.0,1.0);vec4 x12=x0.xyxy+C.xxzz;x12.xy-=i1;i=mod(i,289.0);vec3 p=permute(permute(i.y+vec3(0.0,i1.y,1.0))+i.x+vec3(0.0,i1.x,1.0));vec3 m=max(0.5-vec3(dot(x0,x0),dot(x12.xy,x12.xy),dot(x12.zw,x12.zw)),0.0);m=m*m;m=m*m;vec3 x=2.0*fract(p*C.www)-1.0;vec3 h=abs(x)-0.5;vec3 ox=floor(x+0.5);vec3 a0=x-ox;m*=1.79284291400159-0.85373472095314*(a0*a0+h*h);vec3 g;g.x=a0.x*x0.x+h.x*x0.y;g.yz=a0.yz*x12.xz+h.yz*x12.yw;return 130.0*dot(m,g);}
+struct ColorStop{vec3 color;float position;};
+void main(){vec2 uv=gl_FragCoord.xy/uResolution;float yy=(uFlip>0.5)?(1.0-uv.y):uv.y;
+ColorStop colors[3];colors[0]=ColorStop(uColorStops[0],0.0);colors[1]=ColorStop(uColorStops[1],0.5);colors[2]=ColorStop(uColorStops[2],1.0);
+vec3 rampColor;int idx=0;for(int i=0;i<2;i++){bool ib=colors[i].position<=uv.x;idx=int(mix(float(idx),float(i),float(ib)));}ColorStop cc=colors[idx];ColorStop nc=colors[idx+1];float rng=nc.position-cc.position;float lf=(uv.x-cc.position)/rng;rampColor=mix(cc.color,nc.color,lf);
+float height=snoise(vec2(uv.x*2.0+uTime*0.1,uTime*0.25))*0.5*uAmplitude;height=exp(height);height=(yy*2.0-height+0.2);float intensity=0.6*height;
+float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,intensity);vec3 ac=intensity*rampColor;fragColor=vec4(ac*aa,aa);}`;
+    function mk(tp,s){var sh=gl.createShader(tp);gl.shaderSource(sh,s);gl.compileShader(sh);return gl.getShaderParameter(sh,gl.COMPILE_STATUS)?sh:null;}
+    var vs=mk(gl.VERTEX_SHADER,VERT), fs=mk(gl.FRAGMENT_SHADER,FRAG); if(!vs||!fs) return;
+    var prog=gl.createProgram();gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog,gl.LINK_STATUS)) return;
+    gl.useProgram(prog);
+    var vao=gl.createVertexArray();gl.bindVertexArray(vao);
+    var b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+    var loc=gl.getAttribLocation(prog,'position');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+    var U={};['uTime','uAmplitude','uColorStops','uResolution','uBlend','uFlip'].forEach(function(n){U[n]=gl.getUniformLocation(prog,n);});
+    var COLS=[0xff/255,0x2d/255,0x2d/255, 0x5a/255,0,0, 0xff/255,0x2d/255,0x2d/255];
+    var CA=new Float32Array(COLS), BLEND=0.89, SPEED=1.4, FLIP=1.0;
+    var t0=null,last=0,raf=0;
+    function size(){var w=canvas.clientWidth||342,hh=canvas.clientHeight||600;canvas.width=Math.max(1,Math.round(w*dpr));canvas.height=Math.max(1,Math.round(hh*dpr));}
+    size();
+    function frame(now){
+      if(!canvas.isConnected){ try{cancelAnimationFrame(raf);var ext=gl.getExtension('WEBGL_lose_context');if(ext)ext.loseContext();}catch(_){} return; }
+      raf=requestAnimationFrame(frame);
+      if(now-last<minMs) return; last=now;
+      if(t0===null) t0=now;
+      if(canvas.clientWidth>0 && canvas.width!==Math.round(canvas.clientWidth*dpr)) size();
+      gl.useProgram(prog);gl.bindVertexArray(vao);gl.viewport(0,0,canvas.width,canvas.height);gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.uniform2f(U.uResolution,canvas.width,canvas.height);gl.uniform1f(U.uTime,(now-t0)*0.001*SPEED);
+      gl.uniform1f(U.uAmplitude, self._hpWarnAmp||0.8);gl.uniform1f(U.uBlend,BLEND);gl.uniform1f(U.uFlip,FLIP);
+      gl.uniform3fv(U.uColorStops,CA);
+      // 구간 투명도는 명령형으로(프레임워크 스타일 갱신 스킵 회피). CSS transition이 부드럽게 처리.
+      if(self._hpWarnOp!=null && canvas.style.opacity!==String(self._hpWarnOp)) canvas.style.opacity=self._hpWarnOp;
+      gl.drawArrays(gl.TRIANGLES,0,3);
+    }
+    raf=requestAnimationFrame(frame);
+  }
+  // 저체력 경보 구간 — 현재 전투 HP%로 판정(전투 중엔 진행 HP). 30%↓부터, 20·10%로 강해짐. null=경보 없음.
+  hpWarnTier(){
+    const c=this.combat; if(!c) return null;
+    const maxHp=(c.prof&&c.prof.maxHp)||this.gs.maxHp||1;
+    const hp=(c.phase==='fighting')? this.combatHp('player') : this.gs.hp;
+    const pct=Math.max(0,Math.min(100, hp/maxHp*100));
+    if(pct>30) return null;
+    if(pct>20) return {amp:0.80,op:0.35};
+    if(pct>10) return {amp:1.15,op:0.55};
+    return {amp:1.60,op:0.85};
   }
   monsterFront(m,fixed){
     const md=this.eng.byId.monster[m.id]||{};
@@ -1518,9 +1595,14 @@ col*=edgeFade(frag,uResolution,uOffset);col*=uIntensity;fragColor=vec4(clamp(col
     const placeTitle=(cityName?cityName+' · ':'')+zoneName;
     const flipped=c.flipped;
     const bossFrame = flipped && String((c.mProf&&c.mProf.grade)||'').toLowerCase()==='boss';
+    const hw=this.hpWarnTier(); if(hw){ this._hpWarnAmp=hw.amp; this._hpWarnOp=hw.op; }
     return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       // 보스 조우: 화면 전체 붉은 테두리 글로우 (구 카드 이너글로우 대체)
       bossFrame? h('div',{key:'bossframe',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:40,boxShadow:'inset 0 0 60px 7px rgba(150,20,16,.55)',animation:'rlBossScreen 3.4s ease-in-out infinite'}}):null,
+      // 저스태미너 경보 — 몬스터 공개(플립) 후 이번 전투가 탈진시키면 화면 전체 호박색
+      (flipped&&this.staWarn())?h('canvas',{key:'stawarn',ref:el=>this.mountStaWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:4,mixBlendMode:'screen',opacity:0.37}}):null,
+      // 저체력 경보 — 적색 Aurora(상단). 조우 시점 HP 낮으면(이전 전투 부상) 표시
+      hw?h('canvas',{key:'hpwarn',ref:el=>this.mountHpWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:5,mixBlendMode:'plus-lighter',opacity:hw.op,transition:'opacity .6s ease-out'}}):null,
       h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/art/zones/'+c.zoneId+'.jpg), url(assets/battle/encounter-banner.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
         h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:4}},
           h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, placeTitle),
