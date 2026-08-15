@@ -111,7 +111,7 @@ const PARALLAX_MONSTERS = new Set(['monster_abandoned_chihuahua']);
 // 메인 타이틀에 랜덤 재생할 영상(둘 중 하나). monster/mp4 → assets/art/loading/title/.
 const TITLE_VIDEOS = ['monster_security_camera.mp4','monster_gutter_roach.mp4'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 3;
+const TITLE_VER = 4;
 const TITLE_DATE = '0815';
 // 로딩 화면 팁 — 시트 Tip 탭 미로드/폴백용(로컬 번들 등). 시트에 값 있으면 그쪽 우선.
 const TIP_FALLBACK = [
@@ -2605,7 +2605,9 @@ void main(){
           :(this.eng.isHidden(inst,'growthTags')?h('div',{style:{position:'absolute',right:15,top:15,display:'flex'}},
             h('div',{style:{height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(118,131,243,0.55)',padding:'0 8px',display:'flex',alignItems:'center',gap:3}},
               h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'0.6px',color:'#7683F3',whiteSpace:'nowrap'}}, this.t('appraise_unappraised')))):null),
-        h('span',{style:{position:'absolute',left:15,bottom:13,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, cat),
+        h('span',{style:{position:'absolute',left:15,bottom:13,display:'flex',alignItems:'center',gap:7,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}},
+          h('span',null,cat),
+          this.isEquipped(inst.uid)?h('span',{style:{color:'#83B289'}}, this.en()?'EQUIPPED':'착용중'):null),
         maxStk>1?h('span',{style:{position:'absolute',right:15,bottom:13,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, 'MAX STACK '+maxStk):null),
       // BODY
       h('div',{style:{alignSelf:'stretch',flexGrow:1,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start',minHeight:0}},
@@ -3010,6 +3012,20 @@ void main(){
   }
   growthChips(inst){ const active=this.eng.growthTagsActive(inst); if(!active||!active.length) return []; const kr={str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')}; const cnt={}; active.forEach(t=>cnt[t]=(cnt[t]||0)+1); return Object.entries(cnt).map(([k,n])=>this.subTag(kr[k]+(n>1?(' ×'+n):''))); }
   affixList(inst){ if(!inst||!inst.affixes) return []; return inst.affixes.map(af=>({label:(af.type==='prefix'?this.t('affix_prefix'):this.t('affix_suffix'))+' · '+this.eng.affixName(af), val:this.eng.affixTarget(af)+' '+(af.value>=0?'+':'')+af.value})); }
+  // 상세 카드 제스처: 위로 스와이프=닫기 / 정지 홀드(150ms)=착용품 비교 플립(canPeek일 때만). 움직임>8px면 홀드 취소·드래그.
+  sheetGestures(canPeek){ return {
+    onPointerDown:(e)=>{ this._csEl=e.currentTarget; this._csy=e.clientY; this._csMoved=false; try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){}
+      if(canPeek){ clearTimeout(this._csPeekT); this._csPeekT=setTimeout(()=>{ if(!this._csMoved) this.setState({peek:true}); },150); } },
+    onPointerMove:(e)=>{ if(this._csy==null)return; const dy=e.clientY-this._csy;
+      if(!this._csMoved && Math.abs(dy)>8){ this._csMoved=true; clearTimeout(this._csPeekT); if(this.state.peek) this.setState({peek:false}); }
+      if(this._csMoved){ const ty=Math.min(0,dy); const el=this._csEl; if(el){ el.style.transition='none'; el.style.transform='translateY('+ty+'px)'; el.style.opacity=String(Math.max(0.15,1+ty/420)); } } },
+    onPointerUp:(e)=>{ if(this._csy==null)return; const dy=e.clientY-this._csy; clearTimeout(this._csPeekT); this._csy=null; const el=this._csEl;
+      if(this._csMoved){ this._csMoved=false;
+        if(dy<-90){ this.setState({sel:null,moveQty:null,peek:false}); return; }
+        if(el){ el.style.transition='transform .24s ease-out, opacity .24s ease-out'; el.style.transform='none'; el.style.opacity='1'; } }
+      else if(this.state.peek){ this.setState({peek:false}); } },
+    onPointerCancel:()=>{ clearTimeout(this._csPeekT); this._csy=null; this._csMoved=false; if(this.state.peek) this.setState({peek:false}); const el=this._csEl; if(el){ el.style.transition='transform .2s, opacity .2s'; el.style.transform='none'; el.style.opacity='1'; } },
+  }; }
   itemSheet(){
     const inst=this.eng.instById(this.gs,this.state.sel); if(!inst){ return null; }
     const usbRow=this.eng.byId.usb?this.eng.byId.usb[inst.id]:null;
@@ -3027,10 +3043,28 @@ void main(){
     const q=Math.max(1,Math.min(this.state.moveQty ?? (inst.qty||1), inst.qty||1));
     const isConsum=inst.kind==='item'&&(s.EffectType==='heal'||s.EffectType==='stamina');
     const ch=this.lootCardH(inst);
-    return h('div',{onClick:()=>this.setState({sel:null,moveQty:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
-      // 업데이트된 카드 (전리품 카드와 동일)
+    // 꾹 눌러 비교: 미착용 장비 + 그 슬롯에 착용품 있으면 → hold 시 착용 장비로 플립(비교)
+    const slot=this.slotOf(inst);
+    const eqUid=slot?this.gs.equip[slot]:null;
+    const counterpart=(equippable && !equipped && eqUid)?this.eng.instById(this.gs,eqUid):null;
+    const peek=!!(this.state.peek && counterpart);
+    const cmpH=counterpart?Math.max(this.lootCardH(inst),this.lootCardH(counterpart)):0;
+    return h('div',{onClick:()=>this.setState({sel:null,moveQty:null,peek:false}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
+      // 업데이트된 카드 (전리품 카드와 동일) — 카드는 상단 영역 중앙정렬
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...inst,qty:1},'fit'))),
+        // 드래그 래퍼(위로 스와이프=닫기, canPeek면 정지 홀드=플립). 카드가 화면 꽉 차도 스와이프로 닫힘.
+        h('div',Object.assign({onClick:e=>e.stopPropagation()}, this.sheetGestures(!!counterpart), {style:{width:342,touchAction:'none',cursor:'pointer',flex:'0 0 auto',willChange:'transform,opacity'}}),
+          counterpart
+          ? h('div',{style:{perspective:'1400px'}},
+              // 플립 이너: preserve-3d + 면교체(모바일 반투명 방지). 앞=미착용 아이템 / 뒤=같은 슬롯 착용품
+              h('div',{style:{position:'relative',minHeight:cmpH,transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .45s cubic-bezier(.2,.8,.2,1)',transform:peek?'rotateY(180deg)':'none'}},
+                h('div',{style:{backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',visibility:peek?'hidden':'visible',transition:'visibility 0s linear .225s'}}, this.lootCardBig({...inst,qty:1},'fit')),
+                h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',visibility:peek?'visible':'hidden',transition:'visibility 0s linear .225s'}}, this.lootCardBig({...counterpart,qty:1},'fit'))))
+          : this.lootCardBig({...inst,qty:1},'fit'))),
+      // 위로 올려 닫기 힌트 — 하단 액션 박스에서 16px 위(위 화살표 바운스 + 텍스트)
+      h('div',{style:{flex:'0 0 auto',padding:'6px 16px 0',marginBottom:16}},
+        this.lmChevron('up'),
+        h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, this.en()?'Swipe up to close':'위로 올려 닫기')),
       // 하단 액션 박스 (아이템 카테고리별 버튼 구성)
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
         isConsum?h('div',{style:{display:'flex',gap:5,marginBottom:16}}, h('div',{style:{flex:1}},this.fbar(this.t('stat_hp'),this.gs.hp,this.gs.maxHp,'#ae615c')), h('div',{style:{flex:1}},this.fbar(this.t('stat_stamina'),this.gs.sta,this.staMax,'#c19e6f'))):null,
@@ -3039,8 +3073,8 @@ void main(){
           this.fstepper(q,inst.qty)) : null,
         h('div',{style:{display:'flex',gap:8}},
           isConsum?this.fbtn(this.t('heal_use_item'),'#83b289',()=>this.useConsumable(inst),true):null,
-          equippable?this.fbtn(equipped?this.t('equip_unequip_btn'):this.t('equip_equip'),equipped?'#a9abaf':'#eaebee',()=>{ this.toggleEquip(inst); this.setState({sel:null,moveQty:null}); },true):null,
-          this.fbtn((inVault?this.t('btn_to_belongings'):this.t('btn_to_vault')),'#eaebee',()=>{this.moveStack(inst.uid,q);this.setState({sel:null,moveQty:null});},true))));
+          equippable?this.fbtn(equipped?this.t('equip_unequip_btn'):this.t('equip_equip'),equipped?'#a9abaf':'#eaebee',()=>{ this.toggleEquip(inst); this.setState({sel:null,moveQty:null,peek:false}); },true):null,
+          this.fbtn((inVault?this.t('btn_to_belongings'):this.t('btn_to_vault')),'#eaebee',()=>{this.moveStack(inst.uid,q);this.setState({sel:null,moveQty:null,peek:false});},true))));
   }
 
   // 상점 구매 모달 — itemSheet 패턴 재사용(상세카드 + 수량 스테퍼 + 닫기/구매하기)
