@@ -103,16 +103,50 @@ const T = {
 const ATTR = { bleed:{kr:'출혈',c:T.bleed}, stun:{kr:'기절',c:T.stun}, pierce:{kr:'관통',c:T.pierce}, rupture:{kr:'파열',c:T.rupture}, sever:{kr:'절단',c:T.mid} };
 // safe lookup — items/monsters may carry an Attribute like "none" or a value absent from the map
 const AT = (x)=> (x && ATTR[x]) ? ATTR[x] : null;
+// 장비 박스 슬롯 표시 순서(gs.equip 키 ↔ 카테고리 라벨). 미착용도 자리를 지킨다.
+const GEAR_SLOTS = [['bag','가방'],['weapon','무기'],['head','투구'],['body','갑옷'],['artifact1','장신구'],['artifact2','징표']];
 const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소' };
 // 몬스터 아트 보유 목록 — 출정 로딩 배경 랜덤 픽 판정용(assets/art/monsters/*.jpg). 아트 추가 시 갱신.
-const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_malfunctioning_surgeon','monster_pale_lynx','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_wandering_sentry','monster_abandoned_chihuahua']);
-// 출정 로딩 패럴랙스 세트 보유 몬스터 — assets/art/loading/battle/<id>/{bg.jpg, fg.png}. 있으면 2레이어+자이로, 없으면 단일 켄번즈.
-const PARALLAX_MONSTERS = new Set(['monster_abandoned_chihuahua']);
+const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','monster_bloated_toad','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_pale_lynx','monster_rogue_emergency','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_spore_gardener','monster_wandering_sentry','monster_abandoned_chihuahua']);
+// 부팅 로딩 패럴랙스 세트 — 부팅할 때마다 랜덤 1개. 패럴랙스(2레이어+자이로)는 부팅 전용이고,
+// 출정 로딩은 항상 단일 레이어 켄번즈(해당 존 스폰 몬스터 아트)를 쓴다.
+// fgCover: false=독수리 전용 좌표(상단 좌측 걸침) / true=하단 중앙 원본비율 cover.
+const BOOT_SETS = [
+  { bg:'assets/art/loading/booting/001/haram_city.jpg', fg:'assets/art/loading/booting/001/haram_eagle.png?v=2', fgCover:false },
+  { bg:'assets/art/loading/booting/002/bg.jpg',         fg:'assets/art/loading/booting/002/fg.png',              fgCover:true  }
+];
 // 메인 타이틀에 랜덤 재생할 영상(둘 중 하나). monster/mp4 → assets/art/loading/title/.
 const TITLE_VIDEOS = ['monster_security_camera.mp4','monster_gutter_roach.mp4'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 5;
+const TITLE_VER = 6;
 const TITLE_DATE = '0816';
+// 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
+// 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
+// ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
+const PATCH_NOTES = [
+  { ver:6, date:'16/Aug', lines:[
+    ['귀환 성공 후 체력과 스태미너를 한 번에 회복하는 화면 추가됨.','A new station lets you restore health and stamina at once after extraction.'],
+    ['장비 비교는 카드를 한 번 눌러 뒤집는 방식으로 변경됨.','Tap an item card once to flip and compare it.'],
+    ['소지품 장비 칸에 여섯 자리 전부 표시됨.','The gear box now shows all six slots.'],
+    ['카드 상세 창에서 카드가 위로 치우치던 문제 수정됨.','Fixed the item card sitting too high in the detail view.'] ] },
+  { ver:5, date:'16/Aug', lines:[
+    ['새 지역 "무너진 온실" 추가됨.','New zone "Collapsed Conservatory" is now open.'],
+    ['새로운 적 두 종류 추가됨.','Two new enemies have appeared.'],
+    ['일부 지역의 배경 그림 새로 그려짐.','Several zone backgrounds have been redrawn.'] ] },
+  { ver:4, date:'15/Aug', lines:[
+    ['장비 카드를 길게 눌러 착용 중인 장비와 비교 가능해짐.','Hold an item card to compare it with your equipped gear.'],
+    ['착용 중인 장비에 착용중 표시 추가됨.','Equipped items now show an equipped label.'],
+    ['카드 상세 창을 위로 밀어서 닫을 수 있게 됨.','Swipe up to close the item detail view.'] ] },
+  { ver:3, date:'15/Aug', lines:[
+    ['스태미너가 전투 종료 후에 소모되도록 변경됨.','Stamina is now consumed after combat ends.'],
+    ['스태미너가 바닥나는 전투에 경고 표시됨.','A warning shows when a fight will empty your stamina.'],
+    ['체력이 30% 아래로 떨어지면 화면에 붉은 경고 표시됨.','The screen turns red when health falls below 30 percent.'] ] },
+  { ver:2, date:'14/Aug', lines:[
+    ['안드로이드에서 카드를 좌우로 넘길 수 없던 문제 수정됨.','Fixed cards not swiping left or right on Android.'] ] },
+  { ver:1, date:'14/Aug', lines:[
+    ['시작 화면 새로 추가됨.','A new title screen has been added.'],
+    ['홈 화면에 추가할 때 쓰는 아이콘 교체됨.','Replaced the home screen shortcut icon.'] ] }
+];
 // 로딩 화면 팁 — 시트 Tip 탭 미로드/폴백용(로컬 번들 등). 시트에 값 있으면 그쪽 우선.
 const TIP_FALLBACK = [
   ['죽으면 가방과 그 안의 전리품을 모두 잃는다. 주머니 2칸과 착용 장비만 살아남는다.','On death you lose your bag and all its loot — only your 2 pocket slots and equipped gear survive.'],
@@ -174,8 +208,9 @@ class Component extends DCLogic {
     try{ await this._dataPromise; }catch(_){}
     const rest=4000-(performance.now()-t0); if(rest>0) await new Promise(r=>setTimeout(r,rest));
     const sv=this.readSave();
-    if(sv){ this.applySave(sv); this.setState({ ready:true, resumeBanner:true }); }
-    else { this.newRun(true); this.setState({ ready:true }); }
+    const notice=this.noticePending();
+    if(sv){ this.applySave(sv); this.setState({ ready:true, resumeBanner:true, notice }); }
+    else { this.newRun(true); this.setState({ ready:true, notice }); }
     this.stopGyro();
     this.bootFromQuery();
   }
@@ -457,6 +492,8 @@ class Component extends DCLogic {
     this.setState({ screen:'result' });
   }
   toSafehouse(){ this.gs.sorties++; this.combat=null; this.go('safehouse'); }
+  // 귀환 성공 → 회복 스테이션(S5-3). 배너에 쓸 존 ID를 combat 정리 전에 챙겨둔다.
+  toReturnHeal(){ this.gs.sorties++; this._retZoneId=(this.combat&&this.combat.zoneId)||null; this.combat=null; this._retHealing=false; this.go('returnheal'); }
 
   // ---------- inventory ----------
   medicineMax(){ return this.eng.N(this.eng.DATA.config.medicine_slot_default,5); }
@@ -599,13 +636,13 @@ class Component extends DCLogic {
       opts.bg? h('div',{ref:opts.bgRef,style:{position:'absolute',inset:0,willChange:'transform'}},
         h('div',{style:{position:'absolute',inset:'-7%',backgroundImage:'url('+opts.bg+')',backgroundSize:'cover',backgroundPosition:'center'}})):null,
       opts.fg? (opts.fgCover
-        // 출정 몬스터: 원본 비율 유지 cover(중앙). 독수리 같은 특수 좌표 없이 제공 비율대로.
+        // 부팅 세트 002(치와와 등): 원본 비율 유지 하단 중앙. 독수리 같은 특수 좌표 없이 제공 비율대로.
         ? h('div',{ref:opts.fgRef,style:{position:'absolute',inset:0,display:'flex',alignItems:'flex-end',justifyContent:'center',willChange:'transform',pointerEvents:'none'}},
             h('img',{src:opts.fg,style:{height:'58%',width:'auto',objectFit:'contain',display:'block',transformOrigin:'50% 100%',animation:'rlKenBurns 28s ease-out both'}}))
         // 부팅 독수리: svg screen-boot-loading 좌표(상단 좌측 걸침)
         : h('div',{ref:opts.fgRef,style:{position:'absolute',left:'-43.8%',top:0,width:'143.8%',willChange:'transform',pointerEvents:'none'}},
             h('img',{src:opts.fg,style:{width:'100%',display:'block',transformOrigin:'50% 32%',animation:'rlKenBurns 28s ease-out both'}}))):null,
-      // 단일 배경(출정): 몬스터 아트 켄번즈
+      // 단일 배경(출정 전용): 몬스터 아트 켄번즈(천천히 확대)
       (!opts.bg&&opts.bgImage)? h('div',{style:{position:'absolute',inset:0,backgroundImage:'url('+opts.bgImage+')',backgroundSize:'cover',backgroundPosition:'center',transformOrigin:'center',animation:'rlKenBurns 16s ease-out both'}}):null,
       // 하단 그라데이션 — 이미지를 덮어 텍스트 가독성 확보(y486~828 투명→#18191D)
       h('div',{style:{position:'absolute',left:0,right:0,bottom:0,height:342,background:'linear-gradient(180deg, rgba(24,25,29,0) 0%, #18191D 100%)',pointerEvents:'none'}}),
@@ -652,13 +689,54 @@ class Component extends DCLogic {
   loading(){
     if(this.state && this.state.err) return this.phone(h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:T.lo,fontFamily:T.mono,fontSize:13}}, (this.eng?this.t('frag_error'):'오류:')+' '+this.state.err));
     if(!this._bootTip) this._bootTip = this.pickTip ? this.pickTip() : (this.en()?TIP_FALLBACK[0][1]:TIP_FALLBACK[0][0]);
+    if(!this._bootSet) this._bootSet = BOOT_SETS[Math.floor(Math.random()*BOOT_SETS.length)];
     return this.phone(this.loadingView({
-      bg:'assets/art/loading/booting/001/haram_city.jpg', fg:'assets/art/loading/booting/001/haram_eagle.png?v=2',
+      bg:this._bootSet.bg, fg:this._bootSet.fg, fgCover:this._bootSet.fgCover,
       bgRef:el=>{ this._bootBgEl=el; }, fgRef:el=>{ this._bootFgEl=el; if(el && !this._gyroOn){ this._gyroOn=true; this.startGyro(); } },
       tip:this._bootTip,
       fillRef:el=>{ if(el && !this._bootLoadStarted){ this._bootLoadStarted=true; this.animLoad(el, this._bootNumEl, 4000); } },
       numRef:el=>{ this._bootNumEl=el; } }));
   }
+
+  // ---------- 업데이트 공지 (screen-update-notice.svg · 402x828 기준) ----------
+  // 부팅 로딩 종료 직후 1회 전체화면. 본 버전은 localStorage 'rl_notice_seen'에 저장 —
+  // 세이브(rl_save_v1)와 별도 키라 세이브를 초기화해도 공지가 다시 뜨지 않는다.
+  // 부팅할 때마다 항상 표시(고정 테스터 대상). 버전별 1회 표시로 되돌리려면 PATCH_NOTES[0].ver 와
+  // localStorage 'rl_notice_seen' 을 비교하도록 바꾸면 된다.
+  noticePending(){ return PATCH_NOTES.length>0; }
+  closeNotice(){ this.setState({notice:false}); }
+  // 릴리스 헤더 칩 — 좌: 버전(도트+라벨, #212327/#36383C) / 우: 날짜(#0A0B0E/#DEDEDE).
+  // 최신 블록(newest)만 우측을 날짜 대신 NEW + 프로젝트 파랑(#7CA5BB)으로.
+  noticeChips(rel,newest){
+    const B='#7CA5BB';
+    const chip=(kids,bg,bd,col)=>h('div',{style:{display:'inline-flex',alignItems:'center',gap:6,height:18,padding:'0 9px',boxSizing:'border-box',borderRadius:999,background:bg,border:'1px solid '+bd,fontFamily:T.mono,fontSize:10,letterSpacing:'0.5px',color:col||'#A9ABAF',whiteSpace:'nowrap'}},...kids);
+    return h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px'}},
+      chip([h('span',{style:{width:5,height:5,borderRadius:999,background:'#6F7276',flex:'0 0 auto'}}),
+            h('span',null,'vA0.'+String(rel.ver).padStart(4,'0'))],'#212327','#36383C'),
+      newest? chip([h('span',null,'NEW')],'#0A0B0E',B,B)
+            : chip([h('span',null,rel.date)],'#0A0B0E','#DEDEDE'));
+  }
+  noticeModal(){
+    return h('div',{style:{position:'absolute',inset:0,zIndex:60,background:'#111315',display:'flex',flexDirection:'column',overflow:'hidden',animation:'rlFade .22s ease-out'}},
+      // 스크롤 영역 — 배너부터 마지막 항목까지 함께 스크롤. 하단 박스 높이(95+16)만큼 여백.
+      h('div',{style:{flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch'}},
+        h('div',{style:{position:'relative',height:118,flex:'0 0 auto',overflow:'hidden'}},
+          h('img',{src:'assets/art/loading/title/the404_title.png',alt:'',style:{position:'absolute',left:'50%',top:0,width:118,height:118,transform:'translateX(-50%)',objectFit:'contain',pointerEvents:'none'}}),
+          h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(24,25,29,0) 0%, #111315 100%)',pointerEvents:'none'}}),
+          h('div',{style:{position:'absolute',left:16,bottom:11,fontFamily:T.mono,fontSize:9,fontWeight:500,letterSpacing:'2.4px',color:'#4B4D52'}},'UPDATE')),
+        ...PATCH_NOTES.map((rel,ri)=>h('div',{key:'rel'+rel.ver,style:{paddingTop:ri?23:0}},
+          this.noticeChips(rel, ri===0),
+          h('div',{style:{padding:'0 16px'}},
+            // 52px = 디자인 기준 1줄+1줄. 문장이 길어 줄바꿈되면 minHeight로 자연히 늘어난다(겹침 방지).
+            ...rel.lines.map((ln,i)=>h('div',{key:i,style:{minHeight:52,boxSizing:'border-box',padding:'8px 0',display:'flex',flexDirection:'column',justifyContent:'center',gap:3,borderBottom:'1px solid #36383C'}},
+              h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:400,lineHeight:'16px',color:'#EAEBEE'}}, ln[0]),
+              h('div',{style:{fontFamily:T.sans,fontSize:13,fontWeight:400,lineHeight:'15px',color:'#6F7276'}}, ln[1])))))),
+        h('div',{style:{height:16}})),
+      // 하단 고정 확인 박스 — 안전가옥 인터페이스 규약(박스 #18191D r24 + pill #212227 h48)
+      h('div',{style:{flex:'0 0 auto',margin:'0 10px 24px',padding:'23px 23px',boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid #36383C'}},
+        h('button',{onClick:()=>this.closeNotice(),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.en()?'OK':'확인')));
+  }
+
   // 출정 로딩(강제 2.5초) — 확인 후 카드 드로우 전 삽입
   // 출정 로딩 배경 = 해당 존 스폰 몬스터 중 아트 있는 것 랜덤(없으면 전체 아트 폴백)
   sortieMonsterBg(zoneId){
@@ -667,20 +745,14 @@ class Component extends DCLogic {
     if(!pool.length) pool=[...MONSTER_ART];
     if(!pool.length) return null;
     const id=pool[Math.floor(Math.random()*pool.length)];
-    // 패럴랙스 세트 보유 몬스터면 배경+몬스터 2레이어, 아니면 단일 몬스터 아트
-    if(PARALLAX_MONSTERS.has(id)) return {parallax:true, bg:'assets/art/loading/battle/'+id+'/bg.jpg', fg:'assets/art/loading/battle/'+id+'/fg.png'};
-    return {parallax:false, bgImage:'assets/art/monsters/'+id+'.jpg'};
+    // 출정 로딩은 항상 단일 레이어 켄번즈(천천히 확대). 패럴랙스는 부팅 전용 — BOOT_SETS 참조.
+    return {bgImage:'assets/art/monsters/'+id+'.jpg'};
   }
   sortieLoadScreen(){
     const b=this._sortieBg||{};
-    const base={ tip:this._sortieTip,
+    return this.loadingView({ tip:this._sortieTip, bgImage:b.bgImage,
       fillRef:el=>{ if(el && !this._sortieLoadStarted){ this._sortieLoadStarted=true; this.animLoad(el, this._sortieNumEl, 3000, ()=>this.beginSortieCombat()); } },
-      numRef:el=>{ this._sortieNumEl=el; } };
-    if(b.parallax){ base.bg=b.bg; base.fg=b.fg; base.fgCover=true;
-      base.bgRef=el=>{ this._bootBgEl=el; };
-      base.fgRef=el=>{ this._bootFgEl=el; if(el && !this._gyroOn){ this._gyroOn=true; this.startGyro(); } };
-    } else { base.bgImage=b.bgImage; }
-    return this.loadingView(base);
+      numRef:el=>{ this._sortieNumEl=el; } });
   }
   phone(...kids){ return h('div',{className:'rl-frame',style:{background:T.bg,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}}, ...kids); }
 
@@ -739,8 +811,9 @@ class Component extends DCLogic {
     else if(s==='settings') body=this.settings();
     else if(s==='lootmanage') body=this.lootManage();
     else if(s==='sortieLoad') body=this.sortieLoadScreen();
-    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad';
-    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null);
+    else if(s==='returnheal') body=this.returnHeal();
+    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal';
+    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, this.state.notice?this.noticeModal():null);
   }
 
   // ---- safehouse ----
@@ -2444,7 +2517,7 @@ void main(){
           this.resultSato()),
         h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
           h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
-            h('button',{onClick:()=>{ if(this._resAnimating) this.skipResultAnim(); else this.toSafehouse(); },style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'To Safehouse':'안전가옥으로'))));
+            h('button',{onClick:()=>{ if(this._resAnimating) this.skipResultAnim(); else this.toReturnHeal(); },style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'To Safehouse':'안전가옥으로'))));
     }
     // loot 카드 개봉 — 전투 진입 몬스터 카드 화면과 동일 (성장 정보 없음)
     const focus=c.lootFocusIdx||0;
@@ -2816,8 +2889,6 @@ void main(){
     const PK=2, BG=this.eng.equippedBagCapacity?this.eng.equippedBagCapacity(gs):0;
     const equipped=[], pocket=[], bag=[];
     gs.bag.forEach(inst=>{ if(this.isEquipped(inst.uid)){ equipped.push(inst); return; } if(inst.loc==='pocket') pocket.push(inst); else { if(!inst.loc) inst.loc='bag'; bag.push(inst); } });
-    // 장비 박스: 가방을 항상 맨 위로
-    equipped.sort((a,b)=>(b.kind==='bag'?1:0)-(a.kind==='bag'?1:0));
     // 배낭 섹션 헤더: 가방 착용 시 가방 이름으로 표시
     const bagInst=gs.equip&&gs.equip.bag?this.eng.instById(gs,gs.equip.bag):null;
     const bagLabel=bagInst?this.itemLabel(bagInst):(this.en()?'Backpack':'배낭');
@@ -2830,8 +2901,12 @@ void main(){
       secs.push(h('div',{key:'pk',style:{marginTop:12}}, secHead(blue,this.en()?'Pocket':'주머니',pocket.length,PK), box(blue,rows))); }
     if(BG>0||bag.length){ const cap=Math.max(BG,bag.length); const rows=[]; for(let i=0;i<cap;i++) rows.push(bag[i]?this.invSlotRow(bag[i],'bag',catOf):this.invEmptySlot('bag',i));
       secs.push(h('div',{key:'bg',style:{marginTop:14}}, secHead(gold,bagLabel,bag.length,BG), box(gold,rows))); }
-    { const rows=equipped.length? equipped.map(inst=>this.invGearRow(inst,catOf)) : [h('div',{key:'e0',style:{padding:'14px 15px',fontFamily:T.sans,fontSize:12,color:T.faint,background:T.bg}}, this.en()?'Nothing equipped':'착용한 장비 없음')];
-      secs.push(h('div',{key:'gr',style:{marginTop:14}}, secHead(green,this.en()?'Gear':'장비',equipped.length,6), box(green,rows))); }
+    // 장비 박스 = 6슬롯 고정 표시(screen-inventory-slot-v2.svg). 미착용 슬롯도 회색 칩으로 자리를 지킨다.
+    { const rows=GEAR_SLOTS.map(([slot,label])=>{
+        const uid=gs.equip?gs.equip[slot]:null;
+        const inst=uid?this.eng.instById(gs,uid):null;
+        return inst? this.invGearRow(inst,catOf) : this.invGearEmpty(slot,label); });
+      secs.push(h('div',{key:'gr',style:{marginTop:14}}, secHead(green,this.en()?'Gear':'장비',equipped.length,GEAR_SLOTS.length), box(green,rows))); }
     return h('div',{style:{flex:1,overflowY:'auto',padding:'8px 18px 100px'}}, secs);
   }
   invSlotRow(inst,sec,catOf){
@@ -2857,6 +2932,12 @@ void main(){
     return h('div',{key:'e'+sec+idx,'data-invslot':'1','data-sec':sec,'data-uid':'',
       style:{height:38,display:'flex',alignItems:'center',padding:'0 15px',borderBottom:'1px solid '+T.line,background:T.bg}},
       h('span',{style:{display:'inline-flex',alignItems:'center',gap:5,borderRadius:4,border:'1px solid '+T.line2,padding:'3px 8px',fontFamily:T.mono,fontSize:9.5,color:T.faint}}, h('span',{style:{width:5,height:5,borderRadius:999,background:T.faint}}), this.en()?'Empty':'빈 슬롯'));
+  }
+  // 미착용 슬롯 행 — 회색 카테고리 칩 + '미착용'. 칩은 착용 행과 같은 catChip(on=false).
+  invGearEmpty(slot,label){
+    return h('div',{key:'ge_'+slot,style:{borderBottom:'1px solid '+T.line,background:T.bg,padding:'14px 15px'}},
+      h('div',{style:{display:'flex',alignItems:'center',gap:6}}, this.catChip(label,false)),
+      h('div',{style:{fontFamily:T.sans,fontSize:14,color:T.faint,marginTop:8}}, this.en()?'Not equipped':'미착용'));
   }
   invGearRow(inst,catOf){
     const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||(this.eng.byId.bag&&this.eng.byId.bag[inst.id])||{};
@@ -3012,19 +3093,21 @@ void main(){
   }
   growthChips(inst){ const active=this.eng.growthTagsActive(inst); if(!active||!active.length) return []; const kr={str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')}; const cnt={}; active.forEach(t=>cnt[t]=(cnt[t]||0)+1); return Object.entries(cnt).map(([k,n])=>this.subTag(kr[k]+(n>1?(' ×'+n):''))); }
   affixList(inst){ if(!inst||!inst.affixes) return []; return inst.affixes.map(af=>({label:(af.type==='prefix'?this.t('affix_prefix'):this.t('affix_suffix'))+' · '+this.eng.affixName(af), val:this.eng.affixTarget(af)+' '+(af.value>=0?'+':'')+af.value})); }
-  // 상세 카드 제스처: 위로 스와이프=닫기 / 정지 홀드(150ms)=착용품 비교 플립(canPeek일 때만). 움직임>8px면 홀드 취소·드래그.
+  // 상세 카드 제스처: 위로 스와이프=닫기 / 탭 1회=착용품 비교 플립 토글(canPeek일 때만).
+  // 움직임>8px면 탭이 아니라 드래그로 판정 → 두 제스처가 서로 간섭하지 않는다.
   sheetGestures(canPeek){ return {
-    onPointerDown:(e)=>{ this._csEl=e.currentTarget; this._csy=e.clientY; this._csMoved=false; try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){}
-      if(canPeek){ clearTimeout(this._csPeekT); this._csPeekT=setTimeout(()=>{ if(!this._csMoved) this.setState({peek:true}); },150); } },
+    onPointerDown:(e)=>{ this._csEl=e.currentTarget; this._csy=e.clientY; this._csMoved=false; try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){} },
     onPointerMove:(e)=>{ if(this._csy==null)return; const dy=e.clientY-this._csy;
-      if(!this._csMoved && Math.abs(dy)>8){ this._csMoved=true; clearTimeout(this._csPeekT); if(this.state.peek) this.setState({peek:false}); }
+      if(!this._csMoved && Math.abs(dy)>8) this._csMoved=true;
       if(this._csMoved){ const ty=Math.min(0,dy); const el=this._csEl; if(el){ el.style.transition='none'; el.style.transform='translateY('+ty+'px)'; el.style.opacity=String(Math.max(0.15,1+ty/420)); } } },
-    onPointerUp:(e)=>{ if(this._csy==null)return; const dy=e.clientY-this._csy; clearTimeout(this._csPeekT); this._csy=null; const el=this._csEl;
+    onPointerUp:(e)=>{ if(this._csy==null)return; const dy=e.clientY-this._csy; this._csy=null; const el=this._csEl;
       if(this._csMoved){ this._csMoved=false;
         if(dy<-90){ this.setState({sel:null,moveQty:null,peek:false}); return; }
-        if(el){ el.style.transition='transform .24s ease-out, opacity .24s ease-out'; el.style.transform='none'; el.style.opacity='1'; } }
-      else if(this.state.peek){ this.setState({peek:false}); } },
-    onPointerCancel:()=>{ clearTimeout(this._csPeekT); this._csy=null; this._csMoved=false; if(this.state.peek) this.setState({peek:false}); const el=this._csEl; if(el){ el.style.transition='transform .2s, opacity .2s'; el.style.transform='none'; el.style.opacity='1'; } },
+        if(el){ el.style.transition='transform .24s ease-out, opacity .24s ease-out'; el.style.transform='none'; el.style.opacity='1'; }
+        return; }
+      if(canPeek) this.setState({peek:!this.state.peek});         // 탭 = 뒤집기/되돌리기
+      else if(this.state.peek) this.setState({peek:false}); },
+    onPointerCancel:()=>{ this._csy=null; this._csMoved=false; const el=this._csEl; if(el){ el.style.transition='transform .2s, opacity .2s'; el.style.transform='none'; el.style.opacity='1'; } },
   }; }
   itemSheet(){
     const inst=this.eng.instById(this.gs,this.state.sel); if(!inst){ return null; }
@@ -3050,8 +3133,11 @@ void main(){
     const peek=!!(this.state.peek && counterpart);
     const cmpH=counterpart?Math.max(this.lootCardH(inst),this.lootCardH(counterpart)):0;
     return h('div',{onClick:()=>this.setState({sel:null,moveQty:null,peek:false}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
+      // 카드 영역 + 힌트를 한 컨테이너로 묶는다. 힌트를 absolute로 띄워야 레이아웃 높이를 먹지 않아
+      // 카드가 액션 박스 위 전체 공간의 정중앙에 온다(흐름에 두면 힌트 높이의 절반만큼 카드가 위로 밀림).
+      h('div',{style:{flex:1,minHeight:0,position:'relative'}},
       // 업데이트된 카드 (전리품 카드와 동일) — 카드는 상단 영역 중앙정렬
-      h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
+      h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',boxSizing:'border-box',overflow:'hidden'}},
         // 드래그 래퍼(위로 스와이프=닫기, canPeek면 정지 홀드=플립). 카드가 화면 꽉 차도 스와이프로 닫힘.
         h('div',Object.assign({onClick:e=>e.stopPropagation()}, this.sheetGestures(!!counterpart), {style:{width:342,touchAction:'none',cursor:'pointer',flex:'0 0 auto',willChange:'transform,opacity'}}),
           counterpart
@@ -3061,10 +3147,10 @@ void main(){
                 h('div',{style:{backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',visibility:peek?'hidden':'visible',transition:'visibility 0s linear .225s'}}, this.lootCardBig({...inst,qty:1},'fit')),
                 h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',visibility:peek?'visible':'hidden',transition:'visibility 0s linear .225s'}}, this.lootCardBig({...counterpart,qty:1},'fit'))))
           : this.lootCardBig({...inst,qty:1},'fit'))),
-      // 위로 올려 닫기 힌트 — 하단 액션 박스에서 16px 위(위 화살표 바운스 + 텍스트)
-      h('div',{style:{flex:'0 0 auto',padding:'6px 16px 0',marginBottom:16}},
+      // 위로 올려 닫기 힌트 — 액션 박스에서 16px 위(위 화살표 바운스 + 텍스트). absolute라 카드 중앙정렬에 영향 없음.
+      h('div',{style:{position:'absolute',left:0,right:0,bottom:16,padding:'0 16px',pointerEvents:'none'}},
         this.lmChevron('up'),
-        h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, this.en()?'Swipe up to close':'위로 올려 닫기')),
+        h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, this.en()?'Swipe up to close':'위로 올려 닫기'))),
       // 하단 액션 박스 (아이템 카테고리별 버튼 구성)
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
         isConsum?h('div',{style:{display:'flex',gap:5,marginBottom:16}}, h('div',{style:{flex:1}},this.fbar(this.t('stat_hp'),this.gs.hp,this.gs.maxHp,'#ae615c')), h('div',{style:{flex:1}},this.fbar(this.t('stat_stamina'),this.gs.sta,this.staMax,'#c19e6f'))):null,
@@ -3491,6 +3577,77 @@ void main(){
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
         h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
           h('button',{disabled:!can,onClick:can?()=>this.doHeal():null,style:{width:'100%',height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color:can?'#83b289':'#4b4d52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:can?'pointer':'default'}}, btnLabel))));
+  }
+  // ===== 귀환 회복 스테이션 (screen-return-autoheal.svg · 402x828 기준) =====
+  // 성장 화면 다음 단계. HP·스태미너를 한 번에 전액 회복하고, 비용은 healCost()+feedCost() 합산.
+  returnGlow(){ const el=this._retGlowEl; if(!el) return;
+    clearTimeout(this._retGlowT);
+    el.style.transition='opacity .3s ease-out'; el.style.opacity='0.5';
+    this._retGlowT=setTimeout(()=>{ if(!this._retGlowEl)return; this._retGlowEl.style.transition='opacity 1s ease-in'; this._retGlowEl.style.opacity='0'; }, 750);
+  }
+  doReturnHeal(){
+    const g=this.gs; if(this._retHealing) return;
+    const cost=this.healCost()+this.feedCost();
+    if(g.sato<cost) return;
+    const hp0=g.hp, sta0=g.sta, hpMax=g.maxHp, staMax=this.staMax;
+    g.sato-=cost; this._retHealing=true; this.forceUpdate();   // 두 버튼을 즉시 비활성 상태로
+    this.returnGlow();
+    Promise.all([
+      this.animRecover(this._retHpFill,this._retHpNum,this._retHpBar,hp0,hpMax,hpMax),
+      this.animRecover(this._retStaFill,this._retStaNum,this._retStaBar,sta0,staMax,staMax)
+    ]).then(()=>{
+      g.hp=hpMax; g.sta=staMax; this.saveGame();
+      setTimeout(()=>{ this._retHealing=false; this.go('safehouse'); }, 1500);   // 회복 완료 1.5초 후 자동 이동
+    });
+  }
+  returnHeal(){
+    const g=this.gs, staMax=this.staMax;
+    const cost=this.healCost()+this.feedCost();
+    const lack=Math.max(0,Math.round(g.maxHp-g.hp)), lackSta=Math.max(0,Math.round(staMax-g.sta));
+    const busy=!!this._retHealing;
+    const aff=g.sato>=cost, need=(lack>0||lackSta>0);
+    const can=aff&&need&&!busy;
+    const zone=this._retZoneId;
+    const pct=(v,m)=>m>0?Math.max(0,Math.min(100,v/m*100)):0;
+    // 게이지 행: 라벨 + 현재/최대 + 바(rcv-* 클래스 = 보건소 치료와 동일한 차오름/시머)
+    const gauge=(label,cur,max,col,edge,pulse,refs)=>h('div',null,
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:7}},
+        h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#6F7276'}}, label),
+        h('span',{ref:refs.num,style:{fontFamily:T.mono,fontSize:11,color:'#A9ABAF',letterSpacing:'.05em'}}, Math.round(cur)+' / '+Math.round(max))),
+      h('div',{className:'rcv-bar',ref:refs.bar,style:{position:'relative',height:6,background:'#2B2E32',borderRadius:1,overflow:'hidden','--rcv-edge':edge,'--rcv-pulse':pulse}},
+        h('div',{className:'rcv-fill',ref:refs.fill,style:{width:pct(cur,max)+'%',background:col}}),
+        h('div',{className:'rcv-shim'})));
+    const amountBox=(val,col)=>h('div',{style:{marginTop:15,height:52,boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',borderRadius:8,background:'#18191D',border:'1px solid #36383C'}},
+      h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#A9ABAF'}}, this.t('heal_amount')),
+      h('span',{style:{fontFamily:T.mono,fontSize:13,color:col}}, val));
+    const btn=(label,col,on,act)=>h('button',{disabled:!on,onClick:on?act:null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:on?col:'#4B4D52',fontFamily:T.sans,fontSize:13,fontWeight:400,cursor:on?'pointer':'default'}}, label);
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}},
+      // 회복 이너글로우 — 초록 단색(#83B289), restGlow와 동일 톤
+      h('div',{ref:el=>this._retGlowEl=el,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:60,opacity:0,boxShadow:'inset 0 0 60px 6px #83B289'}}),
+      h('div',{style:{flex:1,overflowY:'auto'}},
+        // 배너 118px + 하단 그라디언트 (출정한 존 아트)
+        h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:(zone?'url(assets/art/zones/'+zone+'.jpg), ':'')+'url(assets/battle/zone-banner.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
+          h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(17,19,21,0) 0%, #111315 100%)'}}),
+          // 제목은 배너 위에 겹친다(svg y75~110). 흐름에 두고 음수 마진을 주면 배너에 가려짐.
+          h('div',{style:{position:'absolute',left:16,bottom:8}},
+            h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:400,letterSpacing:'-0.22px',color:'#EAEBEE'}}, this.en()?'Extraction Complete':'귀환 성공'),
+            h('div',{style:{fontFamily:T.mono,fontSize:11,letterSpacing:'1.1px',color:'#83B289',paddingTop:9}}, 'EXTRACTION COMPLETE'))),
+        h('div',{style:{padding:'0 16px'}},
+          h('div',{style:{fontFamily:T.sans,fontSize:12,color:'#4B4D52',margin:'19px 0 16px'}}, this.en()?'Recover':'회복하기'),
+          gauge(this.t('stat_hp'),g.hp,g.maxHp,'#AE615C','#d68f7f','rgba(174,97,92,.55)',{num:el=>this._retHpNum=el,bar:el=>this._retHpBar=el,fill:el=>this._retHpFill=el}),
+          amountBox((this.en()?'HP 100% (+':'생명력 100% (+')+lack+')','#83B289'),
+          h('div',{style:{height:21}}),
+          gauge(this.t('stat_stamina'),g.sta,staMax,'#C19E6F','#e3c08a','rgba(193,158,111,.55)',{num:el=>this._retStaNum=el,bar:el=>this._retStaBar=el,fill:el=>this._retStaFill=el}),
+          amountBox((this.en()?'Stamina 100% (+':'스태미너 100% (+')+lackSta+')','#C19E6F'),
+          h('div',{style:{height:24}}))),
+      // 하단 고정 박스 — 지불 비용 + [모두 회복 / 건너뛰기]
+      h('div',{style:{flex:'0 0 auto',margin:'0 16px 24px',padding:'22px 15px 16px',boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid #36383C'}},
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',marginBottom:22}},
+          h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#A9ABAF'}}, this.en()?'Total cost':'지불 비용'),
+          h('span',{style:{fontFamily:T.mono,fontSize:13,color:aff?'#85B3C5':T.danger}}, cost.toLocaleString()+' '+this.t('currency_sato'))),
+        h('div',{style:{display:'flex',gap:8}},
+          btn(this.en()?'Recover All':'모두 회복','#83B289',can,()=>this.doReturnHeal()),
+          btn(this.en()?'Skip':'건너뛰기','#EAEBEE',!busy,()=>this.go('safehouse')))));
   }
   feedCost(){ return Math.max(0, Math.ceil((this.staMax - this.gs.sta) * this.eng.N(this.eng.DATA.config.stamina_cost_per_point, 2))); }
   doFeed(){ const g=this.gs; if(g.sta>=this.staMax){ this.flash(this.en()?'Stamina already full':'스태미너가 가득 찼습니다'); return; } const cost=this.feedCost(); if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
