@@ -257,6 +257,14 @@ class Component extends DCLogic {
     clearTimeout(this._saveT);
     this._saveT=setTimeout(()=>{ if(this.inSortie()) return; try{ localStorage.setItem('rl_save_v1', JSON.stringify(this.saveObj())); }catch(_){ } },400);
   }
+  // 출정 진입 비용(키카드 소모 등)을 확정하는 즉시 저장 — inSortie 가드를 1회 우회한다.
+  // 이걸 안 하면 진입 직후 앱을 껐다 켰을 때 비용이 되돌아와 '존 재굴리기'가 공짜가 된다.
+  // 전투/전리품은 여전히 저장하지 않으므로 중단된 출정은 무효라는 기존 규칙은 그대로.
+  saveNow(){
+    if(!this.gs || !this.eng) return;
+    clearTimeout(this._saveT);
+    try{ localStorage.setItem('rl_save_v1', JSON.stringify(this.saveObj())); }catch(_){ }
+  }
   validSave(o){ return !!(o && o.v===1 && o.gs && Array.isArray(o.gs.bag) && Array.isArray(o.gs.vault)); }
   readSave(){ try{ const s=localStorage.getItem('rl_save_v1'); if(!s) return null; const o=JSON.parse(s); return this.validSave(o)?o:null; }catch(_){ return null; } }
   applySave(o){
@@ -343,11 +351,13 @@ class Component extends DCLogic {
     return this.eng.DATA.monsters;
   }
   hasItem(id){ return this.gs.vault.some(x=>x.id===id)||this.gs.bag.some(x=>x.id===id); }
+  itemQty(id){ const n=(a)=>a.reduce((s,x)=>s+(x.id===id?(x.qty||1):0),0); return n(this.gs.bag)+n(this.gs.vault); }
   consumeItem(id){ const dec=(arr)=>{ const i=arr.findIndex(x=>x.id===id); if(i<0) return false; if(arr[i].qty>1) arr[i].qty--; else arr.splice(i,1); return true; }; return dec(this.gs.bag)||dec(this.gs.vault); }
   // 패스 차감은 태그 화면의 카드 삽입 시점(tapInsert)에서 이미 끝난 상태로 들어온다.
   startSortie(zoneId){
     const z=this.eng.byId.zone[zoneId];
     if(z && this.eng.N(z.IsHidden)===1 && z.UnlockType==='item' && z.UnlockKey){ this.consumeItem(z.UnlockKey); this.flash(this.t('zone_keycard_used')); }
+    this.saveNow();   // 진입 비용(키카드 소모) 확정 — combat 세팅 전이라 inSortie 가드와 무관
     this.combat = { zoneId, encounter:0, runLoot:[], runLootInsts:[], satoGained:0 };
     // 귀환 화면 성장 그래프용 — 출정 시작 시점 스냅샷
     this.combat.gSnap = Object.fromEntries(['str','dex','vit','will'].map(k=>[k,{ level:this.gs.growth[k].level, pct:this.eng.growthPct(this.gs,k) }]));
@@ -2649,8 +2659,13 @@ void main(){
   keycardBig(inst,fixed){
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)';
     return h('div',{style:{position:'relative',width:342,height:fixed?this.lootCardH(inst):'100%',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
-      h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
-      h('img',{key:'kcart',src:'assets/art/cards/'+inst.id+'.jpg',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',pointerEvents:'none'}}));
+      // 빗금은 아트 없을 때만 보이는 폴백 — 아트가 뜨면 숨긴다(키카드 아트는 알파 PNG라 잘린 단면으로 비쳐 보임).
+      h('div',{key:'kchatch',style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
+      // 알파 PNG(jpg면 잘린 단면이 흰색으로 구워진다). svg가 preserveAspectRatio="none"라 fill(=stretch) — cover면 위아래가 잘린다.
+      h('img',{key:'kcart',src:'assets/art/cards/'+inst.id+'.png',
+        onLoad:e=>{ const p=e.target.previousElementSibling; if(p) p.style.display='none'; },
+        onError:e=>{ e.target.style.display='none'; },
+        style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'fill',pointerEvents:'none'}}));
   }
   lootCardBig(inst,fixed){
     if(this.isKeycard(inst)) return this.keycardBig(inst,fixed);
@@ -3638,19 +3653,33 @@ void main(){
   // ===== 태그 단말 (screen-tap-terminal-*.svg · 402x828) =====
   // 존 모달 '출정하기' → 이 화면. 카드를 위로 끌어 단말에 삽입 → 패스 1회 차감 → 1.5초 뒤 출정 로딩.
   openTap(zoneId){ this._tapDone=false; this._tapDrag=null; this.setState({screen:'tap', tapZone:zoneId, modalZone:null}); }
+  // 키카드 존(경찰서 등)은 프로토콜 패스를 쓰지 않는다 — 키카드 1장을 삽입(1회용)하고 나간다.
+  // 키 소모 자체는 startSortie의 consumeItem(z.UnlockKey)가 이미 처리하므로 여기선 패스 차감만 건너뛴다.
+  tapKeyOf(zoneId){
+    const z=this.eng.byId.zone[zoneId];
+    if(z && this.eng.N(z.IsHidden)===1 && z.UnlockType==='item' && z.UnlockKey) return z.UnlockKey;
+    return null;
+  }
   tapInsert(){
     if(this._tapDone) return;
-    if(!this.usePass()) return;                       // 잔여 0 = 삽입 불가(empty 상태)
+    const key=this.tapKeyOf(this.state.tapZone);
+    if(key){ if(!this.hasItem(key)) return; }         // 키카드 존 — 패스 차감 없음
+    else if(!this.usePass()) return;                  // 잔여 0 = 삽입 불가(empty 상태)
     this._tapDone=true; this.forceUpdate();
     clearTimeout(this._tapT);
     this._tapT=setTimeout(()=>{ const z=this.state.tapZone; this._tapDone=false; if(z) this.startSortie(z); }, 1500);
   }
   tapScreen(){
     this.passTick();
-    const g=this.gs, cap=this.passCap(), done=!!this._tapDone, empty=g.pass<=0 && !done;
-    // 카드 = 아트 원본 비율(635×933 = 0.681) 유지. 폭은 svg의 342, 높이는 502.
-    // 삽입 위치는 svg 완료 상태의 '카드 바닥 y360'(단말 하단 253보다 107px 노출)을 유지 → top -142.
-    const CARD_W=342, CARD_H=503, CARD_Y=282, CARD_IN=360-CARD_H;
+    const g=this.gs, cap=this.passCap(), done=!!this._tapDone;
+    const key=this.tapKeyOf(this.state.tapZone);
+    const empty = (key ? !this.hasItem(key) : g.pass<=0) && !done;
+    // 카드 폭은 단말 규격의 342 고정, 높이는 각 아트 원본 비율.
+    // 패스 635×933(0.681)→503 · 키카드 691×954(0.724)→472. 삽입 후 카드 바닥은 svg대로 y360.
+    const CARD_W=342, CARD_H=key?472:503, CARD_Y=282, CARD_IN=360-CARD_H;
+    const cardArt = key ? 'assets/art/cards/item_police_keycard_tap.png' : 'assets/art/cards/protocol_pass.png';
+    const keyName = key ? (this.eng.anyName?this.eng.anyName(key):key) : null;
+    const keyQty = key ? this.itemQty(key) : 0;
     const led = done ? {c:'#B1FF1F', glow:'177,255,31', anim:'rlLedBlink .34s steps(1,end) infinite'}
                      : {c:'#D40000', glow:'212,0,0',   anim:'rlLedBreath 2.6s ease-in-out infinite'};
     // 카드 드래그(위로만). 임계 80px 넘겨 놓으면 흡입, 아니면 제자리 복귀.
@@ -3666,7 +3695,8 @@ void main(){
       onPointerCancel:()=>{ this._tapY0=null; const el=this._tapEl; if(el){ el.style.transition='transform .2s'; el.style.transform='none'; } },
     } : {};
     const msg = done ? {t:(this.en()?'Reading card...':'카드를 읽고있습니다.'), c:'#7CA5BB'}
-              : empty ? {t:(this.en()?'Protocol Pass required':'프로토콜 패스 충전이 필요합니다.'), c:'#C19E6F'}
+              : empty ? (key ? {t:(this.en()?'Keycard required':'키카드가 없습니다.'), c:'#C19E6F'}
+                             : {t:(this.en()?'Protocol Pass required':'프로토콜 패스 충전이 필요합니다.'), c:'#C19E6F'})
                       : {t:(this.en()?'Insert your card':'카드를 삽입하세요.'), c:'#6F7276'};
     return h('div',{style:{flex:1,position:'relative',overflow:'hidden',background:'#111315'}},
       // 402 기준 스테이지(터미널·카드) — 상단 고정 스케일
@@ -3674,8 +3704,8 @@ void main(){
         style:{position:'absolute',left:0,top:0,width:402,height:828,transformOrigin:'0 0',pointerEvents:'none'}},
         // 카드 — 터미널보다 아래 레이어(삽입 시 안으로 빨려 들어감)
         h('div',Object.assign({key:'card'}, drag, {style:{position:'absolute',left:30,top:CARD_Y,width:CARD_W,height:CARD_H,
-          // 알파 PNG(476×700) — 둥근 모서리·우측 하단 잘린 단면이 이미지 자체에 있으므로 borderRadius를 쓰지 않는다
-          backgroundImage:'url(assets/art/cards/protocol_pass.png)',backgroundSize:'100% 100%',backgroundPosition:'center',backgroundRepeat:'no-repeat',
+          // 알파 PNG — 둥근 모서리·잘린 단면이 이미지 자체에 있으므로 borderRadius를 쓰지 않는다
+          backgroundImage:'url('+cardArt+')',backgroundSize:'100% 100%',backgroundPosition:'center',backgroundRepeat:'no-repeat',
           zIndex:1,touchAction:'none',pointerEvents:dragOn?'auto':'none',cursor:dragOn?'grab':'default',
           transform: done?('translateY('+(CARD_IN-CARD_Y)+'px)'):'none', willChange:'transform'}})),
         // 단말
@@ -3688,8 +3718,8 @@ void main(){
       // 하단 박스 — 화면 하단 고정(기기 세로 길이와 무관)
       h('div',{style:{position:'absolute',left:16,right:16,bottom:24,padding:'0 15px 15px',boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid #36383C',zIndex:5}},
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:52,borderBottom:'1px solid #36383C',padding:'0 1px'}},
-          h('span',{style:{fontFamily:T.sans,fontSize:14,color:'#A9ABAF'}}, this.en()?'Protocol Pass':'프로토콜 패스'),
-          h('span',{style:{fontFamily:T.mono,fontSize:14,color:empty?T.danger:'#85B3C5'}}, g.pass+'/'+cap)),
+          h('span',{style:{fontFamily:T.sans,fontSize:14,color:'#A9ABAF'}}, key? keyName : (this.en()?'Protocol Pass':'프로토콜 패스')),
+          h('span',{style:{fontFamily:T.mono,fontSize:14,color:empty?T.danger:'#85B3C5'}}, key? String(keyQty) : (g.pass+'/'+cap))),
         h('div',{style:{marginTop:16,height:40,borderRadius:16,background:'#1A1B21',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
           icInfo(18,msg.c),
           h('span',{style:{fontFamily:T.sans,fontSize:13,color:msg.c}}, msg.t)),
