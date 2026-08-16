@@ -72,6 +72,9 @@
   @keyframes rlEdgeFlash{0%{opacity:0}14%{opacity:1}44%{opacity:.32}100%{opacity:.32}}
   /* 타이틀 "TAP TO START" — 천천히 숨쉬는 표현(글리치 삭제) */
   @keyframes rlBreath{0%,100%{opacity:.32}50%{opacity:1}}
+  /* 태그 단말 LED — 대기=붉게 숨쉬기 / 인증=초록 빠른 점멸 */
+  @keyframes rlLedBreath{0%,100%{opacity:.45}50%{opacity:1}}
+  @keyframes rlLedBlink{0%,44%{opacity:1}50%,94%{opacity:.18}100%{opacity:1}}
 </style>
 </helmet>
 <template id="__bundler_thumbnail">
@@ -118,12 +121,15 @@ const BOOT_SETS = [
 // 메인 타이틀에 랜덤 재생할 영상(둘 중 하나). monster/mp4 → assets/art/loading/title/.
 const TITLE_VIDEOS = ['monster_security_camera.mp4','monster_gutter_roach.mp4'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 6;
+const TITLE_VER = 7;
 const TITLE_DATE = '0816';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:7, date:'16/Aug', lines:[
+    ['출정하려면 프로토콜 패스가 필요하도록 변경됨.','Sorties now require a Protocol Pass.'],
+    ['패스는 10회 이하일 때 10분마다 1회씩 자동으로 충전됨.','Passes recharge on their own, one every 10 minutes, up to 10.'] ] },
   { ver:6, date:'16/Aug', lines:[
     ['귀환 성공 후 체력과 스태미너를 한 번에 회복하는 화면 추가됨.','A new station lets you restore health and stamina at once after extraction.'],
     ['장비 비교는 카드를 한 번 눌러 뒤집는 방식으로 변경됨.','Tap an item card once to flip and compare it.'],
@@ -279,6 +285,7 @@ class Component extends DCLogic {
     ['weapon','head','body','artifact1','artifact2','bag'].forEach(s=>{ if(gs.equip[s]&&!uids.has(gs.equip[s])) gs.equip[s]=null; });
     gs.shopStock=gs.shopStock||{}; gs.sato=eng.N(gs.sato,0); gs.sorties=eng.N(gs.sorties,0);
     this.gs=gs; this.combat=null;
+    this.loadPass();   // 패스는 별도 키가 정본(런 세이브 값보다 우선)
     eng.setUidCounter(o.uidCounter);
     this.staMax=10;
     const full=eng.playerProfile(gs,false);
@@ -317,6 +324,7 @@ class Component extends DCLogic {
     this.staMax = 10;
     gs.maxHp = full.maxHp; gs.hp = full.maxHp; gs.sta = this.staMax;
     this.gs = gs; this.combat = null;
+    this.loadPass();   // 패스는 런과 무관한 고정 자산 — 기존 보유분이 있으면 그대로 이어받는다
     // equipped gear is 'carried' — it lives in 소지품(bag), never in 금고(vault)
     ['weapon','head','body','bag'].forEach(s=>{ if(gs.equip[s]) this.moveToBag(gs.equip[s]); });
   }
@@ -336,6 +344,7 @@ class Component extends DCLogic {
   }
   hasItem(id){ return this.gs.vault.some(x=>x.id===id)||this.gs.bag.some(x=>x.id===id); }
   consumeItem(id){ const dec=(arr)=>{ const i=arr.findIndex(x=>x.id===id); if(i<0) return false; if(arr[i].qty>1) arr[i].qty--; else arr.splice(i,1); return true; }; return dec(this.gs.bag)||dec(this.gs.vault); }
+  // 패스 차감은 태그 화면의 카드 삽입 시점(tapInsert)에서 이미 끝난 상태로 들어온다.
   startSortie(zoneId){
     const z=this.eng.byId.zone[zoneId];
     if(z && this.eng.N(z.IsHidden)===1 && z.UnlockType==='item' && z.UnlockKey){ this.consumeItem(z.UnlockKey); this.flash(this.t('zone_keycard_used')); }
@@ -787,9 +796,12 @@ class Component extends DCLogic {
             navIcon(k,'currentColor',20)); }))
     );
   }
-  screenTitle(kicker,title){ return h('div',{style:{padding:'18px 18px 14px',flex:'0 0 auto'}},
-    h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:T.faint,marginBottom:6}}, this.eng.t(kicker)),
-    h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:400,color:T.hi,letterSpacing:'-.01em'}}, this.eng.t(title))); }
+  // right = 우측에 나란히 놓을 요소(재화 칩 등). 좌측 블록은 minWidth:0 이라 kicker가 길면 말줄임된다.
+  screenTitle(kicker,title,right){ return h('div',{style:{padding:'18px 18px 14px',flex:'0 0 auto',display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:10}},
+    h('div',{style:{flex:1,minWidth:0}},
+      h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:T.faint,marginBottom:6,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.eng.t(kicker)),
+      h('div',{style:{fontFamily:T.sans,fontSize:16,fontWeight:400,color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.eng.t(title))),
+    right||null); }
   toastEl(){ if(!this.state.toast) return null; return h('div',{style:{position:'absolute',bottom:106,left:16,right:16,display:'flex',alignItems:'center',justifyContent:'center',gap:9,height:44,boxSizing:'border-box',padding:'0 20px',background:'#18191D',border:'1px solid #36383C',borderRadius:999,color:'#A1A1A1',fontFamily:T.mono,fontSize:12,animation:'rlFade .2s',zIndex:20,pointerEvents:'none'}},
     h('svg',{key:'ic',width:15,height:15,viewBox:'123 660.2 15.6 17.2',fill:'none',style:{flex:'0 0 auto'}},
       h('path',{key:'a',d:'M130.8 664.2C131.131 664.2 131.4 664.469 131.4 664.8V669.6C131.4 669.932 131.131 670.2 130.8 670.2C130.469 670.2 130.2 669.932 130.2 669.6V664.8C130.2 664.469 130.469 664.2 130.8 664.2Z',fill:'#A1A1A1'}),
@@ -812,7 +824,9 @@ class Component extends DCLogic {
     else if(s==='lootmanage') body=this.lootManage();
     else if(s==='sortieLoad') body=this.sortieLoadScreen();
     else if(s==='returnheal') body=this.returnHeal();
-    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal';
+    else if(s==='pass') body=this.passScreen();
+    else if(s==='tap') body=this.tapScreen();
+    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap';
     return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, this.state.notice?this.noticeModal():null);
   }
 
@@ -824,7 +838,7 @@ class Component extends DCLogic {
     const vendors=this.eng.DATA.vendors.slice().sort((a,b)=>ord(a)-ord(b));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       h('div',{style:{padding:'0 16px 100px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:16}},
-        h('div',{style:{margin:'0 -16px',flex:'0 0 auto'}}, this.screenTitle(this.t('kicker_safehouse'),'안전가옥')),
+        h('div',{style:{margin:'0 -16px',flex:'0 0 auto'}}, this.screenTitle('SAFEHOUSE','안전가옥',this.currencyChips())),
         ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Feed')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Module')||svc.includes('Sell'); const act=()=>this.openVendor(v.VendorID);
             const CHIP={ shop_clinic:['치료','Heal'], shop_hardware:['수리','Repair'], shop_canteen:['배식','Ration'], shop_data_center:['데이터','Data'], shop_pawnshop:['감정','Appraise'], shop_blackmarket:['거래','Trade'], shop_auction:['거래소','Exchange'] };
             const chipTxt=(CHIP[v.ShopID]||[])[this.en()?1:0]||'';
@@ -860,7 +874,7 @@ class Component extends DCLogic {
     const selTier=citySlots.indexOf(selSlot)+1;
     const zones=this.eng.DATA.zones.filter(z=>z.CityID===sel);
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-      this.screenTitle('SORTIE · '+selSlot.name+' (TIER '+selTier+')','nav_sortie'),
+      this.screenTitle('SORTIE','nav_sortie',this.currencyChips()),
       // ---- city carousel ----
       h('div',{style:{display:'flex',gap:8,overflowX:'auto',padding:'2px 16px 16px',flex:'0 0 auto',scrollSnapType:'x mandatory'}},
         ...citySlots.map((sc,i)=>{ const active=sc.id===sel && !sc.locked;
@@ -910,9 +924,9 @@ class Component extends DCLogic {
     } else if(hasKey){
       bottom=[
         h('div',{key:'bar',style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6,height:38,borderRadius:8,background:'rgb(26,27,33)'}}, icInfo(19,'rgb(204,162,110)'), h('span',{style:{fontFamily:T.sans,fontSize:12,color:'rgb(204,162,110)'}}, '\u201c'+keyName+'\u201d'+(this.en()?' will be used.':'\ub97c \uc0ac\uc6a9\ud569\ub2c8\ub2e4.'))),
-        h('button',{key:'btn',disabled:dead,onClick:dead?null:()=>this.startSortie(z.ZoneID),style:{display:'flex',justifyContent:'center',alignItems:'center',width:'100%',boxSizing:'border-box',height:48,borderRadius:999,border:'1px solid rgb(204,162,110)',background:'#18191d',cursor:dead?'default':'pointer',opacity:dead?.5:1}}, icUnlock(22,'rgb(204,162,110)'))];
+        h('button',{key:'btn',disabled:dead,onClick:dead?null:()=>this.openTap(z.ZoneID),style:{display:'flex',justifyContent:'center',alignItems:'center',width:'100%',boxSizing:'border-box',height:48,borderRadius:999,border:'1px solid rgb(204,162,110)',background:'#18191d',cursor:dead?'default':'pointer',opacity:dead?.5:1}}, icUnlock(22,'rgb(204,162,110)'))];
     } else {
-      bottom=[ h('button',{key:'btn',disabled:dead,onClick:dead?null:()=>this.startSortie(z.ZoneID),style:{marginTop:8,width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'1px solid '+(dead?T.line:'rgb(74,77,83)'),background:'#18191d',color:dead?T.faint:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:dead?'default':'pointer'}}, dead?this.t('heal_restore_first'):(this.en()?'Sortie':'출정하기')) ];   // 스태미너 바↔출정하기 간격: flex gap16 + marginTop8 = 24
+      bottom=[ h('button',{key:'btn',disabled:dead,onClick:dead?null:()=>this.openTap(z.ZoneID),style:{marginTop:8,width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'1px solid '+(dead?T.line:'rgb(74,77,83)'),background:'#18191d',color:dead?T.faint:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:dead?'default':'pointer'}}, dead?this.t('heal_restore_first'):(this.en()?'Sortie':'출정하기')) ];   // 스태미너 바↔출정하기 간격: flex gap16 + marginTop8 = 24
     }
     return h('div',{onClick:()=>this.setState({modalZone:null}),style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',display:'flex',alignItems:'flex-end',zIndex:30,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 16px',background:'rgb(24,25,29)',boxShadow:'inset 0 0 0 1px rgb(54,56,60)',borderRadius:8,padding:16,display:'flex',flexDirection:'column',gap:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
@@ -2864,12 +2878,7 @@ void main(){
     const catOf=(inst)=>{ if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]) return '술'; if(this.eng.byId.module&&this.eng.byId.module[inst.id]) return '모듈'; if(this.eng.byId.usb&&this.eng.byId.usb[inst.id]) return '데이터'; const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||(this.eng.byId.bag&&this.eng.byId.bag[inst.id]); if(!s) return ''; return CATKR[s.Category]||s.Category; };
     const rows=list.filter(inst=>filter==='전체'||catOf(inst)===filter).sort((a,b)=>(this.isEquipped(b.uid)?1:0)-(this.isEquipped(a.uid)?1:0));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-      h('div',{style:{padding:'16px 18px 12px',flex:'0 0 auto',display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center'}},
-        h('div',{style:{display:'flex',flexDirection:'column'}},
-          h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:400,letterSpacing:'-0.22px',color:'rgb(234,235,238)'}}, this.t('nav_inventory')),
-          h('div',{style:{fontFamily:T.mono,fontSize:11,letterSpacing:'0.88px',color:'rgb(111,114,118)',padding:'4px 0'}}, 'INVENTORY')),
-        h('div',{style:{display:'flex',alignItems:'center',gap:8,background:T.s2,border:'1px solid '+T.line,borderRadius:3,padding:'5px 10px',flex:'0 0 auto'}},
-          this.chip('SATO',T.sato), h('span',{style:{fontFamily:T.mono,fontWeight:400,fontSize:10,color:T.sato}}, this.gs.sato.toLocaleString()))),
+      this.screenTitle('INVENTORY','nav_inventory',this.currencyChips()),
       // segmented
       h('div',{style:{display:'flex',gap:0,margin:'14px 18px 0',border:'1px solid '+T.line2,borderRadius:4,overflow:'hidden'}},
         ...[['bag',this.t('nav_belongings')],['vault',this.t('nav_safehouse')]].map(([k,l])=>h('button',{key:k,onClick:()=>this.setState({seg:k}),style:{flex:1,background:seg===k?T.s2:'transparent',border:'none',color:seg===k?T.hi:T.lo,fontFamily:T.sans,fontSize:13,fontWeight:500,padding:'10px',cursor:'pointer'}},l))),
@@ -3578,6 +3587,154 @@ void main(){
         h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
           h('button',{disabled:!can,onClick:can?()=>this.doHeal():null,style:{width:'100%',height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color:can?'#83b289':'#4b4d52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:can?'pointer':'default'}}, btnLabel))));
   }
+  // ===== 프로토콜 패스 — 출정 1회 = 패스 1회 소모(존 무관). 인벤토리에 없는 안전가옥 자산 =====
+  // 밸런스 값은 전부 Config 탭에서 조정한다(코드 값은 시트 미로드 시 폴백).
+  passCap(){ return Math.max(1, this.eng.N(this.eng.DATA.config.pass_cap, 50)); }
+  passThreshold(){ return Math.max(0, this.eng.N(this.eng.DATA.config.pass_auto_threshold, 10)); }
+  passRegenMs(){ return Math.max(1, this.eng.N(this.eng.DATA.config.pass_regen_minutes, 10))*60000; }
+  passPrice(n){ const d={5:1500,10:2600,20:4600}; return Math.max(0, this.eng.N(this.eng.DATA.config['pass_price_'+n], d[n]||0)); }
+  // 패스는 출정과 무관한 안전가옥 자산이라 런 세이브(rl_save_v1)와 **별도 키**에 즉시 저장한다.
+  // 런 세이브는 출정 중 잠기기 때문에(inSortie 가드), 거기 얹으면 출정 직후 앱을 껐다 켰을 때 차감이 되돌아간다.
+  savePass(){ const g=this.gs; if(!g) return; try{ localStorage.setItem('rl_pass_v1', JSON.stringify({pass:g.pass, passAt:g.passAt})); }catch(_){ } }
+  readPass(){ try{ const s=localStorage.getItem('rl_pass_v1'); if(!s) return null; const o=JSON.parse(s); return (o && typeof o.pass==='number') ? o : null; }catch(_){ return null; } }
+  // 별도 키가 있으면 그 값이 이긴다(세이브 초기화·처음부터 시작해도 패스는 유지 — 고정 자산).
+  loadPass(){ const g=this.gs; const p=this.readPass();
+    if(p){ g.pass=Math.max(0,Math.min(this.passCap(),this.eng.N(p.pass,0))); g.passAt=this.eng.N(p.passAt,Date.now()); }
+    else { if(g.pass==null) g.pass=this.passThreshold(); if(!g.passAt) g.passAt=Date.now(); this.savePass(); } }
+  // 실시간 경과분 정산. 보유가 threshold 이하일 때만 regen 간격마다 1회씩, threshold까지만 채운다.
+  passTick(){
+    const g=this.gs; if(!g) return;
+    if(g.pass==null) g.pass=this.passThreshold();
+    const now=Date.now(), th=this.passThreshold(), per=this.passRegenMs();
+    if(!g.passAt) g.passAt=now;
+    if(g.pass>=th){ if(g.passAt!==now){ g.passAt=now; this.savePass(); } return; }   // 충전 대기 없음 — 기준 시각만 따라옴
+    const gained=Math.floor((now-g.passAt)/per);
+    if(gained>0){ g.pass=Math.min(th, g.pass+gained); g.passAt = g.pass>=th ? now : g.passAt+gained*per; this.savePass(); }
+  }
+  passLeftMs(){ const g=this.gs; if(!g||g.pass>=this.passThreshold()) return 0; return Math.max(0, this.passRegenMs()-(Date.now()-(g.passAt||Date.now()))); }
+  passBuy(n){
+    const g=this.gs, cost=this.passPrice(n), cap=this.passCap();
+    if(g.pass+n>cap){ this.flash(this.en()?'Over the pass limit':'보유 한도를 넘습니다'); return; }
+    if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
+    g.sato-=cost; g.pass+=n; this.savePass(); this.saveGame(); this.forceUpdate();
+    this.flash(this.en()?('Charged +'+n):('충전 +'+n+'회'));
+  }
+  // 출정 시 1회 차감. TODO: 결제(태그) 연출을 만들면 그 트리거로 옮긴다.
+  // savePass()는 출정 중에도 쓰이므로 여기서 즉시 확정된다(재시작해도 되돌아가지 않음).
+  usePass(){ this.passTick(); const g=this.gs; if(g.pass<=0) return false;
+    g.pass--; if(g.pass<this.passThreshold()) g.passAt=Date.now(); this.savePass(); this.saveGame(); return true; }
+  // 재화 칩 — 인벤토리·출정·안전가옥 우측 상단 공용. PASS(호박) + SATO. PASS 탭 시 패스 화면.
+  currencyChips(){
+    this.passTick();
+    const g=this.gs, AM='#C19E6F';
+    const wrap=(kids,on)=>h('div',{onClick:on||null,style:{display:'flex',alignItems:'center',gap:6,background:T.s2,border:'1px solid '+T.line,borderRadius:3,padding:'4px 8px',cursor:on?'pointer':'default'}},...kids);
+    return h('div',{style:{display:'flex',alignItems:'center',gap:6,flex:'0 0 auto'}},
+      wrap([this.chip('PASS',AM),
+            h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:AM}}, g.pass+'/'+this.passCap()),
+            h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:AM,opacity:.55}},'+')], ()=>this.go('pass')),
+      wrap([this.chip('SATO',T.sato),
+            h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:T.sato}}, g.sato.toLocaleString())]));
+  }
+  // ===== 태그 단말 (screen-tap-terminal-*.svg · 402x828) =====
+  // 존 모달 '출정하기' → 이 화면. 카드를 위로 끌어 단말에 삽입 → 패스 1회 차감 → 1.5초 뒤 출정 로딩.
+  openTap(zoneId){ this._tapDone=false; this._tapDrag=null; this.setState({screen:'tap', tapZone:zoneId, modalZone:null}); }
+  tapInsert(){
+    if(this._tapDone) return;
+    if(!this.usePass()) return;                       // 잔여 0 = 삽입 불가(empty 상태)
+    this._tapDone=true; this.forceUpdate();
+    clearTimeout(this._tapT);
+    this._tapT=setTimeout(()=>{ const z=this.state.tapZone; this._tapDone=false; if(z) this.startSortie(z); }, 1500);
+  }
+  tapScreen(){
+    this.passTick();
+    const g=this.gs, cap=this.passCap(), done=!!this._tapDone, empty=g.pass<=0 && !done;
+    const CARD_Y=282, CARD_IN=-82;                    // svg: 기본 y282 → 삽입 y-82 (위로 364)
+    const led = done ? {c:'#B1FF1F', glow:'177,255,31', anim:'rlLedBlink .34s steps(1,end) infinite'}
+                     : {c:'#D40000', glow:'212,0,0',   anim:'rlLedBreath 2.6s ease-in-out infinite'};
+    // 카드 드래그(위로만). 임계 80px 넘겨 놓으면 흡입, 아니면 제자리 복귀.
+    const dragOn = !done && !empty;
+    const drag = dragOn ? {
+      onPointerDown:(e)=>{ this._tapEl=e.currentTarget; this._tapY0=e.clientY; this._tapMoved=false; try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){} },
+      onPointerMove:(e)=>{ if(this._tapY0==null)return; const dy=Math.min(0,e.clientY-this._tapY0);
+        if(Math.abs(dy)>4) this._tapMoved=true;
+        const el=this._tapEl; if(el){ el.style.transition='none'; el.style.transform='translateY('+Math.max(dy,CARD_IN-CARD_Y)+'px)'; } },
+      onPointerUp:(e)=>{ if(this._tapY0==null)return; const dy=e.clientY-this._tapY0; this._tapY0=null; const el=this._tapEl;
+        if(dy<-80){ if(el){ el.style.transition='transform .42s cubic-bezier(.2,.9,.25,1)'; el.style.transform='translateY('+(CARD_IN-CARD_Y)+'px)'; } this.tapInsert(); }
+        else if(el){ el.style.transition='transform .28s ease-out'; el.style.transform='none'; } },
+      onPointerCancel:()=>{ this._tapY0=null; const el=this._tapEl; if(el){ el.style.transition='transform .2s'; el.style.transform='none'; } },
+    } : {};
+    const msg = done ? {t:(this.en()?'Reading card...':'카드를 읽고있습니다.'), c:'#7CA5BB'}
+              : empty ? {t:(this.en()?'Protocol Pass required':'프로토콜 패스 충전이 필요합니다.'), c:'#C19E6F'}
+                      : {t:(this.en()?'Insert your card':'카드를 삽입하세요.'), c:'#6F7276'};
+    return h('div',{style:{flex:1,position:'relative',overflow:'hidden',background:'#111315'}},
+      // 402 기준 스테이지(터미널·카드) — 상단 고정 스케일
+      h('div',{ref:el=>{ if(el){ const pw=el.parentElement&&el.parentElement.clientWidth; if(pw) el.style.transform='scale('+(pw/402)+')'; } },
+        style:{position:'absolute',left:0,top:0,width:402,height:828,transformOrigin:'0 0',pointerEvents:'none'}},
+        // 카드 — 터미널보다 아래 레이어(삽입 시 안으로 빨려 들어감)
+        h('div',Object.assign({key:'card'}, drag, {style:{position:'absolute',left:30,top:CARD_Y,width:342,height:442,borderRadius:8,
+          // svg pattern0 변환 그대로: 1024² 원본을 510×466으로 늘려 (-87,-11)에 배치(검은 여백 크롭)
+          backgroundImage:'url(assets/art/cards/protocol_pass.jpg)',backgroundSize:'510px 466px',backgroundPosition:'-87px -11px',backgroundRepeat:'no-repeat',overflow:'hidden',
+          zIndex:1,touchAction:'none',pointerEvents:dragOn?'auto':'none',cursor:dragOn?'grab':'default',
+          transform: done?('translateY('+(CARD_IN-CARD_Y)+'px)'):'none', willChange:'transform'}})),
+        // 단말
+        h('div',{key:'term',style:{position:'absolute',left:16,top:-417,width:370,height:670,zIndex:2,
+          backgroundImage:'url(assets/art/ui/tap_terminal.png)',backgroundSize:'100% 100%',backgroundRepeat:'no-repeat'}}),
+        // LED 28×28 — 아웃글로우(색) + 이너글로우(흰색)
+        h('div',{key:'led',style:{position:'absolute',left:316,top:139,width:28,height:28,borderRadius:999,zIndex:3,
+          background:led.c, boxShadow:'0 0 20px 7px rgba('+led.glow+',.8), inset 0 0 10px 3px rgba(255,255,255,.9)',
+          transition:'background .3s ease-out, box-shadow .3s ease-out', animation:led.anim}})),
+      // 하단 박스 — 화면 하단 고정(기기 세로 길이와 무관)
+      h('div',{style:{position:'absolute',left:16,right:16,bottom:24,padding:'0 15px 15px',boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid #36383C',zIndex:5}},
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:52,borderBottom:'1px solid #36383C',padding:'0 1px'}},
+          h('span',{style:{fontFamily:T.sans,fontSize:14,color:'#A9ABAF'}}, this.en()?'Protocol Pass':'프로토콜 패스'),
+          h('span',{style:{fontFamily:T.mono,fontSize:14,color:empty?T.danger:'#85B3C5'}}, g.pass+'/'+cap)),
+        h('div',{style:{marginTop:16,height:40,borderRadius:16,background:'#1A1B21',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
+          icInfo(18,msg.c),
+          h('span',{style:{fontFamily:T.sans,fontSize:13,color:msg.c}}, msg.t)),
+        h('button',{disabled:done,onClick:done?null:()=>this.go('zone'),style:{marginTop:16,width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:done?'#4B4D52':'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:done?'default':'pointer'}}, this.t('btn_back'))));
+  }
+  passScreen(){
+    this.passTick();
+    const g=this.gs, AM='#C19E6F', cap=this.passCap(), th=this.passThreshold();
+    // 남은 시간 1초 갱신 — 화면 떠 있는 동안만 타이머 유지
+    if(!this._passT) this._passT=setInterval(()=>{ if(this.state.screen!=='pass'){ clearInterval(this._passT); this._passT=null; return; } this.forceUpdate(); },1000);
+    const left=this.passLeftMs();
+    const mmss=(ms)=>{ const s=Math.ceil(ms/1000); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); };
+    const pct=cap>0?Math.max(0,Math.min(100,g.pass/cap*100)):0;
+    const base=this.passPrice(5)/5;
+    const row=(n)=>{ const cost=this.passPrice(n); const over=g.pass+n>cap; const aff=g.sato>=cost; const on=!over&&aff;
+      const disc=base>0?Math.round((1-(cost/n)/base)*100):0;
+      return h('div',{key:'p'+n,onClick:on?()=>this.passBuy(n):null,
+        style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:56,padding:'0 16px',borderTop:n===5?'none':'1px solid #36383C',cursor:on?'pointer':'default',opacity:on?1:0.45}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8}},
+          h('span',{style:{fontFamily:T.sans,fontSize:14,color:on?T.hi:T.lo}}, n+(this.en()?'':'회')),
+          disc>0?h('span',{style:{fontFamily:T.mono,fontSize:10,color:AM,border:'1px solid '+AM,borderRadius:2,padding:'2px 6px'}},'-'+disc+'%'):null),
+        h('span',{style:{fontFamily:T.mono,fontSize:13,color:aff?T.sato:T.danger}}, cost.toLocaleString()+' '+this.t('currency_sato')));
+    };
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      this.screenTitle('PROTOCOL PASS', this.en()?'Protocol Pass':'프로토콜 패스'),
+      h('div',{style:{flex:1,overflowY:'auto',padding:'0 16px 16px'}},
+        // 보유 게이지 (귀환 회복 화면과 동일 규격)
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:7}},
+          h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#6F7276'}}, this.en()?'Passes':'보유 횟수'),
+          h('span',{style:{fontFamily:T.mono,fontSize:11,color:'#A9ABAF',letterSpacing:'.05em'}}, g.pass+' / '+cap)),
+        h('div',{style:{position:'relative',height:6,background:'#2B2E32',borderRadius:1,overflow:'hidden'}},
+          h('div',{style:{width:pct+'%',height:'100%',background:AM}})),
+        // 자동 충전 안내
+        h('div',{style:{marginTop:15,padding:'0 16px',borderRadius:8,background:'#18191D',border:'1px solid #36383C'}},
+          this.frow(this.en()?'Next charge':'다음 충전까지',
+            g.pass>=th ? (this.en()?'—':'대기 없음') : mmss(left), g.pass>=th?'#6F7276':AM, false),
+          this.frow(this.en()?'Auto charge':'자동 충전',
+            (this.en()? (th+' max · every '+Math.round(this.passRegenMs()/60000)+'m')
+                      : (th+'회 이하일 때 '+Math.round(this.passRegenMs()/60000)+'분마다 1회')), '#A9ABAF', true)),
+        // 충전 상품
+        h('div',{style:{fontFamily:T.sans,fontSize:12,color:'#4B4D52',margin:'22px 0 10px'}}, this.en()?'Charge':'충전하기'),
+        h('div',{style:{borderRadius:8,background:'#18191D',border:'1px solid #36383C',overflow:'hidden'}},
+          row(5), row(10), row(20))),
+      h('div',{style:{flex:'0 0 auto',margin:'0 16px 24px',padding:24,boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid #36383C'}},
+        h('button',{onClick:()=>this.go('safehouse'),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:13,fontWeight:400,cursor:'pointer'}}, this.t('btn_back'))));
+  }
+
   // ===== 귀환 회복 스테이션 (screen-return-autoheal.svg · 402x828 기준) =====
   // 성장 화면 다음 단계. HP·스태미너를 한 번에 전액 회복하고, 비용은 healCost()+feedCost() 합산.
   returnGlow(){ const el=this._retGlowEl; if(!el) return;
