@@ -3648,7 +3648,9 @@ void main(){
   tapScreen(){
     this.passTick();
     const g=this.gs, cap=this.passCap(), done=!!this._tapDone, empty=g.pass<=0 && !done;
-    const CARD_Y=282, CARD_IN=-82;                    // svg: 기본 y282 → 삽입 y-82 (위로 364)
+    // 카드 = 아트 원본 비율(635×933 = 0.681) 유지. 폭은 svg의 342, 높이는 502.
+    // 삽입 위치는 svg 완료 상태의 '카드 바닥 y360'(단말 하단 253보다 107px 노출)을 유지 → top -142.
+    const CARD_W=342, CARD_H=503, CARD_Y=282, CARD_IN=360-CARD_H;
     const led = done ? {c:'#B1FF1F', glow:'177,255,31', anim:'rlLedBlink .34s steps(1,end) infinite'}
                      : {c:'#D40000', glow:'212,0,0',   anim:'rlLedBreath 2.6s ease-in-out infinite'};
     // 카드 드래그(위로만). 임계 80px 넘겨 놓으면 흡입, 아니면 제자리 복귀.
@@ -3671,9 +3673,9 @@ void main(){
       h('div',{ref:el=>{ if(el){ const pw=el.parentElement&&el.parentElement.clientWidth; if(pw) el.style.transform='scale('+(pw/402)+')'; } },
         style:{position:'absolute',left:0,top:0,width:402,height:828,transformOrigin:'0 0',pointerEvents:'none'}},
         // 카드 — 터미널보다 아래 레이어(삽입 시 안으로 빨려 들어감)
-        h('div',Object.assign({key:'card'}, drag, {style:{position:'absolute',left:30,top:CARD_Y,width:342,height:442,borderRadius:8,
-          // svg pattern0 변환 그대로: 1024² 원본을 510×466으로 늘려 (-87,-11)에 배치(검은 여백 크롭)
-          backgroundImage:'url(assets/art/cards/protocol_pass.jpg)',backgroundSize:'510px 466px',backgroundPosition:'-87px -11px',backgroundRepeat:'no-repeat',overflow:'hidden',
+        h('div',Object.assign({key:'card'}, drag, {style:{position:'absolute',left:30,top:CARD_Y,width:CARD_W,height:CARD_H,
+          // 알파 PNG(476×700) — 둥근 모서리·우측 하단 잘린 단면이 이미지 자체에 있으므로 borderRadius를 쓰지 않는다
+          backgroundImage:'url(assets/art/cards/protocol_pass.png)',backgroundSize:'100% 100%',backgroundPosition:'center',backgroundRepeat:'no-repeat',
           zIndex:1,touchAction:'none',pointerEvents:dragOn?'auto':'none',cursor:dragOn?'grab':'default',
           transform: done?('translateY('+(CARD_IN-CARD_Y)+'px)'):'none', willChange:'transform'}})),
         // 단말
