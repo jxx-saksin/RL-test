@@ -17,7 +17,7 @@
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jacquarda+Bastarda+9&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jacquarda+Bastarda+9&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;padding:0;background:oklch(0.120 0.005 264);}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -75,6 +75,10 @@
   /* 태그 단말 LED — 대기=붉게 숨쉬기 / 인증=초록 빠른 점멸 */
   @keyframes rlLedBreath{0%,100%{opacity:.45}50%{opacity:1}}
   @keyframes rlLedBlink{0%,44%{opacity:1}50%,94%{opacity:.18}100%{opacity:1}}
+  /* 프로토콜 패스 LCD — NEXT 00:00 의 ':' 1초 주기 점멸 */
+  @keyframes rlColon{0%,49%{opacity:1}50%,100%{opacity:0}}
+  /* 카드 삽입 직후 LCD 'LOADING' — 밝은 초록↔어두운 초록으로 점멸(1.5초 동안) */
+  @keyframes rlLoadBlink{0%,49%{color:#30D322}50%,100%{color:#096E00}}
 </style>
 </helmet>
 <template id="__bundler_thumbnail">
@@ -123,12 +127,14 @@ const BOOT_SETS = [
 // 메인 타이틀에 랜덤 재생할 영상(둘 중 하나). monster/mp4 → assets/art/loading/title/.
 const TITLE_VIDEOS = ['monster_security_camera.mp4','monster_gutter_roach.mp4'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 8;
+const TITLE_VER = 9;
 const TITLE_DATE = '0817';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:9, date:'17/Aug', lines:[
+    ['프로토콜 패스 충전 화면 업데이트.','The Protocol Pass charge screen was updated.'] ] },
   { ver:8, date:'17/Aug', lines:[
     ['정크 아이템 아트웍 15종 업데이트 됨.','Artwork updated for 15 junk items.'],
     ['기울임 효과 관련 수치 조정됨.','Tilt effect values were adjusted.'] ] },
@@ -3614,7 +3620,9 @@ void main(){
   passCap(){ return Math.max(1, this.eng.N(this.eng.DATA.config.pass_cap, 50)); }
   passThreshold(){ return Math.max(0, this.eng.N(this.eng.DATA.config.pass_auto_threshold, 10)); }
   passRegenMs(){ return Math.max(1, this.eng.N(this.eng.DATA.config.pass_regen_minutes, 10))*60000; }
-  passPrice(n){ const d={5:1500,10:2600,20:4600}; return Math.max(0, this.eng.N(this.eng.DATA.config['pass_price_'+n], d[n]||0)); }
+  // 회당 정액. 수량 할인 폐지(2026-08-17) — 구 pass_price_5/10/20은 Config에서 Deprecated.
+  passPricePer(){ return Math.max(0, this.eng.N(this.eng.DATA.config.pass_price_per, 500)); }
+  passPrice(qty){ return this.passPricePer()*Math.max(0,qty|0); }
   // 패스는 출정과 무관한 안전가옥 자산이라 런 세이브(rl_save_v1)와 **별도 키**에 즉시 저장한다.
   // 런 세이브는 출정 중 잠기기 때문에(inSortie 가드), 거기 얹으면 출정 직후 앱을 껐다 켰을 때 차감이 되돌아간다.
   savePass(){ const g=this.gs; if(!g) return; try{ localStorage.setItem('rl_pass_v1', JSON.stringify({pass:g.pass, passAt:g.passAt})); }catch(_){ } }
@@ -3636,10 +3644,10 @@ void main(){
   passLeftMs(){ const g=this.gs; if(!g||g.pass>=this.passThreshold()) return 0; return Math.max(0, this.passRegenMs()-(Date.now()-(g.passAt||Date.now()))); }
   passBuy(n){
     const g=this.gs, cost=this.passPrice(n), cap=this.passCap();
-    if(g.pass+n>cap){ this.flash(this.en()?'Over the pass limit':'보유 한도를 넘습니다'); return; }
-    if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
+    if(g.pass+n>cap){ this.flash(this.en()?'Over the pass limit':'보유 한도를 넘습니다'); return false; }
+    if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return false; }
     g.sato-=cost; g.pass+=n; this.savePass(); this.saveGame(); this.forceUpdate();
-    this.flash(this.en()?('Charged +'+n):('충전 +'+n+'회'));
+    return true;
   }
   // 출정 시 1회 차감. TODO: 결제(태그) 연출을 만들면 그 트리거로 옮긴다.
   // savePass()는 출정 중에도 쓰이므로 여기서 즉시 확정된다(재시작해도 되돌아가지 않음).
@@ -3653,7 +3661,8 @@ void main(){
     return h('div',{style:{display:'flex',alignItems:'center',gap:6,flex:'0 0 auto'}},
       wrap([this.chip('PASS',AM),
             h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:AM}}, g.pass+'/'+this.passCap()),
-            h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:AM,opacity:.55}},'+')], ()=>this.go('pass')),
+            h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:AM,opacity:.55}},'+')],
+           ()=>{ this._passFrom=this.state.screen; this._passQty=1; this._passPhase='insert'; this.go('pass'); }),
       wrap([this.chip('SATO',T.sato),
             h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:T.sato}}, g.sato.toLocaleString())]));
   }
@@ -3732,46 +3741,157 @@ void main(){
           h('span',{style:{fontFamily:T.sans,fontSize:13,color:msg.c}}, msg.t)),
         h('button',{disabled:done,onClick:done?null:()=>this.go('zone'),style:{marginTop:16,width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:done?'#4B4D52':'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:done?'default':'pointer'}}, this.t('btn_back'))));
   }
+  // ===== 프로토콜 패스 충전 화면 (screen-protocol-pass-{default,sato,max,done}.svg · 402x828) =====
+  // 상단 = 카드 + 단말 고정 아트(연출 없음), 하단 = 시트. 태그 화면과 같은 402 스테이지 스케일.
+  // 상태 4종은 하단 안내 박스 + LCD 밝기 + 충전 버튼 활성으로만 갈린다.
+  passQtyMax(){ return Math.max(1, this.passCap()-this.gs.pass); }
+  passQty(){ return Math.max(1, Math.min(this.passQtyMax(), this._passQty||1)); }
+  passSetQty(d){ this._passQty=Math.max(1, Math.min(this.passQtyMax(), this.passQty()+d)); this.forceUpdate(); }
+  // LCD 우측 카운터·게이지는 충전 직후 한 칸씩 카운트업(1회는 즉시). _passShown이 null이면 실제 보유값.
+  passCountUp(from,to){
+    clearInterval(this._passUpT); this._passUpT=null;
+    if(to-from<=1){ this._passShown=null; this.forceUpdate(); return; }
+    this._passShown=from;
+    this._passUpT=setInterval(()=>{
+      if(this.state.screen!=='pass'){ clearInterval(this._passUpT); this._passUpT=null; this._passShown=null; return; }
+      this._passShown++;
+      if(this._passShown>=to){ this._passShown=null; clearInterval(this._passUpT); this._passUpT=null; }
+      this.forceUpdate();
+    },90);
+  }
+  // 카드 삽입 3단계: insert(카드 내려와 있음) -> loading(꽂힘·LOADING 1.5초) -> null(평상 화면).
+  // 뽑는 연출은 없다 — 화면을 나가면 다음 진입 때 다시 insert부터.
+  passInsert(){
+    if(this._passPhase!=='insert') return;
+    this._passPhase='loading'; this.forceUpdate();
+    clearTimeout(this._passPhT);
+    this._passPhT=setTimeout(()=>{
+      if(this.state.screen!=='pass'){ this._passPhT=null; return; }
+      this._passPhase=null; this._passPhT=null; this.forceUpdate(); },1500);
+  }
+  doPassBuy(){
+    if(this._passPhase) return;                              // 카드를 읽기 전에는 충전 불가
+    const before=this.gs.pass, qty=this.passQty();
+    if(!this.passBuy(qty)) return;
+    this._passQty=1;
+    this.passCountUp(before, this.gs.pass);
+    // 충전 중 0.5초만 버튼을 잠근다(연타 방지). 상시 비활성은 50/50일 때뿐.
+    this._passBusy=true; clearTimeout(this._passBusyT);
+    this._passBusyT=setTimeout(()=>{ this._passBusy=false; this.forceUpdate(); },500);
+    this._passDone=true; clearTimeout(this._passDoneT);
+    this._passDoneT=setTimeout(()=>{ this._passDone=false; this.forceUpdate(); },2000);
+    this.forceUpdate();
+  }
   passScreen(){
     this.passTick();
-    const g=this.gs, AM='#C19E6F', cap=this.passCap(), th=this.passThreshold();
+    const g=this.gs, cap=this.passCap(), th=this.passThreshold();
+    const phase=this._passPhase;                            // 'insert' | 'loading' | null(평상)
     // 남은 시간 1초 갱신 — 화면 떠 있는 동안만 타이머 유지
-    if(!this._passT) this._passT=setInterval(()=>{ if(this.state.screen!=='pass'){ clearInterval(this._passT); this._passT=null; return; } this.forceUpdate(); },1000);
-    const left=this.passLeftMs();
-    const mmss=(ms)=>{ const s=Math.ceil(ms/1000); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); };
-    const pct=cap>0?Math.max(0,Math.min(100,g.pass/cap*100)):0;
-    const base=this.passPrice(5)/5;
-    const row=(n)=>{ const cost=this.passPrice(n); const over=g.pass+n>cap; const aff=g.sato>=cost; const on=!over&&aff;
-      const disc=base>0?Math.round((1-(cost/n)/base)*100):0;
-      return h('div',{key:'p'+n,onClick:on?()=>this.passBuy(n):null,
-        style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:56,padding:'0 16px',borderTop:n===5?'none':'1px solid #36383C',cursor:on?'pointer':'default',opacity:on?1:0.45}},
-        h('div',{style:{display:'flex',alignItems:'center',gap:8}},
-          h('span',{style:{fontFamily:T.sans,fontSize:14,color:on?T.hi:T.lo}}, n+(this.en()?'':'회')),
-          disc>0?h('span',{style:{fontFamily:T.mono,fontSize:10,color:AM,border:'1px solid '+AM,borderRadius:2,padding:'2px 6px'}},'-'+disc+'%'):null),
-        h('span',{style:{fontFamily:T.mono,fontSize:13,color:aff?T.sato:T.danger}}, cost.toLocaleString()+' '+this.t('currency_sato')));
-    };
-    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-      this.screenTitle('PROTOCOL PASS', this.en()?'Protocol Pass':'프로토콜 패스'),
-      h('div',{style:{flex:1,overflowY:'auto',padding:'0 16px 16px'}},
-        // 보유 게이지 (귀환 회복 화면과 동일 규격)
-        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:7}},
-          h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#6F7276'}}, this.en()?'Passes':'보유 횟수'),
-          h('span',{style:{fontFamily:T.mono,fontSize:11,color:'#A9ABAF',letterSpacing:'.05em'}}, g.pass+' / '+cap)),
-        h('div',{style:{position:'relative',height:6,background:'#2B2E32',borderRadius:1,overflow:'hidden'}},
-          h('div',{style:{width:pct+'%',height:'100%',background:AM}})),
-        // 자동 충전 안내
-        h('div',{style:{marginTop:15,padding:'0 16px',borderRadius:8,background:'#18191D',border:'1px solid #36383C'}},
-          this.frow(this.en()?'Next charge':'다음 충전까지',
-            g.pass>=th ? (this.en()?'—':'대기 없음') : mmss(left), g.pass>=th?'#6F7276':AM, false),
-          this.frow(this.en()?'Auto charge':'자동 충전',
-            (this.en()? (th+' max · every '+Math.round(this.passRegenMs()/60000)+'m')
-                      : (th+'회 이하일 때 '+Math.round(this.passRegenMs()/60000)+'분마다 1회')), '#A9ABAF', true)),
-        // 충전 상품
-        h('div',{style:{fontFamily:T.sans,fontSize:12,color:'#4B4D52',margin:'22px 0 10px'}}, this.en()?'Charge':'충전하기'),
-        h('div',{style:{borderRadius:8,background:'#18191D',border:'1px solid #36383C',overflow:'hidden'}},
-          row(5), row(10), row(20))),
-      h('div',{style:{flex:'0 0 auto',margin:'0 16px 24px',padding:24,boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid #36383C'}},
-        h('button',{onClick:()=>this.go('safehouse'),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:13,fontWeight:400,cursor:'pointer'}}, this.t('btn_back'))));
+    if(!this._passT) this._passT=setInterval(()=>{
+      if(this.state.screen!=='pass'){ clearInterval(this._passT); this._passT=null; return; }
+      this.forceUpdate(); },1000);
+    const shown = (this._passShown==null) ? g.pass : this._passShown;
+    const qty=this.passQty(), per=this.passPricePer(), cost=per*qty;
+    const full=g.pass>=cap, short=g.sato<cost, atMax=g.pass+qty>=cap;
+    const regen=g.pass<th;                                  // 자동 충전이 도는 구간에서만 LCD 좌측이 밝다
+    const GRN='#30D322', DIM='#096E00', AM='#CCA26E';
+    const mm=(ms)=>{ const s=Math.ceil(ms/1000); return [String(Math.floor(s/60)).padStart(2,'0'), String(s%60).padStart(2,'0')]; };
+    const t=regen?mm(this.passLeftMs()):['00','00'];
+    const lcdC=regen?GRN:DIM;
+    // 안내 박스 — 충전 완료 > 사토 부족 > 상한 도달 > 기본 안내
+    const note = (this._passDone||full) ? {t:(this.en()?'Charge complete.':'충전이 완료되었습니다.'), c:'#83B289'}
+               : short ? {t:(this.en()?'Not enough Sato.':'사토가 부족합니다.'), c:AM}
+               : atMax ? {t:(this.en()?('Charge limit '+cap):('최대 충전 제한 '+cap+'회')), c:AM}
+               : {t:(this.en()? (th+' or fewer recharges every '+Math.round(this.passRegenMs()/60000)+'m')
+                              : (th+'회 이하일 때 '+Math.round(this.passRegenMs()/60000)+'분 마다 자동 충전')), c:'#6B6B6B'};
+    const canBuy = !full && !this._passBusy;
+    // 스테퍼 — 치수·색은 상점 qstepper/fstepper 규격(30x30 · radius 4 · #4a4d53), 글리프만 svg 셰브론
+    const step=(dir,on)=>h('div',{key:'st'+dir, onClick:on?()=>this.passSetQty(dir):null,
+      style:{width:30,height:30,boxSizing:'border-box',border:'1px solid #4a4d53',borderRadius:4,
+        display:'flex',alignItems:'center',justifyContent:'center',opacity:on?1:.4,cursor:on?'pointer':'default'}},
+      h('svg',{width:12,height:12,viewBox:'0 0 12 12',fill:'none'},
+        h('path',{d:dir<0?'M3 4.6L6 7.6L9 4.6':'M3 7.4L6 4.4L9 7.4',
+          stroke:'#a9abaf',strokeWidth:1.3,strokeLinecap:'round',strokeLinejoin:'round'})));
+    const btn=(label,on,fn)=>h('button',{key:label,disabled:!on,onClick:on?fn:null,
+      style:{flex:1,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,
+        color:on?'#eaebee':'#4b4d52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:on?'pointer':'default'}}, label);
+    // 카드 삽입 — svg insert는 카드 rect가 y323, 평상/loading은 y-120. 차이 443px만 위로 끌어올린다.
+    const INS=443, CARD_TR='transform .42s cubic-bezier(.2,.9,.25,1)';
+    const dragOn = phase==='insert';
+    const drag = dragOn ? {
+      onPointerDown:(e)=>{ this._pcEl=e.currentTarget; this._pcY0=e.clientY; try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){} },
+      onPointerMove:(e)=>{ if(this._pcY0==null) return; const dy=Math.min(0,e.clientY-this._pcY0);
+        const el=this._pcEl; if(el){ el.style.transition='none'; el.style.transform='translateY('+Math.max(0,INS+dy)+'px)'; } },
+      // 놓을 때 명령형 스타일은 vdom 정본값(CARD_TR · translateY(0|INS))으로 되돌린다 — DC가 노드를 재사용해도 어긋나지 않게.
+      onPointerUp:(e)=>{ if(this._pcY0==null) return; const dy=e.clientY-this._pcY0; this._pcY0=null; const el=this._pcEl;
+        if(dy<-80){ if(el){ el.style.transition=CARD_TR; el.style.transform='translateY(0px)'; } this.passInsert(); }
+        else if(el){ el.style.transition=CARD_TR; el.style.transform='translateY('+INS+'px)'; } },
+      onPointerCancel:()=>{ this._pcY0=null; const el=this._pcEl; if(el){ el.style.transition=CARD_TR; el.style.transform='translateY('+INS+'px)'; } },
+    } : {};
+    // LCD 문구 — insert: INSERT YOUR CARD --/-- · loading: LOADING(점멸) --/-- · 평상: NEXT MM:SS  nn/50
+    const lcdLeft = phase==='insert'
+      ? h('div',{key:'lcdL',style:{position:'absolute',left:67,top:89,zIndex:3,fontFamily:T.mono,fontWeight:300,fontSize:20,color:GRN}}, 'INSERT YOUR CARD')
+      : phase==='loading'
+      ? h('div',{key:'lcdL',style:{position:'absolute',left:67,top:89,zIndex:3,fontFamily:T.mono,fontWeight:300,fontSize:20,color:GRN,animation:'rlLoadBlink .5s steps(1,end) infinite'}}, 'LOADING')
+      : h('div',{key:'lcdL',style:{position:'absolute',left:67,top:89,zIndex:3,fontFamily:T.mono,fontWeight:300,fontSize:20,color:lcdC}},
+          'NEXT ', t[0], h('span',{style:{animation:regen?'rlColon 1s steps(1,end) infinite':'none'}}, ':'), t[1]);
+    const lcdRight = phase
+      ? h('div',{key:'lcdR',style:{position:'absolute',right:72,top:89,zIndex:3,fontFamily:T.mono,fontWeight:300,fontSize:20,color:GRN}}, '--/--')
+      : h('div',{key:'lcdR',style:{position:'absolute',right:72,top:89,zIndex:3,fontFamily:T.mono,fontWeight:300,fontSize:20}},
+          h('span',{style:{color:GRN}}, String(shown).padStart(2,'0')),
+          h('span',{style:{color:DIM}}, '/'+cap));
+    // 시트 내용 — insert 단계는 키커+타이틀+버튼만(svg 141px), 그 뒤로는 전체가 펼쳐진다.
+    const sheetKids=[
+      h('div',{key:'kick',style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.06em',color:'#4b4d52',marginBottom:5}},
+        this.en()?'CHARGE LOG':'충전 내역'),
+      h('div',{key:'ttl',style:{fontFamily:T.sans,fontSize:16,fontWeight:400,color:'#eaebee',marginBottom:16}},
+        this.en()?'Protocol Pass Charge':'프로토콜 패스 충전')];
+    if(phase!=='insert'){
+      sheetKids.push(
+        // 보유 게이지 — 수리 시트의 내구도 게이지와 같은 규격(라벨 mono 10 · 간격 8 · 바 6px)
+        h('div',{key:'gauge',style:{marginBottom:16}},
+          h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8}},
+            h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#6f7276',letterSpacing:'.05em'}}, this.en()?'CHARGE':'충전'),
+            h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#a9abaf',letterSpacing:'.05em'}}, String(shown).padStart(2,'0')+' / '+cap)),
+          h('div',{style:{height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden'}},
+            h('div',{style:{width:(cap>0?Math.max(0,Math.min(100,shown/cap*100)):0)+'%',height:'100%',background:'#a5acb2',transition:'width .09s linear'}}))),
+        // 지불 비용 + 충전 횟수 — frow 리듬(높이 36 · 상단 구분선)
+        h('div',{key:'rows',style:{marginBottom:16}},
+          this.frow(this.en()?'Cost':'지불 비용', cost.toLocaleString()+' '+this.t('currency_sato'), '#85b3c5', false),
+          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:44,borderTop:'1px solid #36383c'}},
+            h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#a9abaf'}}, this.en()?'Amount':'충전횟수'),
+            h('div',{style:{display:'flex',alignItems:'center',gap:12}},
+              step(-1, qty>1),
+              h('span',{style:{fontFamily:T.mono,fontSize:13,color:'#eaebee',minWidth:45,textAlign:'center'}}, String(qty).padStart(2,'0')),
+              step(1, qty<this.passQtyMax())))),
+        // 안내 박스 — 수리 시트의 경고 박스와 동일
+        h('div',{key:'note',style:{display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:'#1a1b21',
+          borderRadius:16,padding:'10px 12px',marginBottom:16}},
+          icCaution(18,note.c),
+          h('span',{style:{fontFamily:T.sans,fontSize:12,color:note.c,lineHeight:1.4}}, note.t)));
+    }
+    const exit=this.en()?'Exit':'나가기';
+    sheetKids.push(h('div',{key:'btns',style:{display:'flex',gap:8}},
+      phase==='insert' ? btn(this.en()?'Insert':'삽입', true, ()=>this.passInsert())
+                       : btn(this.en()?'Charge':'충전', canBuy, ()=>this.doPassBuy()),
+      btn(exit, true, ()=>this.go(this._passFrom||'safehouse'))));
+    return h('div',{style:{flex:1,position:'relative',overflow:'hidden',background:'#111315'}},
+      // 402 기준 스테이지 — 카드(아래) + 단말(위) + LCD
+      h('div',{ref:el=>{ if(el){ const pw=el.parentElement&&el.parentElement.clientWidth; if(pw) el.style.transform='scale('+(pw/402)+')'; } },
+        style:{position:'absolute',left:0,top:0,width:402,height:828,transformOrigin:'0 0',pointerEvents:'none'}},
+        // 카드 — svg는 330x481 rect로 잘라낸 525x525 아트(1024² 알파 원본). 클립까지 그대로 재현.
+        h('div',Object.assign({key:'card'}, drag, {style:{position:'absolute',left:36,top:-120,width:330,height:481,zIndex:1,overflow:'hidden',
+          transform:'translateY('+(phase==='insert'?INS:0)+'px)', transition:CARD_TR, willChange:'transform',
+          touchAction:'none', pointerEvents:dragOn?'auto':'none', cursor:dragOn?'grab':'default'}}),
+          h('div',{style:{position:'absolute',left:-102,top:-21,width:525,height:525,
+            backgroundImage:'url(assets/art/cards/protocol_pass_full.png)',backgroundSize:'100% 100%',backgroundRepeat:'no-repeat'}})),
+        // 단말 — 이 화면에서는 180° 뒤집어 쓴다(svg의 rotate(-180)). 태그 화면과 위아래가 반대다.
+        h('div',{key:'term',style:{position:'absolute',left:16,top:-455,width:370,height:670,zIndex:2,transform:'rotate(180deg)',
+          backgroundImage:'url(assets/art/ui/tap_terminal.png)',backgroundSize:'100% 100%',backgroundRepeat:'no-repeat'}}),
+        lcdLeft, lcdRight),
+      // 하단 시트 — 철물점 수리 확인 시트(repairConfirm)와 같은 레이아웃·타이포 규격.
+      h('div',{style:{position:'absolute',left:16,right:16,bottom:16,boxSizing:'border-box',zIndex:5,
+        background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:'24px 16px'}}, ...sheetKids));
   }
 
   // ===== 귀환 회복 스테이션 (screen-return-autoheal.svg · 402x828 기준) =====
