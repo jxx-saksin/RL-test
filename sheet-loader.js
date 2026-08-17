@@ -5,11 +5,11 @@
 
 export const SHEET_ID = '1d-LNhcuFo1dKO1zzszDNAXXT-zDqffatr1aCe3yB8ls';
 export const TABS = ['Config','PrimaryStat','SecondaryStat','StatusEffect','WeaponAttribute',
-  'Weapon','Armor','Item','Monster','City','Zone','Vendor','Shop','LootTable','Accessory','Talisman','Bag','Affix','SpawnTable','CombatLog',
+  'Weapon','Armor','Item','Valuable','Monster','City','Zone','Vendor','Shop','LootTable','Accessory','Talisman','Bag','Affix','SpawnTable','CombatLog',
   'USB','ColdData','NpcDialogue','UIString',
   'Liquor','Module','LootGroup','LootGroupItem','Tip'];
 // tabs that may not exist yet in older sheets — a failed fetch is non-fatal
-const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString','Liquor','Module','LootGroup','LootGroupItem','Talisman','Bag','Tip']);
+const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString','Liquor','Module','LootGroup','LootGroupItem','Talisman','Bag','Tip','Valuable']);
 
 // --- RFC4180-ish CSV parser (handles quoted commas + newlines) ---
 export function parseCSV(text) {
@@ -100,10 +100,11 @@ export function shape(rowsByTab) {
     primaryStats: pfx(toObjs(rowsByTab.PrimaryStat), 'PrimaryStatID', 'stat_'),
     secondaryStats: pfx(toObjs(rowsByTab.SecondaryStat), 'SecondaryStatID', 'sec_'),
     statusEffects: pfx(toObjs(rowsByTab.StatusEffect), 'StatusID', 'status_'),
-    weaponAttributes: toObjs(rowsByTab.WeaponAttribute).filter(r => r.AttributeName_EN && r.StatusEffect_KR),
+    weaponAttributes: toObjs(rowsByTab.WeaponAttribute).filter(r => String(r.AttributeID || '').trim()),
     weapons: pfx(toObjs(rowsByTab.Weapon), 'WeaponID', 'weapon_'),
     armor: pfx(toObjs(rowsByTab.Armor), 'ArmorID', 'armor_'),
     items: pfx(toObjs(rowsByTab.Item), 'ItemID', 'item_'),
+    valuables: pfx(toObjs(rowsByTab.Valuable || []), 'ValuableID', 'item_'),
     monsters: pfx(toObjs(rowsByTab.Monster), 'MonsterID', 'monster_'),
     cities: pfx(toObjs(rowsByTab.City), 'CityID', 'city_'),
     zones: pfx(toObjs(rowsByTab.Zone), 'ZoneID', 'city_'),
@@ -128,9 +129,21 @@ export function shape(rowsByTab) {
   };
 }
 
+// 귀중품(Valuable 탭)은 열 이름이 Item 탭과 다르다(ValuableID/Name_KR/Description_KR).
+// 여기서 Item 스키마로 정규화해 byId.item에 합쳐두면 이름·설명·카테고리 조회가
+// 기존 아이템과 똑같이 동작한다 — 렌더러 쪽 조회 체인을 건드릴 필요가 없다.
+// SellPrice는 일부러 넣지 않는다: 감별(전당포) 전까지 판매 대상이 아니다.
+export function asItemRow(v) {
+  return { ...v, ItemID: v.ValuableID, ItemName_KR: v.Name_KR, ItemName_EN: v.Name_EN,
+    Description: v.Description_KR, Description_EN: v.Description_EN,
+    Category: 'Valuable', MaxStack: 1 };
+}
+
 export function buildIndex(DATA) {
+  const valuables = (DATA.valuables || []).map(asItemRow);
   const byId = {
-    item: Object.fromEntries(DATA.items.map(x => [x.ItemID, x])),
+    item: Object.fromEntries([...DATA.items, ...valuables].map(x => [x.ItemID, x])),
+    valuable: Object.fromEntries(valuables.map(x => [x.ItemID, x])),
     weapon: Object.fromEntries(DATA.weapons.map(x => [x.WeaponID, x])),
     armor: Object.fromEntries(DATA.armor.map(x => [x.ArmorID, x])),
     monster: Object.fromEntries(DATA.monsters.map(x => [x.MonsterID, x])),

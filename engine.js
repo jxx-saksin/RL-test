@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js';
-import { buildIndex } from './sheet-loader.js?v=bag1';
+import { DATA as FALLBACK } from './data/game-data.js?v=val1';
+import { buildIndex } from './sheet-loader.js?v=val1';
 
 export let DATA = FALLBACK;
 export let byId = buildIndex(FALLBACK).byId;
@@ -836,7 +836,7 @@ export function growthPct(state, stat) {
   return clamp((g.points / growthReq(g.level)) * 100, 0, 100);
 }
 
-// ---------- USB growth (USB tab · vendor_usb_tech) ----------
+// ---------- USB growth (USB tab) — 일시 중단, 아지트(하이드) 신설 시 재연결 ----------
 export function parseMaterials(json){
   try{ const o = JSON.parse(String(json == null ? '{}' : json)); return Object.entries(o).map(([id, qty]) => ({ id, qty: N(qty, 1) })); }catch(_){ return []; }
 }
@@ -878,10 +878,10 @@ export function substUsbTokens(s, u){
   const statName = (sr && (tr(sr, 'StatName') || sr.Name_KR || sr.PrimaryStat_KR)) || STAT_KR_FALLBACK[u.GrantStat] || '';
   return s.replace(/\{USB\}/g, tr(u, 'Name') || '').replace(/\{MAT\}/g, mats).replace(/\{STAT\}/g, statName).replace(/\{MIN\}/g, String(N(u.UploadMinutes, 1)));
 }
+// 2026-08-18: usbload 대사는 시트(NpcDialogue)에서 전량 삭제됨 — 내장 템플릿만 쓴다.
+// USB 이식은 아지트(하이드) 신설 때 되살릴 예정이라 화면·함수는 남겨둔다.
 export function usbLine(stage, usbRow){
-  const rows = (DATA.npcDialogue || []).filter(r => String(r.NPC) === 'vendor_usb_tech' && String(r.Flow) === 'usbload' && String(r.Stage) === stage);
-  let pool = rows.map(r => String(tr(r, 'Line') || '').trim()).filter(Boolean);
-  if (!pool.length) pool = USB_TPL[stage] || [''];
+  const pool = USB_TPL[stage] || [''];
   return substUsbTokens(pool[Math.floor(Math.random() * pool.length)], usbRow);
 }
 

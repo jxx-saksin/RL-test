@@ -31,6 +31,7 @@
   @keyframes rlIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
   @keyframes rlSheet{from{transform:translateY(100%)}to{transform:none}}
   @keyframes rlFade{from{opacity:0}to{opacity:1}}
+  @keyframes rlToastOut{from{opacity:1}to{opacity:0}}
   @keyframes rlCharge{from{width:0}to{width:100%}}
   @keyframes rlPunch{0%,84%{transform:scale(1)}92%{transform:scale(1.22)}100%{transform:scale(1)}}
   @keyframes rlSpin{to{transform:rotate(360deg)}}
@@ -112,7 +113,7 @@ const ATTR = { bleed:{kr:'출혈',c:T.bleed}, stun:{kr:'기절',c:T.stun}, pierc
 const AT = (x)=> (x && ATTR[x]) ? ATTR[x] : null;
 // 장비 박스 슬롯 표시 순서(gs.equip 키 ↔ 카테고리 라벨). 미착용도 자리를 지킨다.
 const GEAR_SLOTS = [['bag','가방'],['weapon','무기'],['head','투구'],['body','갑옷'],['artifact1','장신구'],['artifact2','징표']];
-const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소' };
+const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Valuable:'귀중품', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소' };
 // 몬스터 아트 보유 목록 — 출정 로딩 배경 랜덤 픽 판정용(assets/art/monsters/*.webp). 아트 추가 시 갱신.
 const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','monster_bloated_toad','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_pale_lynx','monster_rogue_emergency','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_spore_gardener','monster_wandering_sentry','monster_abandoned_chihuahua',
   'monster_gravid_queen','monster_last_deputy','monster_lingering_manager','monster_tower_sentinel']);
@@ -134,7 +135,7 @@ const PRELOAD = [
   // 1순위 — 부팅 끝나면 바로 보이는 안전가옥
   ['assets/art/cities/city_01.webp',
    'assets/art/shop/shop_clinic.webp','assets/art/shop/shop_canteen.webp','assets/art/shop/shop_hardware.webp',
-   'assets/art/shop/shop_pawnshop.webp','assets/art/shop/shop_data_center.webp','assets/art/shop/shop_blackmarket.webp',
+   'assets/art/shop/shop_pawnshop.webp','assets/art/shop/shop_tavern.webp','assets/art/shop/shop_blackmarket.webp',
    'assets/art/shop/shop_auction.webp'],
   // 2순위 — 출정 존 목록 · 카드 뒷면
   ['assets/art/zones/city_01_mall.webp','assets/art/zones/city_01_houses.webp','assets/art/zones/city_01_tower.webp',
@@ -159,12 +160,16 @@ const BOOT_SETS = [
 // mp4 13.1MB -> 1.8MB. <img> 한 장이라 자동재생 정책·preload·play() 처리가 통째로 필요 없다.
 const TITLE_ANIMS = ['monster_security_camera_anim.webp','monster_gutter_roach_anim.webp'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 12;
-const TITLE_DATE = '0817';
+const TITLE_VER = 13;
+const TITLE_DATE = '0818';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:13, date:'18/Aug', lines:[
+    ['토스트 모달 위치 및 소멸 개편됨.','Toast position and dismissal were reworked.'],
+    ['귀중품 표시 버그 수정됨(귀중품 기능 추가 예정).','Fixed valuables not displaying (valuables feature coming soon).'],
+    ['모듈, USB 시스템 개편 예정.','The module and USB systems are being reworked.'] ] },
   { ver:12, date:'17/Aug', lines:[
     ['전리품 화면 카드 스와이프 반투명화 버그 수정됨.','Fixed loot cards turning semi-transparent when swiped.'] ] },
   { ver:11, date:'17/Aug', lines:[
@@ -245,11 +250,12 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=bag4');
-      const loader = await import('./sheet-loader.js?v=bag4');
+      const eng = await import('./engine.js?v=val1');
+      const loader = await import('./sheet-loader.js?v=val1');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
+      window.addEventListener('pointerdown', ()=>this.hideToast(), true);  // 토스트: 아무 데나 터치 → 즉시 소멸
       this._dataPromise = this.loadData().catch(()=>{}); // 데이터는 스플래시 대기 중 백그라운드 로드
       this.setState({ ready:false, splash:true });        // "탭하여 시작" 스플래시
     }catch(e){ console.error('engine load failed', e); this.setState({ ready:true, err:String(e) }); }
@@ -396,7 +402,14 @@ class Component extends DCLogic {
   moveToBag(uid){ const i=this.gs.vault.findIndex(x=>x.uid===uid); if(i>=0){ const [it]=this.gs.vault.splice(i,1); this.gs.bag.push(it); } }
   rest(){ const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=full.maxHp; this.gs.sta=this.staMax; this.saveGame(); }
   go(screen){ if(this._t){clearInterval(this._t); this._t=null;} if(this._ut){clearInterval(this._ut); this._ut=null;} this._lastScroll=0; this._titleLock=false; clearTimeout(this._titleLockT); if(screen==='settings') this.requestGyroPerm(); this.setState({ screen, modalZone:null, sel:null, titleHidden:false }); if(screen==='safehouse') this.saveGame(); }
-  flash(msg){ this.setState({toast:msg}); clearTimeout(this._ft); this._ft=setTimeout(()=>this.setState({toast:null}),2000); this.saveGame(); }
+  // 위치는 flash 시점(DOM이 안정된 상태)에 재둔다 — 렌더 중에 재면 시트가 아직 높이 0이라 빗나간다.
+  flash(msg){ this._toastAnc=this.toastAnchor(); clearTimeout(this._ft); clearTimeout(this._ftOut);
+    this.setState({toast:msg,toastOut:false});
+    this._ft=setTimeout(()=>this.setState({toastOut:true}),1000);          // 1초 유지 후
+    this._ftOut=setTimeout(()=>this.setState({toast:null,toastOut:false}),1500);  // 0.5초 페이드 아웃
+    this.saveGame(); }
+  // 화면 아무 데나 터치하면 즉시 사라진다 (componentDidMount에서 캡처 단계로 연결)
+  hideToast(){ if(!this.state.toast) return; clearTimeout(this._ft); clearTimeout(this._ftOut); this.setState({toast:null,toastOut:false}); }
 
   // ---------- sortie / combat ----------
   zonePool(zoneId){
@@ -845,7 +858,7 @@ class Component extends DCLogic {
               h('div',{style:{fontFamily:T.sans,fontSize:13,fontWeight:400,lineHeight:'15px',color:'#6F7276'}}, ln[1])))))),
         h('div',{style:{height:16}})),
       // 하단 고정 확인 박스 — 안전가옥 인터페이스 규약(박스 #18191D r24 + pill #212227 h48)
-      h('div',{style:{flex:'0 0 auto',margin:'0 10px 24px',padding:'23px 23px',boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid #36383C'}},
+      h('div',{style:{flex:'0 0 auto',margin:'0 16px 26px',padding:'23px 23px',boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid #36383C'}},
         h('button',{onClick:()=>this.closeNotice(),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.en()?'OK':'확인')));
   }
 
@@ -905,12 +918,46 @@ class Component extends DCLogic {
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.14em',color:T.faint,marginBottom:6,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.eng.t(kicker)),
       h('div',{style:{fontFamily:T.sans,fontSize:16,fontWeight:400,color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.eng.t(title))),
     right||null); }
-  toastEl(){ if(!this.state.toast) return null; return h('div',{style:{position:'absolute',bottom:106,left:16,right:16,display:'flex',alignItems:'center',justifyContent:'center',gap:9,height:44,boxSizing:'border-box',padding:'0 20px',background:'#18191D',border:'1px solid #36383C',borderRadius:999,color:'#A1A1A1',fontFamily:T.mono,fontSize:12,animation:'rlFade .2s',zIndex:20,pointerEvents:'none'}},
+  // 토스트(높이 48)를 지금 화면의 '하단 버튼'에 정확히 겹쳐 띄운다.
+  // 대상 = 시트·모달이 열려 있으면 그 안의 맨 아래 버튼 행, 아니면 화면 하단 버튼 행.
+  // 버튼이 없는 화면(내비 필·전투 '교전중' 필)은 그 알약 안에 세로 가운데로 얹는다.
+  TOAST_H = 48;
+  toastAnchor(){
+    const D={bottom:26+8,left:16,right:16};   // 폴백 = 하단 박스 슬롯(64) 안에 48을 가운데
+    try{
+      const fr=document.querySelector('.rl-frame'); if(!fr) return D;
+      const R=fr.getBoundingClientRect();
+      // 프레임 테두리 제외한 패딩 박스 기준 — absolute의 기준면과 같다
+      const pL=R.left+fr.clientLeft, pT=R.top+fr.clientTop, pR=pL+fr.clientWidth, pB=pT+fr.clientHeight;
+      const ov=[...fr.children].filter(el=>{ const cs=getComputedStyle(el); return cs.position==='absolute' && (parseInt(cs.zIndex,10)||0)>=30; }).pop();
+      const root=ov||fr;
+      let box=null;
+      // ① 맨 아래 버튼 행 (높이 40~56 · 폭 60+ · 화면 하단부)
+      const btns=[...root.querySelectorAll('button')].map(b=>b.getBoundingClientRect())
+        .filter(r=>r.height>=40&&r.height<=56&&r.width>60&&r.bottom>pB-300&&r.bottom<=pB+1);
+      if(btns.length){
+        const mb=Math.max(...btns.map(r=>r.bottom)), row=btns.filter(r=>Math.abs(r.bottom-mb)<=4);
+        box={h:Math.max(...row.map(r=>r.height)),bottom:mb,left:Math.min(...row.map(r=>r.left)),right:Math.max(...row.map(r=>r.right))};
+      } else {
+        // ② 버튼이 없으면 하단 알약/박스 자체
+        const cand=[...root.querySelectorAll('div')].map(d=>d.getBoundingClientRect())
+          .filter(r=>r.width>250&&r.height>=56&&r.height<=80&&r.bottom>pB-60&&r.bottom<=pB+1);
+        if(!cand.length) return D;
+        const mb=Math.max(...cand.map(r=>r.bottom)), r0=cand.filter(r=>r.bottom===mb)[0];
+        box={h:r0.height,bottom:mb,left:r0.left,right:r0.right};
+      }
+      const bot=Math.round(pB-box.bottom-(this.TOAST_H-box.h)/2);
+      return { bottom:Math.max(4,bot), left:Math.round(box.left-pL), right:Math.round(pR-box.right) };
+    }catch(_){ return D; }
+  }
+  toastEl(){ if(!this.state.toast) return null; const a=this._toastAnc||{bottom:34,left:16,right:16}; const out=!!this.state.toastOut;
+    // key를 바꿔 새 노드로 마운트 — 노드가 재활용돼도 페이드 아웃이 항상 처음부터 재생된다
+    return h('div',{key:out?'toast-out':'toast-in',style:{position:'absolute',bottom:a.bottom,left:a.left,right:a.right,display:'flex',alignItems:'center',justifyContent:'center',gap:9,height:this.TOAST_H,boxSizing:'border-box',padding:'0 20px',background:'#18191D',border:'1px solid #36383C',borderRadius:999,color:'#A1A1A1',fontFamily:T.mono,fontSize:12,lineHeight:1.35,textAlign:'center',animation:out?'rlToastOut .5s ease-out forwards':'rlFade .2s',zIndex:70,pointerEvents:'none'}},
     h('svg',{key:'ic',width:15,height:15,viewBox:'123 660.2 15.6 17.2',fill:'none',style:{flex:'0 0 auto'}},
       h('path',{key:'a',d:'M130.8 664.2C131.131 664.2 131.4 664.469 131.4 664.8V669.6C131.4 669.932 131.131 670.2 130.8 670.2C130.469 670.2 130.2 669.932 130.2 669.6V664.8C130.2 664.469 130.469 664.2 130.8 664.2Z',fill:'#A1A1A1'}),
       h('path',{key:'b',d:'M131.6 672C131.6 672.442 131.242 672.8 130.8 672.8C130.358 672.8 130 672.442 130 672C130 671.558 130.358 671.2 130.8 671.2C131.242 671.2 131.6 671.558 131.6 672Z',fill:'#A1A1A1'}),
       h('path',{key:'c',fillRule:'evenodd',clipRule:'evenodd',d:'M130.8 660.2C130.236 660.2 129.721 660.355 129.159 660.616C128.614 660.869 127.984 661.243 127.196 661.71L126.593 662.066C125.804 662.534 125.174 662.907 124.689 663.264C124.187 663.633 123.801 664.011 123.523 664.506C123.244 665 123.119 665.529 123.058 666.156C123 666.765 123 667.509 123 668.445V669.155C123 670.091 123 670.836 123.058 671.444C123.119 672.071 123.244 672.6 123.523 673.095C123.801 673.59 124.187 673.968 124.689 674.337C125.174 674.694 125.804 675.067 126.593 675.534L127.196 675.891C127.984 676.358 128.614 676.731 129.159 676.984C129.721 677.245 130.236 677.4 130.8 677.4C131.364 677.4 131.879 677.245 132.441 676.984C132.986 676.731 133.616 676.358 134.404 675.891L135.007 675.534C135.796 675.067 136.426 674.694 136.911 674.337C137.413 673.968 137.799 673.59 138.077 673.095C138.356 672.6 138.481 672.071 138.542 671.444C138.6 670.836 138.6 670.091 138.6 669.155V668.445C138.6 667.509 138.6 666.765 138.542 666.156C138.481 665.529 138.356 665 138.077 664.506C137.799 664.011 137.413 663.633 136.911 663.264C136.426 662.907 135.796 662.534 135.007 662.066L134.404 661.71C133.616 661.243 132.986 660.869 132.441 660.616C131.879 660.355 131.364 660.2 130.8 660.2ZM127.78 662.758C128.602 662.272 129.181 661.929 129.665 661.705C130.136 661.486 130.473 661.4 130.8 661.4C131.127 661.4 131.464 661.486 131.935 661.705C132.419 661.929 132.998 662.272 133.82 662.758L134.369 663.083C135.19 663.57 135.769 663.913 136.201 664.231C136.621 664.54 136.865 664.798 137.032 665.094C137.199 665.392 137.296 665.739 137.347 666.271C137.399 666.815 137.4 667.503 137.4 668.475V669.125C137.4 670.098 137.399 670.785 137.347 671.329C137.296 671.861 137.199 672.209 137.032 672.506C136.865 672.802 136.621 673.06 136.201 673.37C135.769 673.687 135.19 674.031 134.369 674.517L133.82 674.842C132.998 675.329 132.419 675.671 131.935 675.896C131.464 676.115 131.127 676.2 130.8 676.2C130.473 676.2 130.136 676.115 129.665 675.896C129.181 675.671 128.602 675.329 127.78 674.842L127.231 674.517C126.41 674.031 125.831 673.687 125.399 673.37C124.979 673.06 124.735 672.802 124.568 672.506C124.401 672.209 124.304 671.861 124.253 671.329C124.201 670.785 124.2 670.098 124.2 669.125V668.475C124.2 667.503 124.201 666.815 124.253 666.271C124.304 665.739 124.401 665.392 124.568 665.094C124.735 664.798 124.979 664.54 125.399 664.231C125.831 663.913 126.41 663.57 127.231 663.083L127.78 662.758Z',fill:'#A1A1A1'})),
-    h('span',{key:'tx',style:{whiteSpace:'nowrap'}}, typeof this.state.toast==='string'?this.eng.t(this.state.toast):this.state.toast)); }
+    h('span',{key:'tx',style:{whiteSpace:'normal'}}, typeof this.state.toast==='string'?this.eng.t(this.state.toast):this.state.toast)); }
 
   renderApp(){
     const s=this.state.screen;
@@ -936,14 +983,14 @@ class Component extends DCLogic {
   // ---- safehouse ----
   safehouse(){
     // 상점 카드 고정 표시 순서 (ShopID 기준)
-    const ORDER=['shop_clinic','shop_canteen','shop_hardware','shop_pawnshop','shop_data_center','shop_blackmarket','shop_auction'];
+    const ORDER=['shop_clinic','shop_canteen','shop_hardware','shop_pawnshop','shop_tavern','shop_blackmarket','shop_auction'];
     const ord=(v)=>{ const i=ORDER.indexOf(v.ShopID); return i<0?99:i; };
     const vendors=this.eng.DATA.vendors.slice().sort((a,b)=>ord(a)-ord(b));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       h('div',{style:{padding:'0 16px 100px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:16}},
         h('div',{style:{margin:'0 -16px',flex:'0 0 auto'}}, this.screenTitle('SAFEHOUSE','안전가옥',this.currencyChips())),
         ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Feed')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Module')||svc.includes('Sell'); const act=()=>this.openVendor(v.VendorID);
-            const CHIP={ shop_clinic:['치료','Heal'], shop_hardware:['수리','Repair'], shop_canteen:['배식','Ration'], shop_data_center:['데이터','Data'], shop_pawnshop:['감정','Appraise'], shop_blackmarket:['거래','Trade'], shop_auction:['거래소','Exchange'] };
+            const CHIP={ shop_clinic:['치료','Heal'], shop_hardware:['수리','Repair'], shop_canteen:['배식','Ration'], shop_tavern:['주점','Tavern'], shop_pawnshop:['감정','Appraise'], shop_blackmarket:['거래','Trade'], shop_auction:['거래소','Exchange'] };
             const chipTxt=(CHIP[v.ShopID]||[])[this.en()?1:0]||'';
             return h('button',{key:v.VendorID,disabled:!open,onClick:open?act:null,
               style:{position:'relative',height:118,textAlign:'left',border:'1px solid rgb(54,56,60)',borderRadius:8,padding:0,cursor:open?'pointer':'default',opacity:open?1:.5,overflow:'hidden',flexShrink:0,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
@@ -2179,7 +2226,7 @@ void main(){
       done? h('div',{style:{display:'flex',gap:10}}, win?btn(this.t('btn_continue'),()=>this.drawCards()):null, btn(this.t('btn_return'),()=>{ win?this.extract():this.death(); },!win)) : null);
   }
 
-  // ---- USB 성장 (미스터 박 · vendor_usb_tech · usbload 플로우) ----
+  // ---- USB 성장 — 일시 중단(주점에서 분리). 아지트(하이드) 신설 시 재연결 ----
   usbOwned(){ return [...this.gs.bag,...this.gs.vault].filter(inst=>{ const it=this.eng.byId.item[inst.id]; return (it&&String(it.Category)==='USB')||(this.eng.byId.usb&&this.eng.byId.usb[inst.id]); }); }
   usbRowFor(id){ return (this.eng.byId.usb&&this.eng.byId.usb[id])||null; }
   setUsbStage(stage){ const u=this.usb||(this.usb={}); u.stage=stage; u.line=this.eng.usbLine(stage,u.row); this.forceUpdate(); }
@@ -2777,7 +2824,9 @@ void main(){
     const cat=liq?this.t('appraise_tab'):md?(this.t('module_tab')+' · '+(md.HexCode||'')):usb?this.t('usb_decode'):(CATKR[s.Category]?this.t(this.catKey(s.Category)):(s.Category||''));
     // 스택 가능한 일반 아이템(약품·음식·정크·퀘스트 등)만: 카테고리 우측에 MAX STACK N 표시
     const itRow=this.eng.byId.item[inst.id]; const maxStk=(itRow&&!liq&&!md&&!usb)?this.eng.N(itRow.MaxStack):0;
-    const allStats=usb?[[this.t('usb_permanent_growth'),this.eng.substUsbTokens('{STAT}',usb)],[this.t('combat_time_limit'),this.eng.N(usb.UploadMinutes,1)+(this.en()?'m':'분')]]:(isBag?[[this.en()?'Slots':'슬롯',String(this.eng.N(s.Capacity)),'#83B289']]:((isGear||liq||md||s.Category==='Medicine'||s.Category==='Food')?this.itemDetailStats(inst):[]));
+    // 귀중품: 감별(전당포) 전이라 확정 가격이 없다 → 가치 밴드만 보여준다. 판매는 sellables()에서 이미 제외됨.
+    const val=this.eng.byId.valuable&&this.eng.byId.valuable[inst.id];
+    const allStats=val?[[this.en()?'Value':'가치', this.eng.N(val.MinValue)+'~'+this.eng.N(val.MaxValue)+(this.en()?' sato':' 사토')]]:usb?[[this.t('usb_permanent_growth'),this.eng.substUsbTokens('{STAT}',usb)],[this.t('combat_time_limit'),this.eng.N(usb.UploadMinutes,1)+(this.en()?'m':'분')]]:(isBag?[[this.en()?'Slots':'슬롯',String(this.eng.N(s.Capacity)),'#83B289']]:((isGear||liq||md||s.Category==='Medicine'||s.Category==='Food')?this.itemDetailStats(inst):[]));
     const stats=allStats.filter(([k])=>k!==this.t('item_durability'));
     const desc=this.tx(s,'Description')||(inst.kind==='talisman'&&(this.tx(s,'EffectDesc')||s.EffectDesc_KR))||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||(usb&&this.tx(usb,'Description'))||'';
     const hasSockets=isGear&&inst.sockets&&inst.sockets.length;
@@ -2832,7 +2881,7 @@ void main(){
       isGear?h('div',{style:{alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'3px 15px 16px',display:'flex',alignItems:'flex-start'}},
         h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:1.5,color:desc?SUB:MUT,maxWidth:'100%'}}, desc||this.t('item_desc_label'))):null);
   }
-  catKey(cat){ const map={Weapon:'item_slot_weapon',Head:'item_head',Body:'item_body',Medicine:'item_medicine',Food:'item_food',Junk:'item_junk',Quest:'item_quest',Key:'item_key',Accessory:'item_accessory',Talisman:'item_talisman',Bag:'item_bag',USB:'usb_decode',Material:'item_material_type'}; return map[cat]||cat; }
+  catKey(cat){ const map={Weapon:'item_slot_weapon',Head:'item_head',Body:'item_body',Medicine:'item_medicine',Food:'item_food',Junk:'item_junk',Valuable:'item_quest',Quest:'item_quest',Key:'item_key',Accessory:'item_accessory',Talisman:'item_talisman',Bag:'item_bag',USB:'usb_decode',Material:'item_material_type'}; return map[cat]||cat; }
 
   // ===== 루팅 관리 화면 (프리뷰 · 임시 디버그 진입) =====
   // 모델: lm={view:'field'|'bag', focus, field:[], bag:[]}. 주머니=가방 카드의 locked 플래그(최대 2). 스택=가방에서 같은 id 병합(qty).
@@ -2980,7 +3029,7 @@ void main(){
         h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, needFlip?(this.en()?'Tap to reveal':'탭하여 확인'):(isField?(this.en()?'Pull down to stash':'아래로 당겨 소지품에 넣기'):(this.en()?'Pull up to remove':'위로 올려 꺼내기')))); }).call(this, isField&&cards[focus]&&!(lm.opened&&lm.opened.has(cards[focus].uid))),
       h('div',{style:{flex:'1 1 auto'}}),
       // footer — 플로팅 둥근 컨테이너
-      h('div',{style:{flex:'0 0 auto',margin:'0 12px calc(14px + env(safe-area-inset-bottom))',padding:10,borderRadius:20,background:T.s1,border:'1px solid '+T.line,display:'flex',gap:10,boxShadow:'0 8px 28px rgba(0,0,0,.45)'}},
+      h('div',{style:{flex:'0 0 auto',margin:'0 16px 26px',padding:8,borderRadius:24,background:T.s1,border:'1px solid '+T.line,display:'flex',gap:10,boxShadow:'0 8px 28px rgba(0,0,0,.45)'}},
         h('button',{onClick:()=>{ lm.view=isField?'bag':'field'; lm.focus=0; this.forceUpdate(); },style:{flex:1,height:46,borderRadius:999,border:'1px solid '+T.line2,background:'transparent',color:T.mid,fontFamily:T.sans,fontSize:13,cursor:'pointer'}}, isField?(this.en()?'Bag':'가방'):(this.en()?'Loot':'전리품')),
         h('button',{onClick:()=>{ if(lm.fromCombat){ this.commitLootDraw(); } else { lm.field=this.lmSample().field; lm.view='field'; lm.focus=0; this.flash(this.en()?'Next fight — new loot':'다음 전투 — 새 전리품'); this.forceUpdate(); } },style:{flex:1,height:46,borderRadius:999,border:'none',background:T.hi,color:'#111',fontFamily:T.sans,fontSize:13,fontWeight:500,cursor:'pointer'}}, lm.fromCombat?(this.en()?'Done':'완료'):(this.en()?'Proceed':'진행하기'))));
   }
@@ -2989,7 +3038,7 @@ void main(){
   inventory(){
     const seg=this.state.seg, filter=this.state.filter;
     const list=(seg==='vault'?this.gs.vault:this.gs.bag);
-    const cats=[['전체','common_all'],['무기','item_weapon'],['갑옷','item_armor_body'],['가방','item_bag'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['징표','item_talisman'],['술','item_liquor'],['모듈','item_module'],['데이터','item_data'],['퀘스트','item_quest']];
+    const cats=[['전체','common_all'],['무기','item_weapon'],['갑옷','item_armor_body'],['가방','item_bag'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['징표','item_talisman'],['술','item_liquor'],['모듈','item_module'],['데이터','item_data'],['귀중품','item_quest']];
     const catOf=(inst)=>{ if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]) return '술'; if(this.eng.byId.module&&this.eng.byId.module[inst.id]) return '모듈'; if(this.eng.byId.usb&&this.eng.byId.usb[inst.id]) return '데이터'; const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||(this.eng.byId.bag&&this.eng.byId.bag[inst.id]); if(!s) return ''; return CATKR[s.Category]||s.Category; };
     const rows=list.filter(inst=>filter==='전체'||catOf(inst)===filter).sort((a,b)=>(this.isEquipped(b.uid)?1:0)-(this.isEquipped(a.uid)?1:0));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
@@ -3431,7 +3480,7 @@ void main(){
     return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
         h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...inst,qty:1},'fit'))),
-      h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',padding:'0 16px 22px'}},
+      h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',padding:'0 16px 26px'}},
         h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
           h('button',{onClick:close,style:{width:'100%',height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_confirm')))));
   }
@@ -3823,7 +3872,7 @@ void main(){
           background:led.c, boxShadow:'0 0 20px 7px rgba('+led.glow+',.8), inset 0 0 10px 3px rgba(255,255,255,.9)',
           transition:'background .3s ease-out, box-shadow .3s ease-out', animation:led.anim}})),
       // 하단 박스 — 화면 하단 고정(기기 세로 길이와 무관)
-      h('div',{style:{position:'absolute',left:16,right:16,bottom:24,padding:'0 15px 15px',boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid #36383C',zIndex:5}},
+      h('div',{style:{position:'absolute',left:16,right:16,bottom:26,padding:'0 15px 15px',boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid #36383C',zIndex:5}},
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:52,borderBottom:'1px solid #36383C',padding:'0 1px'}},
           h('span',{style:{fontFamily:T.sans,fontSize:14,color:'#A9ABAF'}}, key? keyName : (this.en()?'Protocol Pass':'프로토콜 패스')),
           h('span',{style:{fontFamily:T.mono,fontSize:14,color:empty?T.danger:'#85B3C5'}}, key? String(keyQty) : (g.pass+'/'+cap))),
@@ -3984,7 +4033,7 @@ void main(){
           backgroundImage:'url(assets/art/ui/tap_terminal.webp)',backgroundSize:'100% 100%',backgroundRepeat:'no-repeat'}}),
         lcdLeft, lcdRight),
       // 하단 시트 — 철물점 수리 확인 시트(repairConfirm)와 같은 레이아웃·타이포 규격.
-      h('div',{style:{position:'absolute',left:16,right:16,bottom:16,boxSizing:'border-box',zIndex:5,
+      h('div',{style:{position:'absolute',left:16,right:16,bottom:26,boxSizing:'border-box',zIndex:5,
         background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:'24px 16px'}}, ...sheetKids));
   }
 
@@ -4051,7 +4100,7 @@ void main(){
           amountBox((this.en()?'Stamina 100% (+':'스태미너 100% (+')+lackSta+')','#C19E6F'),
           h('div',{style:{height:24}}))),
       // 하단 고정 박스 — 지불 비용 + [모두 회복 / 건너뛰기]
-      h('div',{style:{flex:'0 0 auto',margin:'0 16px 24px',padding:'22px 15px 16px',boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid #36383C'}},
+      h('div',{style:{flex:'0 0 auto',margin:'0 16px 26px',padding:'22px 15px 16px',boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid #36383C'}},
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',marginBottom:22}},
           h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#A9ABAF'}}, this.en()?'Total cost':'지불 비용'),
           h('span',{style:{fontFamily:T.mono,fontSize:13,color:aff?'#85B3C5':T.danger}}, cost.toLocaleString()+' '+this.t('currency_sato'))),
