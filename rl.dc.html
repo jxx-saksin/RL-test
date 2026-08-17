@@ -113,26 +113,46 @@ const AT = (x)=> (x && ATTR[x]) ? ATTR[x] : null;
 // 장비 박스 슬롯 표시 순서(gs.equip 키 ↔ 카테고리 라벨). 미착용도 자리를 지킨다.
 const GEAR_SLOTS = [['bag','가방'],['weapon','무기'],['head','투구'],['body','갑옷'],['artifact1','장신구'],['artifact2','징표']];
 const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소' };
-// 몬스터 아트 보유 목록 — 출정 로딩 배경 랜덤 픽 판정용(assets/art/monsters/*.jpg). 아트 추가 시 갱신.
+// 몬스터 아트 보유 목록 — 출정 로딩 배경 랜덤 픽 판정용(assets/art/monsters/*.webp). 아트 추가 시 갱신.
 const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','monster_bloated_toad','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_pale_lynx','monster_rogue_emergency','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_spore_gardener','monster_wandering_sentry','monster_abandoned_chihuahua']);
+// 부팅 로딩(4초) 동안 미리 받아둘 아트 — 텍스트보다 이미지가 늦게 뜨는 걸 줄인다.
+// 순위별로 순차 로드하고, 1순위(부팅 직후 안전가옥)는 부팅이 끝나기 전까지 기다린다.
+// ⚠️ 실제로 파일이 있는 것만 적을 것 — 없는 경로를 넣으면 404 요청만 낭비된다(MONSTER_ART와 같은 규약).
+// items/(52장·7.6MB)와 타이틀 영상은 일부러 뺐다. 몬스터 아트는 출정 로딩 3초가 따로 커버한다.
+const PRELOAD = [
+  // 1순위 — 부팅 끝나면 바로 보이는 안전가옥
+  ['assets/art/cities/city_01.webp',
+   'assets/art/shop/shop_clinic.webp','assets/art/shop/shop_canteen.webp','assets/art/shop/shop_hardware.webp',
+   'assets/art/shop/shop_pawnshop.webp','assets/art/shop/shop_data_center.webp','assets/art/shop/shop_blackmarket.webp',
+   'assets/art/shop/shop_auction.webp'],
+  // 2순위 — 출정 존 목록 · 카드 뒷면
+  ['assets/art/zones/city_01_mall.webp','assets/art/zones/city_01_houses.webp','assets/art/zones/city_01_tower.webp',
+   'assets/art/zones/city_01_police.webp','assets/art/zones/city_01_greenhouse.webp',
+   'assets/art/card_back/monster_back.webp','assets/art/card_back/item_back.webp',
+   'assets/art/card_back/flee_back.webp','assets/art/card_back/pvp_back.webp'],
+  // 3순위 — 태그/패스 화면(무겁고 진입이 늦다)
+  ['assets/art/ui/tap_terminal.webp','assets/art/cards/protocol_pass_full.webp']
+];
 // 부팅 로딩 패럴랙스 세트 — 부팅할 때마다 랜덤 1개. 패럴랙스(2레이어+자이로)는 부팅 전용이고,
 // 출정 로딩은 항상 단일 레이어 켄번즈(해당 존 스폰 몬스터 아트)를 쓴다.
 // fgCover: false=독수리 전용 좌표(상단 좌측 걸침) / true=하단 중앙 원본비율 cover.
 // fgScale: fgCover 전경의 크기 배율(기준 높이 58%). 배경 대비 피사체가 작게 그려진 아트는 여기서 키운다.
 const BOOT_SETS = [
-  { bg:'assets/art/loading/booting/001/haram_city.jpg', fg:'assets/art/loading/booting/001/haram_eagle.png?v=2', fgCover:false },
-  { bg:'assets/art/loading/booting/002/bg.jpg?v=2',     fg:'assets/art/loading/booting/002/fg.png?v=2',          fgCover:true, fgScale:1.5 },
-  { bg:'assets/art/loading/booting/003/bg.jpg',         fg:'assets/art/loading/booting/003/fg.png',              fgCover:true, fgScale:1.5 }
+  { bg:'assets/art/loading/booting/001/haram_city.webp', fg:'assets/art/loading/booting/001/haram_eagle.webp?v=2', fgCover:false },
+  { bg:'assets/art/loading/booting/002/bg.webp?v=2',     fg:'assets/art/loading/booting/002/fg.webp?v=2',          fgCover:true, fgScale:1.5 },
+  { bg:'assets/art/loading/booting/003/bg.webp',         fg:'assets/art/loading/booting/003/fg.webp',              fgCover:true, fgScale:1.5 }
 ];
 // 메인 타이틀에 랜덤 재생할 영상(둘 중 하나). monster/mp4 → assets/art/loading/title/.
 const TITLE_VIDEOS = ['monster_security_camera.mp4','monster_gutter_roach.mp4'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 9;
+const TITLE_VER = 10;
 const TITLE_DATE = '0817';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:10, date:'17/Aug', lines:[
+    ['이미지 최적화 및 로딩 속도 개선 작업됨.','Images were optimized and loading was made faster.'] ] },
   { ver:9, date:'17/Aug', lines:[
     ['프로토콜 패스 충전 화면 업데이트.','The Protocol Pass charge screen was updated.'] ] },
   { ver:8, date:'17/Aug', lines:[
@@ -222,8 +242,13 @@ class Component extends DCLogic {
     this._bootLoadStarted=false;    // 이중 안전 — 어떤 경로로든 가드가 미리 소비됐어도 진짜 로딩에서 게이지 재시작
     this.setState({ splash:false });
     const t0=performance.now();
+    // 부팅 배경·전경이 먼저 잡히도록 조금 늦춰 프리로드 시작(같은 순간에 붙으면 부팅 아트가 밀린다)
+    setTimeout(()=>this.preloadArt(), 600);
     try{ await this._dataPromise; }catch(_){}
     const rest=4000-(performance.now()-t0); if(rest>0) await new Promise(r=>setTimeout(r,rest));
+    // 4초를 다 썼는데도 안전가옥 아트가 안 왔으면 최대 3초까지 더 기다린다(게이지는 99%에서 대기).
+    await this.preloadWait(3000);
+    this._bootReady=true;
     const sv=this.readSave();
     const notice=this.noticePending();
     if(sv){ this.applySave(sv); this.setState({ ready:true, resumeBanner:true, notice }); }
@@ -620,11 +645,32 @@ class Component extends DCLogic {
     if(arr.length){ const r=arr[Math.floor(Math.random()*arr.length)]; const t=this.tx(r,'Text'); if(t) return t; }
     const f=TIP_FALLBACK[Math.floor(Math.random()*TIP_FALLBACK.length)]; return this.en()?f[1]:f[0]; }
   // 로딩 게이지 0→100 rAF 카운트업 (막대 width + 숫자 직접 갱신, 재렌더 없음). 끝나면 onDone.
-  animLoad(fillEl, numEl, durMs, onDone){ const t0=performance.now();
-    const tick=(now)=>{ const p=Math.max(0,Math.min(1,(now-t0)/durMs)); const v=Math.round(p*100);
+  // holdAt: ()=>true 인 동안 99%에서 멈춰 기다린다. 부팅은 시트 로드·1순위 아트 프리로드가
+  // 4초를 넘길 수 있어서, 게이지를 100%에 박아두는 대신 아직 끝나지 않았음을 보여준다.
+  animLoad(fillEl, numEl, durMs, onDone, holdAt){ const t0=performance.now();
+    const tick=(now)=>{ let p=Math.max(0,Math.min(1,(now-t0)/durMs));
+      const hold = p>=1 && holdAt && holdAt();
+      if(hold) p=0.99;
+      const v=Math.round(p*100);
       if(fillEl) fillEl.style.width=v+'%'; if(numEl) numEl.textContent=v;
-      if(p<1){ requestAnimationFrame(tick); } else if(onDone){ onDone(); } };
+      if(p<1||hold){ requestAnimationFrame(tick); } else if(onDone){ onDone(); } };
     requestAnimationFrame(tick); }
+  // ---- 아트 프리로드 (PRELOAD) ----
+  // 순위별로 순차 실행. 한 순위가 끝나면 유휴 시간에 다음 순위로 넘어가 부팅 아트와 대역폭을 다투지 않게 한다.
+  preloadArt(){
+    if(this._preStarted) return; this._preStarted=true;
+    const one=(src)=>new Promise(res=>{ const im=new Image(); im.onload=im.onerror=()=>res(); im.src=src; });
+    const tier=(list)=>Promise.all(list.map(one));
+    this._preT1=tier(PRELOAD[0]);
+    const idle=window.requestIdleCallback||((f)=>setTimeout(f,200));
+    let i=1; const next=()=>{ if(i>=PRELOAD.length) return; const list=PRELOAD[i++]; tier(list).then(()=>idle(next)); };
+    this._preT1.then(()=>idle(next));
+  }
+  // 1순위가 끝날 때까지(최대 maxMs) 기다린다. 느린 회선에서 무한정 붙잡지 않도록 상한을 둔다.
+  preloadWait(maxMs){
+    if(!this._preT1) return Promise.resolve();
+    return Promise.race([this._preT1, new Promise(r=>setTimeout(r,maxMs))]);
+  }
   // 자이로 패럴랙스 — 기기 기울임(deviceorientation)으로 배경·독수리를 서로 다르게 이동(rAF lerp로 부드럽게).
   // iOS13+는 권한 필요(자동 화면이라 권한 없으면 이벤트 미수신 → 확대만). 안드로이드는 바로 작동.
   // iOS13+ 자이로 권한 요청 — 반드시 사용자 제스처(설정 진입 탭) 안에서 호출. 한 번 허용하면 세션 유지.
@@ -709,9 +755,9 @@ class Component extends DCLogic {
         // 그라데이션: y 68, 402×342, 투명→#010101
         h('div',{style:{position:'absolute',left:0,top:68,width:402,height:342,background:'linear-gradient(180deg, rgba(1,1,1,0) 0%, #010101 100%)',pointerEvents:'none'}}),
         // THE 404 로고(image2): x 23, y 245, 189×189
-        h('img',{src:'assets/art/loading/title/the404_title.png',style:{position:'absolute',left:23,top:245,width:189,height:189,pointerEvents:'none'}}),
+        h('img',{src:'assets/art/loading/title/the404_title.webp',style:{position:'absolute',left:23,top:245,width:189,height:189,pointerEvents:'none'}}),
         // 부트로그(image0): x -1, y 473, 335×335 (FATAL ERROR·바코드·Wing Lok 등)
-        h('img',{src:'assets/art/loading/title/the404_bootlog.png',style:{position:'absolute',left:-1,top:473,width:335,height:335,pointerEvents:'none'}}),
+        h('img',{src:'assets/art/loading/title/the404_bootlog.webp',style:{position:'absolute',left:-1,top:473,width:335,height:335,pointerEvents:'none'}}),
         // TAP TO START… — 초록 #5BFF52, 천천히 숨쉬기(글리치 없음). SVG 좌표 x41.4 y483(cap-top)
         h('div',{style:{position:'absolute',left:41,top:479,fontFamily:T.mono,fontSize:10.5,fontWeight:500,letterSpacing:'0.5px',color:'#5BFF52',whiteSpace:'nowrap',pointerEvents:'none',animation:'rlBreath 3.4s ease-in-out infinite'}}, 'TAP TO START...'),
         // ver — 회색 #454545, SVG 좌표 x38.6 y503(cap-top). 배포마다 숫자+월일.
@@ -726,7 +772,8 @@ class Component extends DCLogic {
       bg:this._bootSet.bg, fg:this._bootSet.fg, fgCover:this._bootSet.fgCover, fgScale:this._bootSet.fgScale,
       bgRef:el=>{ this._bootBgEl=el; }, fgRef:el=>{ this._bootFgEl=el; if(el && !this._gyroOn){ this._gyroOn=true; this.startGyro(); } },
       tip:this._bootTip,
-      fillRef:el=>{ if(el && !this._bootLoadStarted){ this._bootLoadStarted=true; this.animLoad(el, this._bootNumEl, 4000); } },
+      fillRef:el=>{ if(el && !this._bootLoadStarted){ this._bootLoadStarted=true;
+        this.animLoad(el, this._bootNumEl, 4000, null, ()=>!this._bootReady); } },
       numRef:el=>{ this._bootNumEl=el; } }));
   }
 
@@ -753,7 +800,7 @@ class Component extends DCLogic {
       // 스크롤 영역 — 배너부터 마지막 항목까지 함께 스크롤. 하단 박스 높이(95+16)만큼 여백.
       h('div',{style:{flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch'}},
         h('div',{style:{position:'relative',height:118,flex:'0 0 auto',overflow:'hidden'}},
-          h('img',{src:'assets/art/loading/title/the404_title.png',alt:'',style:{position:'absolute',left:'50%',top:0,width:118,height:118,transform:'translateX(-50%)',objectFit:'contain',pointerEvents:'none'}}),
+          h('img',{src:'assets/art/loading/title/the404_title.webp',alt:'',style:{position:'absolute',left:'50%',top:0,width:118,height:118,transform:'translateX(-50%)',objectFit:'contain',pointerEvents:'none'}}),
           h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(24,25,29,0) 0%, #111315 100%)',pointerEvents:'none'}}),
           h('div',{style:{position:'absolute',left:16,bottom:11,fontFamily:T.mono,fontSize:9,fontWeight:500,letterSpacing:'2.4px',color:'#4B4D52'}},'UPDATE')),
         ...PATCH_NOTES.map((rel,ri)=>h('div',{key:'rel'+rel.ver,style:{paddingTop:ri?23:0}},
@@ -778,7 +825,7 @@ class Component extends DCLogic {
     if(!pool.length) return null;
     const id=pool[Math.floor(Math.random()*pool.length)];
     // 출정 로딩은 항상 단일 레이어 켄번즈(천천히 확대). 패럴랙스는 부팅 전용 — BOOT_SETS 참조.
-    return {bgImage:'assets/art/monsters/'+id+'.jpg'};
+    return {bgImage:'assets/art/monsters/'+id+'.webp'};
   }
   sortieLoadScreen(){
     const b=this._sortieBg||{};
@@ -867,7 +914,7 @@ class Component extends DCLogic {
             const chipTxt=(CHIP[v.ShopID]||[])[this.en()?1:0]||'';
             return h('button',{key:v.VendorID,disabled:!open,onClick:open?act:null,
               style:{position:'relative',height:118,textAlign:'left',border:'1px solid rgb(54,56,60)',borderRadius:8,padding:0,cursor:open?'pointer':'default',opacity:open?1:.5,overflow:'hidden',flexShrink:0,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
-              h('img',{src:'assets/art/shop/'+v.ShopID+'.jpg',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}),
+              h('img',{src:'assets/art/shop/'+v.ShopID+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}),
               h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(17,19,21,0) 38%, rgba(17,19,21,0.94) 100%)'}}),
               h('div',{style:{position:'absolute',left:14,right:12,bottom:12,display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:10}},
                 h('div',{style:{display:'flex',flexDirection:'column',gap:3,minWidth:0}},
@@ -886,7 +933,7 @@ class Component extends DCLogic {
   // ---- zone select ----
   figPill(text,color){ return h('div',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'3px 8px',flexShrink:0}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:1,letterSpacing:'1.33px',color,whiteSpace:'nowrap'}}, text)); }
   figTag(text){ return h('div',{style:{display:'inline-flex',alignItems:'center',borderRadius:2,border:'1px solid rgb(74,77,83)',padding:'2px 6px',flexShrink:0}}, h('span',{style:{fontFamily:T.mono,fontSize:10,fontWeight:500,lineHeight:1,letterSpacing:'.4px',color:'rgb(169,171,175)',whiteSpace:'nowrap'}}, text)); }
-  cityImg(i){ return i<2 ? ('assets/battle/city-0'+(i+1)+'.jpg') : ''; }
+  cityImg(i){ return i<2 ? ('assets/battle/city-0'+(i+1)+'.webp') : ''; }
   cityDesc(i){ const c=(this.eng.DATA.cities||[])[i]; const d=c?(this.tx(c,'CityDesc')||this.tx(c,'Description')):''; if(d) return d; return ['한때 수만 명이 오가던 위성도시. 신호가 끕긴 거리㤼 이제 굶주린 것들의 발소리만 울린다.','기계가 멈추지 않는 버려진 공장지대. 녹슬 쇠덩이와 변이체가 뒤엉켜 도시를 삼켰다.'][i]||''; }
   zone(){
     const cities=this.eng.DATA.cities||[];
@@ -903,7 +950,7 @@ class Component extends DCLogic {
         ...citySlots.map((sc,i)=>{ const active=sc.id===sel && !sc.locked;
           return h('div',{key:sc.id,onClick:sc.locked?()=>this.flash(this.t('zone_sealed_msg')):()=>this.setState({cityId:sc.id}),
             style:{flex:'0 0 92%',scrollSnapAlign:'center',height:236,position:'relative',borderRadius:8,overflow:'hidden',boxShadow:'inset 0 0 0 1px '+(active?T.line2:T.line),cursor:sc.locked?'default':'pointer',backgroundColor:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 7px, oklch(0.27 0.008 264) 7px 8px)',backgroundSize:'cover',backgroundPosition:'center',backgroundRepeat:'no-repeat'}},
-            (!sc.locked)?h('img',{src:'assets/art/cities/'+sc.id+'.jpg',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}):null,
+            (!sc.locked)?h('img',{src:'assets/art/cities/'+sc.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}):null,
             h('div',{style:{position:'absolute',inset:0,borderRadius:8,background:sc.locked?'linear-gradient(180deg, rgba(24,25,29,.55), rgba(24,25,29,.92))':'linear-gradient(180deg, rgba(24,25,29,0) 0%, rgb(24,25,29) 100%)'}}),
             h('div',{style:{position:'absolute',left:16,top:14,fontFamily:T.mono,fontSize:9,color:T.faint,letterSpacing:'.12em'}}, 'CITY 0'+(i+1)+' · TIER '+(i+1)),
             h('div',{style:{position:'absolute',left:16,right:16,bottom:16}},
@@ -953,7 +1000,7 @@ class Component extends DCLogic {
     }
     return h('div',{onClick:()=>this.setState({modalZone:null}),style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',display:'flex',alignItems:'flex-end',zIndex:30,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 16px',background:'rgb(24,25,29)',boxShadow:'inset 0 0 0 1px rgb(54,56,60)',borderRadius:8,padding:16,display:'flex',flexDirection:'column',gap:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
-        h('div',{style:{height:104,borderRadius:8,background:'url(assets/art/zones/'+z.ZoneID+'.jpg) 50% 35% / cover no-repeat, url(assets/battle/zone-banner.jpg) 50% 35% / cover no-repeat'}}),
+        h('div',{style:{height:104,borderRadius:8,background:'url(assets/art/zones/'+z.ZoneID+'.webp) 50% 35% / cover no-repeat, url(assets/battle/zone-banner.webp) 50% 35% / cover no-repeat'}}),
         h('div',{style:{display:'flex',flexDirection:'column',gap:8}},
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}},
             h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:500,color:T.hi}}, this.tx(z,'ZoneName')),
@@ -1087,7 +1134,7 @@ class Component extends DCLogic {
       (fx&&fx.crit)? h('div',{key:'brd'+fx.seq,style:{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 1px #FFFFFF',animation:'rlBorderFlash .42s ease-out'}}):null,
       (fx&&fx.crit)? h('div',{key:'ig'+fx.seq,style:{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 36px 4px rgba(255,255,255,0.5)',animation:'rlInnerGlow .22s ease-out'}}):null,
       isMonster? h('div',{style:{position:'relative',height:58,overflow:'hidden',background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
-        (!prof.isUser)?h('img',{src:'assets/art/monsters/'+prof.id+'.jpg',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}):null,
+        (!prof.isUser)?h('img',{src:'assets/art/monsters/'+prof.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}):null,
         h('div',{style:{position:'absolute',left:12,bottom:8,fontFamily:T.mono,fontSize:9,color:prof.isUser?T.sato:T.faint,letterSpacing:'.1em'}}, prof.isUser?this.t('kicker_userdata'):((md.Category||'')+''+this.t('kicker_dot_monsters'))), prof.grade?h('div',{style:{position:'absolute',right:10,top:10,fontFamily:T.mono,fontSize:9,letterSpacing:'.1em',color:T.hi,background:'oklch(0.15 0.006 264 / .55)',border:'1px solid oklch(0.9 0 0 / .18)',borderRadius:3,padding:'2px 7px'}}, prof.grade):null) : null,
       h('div',{style:{padding:'11px 13px'}},
         h('div',{style:{display:'flex',alignItems:'center',gap:7,marginBottom:8}},
@@ -1155,7 +1202,7 @@ class Component extends DCLogic {
       (fx&&fx.crit)?h('div',{key:'vig'+fx.seq,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,boxShadow:'inset 0 0 80px 24px rgba(200,44,40,.6)',animation:'rlVignette .4s ease-out'}}):null,
       dead?h('div',{style:{position:'absolute',top:0,left:0,right:0,height:'65%',pointerEvents:'none',zIndex:5}},
         h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, #3E0018 0%, rgba(62,0,24,0.5) 40%, rgba(17,19,21,0) 70%)'}}),
-        h('div',{style:{position:'absolute',inset:0,opacity:0.3,backgroundImage:'url(assets/battle/death-overlay.png)',backgroundSize:'cover',backgroundPosition:'center top'}})):null,
+        h('div',{style:{position:'absolute',inset:0,opacity:0.3,backgroundImage:'url(assets/battle/death-overlay.webp)',backgroundSize:'cover',backgroundPosition:'center top'}})):null,
       h('div',{style:{flex:'0 0 auto',background:T.s1,borderBottom:'1px solid '+T.line,padding:'12px 16px 18px'}},
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:8}}, 'COMBAT · '+(this.eng.byId.zone[c.zoneId]?this.tx(this.eng.byId.zone[c.zoneId],'ZoneName'):'')+' · '+c.encounter+'전'),
         this.combatantCard(c.mProf,true,this.combatHp('monster'),c.phase==='fighting'),
@@ -1547,7 +1594,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
   monsterFront(m,fixed){
     const md=this.eng.byId.monster[m.id]||{};
     const isBoss=String(m.grade||'').toLowerCase()==='boss';
-    const artUrl='assets/art/monsters/'+m.id+'.jpg';
+    const artUrl='assets/art/monsters/'+m.id+'.webp';
     const artP=fixed?{height:190,flexShrink:0}:{flex:'1 1 auto',minHeight:60};
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', MID='rgb(169,171,175)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', HPC='rgb(196,103,93)';
     const GRADECOL={common:HI, rare:'#83B289', unique:'#7CA5BB', special:'#B27EAD', boss:'#D6BB79'};
@@ -1713,7 +1760,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       (flipped&&this.staWarn())?h('canvas',{key:'stawarn',ref:el=>this.mountStaWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:4,mixBlendMode:'screen',opacity:0.37}}):null,
       // 저체력 경보 — 적색 Aurora(상단). 조우 시점 HP 낮으면(이전 전투 부상) 표시
       hw?h('canvas',{key:'hpwarn',ref:el=>this.mountHpWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:5,mixBlendMode:'plus-lighter',opacity:hw.op,transition:'opacity .6s ease-out'}}):null,
-      h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/art/zones/'+c.zoneId+'.jpg), url(assets/battle/encounter-banner.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
+      h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/art/zones/'+c.zoneId+'.webp), url(assets/battle/encounter-banner.webp)',backgroundSize:'cover',backgroundPosition:'center'}},
         h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:4}},
           h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, placeTitle),
           h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.2px',color:'rgb(111,114,118)',lineHeight:'100%'}}, 'ENCOUNTER · '+zoneName+' · '+(this.en()?('Encounter #'+(c.encounter+1)):((c.encounter+1)+'전 조우'))))),
@@ -1723,7 +1770,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
               return h('div',{key:i,onClick:()=>{ if(this._moved||flipped) return; isCenter?this.flipCenter():this.focusCard(i); },
                 style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(473px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:isCenter?1:o,zIndex:isCenter?20:10-abs,transition:isCenter?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:(flipped&&!isCenter)?'none':'auto'}},
                 h('div',{style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
-                  (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/monster_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/monster_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}},
+                  (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/monster_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/monster_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}},
                     isBossBack? h('div',{style:{position:'absolute',inset:0,pointerEvents:'none',borderRadius:8,animation:'rlBossTell 5.5s ease-in-out infinite'}}):null),
                   (isCenter&&!(flat&&!flipped))? h('div',{style:flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden'}}, flipped?(c.pvp?this.userFront(c.mProf):this.monsterFront(c.mProf)):null):null)); }),
         (!flipped? cardNav(c.cardFocus, c.cards.length, ()=>this.focusCard(Math.max(0,c.cardFocus-1)), ()=>this.focusCard(Math.min(c.cards.length-1,c.cardFocus+1))) : null)),
@@ -1776,20 +1823,20 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
   }
   // ---- flee (pre-combat) : 3-card flip, master-sheet flee chance ----
   fleePct(){ return Math.round(this.eng.N(this.eng.DATA.config.flee_chance_base, 0.9) * 100); }
-  battleBanner(placeTitle,zoneName,enc){ const zid=this.combat&&this.combat.zoneId; return h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:(zid?'url(assets/art/zones/'+zid+'.jpg), ':'')+'url(assets/battle/encounter-banner.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
+  battleBanner(placeTitle,zoneName,enc){ const zid=this.combat&&this.combat.zoneId; return h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:(zid?'url(assets/art/zones/'+zid+'.webp), ':'')+'url(assets/battle/encounter-banner.webp)',backgroundSize:'cover',backgroundPosition:'center'}},
     h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:4}},
       h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, placeTitle),
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.2px',color:'rgb(111,114,118)',lineHeight:'100%'}}, 'ENCOUNTER · '+zoneName+' · '+(this.en()?('Encounter #'+(enc+1)):((enc+1)+'전 조우'))))); }
-  cardFace(){ return h('div',{style:{width:342,height:'min(442px, 100%)',borderRadius:8,background:T.s2,backgroundImage:'url(assets/art/card_back/flee_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}); }
+  cardFace(){ return h('div',{style:{width:342,height:'min(442px, 100%)',borderRadius:8,background:T.s2,backgroundImage:'url(assets/art/card_back/flee_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}); }
   placeTitleFor(c){ const zObj=this.eng.byId.zone[c.zoneId]; const zoneName=zObj?this.tx(zObj,'ZoneName'):''; const cityObj=zObj&&this.eng.byId.city?this.eng.byId.city[zObj.CityID]:null; return {zoneName, placeTitle:(cityObj?(this.tx(cityObj,'CityName')||'')+' · ':'')+zoneName}; }
-  attemptFlee(){ ['flee-Success','flee-Failed'].forEach(n=>{ const im=new Image(); im.src='assets/art/scenes/'+n+'.jpg'; }); Object.assign(this.combat,{phase:'fleeCards', fleeFocus:1, fleeFlipped:false, fleeSuccess:null}); if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate(); }
+  attemptFlee(){ ['flee-Success','flee-Failed'].forEach(n=>{ const im=new Image(); im.src='assets/art/scenes/'+n+'.webp'; }); Object.assign(this.combat,{phase:'fleeCards', fleeFocus:1, fleeFlipped:false, fleeSuccess:null}); if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate(); }
   flipFlee(){ const c=this.combat; if(c.fleeFlipped) return; const p=this.eng.N(this.eng.DATA.config.flee_chance_base,0.9); c.fleeSuccess=Math.random()<p; c.fleeFlipped=true; this.forceUpdate();
     if(this._ct) clearTimeout(this._ct); this._ct=setTimeout(()=>{ if(this.combat&&this.combat.fleeSuccess){ this.flash(this.t('combat_flee_success')); this.extract(); } else if(this.combat){ this.enterCombat(); } }, 3000); }
   fleeFront(){
     const ok=this.combat.fleeSuccess, col=ok?'rgb(131,178,137)':'rgb(196,103,93)';
     return h('div',{style:{width:342,height:'min(442px, 100%)',borderRadius:8,overflow:'hidden',background:'rgb(24,25,29)',border:'1px solid rgb(54,56,60)',display:'flex',flexDirection:'column'}},
       h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,overflow:'hidden',background:'rgb(43,46,50)',backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
-        h('img',{src:'assets/art/scenes/'+(ok?'flee-Success':'flee-Failed')+'.jpg',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}),
+        h('img',{src:'assets/art/scenes/'+(ok?'flee-Success':'flee-Failed')+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}),
         h('div',{style:{position:'absolute',left:0,bottom:0,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgb(24,25,29) 100%)'}}),
         h('span',{style:{position:'absolute',left:15,bottom:13,fontFamily:T.mono,fontSize:10,letterSpacing:'0.8px',color:col}}, ok?(this.en()?'SUCCESS':'성공'):(this.en()?'FAILED':'실패'))),
       h('div',{style:{padding:'13px 15px',display:'flex',flexDirection:'column'}},
@@ -1962,7 +2009,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
   searchFailedCard(){
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', PVP='rgb(196,103,93)';
     return h('div',{style:{width:342,height:'min(442px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
-      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,alignSelf:'stretch',background:'#0f1013',backgroundImage:'url(assets/art/scenes/Search-Failed.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
+      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,alignSelf:'stretch',background:'#0f1013',backgroundImage:'url(assets/art/scenes/Search-Failed.webp)',backgroundSize:'cover',backgroundPosition:'center'}},
         h('div',{style:{position:'absolute',right:17,top:15,width:38,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',padding:'0 8px'}},
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:PVP,whiteSpace:'nowrap'}}, 'PVP')),
         h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
@@ -1972,11 +2019,11 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
         h('div',{style:{height:30,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'8px 0',display:'flex',alignItems:'center'}}, h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:MUT,whiteSpace:'nowrap'}}, this.t('search_failed_desc')))),
       h('div',{style:{width:340,height:60,flexShrink:0,boxSizing:'border-box',borderRight:'1px solid '+LN,borderBottom:'1px solid '+LN,borderLeft:'1px solid '+LN}}));
   }
-  // 패배+안뺏김 = 도주 성공 씬 카드 (flee-Success.jpg · searchFailedCard 레이아웃)
+  // 패배+안뺏김 = 도주 성공 씬 카드 (flee-Success.webp · searchFailedCard 레이아웃)
   escapeSafeCard(){
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', GOOD='rgb(131,178,137)', PVP='rgb(196,103,93)';
     return h('div',{style:{width:342,height:'min(442px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
-      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,alignSelf:'stretch',background:'#0f1013',backgroundImage:'url(assets/art/scenes/flee-Success.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
+      h('div',{style:{position:'relative',flex:'1 1 auto',minHeight:60,alignSelf:'stretch',background:'#0f1013',backgroundImage:'url(assets/art/scenes/flee-Success.webp)',backgroundSize:'cover',backgroundPosition:'center'}},
         h('div',{style:{position:'absolute',right:17,top:15,width:38,height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',display:'flex',alignItems:'center',padding:'0 8px'}},
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:PVP,whiteSpace:'nowrap'}}, 'PVP')),
         h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
@@ -2073,7 +2120,7 @@ void main(){
             return h('div',{key:i,onClick:()=>{ if(this._pmoved||pc.picked!=null) return; isCenter?this.flipPvp():this.focusPvp(i); },
               style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:isCenter?1:o,zIndex:isCenter?20:10-abs,transition:isCenter?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:pc.picked!=null?'default':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:(done&&!flippedThis)?'none':'auto'}},
               h('div',{style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
-                (flat&&flippedThis)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/pvp_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flippedThis?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/pvp_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
+                (flat&&flippedThis)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/pvp_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flippedThis?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/pvp_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
                 (flat&&!flippedThis)?null:h('div',{style:flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flippedThis?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden'}}, flippedThis?this.pvpResultCardFace(i):null))); }),
         (!done? cardNav(focus, pc.n, ()=>this.focusPvp(focus-1), ()=>this.focusPvp(focus+1)) : null)),
       !done? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 14px'}}, ...Array.from({length:pc.n}).map((_,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===focus?T.mid:T.s3}}))) : null,
@@ -2544,7 +2591,7 @@ void main(){
     const stage=c.resultStage||(uids.length?'loot':'growth');
     if(stage==='growth'){
       return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'rgb(17,19,21)'}},
-        h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/art/zones/'+c.zoneId+'.jpg), url(assets/battle/encounter-banner.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
+        h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/art/zones/'+c.zoneId+'.webp), url(assets/battle/encounter-banner.webp)',backgroundSize:'cover',backgroundPosition:'center'}},
           h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:8}},
             h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, this.t('combat_return_success')),
             h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'2px',color:'rgb(131,178,137)',lineHeight:'100%'}}, 'EXTRACTION COMPLETE'))),
@@ -2559,7 +2606,7 @@ void main(){
     // loot 카드 개봉 — 전투 진입 몬스터 카드 화면과 동일 (성장 정보 없음)
     const focus=c.lootFocusIdx||0;
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:T.bg}},
-      h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/art/zones/'+c.zoneId+'.jpg), url(assets/battle/encounter-banner.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
+      h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/art/zones/'+c.zoneId+'.webp), url(assets/battle/encounter-banner.webp)',backgroundSize:'cover',backgroundPosition:'center'}},
         h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:8}},
           h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, this.t('combat_return_success')),
           h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'2px',color:'rgb(131,178,137)',lineHeight:'100%'}}, 'EXTRACTION COMPLETE'))),
@@ -2573,7 +2620,7 @@ void main(){
           return h('div',{key:uid,onClick:()=>{ if(this._lmoved) return; if(!isCenter){ this.lootFocus(i); return; } },
             style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+(x*fit)+'px), -50%) scale('+s+')',opacity:isCenter?1:o,zIndex:isCenter?20:10-abs,transition:isCenter?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:abs>1?'none':'auto'}},
             h('div',{style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
-              (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
+              (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
               (flat&&!flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden'}}, flipped?this.lootCardBig(inst,true):null))); }),
         cardNav(focus, uids.length, ()=>this.lootFocus(focus-1), ()=>this.lootFocus(focus+1))),
       !allOpen? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 10px'}}, ...uids.map((_,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===focus?T.mid:(open.has(i)?T.line2:T.s3)}}))) : null,
@@ -2637,7 +2684,7 @@ void main(){
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)';
     const mid=usb.MonsterID||usb.SourceMonsterID; const mon=mid?this.eng.byId.monster[mid]:null;
     const grade=String(usb.Grade||(mon&&mon.Grade)||'COMMON').toUpperCase();
-    const artUrl=(mid?('assets/art/monsters/'+mid+'.jpg'):null)||(mon&&(mon.Image||mon.ArtURL||mon.Art))||usb.Image||usb.ArtURL;
+    const artUrl=(mid?('assets/art/monsters/'+mid+'.webp'):null)||(mon&&(mon.Image||mon.ArtURL||mon.Art))||usb.Image||usb.ArtURL;
     const mins=this.eng.N(usb.UploadMinutes,1);
     const statName=this.eng.substUsbTokens('{STAT}',usb)||this.t('usb_permanent_growth');
     const gv=this.eng.N(usb.GrantValue,1);
@@ -2668,14 +2715,14 @@ void main(){
   }
   // 히든존 키카드 판정: 아이템 Category==='Key'. 앞으로 모든 키카드는 카드 전체가 아트웍이 된다.
   isKeycard(inst){ const it=inst&&this.eng.byId.item[inst.id]; return !!(it && it.Category==='Key'); }
-  // 키카드 카드 = 프레임/텍스트 없이 아트 풀블리드(assets/art/cards/<id>.jpg). 정보는 인벤 분류로 충분.
+  // 키카드 카드 = 프레임/텍스트 없이 아트 풀블리드(assets/art/cards/<id>.webp). 정보는 인벤 분류로 충분.
   keycardBig(inst,fixed){
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)';
     return h('div',{style:{position:'relative',width:342,height:fixed?this.lootCardH(inst):'100%',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
       // 빗금은 아트 없을 때만 보이는 폴백 — 아트가 뜨면 숨긴다(키카드 아트는 알파 PNG라 잘린 단면으로 비쳐 보임).
       h('div',{key:'kchatch',style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
       // 알파 PNG(jpg면 잘린 단면이 흰색으로 구워진다). svg가 preserveAspectRatio="none"라 fill(=stretch) — cover면 위아래가 잘린다.
-      h('img',{key:'kcart',src:'assets/art/cards/'+inst.id+'.png',
+      h('img',{key:'kcart',src:'assets/art/cards/'+inst.id+'.webp',
         onLoad:e=>{ const p=e.target.previousElementSibling; if(p) p.style.display='none'; },
         onError:e=>{ e.target.style.display='none'; },
         style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'fill',pointerEvents:'none'}}));
@@ -2711,7 +2758,7 @@ void main(){
       // ART 190
       h('div',{style:{position:'relative',...artP,alignSelf:'stretch',background:md?md.HexCode:ART}},
         md?null:h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
-        md?null:h('img',{key:'artimg',src:'assets/art/items/'+inst.id+'.jpg',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',pointerEvents:'none'}}),
+        md?null:h('img',{key:'artimg',src:'assets/art/items/'+inst.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',pointerEvents:'none'}}),
         h('div',{style:{position:'absolute',left:0,bottom:0,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         gtags.length?h('div',{style:{position:'absolute',right:15,top:15,display:'flex',flexDirection:'row-reverse',gap:7}},
           ...gtags.map((tg,i)=>h('div',{key:i,style:{height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'0 8px',display:'flex',alignItems:'center'}},
@@ -2883,7 +2930,7 @@ void main(){
           const handlers=isC?this.lmCenterHandlers():{onClick:()=>{ if(!this._lmoved)this.lmSetFocus(i); }};
           return h('div',Object.assign({key:inst.uid,'data-lmcard':isC?'focus':null},handlers,{style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+sc+')',opacity:isC?1:o,zIndex:isC?20:10-abs,transition:isC?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'grab':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'})}}),
             h('div',{style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+(flipped?180:0)+'deg)'}},
-              (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.jpg)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
+              (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
               (flat&&!flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden',boxShadow:lk?('0 0 0 2px '+blue):'none'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden',boxShadow:lk?('0 0 0 2px '+blue):'none'}}, flipped?this.lootCardBig(inst,true):null))); })
           : h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, isField?(this.en()?'No loot on the field':'필드에 남은 전리품 없음'):(this.en()?'Bag empty':'가방이 비었음')),
         cards.length>1? cardNav(focus, cards.length, ()=>this.lmFocus(-1), ()=>this.lmFocus(1)) : null),
@@ -3693,7 +3740,7 @@ void main(){
     // 카드 폭은 단말 규격의 342 고정, 높이는 각 아트 원본 비율.
     // 패스 635×933(0.681)→503 · 키카드 691×954(0.724)→472. 삽입 후 카드 바닥은 svg대로 y360.
     const CARD_W=342, CARD_H=key?472:503, CARD_Y=282, CARD_IN=360-CARD_H;
-    const cardArt = key ? 'assets/art/cards/item_police_keycard_tap.png' : 'assets/art/cards/protocol_pass.png';
+    const cardArt = key ? 'assets/art/cards/item_police_keycard_tap.webp' : 'assets/art/cards/protocol_pass.webp';
     const keyName = key ? (this.eng.anyName?this.eng.anyName(key):key) : null;
     const keyQty = key ? this.itemQty(key) : 0;
     const led = done ? {c:'#B1FF1F', glow:'177,255,31', anim:'rlLedBlink .34s steps(1,end) infinite'}
@@ -3726,7 +3773,7 @@ void main(){
           transform: done?('translateY('+(CARD_IN-CARD_Y)+'px)'):'none', willChange:'transform'}})),
         // 단말
         h('div',{key:'term',style:{position:'absolute',left:16,top:-417,width:370,height:670,zIndex:2,
-          backgroundImage:'url(assets/art/ui/tap_terminal.png)',backgroundSize:'100% 100%',backgroundRepeat:'no-repeat'}}),
+          backgroundImage:'url(assets/art/ui/tap_terminal.webp)',backgroundSize:'100% 100%',backgroundRepeat:'no-repeat'}}),
         // LED 28×28 — 아웃글로우(색) + 이너글로우(흰색)
         h('div',{key:'led',style:{position:'absolute',left:316,top:139,width:28,height:28,borderRadius:999,zIndex:3,
           background:led.c, boxShadow:'0 0 20px 7px rgba('+led.glow+',.8), inset 0 0 10px 3px rgba(255,255,255,.9)',
@@ -3884,10 +3931,10 @@ void main(){
           transform:'translateY('+(phase==='insert'?INS:0)+'px)', transition:CARD_TR, willChange:'transform',
           touchAction:'none', pointerEvents:dragOn?'auto':'none', cursor:dragOn?'grab':'default'}}),
           h('div',{style:{position:'absolute',left:-102,top:-21,width:525,height:525,
-            backgroundImage:'url(assets/art/cards/protocol_pass_full.png)',backgroundSize:'100% 100%',backgroundRepeat:'no-repeat'}})),
+            backgroundImage:'url(assets/art/cards/protocol_pass_full.webp)',backgroundSize:'100% 100%',backgroundRepeat:'no-repeat'}})),
         // 단말 — 이 화면에서는 180° 뒤집어 쓴다(svg의 rotate(-180)). 태그 화면과 위아래가 반대다.
         h('div',{key:'term',style:{position:'absolute',left:16,top:-455,width:370,height:670,zIndex:2,transform:'rotate(180deg)',
-          backgroundImage:'url(assets/art/ui/tap_terminal.png)',backgroundSize:'100% 100%',backgroundRepeat:'no-repeat'}}),
+          backgroundImage:'url(assets/art/ui/tap_terminal.webp)',backgroundSize:'100% 100%',backgroundRepeat:'no-repeat'}}),
         lcdLeft, lcdRight),
       // 하단 시트 — 철물점 수리 확인 시트(repairConfirm)와 같은 레이아웃·타이포 규격.
       h('div',{style:{position:'absolute',left:16,right:16,bottom:16,boxSizing:'border-box',zIndex:5,
@@ -3942,7 +3989,7 @@ void main(){
       h('div',{ref:el=>this._retGlowEl=el,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:60,opacity:0,boxShadow:'inset 0 0 60px 6px #83B289'}}),
       h('div',{style:{flex:1,overflowY:'auto'}},
         // 배너 118px + 하단 그라디언트 (출정한 존 아트)
-        h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:(zone?'url(assets/art/zones/'+zone+'.jpg), ':'')+'url(assets/battle/zone-banner.jpg)',backgroundSize:'cover',backgroundPosition:'center'}},
+        h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:(zone?'url(assets/art/zones/'+zone+'.webp), ':'')+'url(assets/battle/zone-banner.webp)',backgroundSize:'cover',backgroundPosition:'center'}},
           h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(17,19,21,0) 0%, #111315 100%)'}}),
           // 제목은 배너 위에 겹친다(svg y75~110). 흐름에 두고 음수 마진을 주면 배너에 가려짐.
           h('div',{style:{position:'absolute',left:16,bottom:8}},
