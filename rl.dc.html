@@ -114,7 +114,8 @@ const AT = (x)=> (x && ATTR[x]) ? ATTR[x] : null;
 const GEAR_SLOTS = [['bag','가방'],['weapon','무기'],['head','투구'],['body','갑옷'],['artifact1','장신구'],['artifact2','징표']];
 const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소' };
 // 몬스터 아트 보유 목록 — 출정 로딩 배경 랜덤 픽 판정용(assets/art/monsters/*.webp). 아트 추가 시 갱신.
-const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','monster_bloated_toad','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_pale_lynx','monster_rogue_emergency','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_spore_gardener','monster_wandering_sentry','monster_abandoned_chihuahua']);
+const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','monster_bloated_toad','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_pale_lynx','monster_rogue_emergency','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_spore_gardener','monster_wandering_sentry','monster_abandoned_chihuahua',
+  'monster_gravid_queen','monster_last_deputy','monster_lingering_manager','monster_tower_sentinel']);
 // 부팅 로딩(4초) 동안 미리 받아둘 아트 — 텍스트보다 이미지가 늦게 뜨는 걸 줄인다.
 // 순위별로 순차 로드하고, 1순위(부팅 직후 안전가옥)는 부팅이 끝나기 전까지 기다린다.
 // ⚠️ 실제로 파일이 있는 것만 적을 것 — 없는 경로를 넣으면 404 요청만 낭비된다(MONSTER_ART와 같은 규약).
@@ -143,14 +144,19 @@ const BOOT_SETS = [
   { bg:'assets/art/loading/booting/003/bg.webp',         fg:'assets/art/loading/booting/003/fg.webp',              fgCover:true, fgScale:1.5 }
 ];
 // 메인 타이틀에 랜덤 재생할 영상(둘 중 하나). monster/mp4 → assets/art/loading/title/.
-const TITLE_VIDEOS = ['monster_security_camera.mp4','monster_gutter_roach.mp4'];
+// 메인 타이틀 배경 — 애니메이션 WebP(2026-08-17 mp4에서 전환). 806x806 · 6fps · 24프레임.
+// mp4 13.1MB -> 1.8MB. <img> 한 장이라 자동재생 정책·preload·play() 처리가 통째로 필요 없다.
+const TITLE_ANIMS = ['monster_security_camera_anim.webp','monster_gutter_roach_anim.webp'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 10;
+const TITLE_VER = 11;
 const TITLE_DATE = '0817';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:11, date:'17/Aug', lines:[
+    ['신규 몬스터 추가 됨.','New enemies were added.'],
+    ['모든 지역 몬스터 재배치 및 밸런스 수정.','Monster spawns across every zone were rearranged and rebalanced.'] ] },
   { ver:10, date:'17/Aug', lines:[
     ['이미지 최적화 및 로딩 속도 개선 작업됨.','Images were optimized and loading was made faster.'] ] },
   { ver:9, date:'17/Aug', lines:[
@@ -742,15 +748,14 @@ class Component extends DCLogic {
   splashScreen(){
     if(this.state && this.state.err) return this.phone(h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:T.lo,fontFamily:T.mono,fontSize:13}}, (this.eng?this.t('frag_error'):'오류:')+' '+this.state.err));
     // 영상은 콜드스타트마다 2개 중 랜덤 1개 고정(재렌더에도 유지)
-    if(!this._titleVid) this._titleVid = TITLE_VIDEOS[Math.floor(Math.random()*TITLE_VIDEOS.length)];
+    if(!this._titleVid) this._titleVid = TITLE_ANIMS[Math.floor(Math.random()*TITLE_ANIMS.length)];
     const verTxt = 'ver A0.'+String(TITLE_VER).padStart(4,'0')+' (-'+TITLE_DATE+')';
     return this.phone(h('div',{onClick:()=>this._startBoot(),style:{flex:1,position:'relative',overflow:'hidden',background:'#010101',cursor:'pointer'}},
       h('div',{ref:el=>{ if(el){ const pw=el.parentElement&&el.parentElement.clientWidth; if(pw) el.style.transform='scale('+(pw/402)+')'; } },
         style:{position:'absolute',left:0,top:0,width:402,height:828,transformOrigin:'0 0'}},
-        // 영상: SVG image1 자리 = x -1, y 0, 403×403(상단 정사각). cover(무왜곡/크롭).
-        h('video',{key:'titlevid',ref:el=>{ if(el){ el.muted=true; try{ const p=el.play(); if(p&&p.catch) p.catch(()=>{}); }catch(_){} } },
-          src:'assets/art/loading/title/'+this._titleVid,
-          autoPlay:true, muted:true, loop:true, playsInline:true, preload:'auto',
+        // 배경: SVG image1 자리 = x -1, y 0, 403×403(상단 정사각). cover(무왜곡/크롭).
+        // 애니메이션 WebP라 브라우저가 알아서 무한 반복한다 — loop/muted/playsInline 같은 속성이 필요 없다.
+        h('img',{key:'titleanim', src:'assets/art/loading/title/'+this._titleVid,
           style:{position:'absolute',left:-1,top:0,width:403,height:403,objectFit:'cover',pointerEvents:'none'}}),
         // 그라데이션: y 68, 402×342, 투명→#010101
         h('div',{style:{position:'absolute',left:0,top:68,width:402,height:342,background:'linear-gradient(180deg, rgba(1,1,1,0) 0%, #010101 100%)',pointerEvents:'none'}}),
