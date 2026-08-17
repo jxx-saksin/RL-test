@@ -126,6 +126,10 @@ const SFX = {
   card_insert:      'assets/sound/effect/card_insert.mp3',       // 카드가 단말로 빨려 들어가는 순간 (1.34s)
   tap_terminal_done:'assets/sound/effect/tap_terminal_done.mp3'  // 삽입이 확정되는 순간 (0.65s)
 };
+// 자동재생 해제 전용 0.01초 무음 WAV(124B). ⚠️ iOS Safari는 volume 설정을 무시하므로(읽기 전용·항상 1)
+// 진짜 효과음을 volume=0으로 틀면 타이틀 탭에서 그대로 들린다. muted로도 해제가 안 되는 기기가 있어
+// '무음 파일을 소리내서' 재생하는 게 유일하게 안전한 방법이다.
+const SFX_SILENT = 'data:audio/wav;base64,UklGRnQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
 const PRELOAD = [
   // 1순위 — 부팅 끝나면 바로 보이는 안전가옥
   ['assets/art/cities/city_01.webp',
@@ -679,8 +683,12 @@ class Component extends DCLogic {
     try{ const a=new Audio(src); a.volume=0.85; const p=a.play(); if(p&&p.catch) p.catch(()=>{}); }catch(_){ } }
   // iOS/안드로이드 자동재생 해제 — 반드시 사용자 제스처 안에서. 무음 1회 재생으로 오디오를 깨운다.
   sfxUnlock(){ if(this._sfxReady) return; this._sfxReady=true;
-    try{ const a=new Audio(SFX.card_insert); a.volume=0; const p=a.play();
-      if(p&&p.then) p.then(()=>{ a.pause(); a.currentTime=0; }).catch(()=>{}); }catch(_){ } }
+    // 진짜 효과음이 아니라 무음 파일을 재생한다 — iOS에서 타이틀 탭에 카드소리가 나던 원인(2026-08-17)
+    try{ const a=new Audio(SFX_SILENT); const p=a.play();
+      if(p&&p.then) p.then(()=>{ a.pause(); a.currentTime=0; }).catch(()=>{});
+      // 실제 mp3는 소리 없이 받아만 둔다(첫 재생 끊김 방지)
+      Object.values(SFX).forEach(src=>{ try{ const w=new Audio(); w.preload='auto'; w.src=src; }catch(_){ } });
+    }catch(_){ } }
   // ---- 아트 프리로드 (PRELOAD) ----
   // 순위별로 순차 실행. 한 순위가 끝나면 유휴 시간에 다음 순위로 넘어가 부팅 아트와 대역폭을 다투지 않게 한다.
   preloadArt(){
