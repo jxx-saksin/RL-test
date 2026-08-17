@@ -120,6 +120,12 @@ const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','mo
 // 순위별로 순차 로드하고, 1순위(부팅 직후 안전가옥)는 부팅이 끝나기 전까지 기다린다.
 // ⚠️ 실제로 파일이 있는 것만 적을 것 — 없는 경로를 넣으면 404 요청만 낭비된다(MONSTER_ART와 같은 규약).
 // items/(52장·7.6MB)와 타이틀 영상은 일부러 뺐다. 몬스터 아트는 출정 로딩 3초가 따로 커버한다.
+// 효과음 — 이 프로토타입 최초의 사운드. 파일은 sound/effect/(원본) → assets/sound/effect/(배포본).
+// ⚠️ 모바일은 사용자 제스처 안에서 한 번 재생해야 이후 재생이 풀린다 → sfxUnlock()을 타이틀 첫 탭에서 부른다.
+const SFX = {
+  card_insert:      'assets/sound/effect/card_insert.mp3',       // 카드가 단말로 빨려 들어가는 순간 (1.34s)
+  tap_terminal_done:'assets/sound/effect/tap_terminal_done.mp3'  // 삽입이 확정되는 순간 (0.65s)
+};
 const PRELOAD = [
   // 1순위 — 부팅 끝나면 바로 보이는 안전가옥
   ['assets/art/cities/city_01.webp',
@@ -132,7 +138,8 @@ const PRELOAD = [
    'assets/art/card_back/monster_back.webp','assets/art/card_back/item_back.webp',
    'assets/art/card_back/flee_back.webp','assets/art/card_back/pvp_back.webp'],
   // 3순위 — 태그/패스 화면(무겁고 진입이 늦다)
-  ['assets/art/ui/tap_terminal.webp','assets/art/cards/protocol_pass_full.webp']
+  ['assets/art/ui/tap_terminal.webp','assets/art/cards/protocol_pass_full.webp',
+   SFX.card_insert, SFX.tap_terminal_done]
 ];
 // 부팅 로딩 패럴랙스 세트 — 부팅할 때마다 랜덤 1개. 패럴랙스(2레이어+자이로)는 부팅 전용이고,
 // 출정 로딩은 항상 단일 레이어 켄번즈(해당 존 스폰 몬스터 아트)를 쓴다.
@@ -148,12 +155,15 @@ const BOOT_SETS = [
 // mp4 13.1MB -> 1.8MB. <img> 한 장이라 자동재생 정책·preload·play() 처리가 통째로 필요 없다.
 const TITLE_ANIMS = ['monster_security_camera_anim.webp','monster_gutter_roach_anim.webp'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 11;
+const TITLE_VER = 12;
 const TITLE_DATE = '0817';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:12, date:'17/Aug', lines:[
+    ['카드 삽입 효과음 추가됨.','Card insertion now has sound.'],
+    ['전리품 화면에서 카드가 반투명하게 보이던 문제 수정됨.','Fixed loot cards looking semi-transparent.'] ] },
   { ver:11, date:'17/Aug', lines:[
     ['신규 몬스터 추가 됨.','New enemies were added.'],
     ['모든 지역 몬스터 재배치 및 밸런스 수정.','Monster spawns across every zone were rearranged and rebalanced.'] ] },
@@ -266,6 +276,8 @@ class Component extends DCLogic {
     let q; try{ q=new URLSearchParams(location.search); }catch(_){ return; }
     const screen=q.get('screen'); if(!screen) return;
     if(screen==='vendor'){ const id=q.get('vendor')||'vendor_clinic'; const vtab=q.get('vtab'); this.openVendor(id); if(vtab) this.setState({vtab}); }
+    // 전리품 화면은 state.lm이 있어야 그려진다 — 샘플 카드를 채워주는 개발용 진입로(?screen=lootmanage)
+    else if(screen==='lootmanage'){ this.openLootDebug(); }
     else this.go(screen);
   }
   async loadData(){
@@ -661,6 +673,15 @@ class Component extends DCLogic {
       if(fillEl) fillEl.style.width=v+'%'; if(numEl) numEl.textContent=v;
       if(p<1||hold){ requestAnimationFrame(tick); } else if(onDone){ onDone(); } };
     requestAnimationFrame(tick); }
+  // ---- 효과음 ----
+  // 같은 소리가 겹칠 수 있어 매번 새 Audio를 쓴다(재생 중 재호출 시 앞소리가 끊기지 않게).
+  // 실패는 조용히 삼킨다 — 소리가 안 나는 것보다 예외로 화면이 멈추는 게 나쁘다.
+  sfx(name){ const src=SFX[name]; if(!src||this._sfxOff) return;
+    try{ const a=new Audio(src); a.volume=0.85; const p=a.play(); if(p&&p.catch) p.catch(()=>{}); }catch(_){ } }
+  // iOS/안드로이드 자동재생 해제 — 반드시 사용자 제스처 안에서. 무음 1회 재생으로 오디오를 깨운다.
+  sfxUnlock(){ if(this._sfxReady) return; this._sfxReady=true;
+    try{ const a=new Audio(SFX.card_insert); a.volume=0; const p=a.play();
+      if(p&&p.then) p.then(()=>{ a.pause(); a.currentTime=0; }).catch(()=>{}); }catch(_){ } }
   // ---- 아트 프리로드 (PRELOAD) ----
   // 순위별로 순차 실행. 한 순위가 끝나면 유휴 시간에 다음 순위로 넘어가 부팅 아트와 대역폭을 다투지 않게 한다.
   preloadArt(){
@@ -750,7 +771,7 @@ class Component extends DCLogic {
     // 영상은 콜드스타트마다 2개 중 랜덤 1개 고정(재렌더에도 유지)
     if(!this._titleVid) this._titleVid = TITLE_ANIMS[Math.floor(Math.random()*TITLE_ANIMS.length)];
     const verTxt = 'ver A0.'+String(TITLE_VER).padStart(4,'0')+' (-'+TITLE_DATE+')';
-    return this.phone(h('div',{onClick:()=>this._startBoot(),style:{flex:1,position:'relative',overflow:'hidden',background:'#010101',cursor:'pointer'}},
+    return this.phone(h('div',{onClick:()=>{ this.sfxUnlock(); this._startBoot(); },style:{flex:1,position:'relative',overflow:'hidden',background:'#010101',cursor:'pointer'}},
       h('div',{ref:el=>{ if(el){ const pw=el.parentElement&&el.parentElement.clientWidth; if(pw) el.style.transform='scale('+(pw/402)+')'; } },
         style:{position:'absolute',left:0,top:0,width:402,height:828,transformOrigin:'0 0'}},
         // 배경: SVG image1 자리 = x -1, y 0, 403×403(상단 정사각). cover(무왜곡/크롭).
@@ -1250,14 +1271,16 @@ class Component extends DCLogic {
   restNav(d){ const c=this.combat, n=this.restCards().length; c.restFocus=Math.max(0,Math.min(n-1,(c.restFocus||0)+d)); this.forceUpdate(); }
   restCenterHandlers(){ return {
     // 드래그 중엔 코버플로우 컨테이너 언클립 + zIndex 상승 → 카드가 최상단에서 모든 UI를 덮음
-    onPointerDown:(e)=>{ this._rvy=e.clientY; this._rvc=e.currentTarget; const p=e.currentTarget.parentElement; this._rvp=p; if(p){ p.style.overflow='visible'; p.style.zIndex='100'; } e.currentTarget.style.zIndex='100'; },
+    onPointerDown:(e)=>{ this._rvy=e.clientY; this._rvx=e.clientX; this._rvc=e.currentTarget; const p=e.currentTarget.parentElement; this._rvp=p; if(p){ p.style.overflow='visible'; p.style.zIndex='100'; } e.currentTarget.style.zIndex='100'; },
     onPointerMove:(e)=>{ if(this._rvy==null)return; const dy=e.clientY-this._rvy; const el=this._rvc; if(!el)return; el.style.transition='none'; el.style.zIndex='100'; el.style.transform='translate(-50%, calc(-50% + '+dy+'px)) scale(1)'; },
-    onPointerCancel:(e)=>{ if(this._rvy==null)return; const el=this._rvc, p=this._rvp; this._rvy=null; this._rvp=null;
+    onPointerCancel:(e)=>{ if(this._rvy==null)return; const el=this._rvc, p=this._rvp; this._rvy=null; this._rvx=null; this._rvp=null;
       if(el){ el.style.transition='transform .3s'; el.style.transform='translate(-50%,-50%) scale(1)'; el.style.opacity='1'; el.style.zIndex='20'; }
       if(p){ p.style.overflow='hidden'; p.style.zIndex=''; } },
     // ⚠️ zIndex 복원은 ''(auto) 금지 — vdom 정본값 '20'으로. 프레임워크가 포커스 노드를 위치기준 재사용하므로
     // ''로 지우면 재사용된 카드가 형제(사이드) 뒤로 떨어져 반투명처럼 보임(전리품 화면과 동종 버그).
-    onPointerUp:(e)=>{ if(this._rvy==null)return; const dy=e.clientY-this._rvy; const el=this._rvc; const p=this._rvp; this._rvy=null; this._rvp=null; const restore=()=>{ if(p){ p.style.overflow='hidden'; p.style.zIndex=''; } if(el) el.style.zIndex='20'; };
+    onPointerUp:(e)=>{ if(this._rvy==null)return; const dy=e.clientY-this._rvy; const dx=this._rvx!=null?e.clientX-this._rvx:0; const el=this._rvc; const p=this._rvp; this._rvy=null; this._rvx=null; this._rvp=null; const restore=()=>{ if(p){ p.style.overflow='hidden'; p.style.zIndex=''; } if(el) el.style.zIndex='20'; };
+      // 전리품 화면과 동종 — 가로 스와이프 시 지연 복원 금지(아래 lmCenterHandlers 주석 참조)
+      if(Math.abs(dx)>30 && Math.abs(dx)>Math.abs(dy)){ restore(); return; }
       const card=dy>70?this.restCards()[this.combat.restFocus]:null;
       const it=card?this.eng.byId.item[card.id]:null; const heal=it&&it.EffectType!=='stamina';
       const canUse=!!it && !this._restAnim && (heal? this.gs.hp<this.gs.maxHp : this.gs.sta<this.staMax);
@@ -2879,6 +2902,11 @@ void main(){
       if(el){ el.style.transition='transform .3s'; el.style.transform='translate(-50%,-50%) scale(1)'; el.style.opacity='1'; el.style.zIndex='20'; }
       if(p){ p.style.overflow='hidden'; p.style.zIndex=''; } },
     onPointerUp:(e)=>{ if(this._lmy==null)return; const dy=e.clientY-this._lmy; const dx=this._lmx!=null?e.clientX-this._lmx:0; const el=this._lmc; const p=this._lmp; this._lmy=null; this._lmx=null; this._lmp=null; const restore=()=>{ if(p){ p.style.overflow='hidden'; p.style.zIndex=''; } if(el) el.style.zIndex='20'; };
+      // ⚠️ 가로 스와이프는 부모 캐러셀이 focus를 바꾼다(카드 핸들러가 버블링상 먼저 실행됨).
+      //   여기서 setTimeout으로 지연 복원하면 이미 '사이드'가 된 카드에 중앙값 z20을 덮어써
+      //   중앙과 사이드가 둘 다 z20이 되고, opacity .42인 사이드가 위에 합성돼 반투명처럼 보인다.
+      //   이 시점엔 아직 이 카드가 중앙이므로 '즉시' 복원해야 뒤따르는 리렌더가 정상값(z9)을 덮어쓴다.
+      if(Math.abs(dx)>30 && Math.abs(dx)>Math.abs(dy)){ restore(); return; }
       const lm=this.state.lm, isField=lm.view==='field'; const arr=isField?lm.field:lm.bag; const fc=arr[Math.max(0,Math.min(lm.focus||0,arr.length-1))];
       // 유효 동작(위=가방뷰 꺼내기 / 아래=필드 개봉된 카드 넣기)일 때만 날려보냄
       let fly=false; if(Math.abs(dy)>70&&fc){ fly = dy<0 ? !isField : (isField && !!(lm.opened&&lm.opened.has(fc.uid)) && this.lmCanStash(fc)); }
@@ -3734,6 +3762,10 @@ void main(){
     if(key){ if(!this.hasItem(key)) return; }         // 키카드 존 — 패스 차감 없음
     else if(!this.usePass()) return;                  // 잔여 0 = 삽입 불가(empty 상태)
     this._tapDone=true; this.forceUpdate();
+    this.sfx('card_insert');
+    // 완료음은 카드 트랜지션(.42s)이 끝나 자리에 앉는 순간에 맞춘다
+    clearTimeout(this._tapDoneSfxT);
+    this._tapDoneSfxT=setTimeout(()=>this.sfx('tap_terminal_done'), 450);
     clearTimeout(this._tapT);
     this._tapT=setTimeout(()=>{ const z=this.state.tapZone; this._tapDone=false; if(z) this.startSortie(z); }, 1500);
   }
@@ -3816,9 +3848,12 @@ void main(){
   passInsert(){
     if(this._passPhase!=='insert') return;
     this._passPhase='loading'; this.forceUpdate();
+    this.sfx('card_insert');
     clearTimeout(this._passPhT);
     this._passPhT=setTimeout(()=>{
       if(this.state.screen!=='pass'){ this._passPhT=null; return; }
+      // 여기서 LOADING 점멸이 끝난다 = 카드를 다 읽은 시점 → 완료음
+      this.sfx('tap_terminal_done');
       this._passPhase=null; this._passPhT=null; this.forceUpdate(); },1500);
   }
   doPassBuy(){
