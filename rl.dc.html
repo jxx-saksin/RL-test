@@ -7,8 +7,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#16171b">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="manifest" href="manifest.json?v=2">
+<link rel="apple-touch-icon" href="assets/icon-192.png?v=2">
 <title>404: 두 번째 불을 찾아서</title>
 <script src="./support.js"></script>
 </head>
@@ -145,18 +145,38 @@ const PRELOAD = [
    'assets/art/card_back/monster_back.webp','assets/art/card_back/item_back.webp',
    'assets/art/card_back/flee_back.webp','assets/art/card_back/pvp_back.webp'],
   // 3순위 — 태그/패스 화면(무겁고 진입이 늦다)
-  ['assets/art/ui/tap_terminal.webp','assets/art/cards/protocol_pass_full.webp',
+  ['assets/art/ui/tap_terminal.webp','assets/art/cards/protocol_pass_full.webp?v=2',
    SFX.card_insert, SFX.tap_terminal_done]
 ];
 // 부팅 로딩 패럴랙스 세트 — 부팅할 때마다 랜덤 1개. 패럴랙스(2레이어+자이로)는 부팅 전용이고,
 // 출정 로딩은 항상 단일 레이어 켄번즈(해당 존 스폰 몬스터 아트)를 쓴다.
-// fgCover: false=독수리 전용 좌표(상단 좌측 걸침) / true=하단 중앙 원본비율 cover.
-// fgScale: fgCover 전경의 크기 배율(기준 높이 58%). 배경 대비 피사체가 작게 그려진 아트는 여기서 키운다.
+// 부팅 로딩 패럴랙스 3세트. 좌표·크기는 art_src/loading/svg/screen-boot-loading{1,3,4}.svg 를
+// 402x828 기준으로 역산한 값(패턴 매트릭스 → 실제 그리기 위치). 어림 배치가 아니라 원본 그대로다.
+// 레이어 순서 = 배경(원경) → 로고(고정) → 몬스터(근경). 002(눈먼 광신도)는 메인 타이틀로 이관되어 폐지.
 const BOOT_SETS = [
-  { bg:'assets/art/loading/booting/001/haram_city.webp', fg:'assets/art/loading/booting/001/haram_eagle.webp?v=2', fgCover:false },
-  { bg:'assets/art/loading/booting/002/bg.webp?v=2',     fg:'assets/art/loading/booting/002/fg.webp?v=2',          fgCover:true, fgScale:1.5 },
-  { bg:'assets/art/loading/booting/003/bg.webp',         fg:'assets/art/loading/booting/003/fg.webp',              fgCover:true, fgScale:1.5 }
+  { bg:{src:'assets/art/loading/booting/001/haram_city.webp',   x:-32.79, y:   0.00, w:467.58, h:828.00},
+    fg:{src:'assets/art/loading/booting/001/haram_eagle.webp?v=2', x:-176.56, y: 36.00, w:564.11, h:601.00} },
+  { bg:{src:'assets/art/loading/booting/003/bg.webp',           x:-110.92, y:  0.00, w:623.83, h:828.00},
+    fg:{src:'assets/art/loading/booting/003/fg.webp',           x:-118.56, y: 83.31, w:578.56, h:616.39} },
+  { bg:{src:'assets/art/loading/booting/004/bg.webp',           x:   0.24, y:-131.15, w:722.53, h:959.00},
+    fg:{src:'assets/art/loading/booting/004/fg.webp',           x: -20.56, y:208.62, w:581.56, h:619.38, ken:56} }   // 켄번즈 절반 속도(28s→56s) · y는 바닥 정렬(828-619.38). svg 원본값은 110.31
 ];
+// 부팅 로딩 로고 'THE PROTOCOL PASS'(흰색) — svg 아웃라인 패스 13개. 잉크 x14..373.7 / y28..282.
+// 배경과 몬스터 사이에 고정으로 깔린다(패럴랙스 안 먹음).
+const BOOT_LOGO=[
+'M14 197.323V121.301C14 117.757 16.9219 114.861 20.4969 114.861H49.1028C52.6777 114.861 55.5996 117.757 55.5996 121.301V150.679C55.5996 154.223 52.6777 157.119 49.1028 157.119H29.6848L26.9937 151.974V190.877C26.9937 194.421 24.0718 197.317 20.4969 197.317H14V197.323ZM42.6059 130.139C42.4938 128.805 41.3725 127.779 39.994 127.779H21.8028L26.9937 130.407V144.24H42.6059V130.139Z',
+'M88.0434 197.323V172.632L72.4312 157.197V190.884C72.4312 194.427 69.5093 197.323 65.9344 197.323H59.4375V114.861H94.5403C98.1152 114.861 101.037 117.757 101.037 121.301V150.679C101.037 154.223 98.1152 157.119 94.5403 157.119H90.7345L101.037 167.369V190.877C101.037 194.421 98.1152 197.317 94.5403 197.317H88.0434V197.323ZM88.0434 130.139C87.9313 128.805 86.81 127.779 85.4315 127.779H67.2469L72.4378 130.407V144.24H88.05V130.139H88.0434Z',
+'M111.374 197.323C107.799 197.323 104.877 194.427 104.877 190.884V121.301C104.877 117.797 107.799 114.861 111.374 114.861H139.98C143.555 114.861 146.477 117.797 146.477 121.301V190.884C146.477 194.427 143.555 197.323 139.98 197.323H111.374ZM133.483 127.779H120.489C119.064 127.779 117.877 128.923 117.877 130.335V181.777L112.686 184.445H133.483V127.779Z',
+'M164.614 197.322V130.184C164.614 128.962 163.618 127.935 162.345 127.785H150.314V114.867H191.914V127.785H172.424L177.614 130.413V197.322H164.621H164.614Z',
+'M202.251 197.323C198.676 197.323 195.754 194.427 195.754 190.884V121.301C195.754 117.797 198.676 114.861 202.251 114.861H230.857C234.432 114.861 237.354 117.797 237.354 121.301V190.884C237.354 194.427 234.432 197.323 230.857 197.323H202.251ZM224.353 127.779H211.36C209.935 127.779 208.748 128.923 208.748 130.335V181.777L203.557 184.445H224.353V127.779Z',
+'M247.688 197.323C244.113 197.323 241.191 194.427 241.191 190.884V121.301C241.191 117.797 244.113 114.861 247.688 114.861H282.791V127.779H248.994L254.185 130.407V181.888C254.185 183.301 255.379 184.445 256.797 184.445H282.784V197.323H247.682H247.688Z',
+'M304.314 197.322C294.585 197.322 286.631 189.471 286.631 179.835V132.394C286.631 122.751 294.592 114.867 304.314 114.867H310.58C320.269 114.867 328.224 122.758 328.224 132.394V179.835C328.224 189.478 320.263 197.322 310.58 197.322H304.314ZM315.23 181.888V130.446L320.421 127.778H299.625V181.777L294.434 184.444H312.618C314.043 184.444 315.23 183.3 315.23 181.888Z',
+'M338.559 197.323C334.984 197.323 332.062 194.427 332.062 190.884V114.861H338.559C342.134 114.861 345.056 117.797 345.056 121.301V181.771L339.865 184.438H373.662V197.317H338.559V197.323Z',
+'M14 281.987V205.965C14 202.421 16.9219 199.525 20.4969 199.525H49.1028C52.6777 199.525 55.5996 202.421 55.5996 205.965V235.343C55.5996 238.887 52.6777 241.783 49.1028 241.783H29.6848L26.9937 236.638V275.541C26.9937 279.085 24.0718 281.981 20.4969 281.981H14V281.987ZM42.6059 214.81C42.4938 213.476 41.3725 212.45 39.994 212.45H21.8028L26.9937 215.078V228.911H42.6059V214.81Z',
+'M88.0446 281.987V244.378C88.0446 242.966 86.8508 241.789 85.4327 241.789H67.2481L72.439 244.456V275.548C72.439 279.091 69.5171 281.987 65.9422 281.987H59.4453V205.965C59.4453 202.461 62.3672 199.525 65.9422 199.525H94.5481C98.123 199.525 101.045 202.461 101.045 205.965V275.548C101.045 279.091 98.123 281.987 94.5481 281.987H88.0512H88.0446ZM88.0446 226.355V212.443H75.0509C73.6263 212.443 72.439 213.587 72.439 214.999V228.911H85.4327C86.8574 228.911 88.0446 227.767 88.0446 226.355Z',
+'M111.374 281.986C107.799 281.986 104.877 279.09 104.877 275.547V251.085H115.298C116.723 251.085 117.877 252.229 117.877 253.673V266.552C117.877 267.964 119.071 269.108 120.489 269.108H138.562L133.489 266.519V241.788H111.38C107.805 241.788 104.884 238.892 104.884 235.349V205.97C104.884 202.466 107.805 199.531 111.38 199.531H139.986C143.561 199.531 146.483 202.466 146.483 205.97V221.176H133.489V214.815C133.377 213.482 132.256 212.456 130.878 212.456H112.693L117.884 215.084V226.36C117.884 227.733 119.038 228.877 120.423 228.916H139.993C143.568 228.916 146.49 231.813 146.49 235.356V275.56C146.49 279.104 143.568 282 139.993 282H111.387L111.374 281.986Z',
+'M156.811 281.986C153.236 281.986 150.314 279.09 150.314 275.547V251.085H160.736C162.16 251.085 163.315 252.229 163.315 253.673V266.552C163.315 267.964 164.509 269.108 165.927 269.108H183.999L178.927 266.519V241.788H156.818C153.243 241.788 150.321 238.892 150.321 235.349V205.97C150.321 202.466 153.243 199.531 156.818 199.531H185.424C188.999 199.531 191.921 202.466 191.921 205.97V221.176H178.927V214.815C178.815 213.482 177.694 212.456 176.315 212.456H158.13L163.321 215.084V226.36C163.321 227.733 164.476 228.877 165.861 228.916H185.43C189.005 228.916 191.927 231.813 191.927 235.356V275.56C191.927 279.104 189.005 282 185.43 282H156.824L156.811 281.986Z',
+'M28.0424 28L14.8574 80.1351V110.377H133.291L146.47 58.2416V28H28.0424ZM62.2152 47.9911H47.6187L51.5036 49.9589V100.061H41.7748V49.7889C41.7748 48.8737 41.0295 48.1023 40.0797 47.9911H31.0699V38.3224H62.2152V47.9911ZM96.2429 95.2363C96.2429 97.8905 94.0531 100.061 91.3752 100.061H86.5075V69.9631H70.9348L74.8197 71.9635V95.2429C74.8197 97.897 72.6299 100.067 69.952 100.067H65.0843V38.3224H74.8131V60.3205H86.5009V38.3224H96.2297V95.2429L96.2429 95.2363ZM130.264 47.9911H110.806C109.738 47.9911 108.847 48.8475 108.847 49.9V60.314H125.396V69.9565H104.956L108.841 71.9569V90.4183H130.257V100.061H99.112V43.1404C99.112 40.5124 101.302 38.3159 103.98 38.3159H130.264V47.9846V47.9911Z'];
 // 메인 타이틀에 랜덤 재생할 영상(둘 중 하나). monster/mp4 → assets/art/loading/title/.
 // 메인 타이틀 배경 — 애니메이션 WebP(2026-08-17 mp4에서 전환). 806x806 · 6fps · 24프레임.
 // mp4 13.1MB -> 1.8MB. <img> 한 장이라 자동재생 정책·preload·play() 처리가 통째로 필요 없다.
@@ -177,7 +197,7 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 14;
+const TITLE_VER = 15;
 const TITLE_DATE = '0819';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -773,17 +793,21 @@ class Component extends DCLogic {
     this._bootBgEl=null; this._bootFgEl=null; this._gyroOn=false; }
   // 공용 로딩 뷰 (svg screen-boot-loading 기준): 배경 + 하단 그라데이션(이미지 덮개) + 팁(라벨+숫자·본문) + 최하단 풀폭 프로그레스
   loadingView(opts){ opts=opts||{};
-    return h('div',{onClick:opts.onTap||null,style:{flex:1,position:'relative',overflow:'hidden',background:T.bg,cursor:opts.onTap?'pointer':'default'}},
-      // 패럴랙스 2레이어(부팅): 배경(도시) + 전경(독수리). 자이로로 서로 다르게 이동, 독수리는 아주 느린 확대.
-      opts.bg? h('div',{ref:opts.bgRef,style:{position:'absolute',inset:0,willChange:'transform'}},
-        h('div',{style:{position:'absolute',inset:'-7%',backgroundImage:'url('+opts.bg+')',backgroundSize:'cover',backgroundPosition:'center'}})):null,
-      opts.fg? (opts.fgCover
-        // 부팅 세트 002(눈먼 광신도)·003(부푼 두꺼비): 원본 비율 유지 하단 중앙. 독수리 같은 특수 좌표 없이 제공 비율대로.
-        ? h('div',{ref:opts.fgRef,style:{position:'absolute',inset:0,display:'flex',alignItems:'flex-end',justifyContent:'center',willChange:'transform',pointerEvents:'none'}},
-            h('img',{src:opts.fg,style:{height:(58*(opts.fgScale||1)).toFixed(1)+'%',width:'auto',objectFit:'contain',display:'block',transformOrigin:'50% 100%',animation:'rlKenBurns 28s ease-out both'}}))
-        // 부팅 독수리: svg screen-boot-loading 좌표(상단 좌측 걸침)
-        : h('div',{ref:opts.fgRef,style:{position:'absolute',left:'-43.8%',top:0,width:'143.8%',willChange:'transform',pointerEvents:'none'}},
-            h('img',{src:opts.fg,style:{width:'100%',display:'block',transformOrigin:'50% 32%',animation:'rlKenBurns 28s ease-out both'}}))):null,
+    return h('div',{onClick:opts.onTap||null,style:{flex:1,position:'relative',overflow:'hidden',background:'#18191D',cursor:opts.onTap?'pointer':'default'}},
+      // 패럴랙스 3레이어(부팅): 배경(원경) → 로고(고정) → 몬스터(근경).
+      // 좌표는 svg 원본(402x828) 그대로 — 402폭 스테이지를 프레임 폭에 맞춰 균일 스케일(상단 앵커).
+      // 스테이지 아래로 남는 띠는 컨테이너 배경(#18191D)이 채운다 — 하단 그라데이션 끝색과 같아 이음매가 없다.
+      opts.bg? h('div',{ref:el=>{ if(el){ const pw=el.parentElement&&el.parentElement.clientWidth; if(pw) el.style.transform='scale('+(pw/402)+')'; } },
+        style:{position:'absolute',left:0,top:0,width:402,height:828,transformOrigin:'0 0',pointerEvents:'none'}},
+        // 원경 — 자이로로 아주 조금 움직인다
+        h('div',{ref:opts.bgRef,style:{position:'absolute',inset:0,willChange:'transform'}},
+          h('img',{src:opts.bg.src,style:{position:'absolute',left:opts.bg.x,top:opts.bg.y,width:opts.bg.w,height:opts.bg.h,display:'block'}})),
+        // 로고 — 고정(패럴랙스·켄번즈 없음)
+        h('svg',{width:402,height:828,viewBox:'0 0 402 828',fill:'none',style:{position:'absolute',left:0,top:0}},
+          ...BOOT_LOGO.map((d,i)=>h('path',{key:i,d:d,fill:'#fff'}))),
+        // 근경(몬스터) — 자이로 + 아주 느린 확대
+        h('div',{ref:opts.fgRef,style:{position:'absolute',inset:0,willChange:'transform'}},
+          h('img',{src:opts.fg.src,style:{position:'absolute',left:opts.fg.x,top:opts.fg.y,width:opts.fg.w,height:opts.fg.h,display:'block',transformOrigin:'50% 100%',animation:'rlKenBurns '+(opts.fg.ken||28)+'s ease-out both'}}))):null,
       // 단일 배경(출정 전용): 몬스터 아트 켄번즈(천천히 확대)
       (!opts.bg&&opts.bgImage)? h('div',{style:{position:'absolute',inset:0,backgroundImage:'url('+opts.bgImage+')',backgroundSize:'cover',backgroundPosition:'center',transformOrigin:'center',animation:'rlKenBurns 16s ease-out both'}}):null,
       // 하단 그라데이션 — 이미지를 덮어 텍스트 가독성 확보(y486~828 투명→#18191D)
@@ -841,7 +865,7 @@ class Component extends DCLogic {
     if(!this._bootTip) this._bootTip = this.pickTip ? this.pickTip() : (this.en()?TIP_FALLBACK[0][1]:TIP_FALLBACK[0][0]);
     if(!this._bootSet) this._bootSet = BOOT_SETS[Math.floor(Math.random()*BOOT_SETS.length)];
     return this.phone(this.loadingView({
-      bg:this._bootSet.bg, fg:this._bootSet.fg, fgCover:this._bootSet.fgCover, fgScale:this._bootSet.fgScale,
+      bg:this._bootSet.bg, fg:this._bootSet.fg,
       bgRef:el=>{ this._bootBgEl=el; }, fgRef:el=>{ this._bootFgEl=el; if(el && !this._gyroOn){ this._gyroOn=true; this.startGyro(); } },
       tip:this._bootTip,
       fillRef:el=>{ if(el && !this._bootLoadStarted){ this._bootLoadStarted=true;
@@ -869,12 +893,10 @@ class Component extends DCLogic {
   }
   noticeModal(){
     return h('div',{style:{position:'absolute',inset:0,zIndex:60,background:'#111315',display:'flex',flexDirection:'column',overflow:'hidden',animation:'rlFade .22s ease-out'}},
-      // 스크롤 영역 — 배너부터 마지막 항목까지 함께 스크롤. 하단 박스 높이(95+16)만큼 여백.
-      h('div',{style:{flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch'}},
-        h('div',{style:{position:'relative',height:118,flex:'0 0 auto',overflow:'hidden'}},
-          h('img',{src:'assets/art/loading/title/the404_title.webp',alt:'',style:{position:'absolute',left:'50%',top:0,width:118,height:118,transform:'translateX(-50%)',objectFit:'contain',pointerEvents:'none'}}),
-          h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(24,25,29,0) 0%, #111315 100%)',pointerEvents:'none'}}),
-          h('div',{style:{position:'absolute',left:16,bottom:11,fontFamily:T.mono,fontSize:9,fontWeight:500,letterSpacing:'2.4px',color:'#4B4D52'}},'UPDATE')),
+      // 상단 고정 레이어는 스크롤 콘텐츠 '위'에 얹는다 — svg 문서 순서가
+      // [목록] < 파란판(174) < 그라데이션(174~266) < 로고 < 두꺼비 라, 글이 배너 밑으로 사라진다.
+      // 스크롤 영역은 화면 맨 위(y0)에서 시작하고 첫 칩 자리(y248)까지 패딩으로 비운다.
+      h('div',{style:{flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch',paddingTop:248}},
         ...PATCH_NOTES.map((rel,ri)=>h('div',{key:'rel'+rel.ver,style:{paddingTop:ri?23:0}},
           this.noticeChips(rel, ri===0),
           h('div',{style:{padding:'0 16px'}},
@@ -883,6 +905,17 @@ class Component extends DCLogic {
               h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:400,lineHeight:'16px',color:'#EAEBEE'}}, ln[0]),
               h('div',{style:{fontFamily:T.sans,fontSize:13,fontWeight:400,lineHeight:'15px',color:'#6F7276'}}, ln[1])))))),
         h('div',{style:{height:16}})),
+      // 파란 판 402x174
+      h('div',{style:{position:'absolute',left:0,top:0,width:'100%',height:174,background:'#002F75',pointerEvents:'none'}}),
+      // 그라데이션 y174~266 — 위=파랑 불투명 → 아래=투명. 스크롤되는 글이 배너로 자연스럽게 사라진다.
+      h('div',{style:{position:'absolute',left:0,top:174,width:'100%',height:92,background:'linear-gradient(180deg, #002F75 0%, rgba(24,25,29,0) 100%)',pointerEvents:'none'}}),
+      // 로고 — 부팅 로딩과 같은 패스를 0.7118배(svg 잉크 x16..272 / y26.5..207.3)로. 파란 판 아래로 걸친다.
+      h('svg',{width:402,height:266,viewBox:'0 0 402 266',fill:'none',style:{position:'absolute',left:0,top:0,pointerEvents:'none'}},
+        h('g',{transform:'translate(6.035 6.57) scale(0.7118)'},
+          ...BOOT_LOGO.map((d,i)=>h('path',{key:i,d:d,fill:'#CE794B'})))),
+      // 두꺼비 — 003 로딩 전경 재사용. 좌우 반전, svg rect(-1 0 0 1 384 38) 기준 x213 y38.
+      h('img',{src:'assets/art/loading/booting/003/fg.webp',alt:'',
+        style:{position:'absolute',left:213,top:38,width:171.2,height:182.8,transform:'scaleX(-1)',pointerEvents:'none'}}),
       // 하단 고정 확인 박스 — 안전가옥 인터페이스 규약(박스 #18191D r24 + pill #212227 h48)
       h('div',{style:{flex:'0 0 auto',margin:'0 16px 26px',padding:'23px 23px',boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid #36383C'}},
         h('button',{onClick:()=>this.closeNotice(),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.en()?'OK':'확인')));
@@ -3859,7 +3892,7 @@ void main(){
     // 카드 폭은 단말 규격의 342 고정, 높이는 각 아트 원본 비율.
     // 패스 635×933(0.681)→503 · 키카드 691×954(0.724)→472. 삽입 후 카드 바닥은 svg대로 y360.
     const CARD_W=342, CARD_H=key?472:503, CARD_Y=282, CARD_IN=360-CARD_H;
-    const cardArt = key ? 'assets/art/cards/item_police_keycard_tap.webp' : 'assets/art/cards/protocol_pass.webp';
+    const cardArt = key ? 'assets/art/cards/item_police_keycard_tap.webp' : 'assets/art/cards/protocol_pass.webp?v=2';
     const keyName = key ? (this.eng.anyName?this.eng.anyName(key):key) : null;
     const keyQty = key ? this.itemQty(key) : 0;
     const led = done ? {c:'#B1FF1F', glow:'177,255,31', anim:'rlLedBlink .34s steps(1,end) infinite'}
@@ -4053,7 +4086,7 @@ void main(){
           transform:'translateY('+(phase==='insert'?INS:0)+'px)', transition:CARD_TR, willChange:'transform',
           touchAction:'none', pointerEvents:dragOn?'auto':'none', cursor:dragOn?'grab':'default'}}),
           h('div',{style:{position:'absolute',left:-102,top:-21,width:525,height:525,
-            backgroundImage:'url(assets/art/cards/protocol_pass_full.webp)',backgroundSize:'100% 100%',backgroundRepeat:'no-repeat'}})),
+            backgroundImage:'url(assets/art/cards/protocol_pass_full.webp?v=2)',backgroundSize:'100% 100%',backgroundRepeat:'no-repeat'}})),
         // 단말 — 이 화면에서는 180° 뒤집어 쓴다(svg의 rotate(-180)). 태그 화면과 위아래가 반대다.
         h('div',{key:'term',style:{position:'absolute',left:16,top:-455,width:370,height:670,zIndex:2,transform:'rotate(180deg)',
           backgroundImage:'url(assets/art/ui/tap_terminal.webp)',backgroundSize:'100% 100%',backgroundRepeat:'no-repeat'}}),
