@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val1';
-import { buildIndex } from './sheet-loader.js?v=val1';
+import { DATA as FALLBACK } from './data/game-data.js?v=val2';
+import { buildIndex } from './sheet-loader.js?v=val2';
 
 export let DATA = FALLBACK;
 export let byId = buildIndex(FALLBACK).byId;
@@ -263,7 +263,7 @@ export function mkInstance(id, qty = 1, opts = {}) {
   }
   if (!w && !a) {
     const liq = byId.liquor[id];
-    if (liq) { inst.proof = liquorProof(liq); inst.volume = Math.max(1, N(liq.Volume, 1)); inst.usesLeft = inst.volume; }
+    if (liq) { inst.proof = liquorProof(liq); }   // 용량(Volume) 폐지 2026-08-18 — 감정 1회 = 1병
     return inst; // plain item / liquor / module chip
   }
 

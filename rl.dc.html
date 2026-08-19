@@ -73,6 +73,8 @@
   @keyframes rlEdgeFlash{0%{opacity:0}14%{opacity:1}44%{opacity:.32}100%{opacity:.32}}
   /* 타이틀 "TAP TO START" — 천천히 숨쉬는 표현(글리치 삭제) */
   @keyframes rlBreath{0%,100%{opacity:.32}50%{opacity:1}}
+  /* 타이틀 아트 — 아주 느린 확대(켄번즈). 기준점을 바닥으로 잡아야 프레임 아래에 틈이 안 생긴다. */
+  @keyframes rlTitleZoom{from{transform:scale(1)}to{transform:scale(1.08)}}
   /* 태그 단말 LED — 대기=붉게 숨쉬기 / 인증=초록 빠른 점멸 */
   @keyframes rlLedBreath{0%,100%{opacity:.45}50%{opacity:1}}
   @keyframes rlLedBlink{0%,44%{opacity:1}50%,94%{opacity:.18}100%{opacity:1}}
@@ -158,10 +160,25 @@ const BOOT_SETS = [
 // 메인 타이틀에 랜덤 재생할 영상(둘 중 하나). monster/mp4 → assets/art/loading/title/.
 // 메인 타이틀 배경 — 애니메이션 WebP(2026-08-17 mp4에서 전환). 806x806 · 6fps · 24프레임.
 // mp4 13.1MB -> 1.8MB. <img> 한 장이라 자동재생 정책·preload·play() 처리가 통째로 필요 없다.
-const TITLE_ANIMS = ['monster_security_camera_anim.webp','monster_gutter_roach_anim.webp'];
+// 메인 타이틀 로고 'THE PROTOCOL PASS' — screen-main-title-v2.svg 의 아웃라인 패스 13개.
+// 벡터 그대로 인라인한다(어느 배율에서도 선명 · 5KB · 이미지 요청 0건). 좌표계 = SVG 원본 420x856.
+const TITLE_LOGO=[
+'M16 251.664V169.652C16 165.829 19.1522 162.705 23.0087 162.705H53.8686C57.7252 162.705 60.8773 165.829 60.8773 169.652V201.345C60.8773 205.168 57.7252 208.292 53.8686 208.292H32.9206L30.0175 202.742V244.71C30.0175 248.533 26.8653 251.657 23.0087 251.657H16V251.664ZM46.8598 179.187C46.7389 177.748 45.5292 176.641 44.0421 176.641H24.4176L30.0175 179.476V194.399H46.8598V179.187Z',
+'M95.8784 251.664V225.027L79.036 208.376V244.717C79.036 248.54 75.8839 251.664 72.0273 251.664H65.0186V162.705H102.887C106.744 162.705 109.896 165.829 109.896 169.652V201.345C109.896 205.168 106.744 208.292 102.887 208.292H98.7815L109.896 219.35V244.71C109.896 248.533 106.744 251.657 102.887 251.657H95.8784V251.664ZM95.8784 179.187C95.7574 177.748 94.5478 176.641 93.0607 176.641H73.4433L79.0432 179.476V194.399H95.8855V179.187H95.8784Z',
+'M121.046 251.664C117.189 251.664 114.037 248.54 114.037 244.717V169.652C114.037 165.872 117.189 162.705 121.046 162.705H151.906C155.762 162.705 158.914 165.872 158.914 169.652V244.717C158.914 248.54 155.762 251.664 151.906 251.664H121.046ZM144.897 176.641H130.879C129.343 176.641 128.062 177.875 128.062 179.398V234.893L122.462 237.771H144.897V176.641Z',
+'M178.482 251.664V179.236C178.482 177.917 177.408 176.81 176.034 176.647H163.056V162.712H207.933V176.647H186.907L192.507 179.483V251.664H178.489H178.482Z',
+'M219.083 251.664C215.226 251.664 212.074 248.54 212.074 244.717V169.652C212.074 165.872 215.226 162.705 219.083 162.705H249.943C253.799 162.705 256.952 165.872 256.952 169.652V244.717C256.952 248.54 253.799 251.664 249.943 251.664H219.083ZM242.927 176.641H228.909C227.373 176.641 226.092 177.875 226.092 179.398V234.893L220.492 237.771H242.927V176.641Z',
+'M268.102 251.664C264.245 251.664 261.093 248.54 261.093 244.717V169.652C261.093 165.872 264.245 162.705 268.102 162.705H305.97V176.641H269.51L275.11 179.476V235.013C275.11 236.537 276.398 237.771 277.928 237.771H305.963V251.664H268.094H268.102Z',
+'M329.188 251.664C318.693 251.664 310.111 243.194 310.111 232.799V181.619C310.111 171.217 318.7 162.712 329.188 162.712H335.948C346.4 162.712 354.982 171.224 354.982 181.619V232.799C354.982 243.201 346.393 251.664 335.948 251.664H329.188ZM340.964 235.013V179.518L346.564 176.64H324.129V234.893L318.529 237.771H338.146C339.683 237.771 340.964 236.536 340.964 235.013Z',
+'M366.131 251.664C362.275 251.664 359.123 248.54 359.123 244.717V162.705H366.131C369.988 162.705 373.14 165.872 373.14 169.652V234.886L367.54 237.764H404V251.657H366.131V251.664Z',
+'M16 343V260.988C16 257.165 19.1522 254.041 23.0087 254.041H53.8686C57.7252 254.041 60.8773 257.165 60.8773 260.988V292.681C60.8773 296.504 57.7252 299.628 53.8686 299.628H32.9206L30.0175 294.078V336.046C30.0175 339.869 26.8653 342.993 23.0087 342.993H16V343ZM46.8598 270.53C46.7389 269.091 45.5292 267.984 44.0421 267.984H24.4176L30.0175 270.819V285.742H46.8598V270.53Z',
+'M95.8786 343V302.428C95.8786 300.904 94.5907 299.635 93.0609 299.635H73.4435L79.0434 302.512V336.053C79.0434 339.876 75.8912 343 72.0346 343H65.0259V260.988C65.0259 257.208 68.178 254.041 72.0346 254.041H102.894C106.751 254.041 109.903 257.208 109.903 260.988V336.053C109.903 339.876 106.751 343 102.894 343H95.8857H95.8786ZM95.8786 282.984V267.977H81.8611C80.3242 267.977 79.0434 269.211 79.0434 270.734V285.742H93.0609C94.5978 285.742 95.8786 284.507 95.8786 282.984Z',
+'M121.046 343C117.189 343 114.037 339.876 114.037 336.053V309.663H125.28C126.817 309.663 128.062 310.897 128.062 312.456V326.349C128.062 327.872 129.35 329.107 130.879 329.107H150.376L144.904 326.314V299.635H121.053C117.196 299.635 114.044 296.51 114.044 292.688V260.994C114.044 257.214 117.196 254.048 121.053 254.048H151.913C155.769 254.048 158.922 257.214 158.922 260.994V277.398H144.904V270.536C144.783 269.098 143.573 267.99 142.086 267.99H122.469L128.069 270.826V282.991C128.069 284.472 129.314 285.706 130.808 285.748H151.92C155.777 285.748 158.929 288.873 158.929 292.695V336.067C158.929 339.89 155.777 343.014 151.92 343.014H121.06L121.046 343Z',
+'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
+'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 13;
-const TITLE_DATE = '0818';
+const TITLE_VER = 14;
+const TITLE_DATE = '0819';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -250,8 +267,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val1');
-      const loader = await import('./sheet-loader.js?v=val1');
+      const eng = await import('./engine.js?v=val2');
+      const loader = await import('./sheet-loader.js?v=val2');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -784,30 +801,39 @@ class Component extends DCLogic {
       opts.tapStart? null : h('div',{style:{position:'absolute',left:0,right:0,bottom:0,height:4,background:'#2B2E32'}},
         h('div',{ref:opts.fillRef,style:{height:'100%',width:'0%',background:'#A5ACB2'}})));
   }
-  // 콜드 스타트 = 메인 타이틀(screen-main-title.svg 정확 재현). 탭 → iOS 자이로 권한(제스처) → _startBoot(도시+독수리 로딩).
-  // 좌표는 SVG 원본(402×828) 그대로. 402폭 스테이지를 프레임 폭에 맞춰 균일 스케일(상단 앵커, 여백=검정 배경).
+  // 콜드 스타트 = 메인 타이틀 (screen-main-title-v2.svg 재현).
+  // 구성: 흰 판(0..352) + 로고 벡터 + 눈먼 광신도 아트 + TAP TO START + 버전.
+  // 좌표계 = SVG 원본 420x856. 420폭 스테이지를 프레임 폭에 맞춰 균일 스케일(상단 앵커).
+  // 아트만 스테이지 밖에서 위치를 잡는다 — 프레임이 설계 비율보다 길쭉하면 바닥에 붙여
+  // 아래 빈 띠를 없애고, 짧으면 설계 위치(y=206.8)를 유지해 로고와의 겹침을 지킨다.
   splashScreen(){
     if(this.state && this.state.err) return this.phone(h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:T.lo,fontFamily:T.mono,fontSize:13}}, (this.eng?this.t('frag_error'):'오류:')+' '+this.state.err));
-    // 영상은 콜드스타트마다 2개 중 랜덤 1개 고정(재렌더에도 유지)
-    if(!this._titleVid) this._titleVid = TITLE_ANIMS[Math.floor(Math.random()*TITLE_ANIMS.length)];
-    const verTxt = 'ver A0.'+String(TITLE_VER).padStart(4,'0')+' (-'+TITLE_DATE+')';
-    return this.phone(h('div',{onClick:()=>{ this.sfxUnlock(); this._startBoot(); },style:{flex:1,position:'relative',overflow:'hidden',background:'#010101',cursor:'pointer'}},
-      h('div',{ref:el=>{ if(el){ const pw=el.parentElement&&el.parentElement.clientWidth; if(pw) el.style.transform='scale('+(pw/402)+')'; } },
-        style:{position:'absolute',left:0,top:0,width:402,height:828,transformOrigin:'0 0'}},
-        // 배경: SVG image1 자리 = x -1, y 0, 403×403(상단 정사각). cover(무왜곡/크롭).
-        // 애니메이션 WebP라 브라우저가 알아서 무한 반복한다 — loop/muted/playsInline 같은 속성이 필요 없다.
-        h('img',{key:'titleanim', src:'assets/art/loading/title/'+this._titleVid,
-          style:{position:'absolute',left:-1,top:0,width:403,height:403,objectFit:'cover',pointerEvents:'none'}}),
-        // 그라데이션: y 68, 402×342, 투명→#010101
-        h('div',{style:{position:'absolute',left:0,top:68,width:402,height:342,background:'linear-gradient(180deg, rgba(1,1,1,0) 0%, #010101 100%)',pointerEvents:'none'}}),
-        // THE 404 로고(image2): x 23, y 245, 189×189
-        h('img',{src:'assets/art/loading/title/the404_title.webp',style:{position:'absolute',left:23,top:245,width:189,height:189,pointerEvents:'none'}}),
-        // 부트로그(image0): x -1, y 473, 335×335 (FATAL ERROR·바코드·Wing Lok 등)
-        h('img',{src:'assets/art/loading/title/the404_bootlog.webp',style:{position:'absolute',left:-1,top:473,width:335,height:335,pointerEvents:'none'}}),
-        // TAP TO START… — 초록 #5BFF52, 천천히 숨쉬기(글리치 없음). SVG 좌표 x41.4 y483(cap-top)
-        h('div',{style:{position:'absolute',left:41,top:479,fontFamily:T.mono,fontSize:10.5,fontWeight:500,letterSpacing:'0.5px',color:'#5BFF52',whiteSpace:'nowrap',pointerEvents:'none',animation:'rlBreath 3.4s ease-in-out infinite'}}, 'TAP TO START...'),
-        // ver — 회색 #454545, SVG 좌표 x38.6 y503(cap-top). 배포마다 숫자+월일.
-        h('div',{style:{position:'absolute',left:39,top:499,fontFamily:T.mono,fontSize:10.5,fontWeight:400,letterSpacing:'0.5px',color:'#454545',whiteSpace:'nowrap',pointerEvents:'none'}}, verTxt))));
+    const verTxt = 'ver A0.'+String(TITLE_VER).padStart(4,'0')+' ('+TITLE_DATE+')';
+    const BLUE='#002F75';
+    const ART={w:581.0, h:702.5, y:206.8};   // pattern matrix 역산: 880x1064 를 581x702.5 로, y -0.24 보정
+    return this.phone(h('div',{onClick:()=>{ this.sfxUnlock(); this._startBoot(); },
+      style:{flex:1,position:'relative',overflow:'hidden',background:BLUE,cursor:'pointer'}},
+      // 눈먼 광신도 — 로고 위에 겹친다(알파 PNG). 스케일·위치는 프레임 실측으로 잡는다.
+      h('img',{key:'zealot', src:'assets/art/loading/title/title_zealot.webp',
+        ref:el=>{ if(!el) return; const f=el.parentElement; if(!f) return;
+          const s=f.clientWidth/420, fh=f.clientHeight/s;      // 스테이지 좌표계로 환산한 프레임 높이
+          el.style.width=(ART.w*s).toFixed(1)+'px'; el.style.height=(ART.h*s).toFixed(1)+'px';
+          el.style.top=(Math.max(ART.y, fh-ART.h)*s).toFixed(1)+'px'; },
+        style:{position:'absolute',left:0,top:ART.y,width:ART.w,height:ART.h,zIndex:2,pointerEvents:'none',
+          transformOrigin:'50% 100%',willChange:'transform',animation:'rlTitleZoom 22s ease-in-out infinite alternate'}}),
+      h('div',{ref:el=>{ if(el){ const pw=el.parentElement&&el.parentElement.clientWidth; if(pw) el.style.transform='scale('+(pw/420)+')'; } },
+        style:{position:'absolute',left:0,top:0,width:420,height:856,transformOrigin:'0 0',pointerEvents:'none'}},
+        // 상단 흰 판 — y 0..352
+        h('div',{style:{position:'absolute',left:0,top:0,width:420,height:352,background:'#fff'}}),
+        // 로고 'THE PROTOCOL PASS' — 벡터 13패스, 잉크 박스 x16..404 / y69..343
+        h('svg',{width:420,height:856,viewBox:'0 0 420 856',fill:'none',style:{position:'absolute',left:0,top:0}},
+          ...TITLE_LOGO.map((d,i)=>h('path',{key:i,d:d,fill:BLUE}))),
+        // TAP TO START... — 흰 글자, 천천히 숨쉬기. SVG 잉크 x16.3 / cap-top y369.5
+        h('div',{key:'tap',ref:el=>{ this._splTap=el; },
+          style:{position:'absolute',left:16,top:365.5,fontFamily:T.mono,fontSize:12,fontWeight:400,letterSpacing:'1.5px',color:'#EAEBEE',whiteSpace:'nowrap',zIndex:3,animation:'rlBreath 3.4s ease-in-out infinite'}}, 'TAP TO START...'),
+        // 버전 — 우측 상단. SVG 잉크 우측 끝 x401.5 / cap-top y27.9. 배포마다 숫자+월일.
+        h('div',{key:'ver',ref:el=>{ this._splVer=el; },
+          style:{position:'absolute',right:14.5,top:24.5,fontFamily:T.mono,fontSize:12,fontWeight:400,letterSpacing:'1.5px',color:'#BCBCBC',whiteSpace:'nowrap',zIndex:3}}, verTxt))));
   }
   // 부팅 로딩(탭 후) — 게이지 4초 + 데이터 로드. ready 전 표시.
   loading(){
@@ -2374,7 +2400,7 @@ void main(){
     const cost=this.eng.N(this.eng.DATA.config.appraise_cost,0);
     if(this.gs.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
     const proof=liq.proof; const changes=this.eng.appraise(item,proof);
-    this.gs.sato-=cost; liq.usesLeft=(liq.usesLeft||1)-1; if(liq.usesLeft<=0) this.consumeInst(liq.uid);
+    this.gs.sato-=cost; this.consumeInst(liq.uid);   // 감정 1회 = 술 1병 통째 소모(용량 개념 폐지 2026-08-18)
     const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp);
     this.setState({apr:{...a,results:changes,proof}}); }
   aprValFmt(k,v){ if(k==='growthTags') return ''; if(['accuracy','critChance','evasion','statusResist','atkSpeed','minAtk','maxAtk','def','maxDur','potency'].includes(k)) return Number(v).toFixed(2); return Number(v).toFixed(2); }
@@ -2391,7 +2417,7 @@ void main(){
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline'}},
             h('span',{style:{fontFamily:T.sans,fontSize:14.5,fontWeight:500,color:T.hi}}, this.eng.anyName(inst.id)),
             h('span',{style:{fontFamily:T.mono,fontSize:13,color:T.sato}}, '±'+Number(inst.proof).toFixed(2)+'%')),
-          h('div',{style:{fontFamily:T.mono,fontSize:10.5,color:T.lo,marginTop:3}}, this.t('appraise_uses')+' '+(inst.usesLeft!=null?inst.usesLeft:inst.volume)+'/'+inst.volume+' · '+this.t('appraise_proof_band')))); })
+          h('div',{style:{fontFamily:T.mono,fontSize:10.5,color:T.lo,marginTop:3}}, this.t('appraise_proof_band')))); })
         : [h('div',{key:'e',style:{fontFamily:T.sans,fontSize:13,color:T.faint,padding:'18px 0',textAlign:'center'}}, this.t('appraise_no_liquor'))])];
     } else if(step==='item'){ line=this.t('marta_pick'); const liq=this.eng.instById(this.gs,a.liquorUid); const list=this.unappItems();
       body=[label(this.t('appraise_pick_item')+' · ±'+Number(liq.proof).toFixed(2)+'%'), ...(list.length?list.map(inst=>
@@ -3245,7 +3271,7 @@ void main(){
         [this.t('item_material_type'), a.Material||'—'],
         [this.t('item_durability'), opt(inst,'maxDur')?(this.eng.N(inst.dur)+'/'+HID):this.durTxt(inst)]);
     } else if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]){ const lq=this.eng.byId.liquor[inst.id];
-      out.push([this.en()?'Proof':'도수', Math.round(Number(inst.proof))+'%'], [this.en()?'Volume':'용량', (inst.usesLeft!=null?inst.usesLeft:inst.volume)+'/'+inst.volume]);
+      out.push([this.en()?'Proof':'도수', Math.round(Number(inst.proof))+'%']);
     } else if(this.eng.byId.module&&this.eng.byId.module[inst.id]){ const md=this.eng.byId.module[inst.id];
       out.push([this.en()?'Equip':'장착', md.Tag==='weapon'?this.t('item_slot_weapon'):this.t('item_slot_armor')], [this.eng.tr(md,'TargetStat'), '+'+md.Value_Min+'~'+md.Value_Max]);
     } else if(inst.kind==='artifact'){ const af=this.eng.byId.artifact[inst.id]||{};
