@@ -749,7 +749,7 @@ export function repair(state, inst) {
 // ---------- monster spawn & card draw (RL_SpawnTable) ----------
 // per-zone distribution: specials use SpawnChance %, the single IsBase monster
 // fills the remainder (100 - sum of specials). Missing monsters are skipped.
-// depth = 이번 출정의 조우 회차(1-based, "N전"). 회차가 오를수록 보스 등장 %p가 선형 가산되고
+// depth = 이번 레이드의 조우 회차(1-based, "N전"). 회차가 오를수록 보스 등장 %p가 선형 가산되고
 // 베이스 몬스터가 자동으로 그만큼 차감됨(100 - 스페셜합). 다른 등급은 불변.
 export function spawnDistribution(zoneId, depth = 0) {
   const rows = (DATA.spawnTable || []).filter(r => r.ZoneID === zoneId && byId.monster[r.MonsterID]);
