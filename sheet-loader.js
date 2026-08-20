@@ -132,7 +132,7 @@ export function shape(rowsByTab) {
 // 귀중품(Valuable 탭)은 열 이름이 Item 탭과 다르다(ValuableID/Name_KR/Description_KR).
 // 여기서 Item 스키마로 정규화해 byId.item에 합쳐두면 이름·설명·카테고리 조회가
 // 기존 아이템과 똑같이 동작한다 — 렌더러 쪽 조회 체인을 건드릴 필요가 없다.
-// SellPrice는 일부러 넣지 않는다: 감별(전당포) 전까지 판매 대상이 아니다.
+// SellPrice는 일부러 넣지 않는다: 흥정(전당포) 전까지 판매 대상이 아니다.
 export function asItemRow(v) {
   return { ...v, ItemID: v.ValuableID, ItemName_KR: v.Name_KR, ItemName_EN: v.Name_EN,
     Description: v.Description_KR, Description_EN: v.Description_EN,

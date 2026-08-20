@@ -197,8 +197,8 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 15;
-const TITLE_DATE = '0819';
+const TITLE_VER = 16;
+const TITLE_DATE = '0820';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -792,12 +792,29 @@ class Component extends DCLogic {
     if(this._bootBgEl){ this._bootBgEl.style.transform=''; } if(this._bootFgEl){ this._bootFgEl.style.transform=''; }
     this._bootBgEl=null; this._bootFgEl=null; this._gyroOn=false; }
   // 공용 로딩 뷰 (svg screen-boot-loading 기준): 배경 + 하단 그라데이션(이미지 덮개) + 팁(라벨+숫자·본문) + 최하단 풀폭 프로그레스
+  // 402 스테이지 스케일 ref (로딩 패럴랙스·태그 단말·패스 충전 공용).
+  // ⚠ 명령형으로 넣은 transform은 노드에 눌어붙는다 — DC는 화면이 바뀌어도 DOM 노드를 재사용하므로
+  //   지우지 않으면 다음 화면이 그 노드를 물려받아 남은 scale로 확대/축소된다(헤더 좌우 여백 잠식 사고).
+  //   게다가 transformOrigin:'0 0'은 vdom 선언이라 리셋되어 center로 돌아가 어긋남이 더 커진다.
+  //   → 언마운트(ref(null))에서 transform을 반드시 비운다. key까지 붙여 재사용 자체도 막는다.
+  stageRef(name){
+    if(!this._stageRefs) this._stageRefs={};
+    if(!this._stageRefs[name]){
+      const st={el:null};
+      this._stageRefs[name]=el=>{
+        if(el){ st.el=el; const pw=el.parentElement&&el.parentElement.clientWidth;
+          if(pw) el.style.transform='scale('+(pw/402)+')'; }
+        else if(st.el){ st.el.style.transform=''; st.el=null; }
+      };
+    }
+    return this._stageRefs[name];
+  }
   loadingView(opts){ opts=opts||{};
     return h('div',{onClick:opts.onTap||null,style:{flex:1,position:'relative',overflow:'hidden',background:'#18191D',cursor:opts.onTap?'pointer':'default'}},
       // 패럴랙스 3레이어(부팅): 배경(원경) → 로고(고정) → 몬스터(근경).
       // 좌표는 svg 원본(402x828) 그대로 — 402폭 스테이지를 프레임 폭에 맞춰 균일 스케일(상단 앵커).
       // 스테이지 아래로 남는 띠는 컨테이너 배경(#18191D)이 채운다 — 하단 그라데이션 끝색과 같아 이음매가 없다.
-      opts.bg? h('div',{ref:el=>{ if(el){ const pw=el.parentElement&&el.parentElement.clientWidth; if(pw) el.style.transform='scale('+(pw/402)+')'; } },
+      opts.bg? h('div',{key:'stage402-boot', ref:this.stageRef('boot'),
         style:{position:'absolute',left:0,top:0,width:402,height:828,transformOrigin:'0 0',pointerEvents:'none'}},
         // 원경 — 자이로로 아주 조금 움직인다
         h('div',{ref:opts.bgRef,style:{position:'absolute',inset:0,willChange:'transform'}},
@@ -1049,7 +1066,7 @@ class Component extends DCLogic {
       h('div',{style:{padding:'0 16px 100px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:16}},
         h('div',{style:{margin:'0 -16px',flex:'0 0 auto'}}, this.screenTitle('SAFEHOUSE','안전가옥',this.currencyChips())),
         ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Feed')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Module')||svc.includes('Sell'); const act=()=>this.openVendor(v.VendorID);
-            const CHIP={ shop_clinic:['치료','Heal'], shop_hardware:['수리','Repair'], shop_canteen:['배식','Ration'], shop_tavern:['주점','Tavern'], shop_pawnshop:['감정','Appraise'], shop_blackmarket:['거래','Trade'], shop_auction:['거래소','Exchange'] };
+            const CHIP={ shop_clinic:['치료','Heal'], shop_hardware:['수리','Repair'], shop_canteen:['배식','Ration'], shop_tavern:['주점','Bar'], shop_pawnshop:['흥정','Haggle'], shop_blackmarket:['거래','Trade'], shop_auction:['거래소','Exchange'] };
             const chipTxt=(CHIP[v.ShopID]||[])[this.en()?1:0]||'';
             return h('button',{key:v.VendorID,disabled:!open,onClick:open?act:null,
               style:{position:'relative',height:118,textAlign:'left',border:'1px solid rgb(54,56,60)',borderRadius:8,padding:0,cursor:open?'pointer':'default',opacity:open?1:.5,overflow:'hidden',flexShrink:0,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
@@ -2883,7 +2900,7 @@ void main(){
     const cat=liq?this.t('appraise_tab'):md?(this.t('module_tab')+' · '+(md.HexCode||'')):usb?this.t('usb_decode'):(CATKR[s.Category]?this.t(this.catKey(s.Category)):(s.Category||''));
     // 스택 가능한 일반 아이템(약품·음식·정크·퀘스트 등)만: 카테고리 우측에 MAX STACK N 표시
     const itRow=this.eng.byId.item[inst.id]; const maxStk=(itRow&&!liq&&!md&&!usb)?this.eng.N(itRow.MaxStack):0;
-    // 귀중품: 감별(전당포) 전이라 확정 가격이 없다 → 가치 밴드만 보여준다. 판매는 sellables()에서 이미 제외됨.
+    // 귀중품: 흥정(전당포) 전이라 확정 가격이 없다 → 가치 밴드만 보여준다. 판매는 sellables()에서 이미 제외됨.
     const val=this.eng.byId.valuable&&this.eng.byId.valuable[inst.id];
     const allStats=val?[[this.en()?'Value':'가치', this.eng.N(val.MinValue)+'~'+this.eng.N(val.MaxValue)+(this.en()?' sato':' 사토')]]:usb?[[this.t('usb_permanent_growth'),this.eng.substUsbTokens('{STAT}',usb)],[this.t('combat_time_limit'),this.eng.N(usb.UploadMinutes,1)+(this.en()?'m':'분')]]:(isBag?[[this.en()?'Slots':'슬롯',String(this.eng.N(s.Capacity)),'#83B289']]:((isGear||liq||md||s.Category==='Medicine'||s.Category==='Food')?this.itemDetailStats(inst):[]));
     const stats=allStats.filter(([k])=>k!==this.t('item_durability'));
@@ -3915,7 +3932,7 @@ void main(){
                       : {t:(this.en()?'Insert your card':'카드를 삽입하세요.'), c:'#6F7276'};
     return h('div',{style:{flex:1,position:'relative',overflow:'hidden',background:'#111315'}},
       // 402 기준 스테이지(터미널·카드) — 상단 고정 스케일
-      h('div',{ref:el=>{ if(el){ const pw=el.parentElement&&el.parentElement.clientWidth; if(pw) el.style.transform='scale('+(pw/402)+')'; } },
+      h('div',{key:'stage402-tap', ref:this.stageRef('tap'),
         style:{position:'absolute',left:0,top:0,width:402,height:828,transformOrigin:'0 0',pointerEvents:'none'}},
         // 카드 — 터미널보다 아래 레이어(삽입 시 안으로 빨려 들어감)
         h('div',Object.assign({key:'card'}, drag, {style:{position:'absolute',left:30,top:CARD_Y,width:CARD_W,height:CARD_H,
@@ -4079,7 +4096,7 @@ void main(){
       btn(exit, true, ()=>this.go(this._passFrom||'safehouse'))));
     return h('div',{style:{flex:1,position:'relative',overflow:'hidden',background:'#111315'}},
       // 402 기준 스테이지 — 카드(아래) + 단말(위) + LCD
-      h('div',{ref:el=>{ if(el){ const pw=el.parentElement&&el.parentElement.clientWidth; if(pw) el.style.transform='scale('+(pw/402)+')'; } },
+      h('div',{key:'stage402-pass', ref:this.stageRef('pass'),
         style:{position:'absolute',left:0,top:0,width:402,height:828,transformOrigin:'0 0',pointerEvents:'none'}},
         // 카드 — svg는 330x481 rect로 잘라낸 525x525 아트(1024² 알파 원본). 클립까지 그대로 재현.
         h('div',Object.assign({key:'card'}, drag, {style:{position:'absolute',left:36,top:-120,width:330,height:481,zIndex:1,overflow:'hidden',
