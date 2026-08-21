@@ -197,7 +197,7 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 19;
+const TITLE_VER = 20;
 const TITLE_DATE = '0821';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -1018,6 +1018,9 @@ class Component extends DCLogic {
   // depth = 지금 화면이 가리키는 조우 회차. 카드 드로우·휴식은 '다음 전투', 전투 중에는 '이번 전투'.
   bossChip(){
     const c=this.combat; if(!c) return null;
+    // PvP 존에는 보스가 없다 — 같은 자리에 유저 조우 확률(PVP CHANCE)을 띄운다.
+    const z=this.eng.byId.zone[c.zoneId];
+    if(this.isPvpZone(z)) return this.pvpChip(z);
     const C=this.eng.DATA.config, N=(v,d)=>this.eng.N(v,d);
     const enc=N(c.encounter,0);
     const depth=(c.phase==='fighting'||c.phase==='won'||c.phase==='timeout'||c.phase==='dead')?enc:enc+1;
@@ -1025,6 +1028,24 @@ class Component extends DCLogic {
     return h('div',{style:{display:'flex',alignItems:'center',gap:6,height:27,boxSizing:'border-box',padding:'0 9px',background:'rgba(0,0,0,0.5)',borderRadius:8}},
       h('span',{style:{flex:'0 0 auto',width:82,height:17,borderRadius:4,background:'#6B6B6B',color:'#111111',fontFamily:T.mono,fontSize:10,fontWeight:500,letterSpacing:'.04em',display:'flex',alignItems:'center',justifyContent:'center'}},'BOSS CHANCE'),
       h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:'#FFFFFF',whiteSpace:'nowrap'}}, '+'+pct.toFixed(1)+'%'));
+  }
+  // PvP 확률 칩 — svg/screen-battle-pvp-*.svg. 알약 122x27 r8 · 배지 76x17 r4 #C4675D.
+  // 값 = Zone.UserDataChance(%) — drawCards가 조우 카드를 유저로 굴릴 때 쓰는 바로 그 확률.
+  pvpChip(zone){
+    const pct=this.eng.N(String(zone&&zone.UserDataChance==null?'':zone.UserDataChance).replace('%',''),0);
+    return h('div',{style:{display:'flex',alignItems:'center',gap:6,height:27,boxSizing:'border-box',padding:'0 9px',background:'rgba(0,0,0,0.5)',borderRadius:8}},
+      h('span',{style:{flex:'0 0 auto',width:76,height:17,borderRadius:4,background:'#C4675D',color:'#111111',fontFamily:T.mono,fontSize:10,fontWeight:500,letterSpacing:'.04em',display:'flex',alignItems:'center',justifyContent:'center'}},'PVP CHANCE'),
+      h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:'#FFFFFF',whiteSpace:'nowrap'}}, pct+'%'));
+  }
+  // 소지품 기준 카운트 칩(주머니/가방/전리품) — 전리품 화면(lm) 밖에서 쓴다.
+  belongingsChips(){
+    const cap=this.eng.equippedBagCapacity?this.eng.equippedBagCapacity(this.gs):0;
+    const free=this.gs.bag.filter(x=>!this.isEquipped(x.uid));
+    const pk=free.filter(x=>x.loc==='pocket').length, bg=free.length-pk;
+    return this.countChips([
+      [this.en()?'Pocket':'주머니', pk+'/2', '#7CA5BB'],
+      [this.en()?'Bag':'가방', bg+'/'+cap, '#D8B25A'],
+      [this.en()?'Loot':'전리품', String(this.lootUids().length), '#6B6B6B']]);
   }
   // 헤더 아래 카운트 칩 행 — svg y97~124(알약 h27 r8, gap 4, 중앙정렬) · 배지 h17 r4.
   // items = [[라벨, 값, 배지색], ...]
@@ -2178,10 +2199,14 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       const pool=this.eng.coldEquippedList(c.pvp)||[];
       if(pool.length && Math.random()<rate){
         const prize=pool[Math.floor(Math.random()*pool.length)];
-        const clone=this.eng.cloneGearInstance(prize); this.placeLootIntoBag(clone); pc.got=clone; pc.prize=prize; c.runLoot.push({id:clone.id,qty:1});
+        // 자동으로 가방에 밀어 넣지 않는다 — 일반 전투와 똑같이 루팅 화면에서 직접 담는다.
+        const clone=this.eng.cloneGearInstance(prize); clone.qty=1; clone.locked=false;
+        pc.got=clone; pc.prize=prize; c.runLoot.push({id:clone.id,qty:1}); c.pvpLootPending=clone;
+        setTimeout(()=>this.openPvpLoot(), 900);   // 카드 플립 연출을 보여준 뒤 전환
       }
     } else {
       if(i===pc.hit&&pc.lossUid){
+        this._lossSeq=(this._lossSeq||0)+1;   // 손실 연출 노드 키 — 재사용된 canvas에 연출이 눌어붙는 것 방지
         const inst=this.eng.instById(this.gs,pc.lossUid); pc.lost=inst;
         const e=this.gs.equip; ['weapon','head','body','artifact1','artifact2'].forEach(s=>{ if(e[s]===pc.lossUid) e[s]=null; });
         this.gs.bag=this.gs.bag.filter(x=>x.uid!==pc.lossUid); this.gs.vault=this.gs.vault.filter(x=>x.uid!==pc.lossUid);
@@ -2192,6 +2217,16 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp);
     }
     this.forceUpdate();
+  }
+  // PvP 승리 전리품 → 일반 전투와 동일한 루팅 화면(lootmanage)으로 진입.
+  // 사전 소지품을 lm.bag으로 옮기는 부분까지 finishCombat와 같다(커밋 시 되돌아온다).
+  openPvpLoot(){
+    const c=this.combat, clone=c&&c.pvpLootPending; if(!clone) return;
+    c.pvpLootPending=null;
+    const lm={view:'field',focus:0,fromCombat:true,field:[clone],bag:[],opened:new Set([clone.uid])};
+    const keep=[];
+    for(const it of this.gs.bag){ if(this.isEquipped(it.uid)){ keep.push(it); continue; } it.locked=(it.loc==='pocket'); it.pre=true; lm.bag.push(it); }
+    this.gs.bag=keep; this.state.lm=lm; this.setState({screen:'lootmanage'});
   }
   pvpCardRow(){
     const c=this.combat, pc=c.pvpCards;
@@ -2256,10 +2291,15 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
   // 패배+뺏김 = 잃은 내 아이템 카드 + 빨간 비네트 → 글리치 소멸 연출
   lostItemCard(inst){
     if(!inst) return this.escapeSafeCard();
-    return h('div',{className:'pvp-loss',style:{position:'relative',width:342,height:'100%'}},
-      h('div',{className:'pvp-loss-card',style:{position:'absolute',inset:0,willChange:'opacity,filter'}}, this.lootCardBig(inst,true)),
-      h('canvas',{ref:el=>this.mountLossFx(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',borderRadius:8,pointerEvents:'none',zIndex:8,opacity:0}}),
-      h('div',{className:'pvp-loss-vig',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9,borderRadius:8,boxShadow:'inset 0 0 60px 16px rgba(196,44,40,.75)',opacity:0}}));
+    // ⚠️ DC 노드 재사용 함정: key가 같으면 canvas._glInit(=이미 초기화됨)과 이전 런의 명령형
+    // opacity/filter가 그대로 남아 두 번째 손실부터 연출이 안 돌고 카드가 빈칸으로 보인다.
+    // 플립마다 고유 key로 노드를 새로 만들고, 마운트 시 명령형 스타일을 비워 vdom 값으로 되돌린다.
+    const k='loss'+(this._lossSeq||0);
+    const reset=el=>{ if(el){ el.style.opacity=''; el.style.filter=''; } };
+    return h('div',{key:k,className:'pvp-loss',style:{position:'relative',width:342,height:'100%'}},
+      h('div',{key:k+'c',ref:reset,className:'pvp-loss-card',style:{position:'absolute',inset:0,willChange:'opacity,filter'}}, this.lootCardBig(inst,true)),
+      h('canvas',{key:k+'x',ref:el=>this.mountLossFx(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',borderRadius:8,pointerEvents:'none',zIndex:8,opacity:0}}),
+      h('div',{key:k+'v',ref:reset,className:'pvp-loss-vig',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9,borderRadius:8,boxShadow:'inset 0 0 60px 16px rgba(196,44,40,.75)',opacity:0}}));
   }
   mountLossFx(el){ if(!el || el._glInit) return; el._glInit=true; try{ this._initLossFx(el); }catch(e){} }
   _initLossFx(canvas){
@@ -2324,27 +2364,26 @@ void main(){
   pvpResultCardFace(i){ const pc=this.combat.pvpCards; if(pc.kind==='win') return pc.got? this.lootCardBig(pc.got,true) : this.searchFailedCard(); if(pc.kind==='flee'&&i===pc.hit&&pc.lossUid) return this.lostItemCard(pc.lost); return this.escapeSafeCard(); }
   pvpResultScreen(){
     const c=this.combat, pc=c.pvpCards, win=pc.kind==='win';
-    const zoneName=this.eng.byId.zone[c.zoneId]?this.tx(this.eng.byId.zone[c.zoneId],'ZoneName'):'';
-    const msg=win?this.t('pvp_win_msg'):this.t('combat_escape_urge_msg');
+    const head=this.zoneHead(c.zoneId);
     const focus=c.pvpFocus!=null?c.pvpFocus:Math.floor(pc.n/2);
     const done=pc.picked!=null;
-    const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
-    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-      h('div',{style:{padding:'14px 18px 13px',background:T.s1,borderBottom:'1px solid '+T.line,flex:'0 0 auto'}},
-        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:win?T.good:T.warn,marginBottom:6}}, (win?'VICTORY · ':'DEFEAT · ')+zoneName),
-        h('div',{style:{fontFamily:T.sans,fontSize:19,fontWeight:400,color:T.hi,letterSpacing:'-.01em',lineHeight:1.35,wordBreak:'keep-all'}}, msg),
-        (win&&c.ups.length)?h('div',{style:{marginTop:8,fontFamily:T.mono,fontSize:11,color:T.growth}}, (this.t('frag_growth')+' ')+c.ups.map(u=>({str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')}[u.stat]+' Lv'+u.to)).join(' · ')):null),
-      h('div',{style:{flex:'0 0 auto',padding:'8px 18px 2px',fontFamily:T.mono,fontSize:9.5,color:T.faint,letterSpacing:'.08em'}}, done?'':(win?this.t('pvp_win_pick_tpl').replace('{Rate}',Math.round(this.eng.N(this.eng.DATA.config.pvp_win_reward_rate,0.33)*100)):this.t('pvp_lose_pick_tpl').replace('{Rate}',Math.round(this.eng.N(this.eng.DATA.config.pvp_flee_fail_rate,0.33)*100)))),
-      h('div',{ref:(el)=>{ if(el&&el.clientHeight&&el.clientHeight!==this._pvpStageH){ this._pvpStageH=el.clientHeight; this.forceUpdate(); } },onPointerDown:(e)=>{this._px=e.clientX;this._pmoved=false;},onPointerMove:(e)=>{if(this._px!=null&&Math.abs(e.clientX-this._px)>8)this._pmoved=true;},onPointerUp:(e)=>{if(this._px==null)return;const dx=e.clientX-this._px;this._px=null;if(pc.picked!=null)return;if(Math.abs(dx)>30){ if(dx<0)this.focusPvp(focus+1); else this.focusPvp(focus-1); }},style:{flex:1,position:'relative',overflow:'hidden'}},
-        Array.from({length:pc.n}).map((_,i)=>{ const off=i-focus, abs=Math.abs(off); const isCenter=off===0; const ch=(done&&i===pc.picked)?this.pvpCardHeight():442; const fit=Math.min(1,(this._pvpStageH?this._pvpStageH-16:ch)/ch); const x=off*250*fit, s=(isCenter?1:0.9)*fit; let o=isCenter?1:0.5; const flippedThis=done&&i===pc.picked; if(done&&!flippedThis) o=0; const rot=flippedThis?180:0; const settled=this.flipSettled(c,'pvp'+i,flippedThis); const flat=settled||!flippedThis;
+    return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      // 배경 = 존 아트 (screen-battle-pvp-*.svg) · 헤더는 다른 전투 화면과 같은 규격
+      this.zoneBg(c.zoneId),
+      this.battleHeader(head.kicker, head.title, this.bossChip()),
+      // 승리 드로우는 전리품을 얻을 수 있는 화면이라 소지품 칩을 띄운다(패배 트랙은 없음)
+      win? this.belongingsChips() : null,
+      h('div',{ref:(el)=>{ if(el&&el.clientHeight&&el.clientHeight!==this._pvpStageH){ this._pvpStageH=el.clientHeight; this.forceUpdate(); } },onPointerDown:(e)=>{this._px=e.clientX;this._pmoved=false;},onPointerMove:(e)=>{if(this._px!=null&&Math.abs(e.clientX-this._px)>8)this._pmoved=true;},onPointerUp:(e)=>{if(this._px==null)return;const dx=e.clientX-this._px;this._px=null;if(pc.picked!=null)return;if(Math.abs(dx)>30){ if(dx<0)this.focusPvp(focus+1); else this.focusPvp(focus-1); }},style:{zIndex:1,flex:win?'0 1 502px':'1 1 auto',minHeight:0,position:'relative',overflow:'hidden'}},
+        Array.from({length:pc.n}).map((_,i)=>{ const off=i-focus, abs=Math.abs(off); const isCenter=off===0; const ch=(done&&i===pc.picked)?this.pvpCardHeight():474; const fit=Math.min(1,(this._pvpStageH?this._pvpStageH-16:ch)/ch); const x=off*250*fit, s=(isCenter?1:0.9)*fit; let o=isCenter?1:0.5; const flippedThis=done&&i===pc.picked; if(done&&!flippedThis) o=0; const rot=flippedThis?180:0; const settled=this.flipSettled(c,'pvp'+i,flippedThis); const flat=settled||!flippedThis;
             return h('div',{key:i,onClick:()=>{ if(this._pmoved||pc.picked!=null) return; isCenter?this.flipPvp():this.focusPvp(i); },
               style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:isCenter?1:o,zIndex:isCenter?20:10-abs,transition:isCenter?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:pc.picked!=null?'default':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:(done&&!flippedThis)?'none':'auto'}},
               h('div',{style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
                 (flat&&flippedThis)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/pvp_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flippedThis?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/pvp_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
                 (flat&&!flippedThis)?null:h('div',{style:flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flippedThis?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden'}}, flippedThis?this.pvpResultCardFace(i):null))); }),
         (!done? cardNav(focus, pc.n, ()=>this.focusPvp(focus-1), ()=>this.focusPvp(focus+1)) : null)),
-      !done? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 14px'}}, ...Array.from({length:pc.n}).map((_,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===focus?T.mid:T.s3}}))) : null,
-      done? h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
+      !done? h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 14px'}}, ...Array.from({length:pc.n}).map((_,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===focus?T.mid:T.s3}}))) : null,
+      win? h('div',{style:{flex:'1 1 auto',minHeight:0}}) : null,
+      done? h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 16px 26px'}},
         h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24,display:'flex',gap:8}},
           win?h('button',{onClick:()=>this.drawCards(),style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_continue')):null,
           h('button',{onClick:()=>{ win?this.extract():this.death(); },style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:win?'#EAEBEE':'#C4675D',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_return')))) : null);
