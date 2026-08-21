@@ -197,12 +197,14 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 21;
+const TITLE_VER = 22;
 const TITLE_DATE = '0821';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:22, date:'22/Aug', lines:[
+    ['상점 시스템 개편 진행 및 전투 인터페이스 변경중.','Shop system rework in progress; combat interface is being changed.'] ] },
   { ver:13, date:'18/Aug', lines:[
     ['토스트 모달 위치 및 소멸 개편됨.','Toast position and dismissal were reworked.'],
     ['귀중품 표시 버그 수정됨(귀중품 기능 추가 예정).','Fixed valuables not displaying (valuables feature coming soon).'],
@@ -684,7 +686,9 @@ class Component extends DCLogic {
       else if(up){ this.usb={stage:'uploading',row:this.usbRowFor(up.usbId)}; this.usb.line=this.eng.usbLine('uploading',this.usb.row); }
       else { this.usb={stage:'intro',row:null,line:this.eng.usbLine('intro',null)}; }
     }
-    this.setState({screen:'vendor',vendor:id,vtab:first,sel:null,repairSel:null,modalZone:null,apr:null,mod:null}); }
+    // 상점 진입 = 메뉴 화면(screen-clinic-menu.svg). 서비스 탭은 메뉴에서 고른 뒤 'vendor'로 간다.
+    this.setState({screen:'vendorMenu',vendor:id,vtab:first,sel:null,repairSel:null,modalZone:null,apr:null,mod:null}); }
+  openVendorTab(tab){ this._healDone=false; this._feedDone=false; this.setState({screen:'vendor',vtab:tab,sel:null,repairSel:null,apr:null,mod:null}); }
   // ---------- shop ----------
   buy(shopId, row, qty){
     qty=Math.max(1, qty||1);
@@ -1058,6 +1062,35 @@ class Component extends DCLogic {
         h('span',{style:{flex:'0 0 auto',height:17,padding:'0 6px',borderRadius:4,background:bg,color:'#111111',fontFamily:T.sans,fontSize:11,fontWeight:500,lineHeight:'17px',whiteSpace:'nowrap'}}, label),
         h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:'#FFFFFF',whiteSpace:'nowrap'}}, val))));
   }
+  // ===== 상점 공통 (svg/screen-clinic-*.svg · screen-shop-list.svg) =====
+  // 경고 아이콘 — svg 아이콘 박스 20x22. kind 'hex'(기본·완료) / 'tri'(경고).
+  icAlert(kind,size,color){
+    const w=Math.round((size||20)*20/22), hh=size||20;
+    const body = kind==='tri'
+      ? h('path',{key:'s',d:'M10 2.6 L18.6 18.4 A1.6 1.6 0 0 1 17.2 20.6 H2.8 A1.6 1.6 0 0 1 1.4 18.4 Z'})
+      : h('path',{key:'s',d:'M10 1.5 L18 6 V16 L10 20.5 L2 16 V6 Z'});
+    const bar = kind==='tri' ? 'M10 8.2v4.6' : 'M10 6.6v5.2';
+    const dot = kind==='tri' ? 'M10 15.9v.1' : 'M10 15.1v.1';
+    return h('svg',{width:w,height:hh,viewBox:'0 0 20 22',fill:'none',stroke:color,strokeWidth:1.3,strokeLinecap:'round',strokeLinejoin:'round'},
+      body, h('path',{key:'b',d:bar}), h('path',{key:'d',d:dot}));
+  }
+  // 안내 박스 — svg/info-*.svg (336x40 r16 #1A1B21). 아이콘·색만 상태별로 다르다.
+  // kind: 'default'(회복 가능) · 'full'(이미 만치) · 'nosato'(사토 부족) · 'done'(치료 완료)
+  infoBox(kind,text){
+    const C={ 'default':['hex','#6F7276'], full:['hex','#6F7276'], nosato:['tri','#C19E6F'], done:['hex','#83B289'] }[kind]||['hex','#6F7276'];
+    return h('div',{style:{height:40,boxSizing:'border-box',borderRadius:16,background:'#1A1B21',display:'flex',alignItems:'center',justifyContent:'center',gap:10}},
+      this.icAlert(C[0],17,C[1]),
+      h('span',{style:{fontFamily:T.sans,fontSize:13,color:C[1]}}, text));
+  }
+  // 상점 헤더 — svg 기준. 뒤로가기 28x28 r8 @(18,24) · 재화칩 우측 끝 383 · 타이틀 좌24 y≈62.
+  // screenTitle과 달리 키커가 없고 타이틀만 온다(높이는 동일하게 90).
+  shopHeader(title,onBack){
+    return h('div',{style:{position:'relative',zIndex:2,flex:'0 0 auto',height:90,boxSizing:'border-box'}},
+      h('button',{onClick:onBack,style:{position:'absolute',left:18,top:24,width:28,height:28,padding:0,borderRadius:8,border:'none',background:'rgba(10,11,14,0.6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
+        h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'#EAEBEE',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}, h('path',{key:'p',d:'M14.5 5l-7 7 7 7'}))),
+      h('div',{style:{position:'absolute',right:19,top:25,height:27,display:'flex',alignItems:'center'}}, this.currencyChips()),
+      h('div',{style:{position:'absolute',left:24,top:62,fontFamily:T.sans,fontSize:16,lineHeight:'16px',fontWeight:400,color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap'}}, title));
+  }
   // 전투 화면 헤더 — 본체는 screenTitle과 동일 규격이지만 배경 위에 올라가므로 #111315 불투명 판을 깐다.
   battleHeader(kicker,title,right,opts){
     return h('div',{style:{position:'relative',zIndex:2,flex:'0 0 auto',background:'#111315'}}, this.screenTitle(kicker,title,right,Object.assign({hairline:false},opts)));
@@ -1122,41 +1155,53 @@ class Component extends DCLogic {
     else if(s==='character') body=this.character();
     else if(s==='equipment') body=this.equipment();
     else if(s==='vendor') body=this.vendorScreen();
+    else if(s==='vendorMenu') body=this.vendorMenu();
     else if(s==='settings') body=this.settings();
     else if(s==='lootmanage') body=this.lootManage();
     else if(s==='sortieLoad') body=this.sortieLoadScreen();
     else if(s==='returnheal') body=this.returnHeal();
     else if(s==='pass') body=this.passScreen();
     else if(s==='tap') body=this.tapScreen();
-    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap';
+    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap';
     return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, this.state.notice?this.noticeModal():null);
   }
 
   // ---- safehouse ----
   safehouse(){
     // 상점 카드 고정 표시 순서 (ShopID 기준)
-    const ORDER=['shop_clinic','shop_canteen','shop_hardware','shop_pawnshop','shop_tavern','shop_blackmarket','shop_auction'];
+    const ORDER=['shop_clinic','shop_canteen','shop_hardware','shop_tavern','shop_pawnshop','shop_blackmarket','shop_auction'];
     const ord=(v)=>{ const i=ORDER.indexOf(v.ShopID); return i<0?99:i; };
     const vendors=this.eng.DATA.vendors.slice().sort((a,b)=>ord(a)-ord(b));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       // 헤더는 스크롤 밖에 고정 — 설정·캐릭터 화면과 같은 구조(높이 74.5 동일).
       // 스크롤 안에 두면 벤더 카드와 함께 밀려 올라간다.
       this.screenTitle('PROTOCOL','nav_safehouse',this.currencyChips()),
-      h('div',{style:{padding:'16px 16px 100px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:16}},
+      h('div',{style:{padding:'16px 16px 100px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:8}},
+        // 아지트 — svg/screen-shop-list.svg. 370x191(아트 151 + 하단 띠 40) · 현재 잠금.
+        h('div',{style:{position:'relative',flexShrink:0,height:191,borderRadius:8,overflow:'hidden',background:'#111315',marginBottom:8}},
+          h('div',{style:{position:'absolute',left:0,right:0,top:0,height:151,backgroundImage:'url(assets/art/shop/hide.webp)',backgroundSize:'cover',backgroundPosition:'center bottom'}}),
+          h('div',{style:{position:'absolute',left:0,right:0,top:0,height:151,background:'linear-gradient(180deg, rgba(17,19,21,0.94) 0%, rgba(17,19,21,0) 70.7%)'}}),
+          // 잠금 밴드 (svg y196~257 = 카드 기준 90~151)
+          h('div',{style:{position:'absolute',left:0,right:0,top:90,height:61,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',gap:10}},
+            this.icAlert('hex',20,'#A9ABAF'),
+            h('span',{style:{fontFamily:T.sans,fontSize:14,color:'#A9ABAF'}}, this.en()?'No access':'접근 금지')),
+          // 하단 띠 (svg y257~297)
+          h('div',{style:{position:'absolute',left:0,right:0,top:151,height:40,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 17px'}},
+            h('span',{style:{fontFamily:T.sans,fontSize:16,fontWeight:500,color:'#6F7276'}}, this.en()?'Hideout':'아지트'),
+            h('span',{style:{display:'inline-flex',alignItems:'center',height:20,padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)',fontFamily:T.mono,fontSize:10.5,letterSpacing:'1px',color:'#6F7276',whiteSpace:'nowrap'}}, this.en()?'SOON':'준비중'))),
+        // 상점 행 7개 — 370x61 r8, 간격 8
         ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Feed')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Module')||svc.includes('Sell'); const act=()=>this.openVendor(v.VendorID);
-            const CHIP={ shop_clinic:['치료','Heal'], shop_hardware:['수리','Repair'], shop_canteen:['배식','Ration'], shop_tavern:['주점','Bar'], shop_pawnshop:['흥정','Haggle'], shop_blackmarket:['거래','Trade'], shop_auction:['거래소','Exchange'] };
+            const CHIP={ shop_clinic:['치료','Heal'], shop_hardware:['수리','Repair'], shop_canteen:['급식','Ration'], shop_tavern:['감정','Appraise'], shop_pawnshop:['흥정','Haggle'], shop_blackmarket:['거래','Trade'], shop_auction:['경매','Auction'] };
             const chipTxt=(CHIP[v.ShopID]||[])[this.en()?1:0]||'';
             return h('button',{key:v.VendorID,disabled:!open,onClick:open?act:null,
-              style:{position:'relative',height:118,textAlign:'left',border:'1px solid rgb(54,56,60)',borderRadius:8,padding:0,cursor:open?'pointer':'default',opacity:open?1:.5,overflow:'hidden',flexShrink:0,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
-              h('img',{src:'assets/art/shop/'+v.ShopID+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}),
-              h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(17,19,21,0) 38%, rgba(17,19,21,0.94) 100%)'}}),
-              h('div',{style:{position:'absolute',left:14,right:12,bottom:12,display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:10}},
-                h('div',{style:{display:'flex',flexDirection:'column',gap:3,minWidth:0}},
-                  h('div',{style:{fontFamily:T.sans,fontSize:16,fontWeight:500,color:'rgb(234,235,238)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.shopName(v.ShopID,v)),
-                  h('div',{style:{fontFamily:T.mono,fontSize:11,color:'rgb(169,171,175)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.tx(v,'VendorName'))),
+              style:{position:'relative',flexShrink:0,height:61,textAlign:'left',border:'none',borderRadius:8,padding:0,cursor:open?'pointer':'default',overflow:'hidden',background:T.s3}},
+              h('div',{style:{position:'absolute',inset:0,backgroundImage:'url(assets/art/shop/'+v.ShopID+'.webp)',backgroundSize:'cover',backgroundPosition:'center'}}),
+              h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(17,19,21,0.20) 0%, rgba(17,19,21,0.94) 100%)'}}),
+              h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px 0 17px'}},
+                h('span',{style:{fontFamily:T.sans,fontSize:16,fontWeight:500,color:open?'#EAEBEE':'#6F7276',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.shopName(v.ShopID,v)),
                 open
-                  ? (chipTxt?h('div',{style:{flexShrink:0,display:'inline-flex',alignItems:'center',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.22)',borderRadius:4,padding:'4px 9px'}}, h('span',{style:{fontFamily:T.mono,fontSize:10.5,letterSpacing:'1px',color:'rgb(234,235,238)',whiteSpace:'nowrap'}}, chipTxt)):null)
-                  : h('div',{style:{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,color:T.faint,fontFamily:T.mono,fontSize:10,background:'rgba(10,11,14,0.55)',border:'1px solid '+T.line2,borderRadius:3,padding:'3px 8px'}}, svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',13,T.faint,1.6),this.t('common_locked'))));
+                  ? (chipTxt?h('div',{style:{flexShrink:0,display:'inline-flex',alignItems:'center',height:20,padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)'}}, h('span',{style:{fontFamily:T.mono,fontSize:10.5,letterSpacing:'1px',color:'#EAEBEE',whiteSpace:'nowrap'}}, chipTxt)):null)
+                  : h('div',{style:{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:20,padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)',color:T.faint,fontFamily:T.mono,fontSize:10}}, svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',12,T.faint,1.6), this.t('common_locked'))));
           }))
       );
   }
@@ -3563,7 +3608,7 @@ void main(){
     h('div',{style:{height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:color}}))); }
   fstepper(q,max){ const box=(t,fn)=>h('button',{onClick:fn,style:{width:30,height:30,background:'transparent',border:'1px solid #4a4d53',borderRadius:4,color:'#a9abaf',fontFamily:T.mono,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0}},t);
     return h('div',{style:{display:'flex',alignItems:'center',gap:12}}, box('−',()=>this.setState({moveQty:Math.max(1,q-1)})), h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#eaebee',minWidth:45,textAlign:'center'}}, q+' / '+max), box('+',()=>this.setState({moveQty:Math.min(max,q+1)}))); }
-  frow(label,val,color,divider){ return h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:36,borderTop:divider?'1px solid #36383c':'none'}}, h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#a9abaf'}},label), h('span',{style:{fontFamily:T.mono,fontSize:13,color:color||'#a9abaf'}},val)); }
+  frow(label,val,color,divider){ return h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:44,borderTop:divider?'1px solid #36383C':'none'}}, h('span',{style:{fontFamily:T.sans,fontSize:14,color:'#A9ABAF'}},label), h('span',{style:{fontFamily:T.mono,fontSize:14,color:color||'#A9ABAF'}},val)); }
   // ---- character ----
   character(){
     const g=this.gs; const full=this.eng.playerProfile(g,false);
@@ -3733,23 +3778,26 @@ void main(){
     icInfo(22,'#6f7276',1.7),
     h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#6f7276',lineHeight:1.55}}, text)); }
   repairEmpty(){ return this.emptyRow(this.t('repair_none')); }
+  // 수리 가능 행 — svg/screen-hardware-fix-item.svg (pitch 104 · 칩 h16 · 바 y305 h5)
   repairRow(inst,i){
     const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||{};
     const eqp=this.isEquipped(inst.uid);
-    const at=AT(src.Attribute); const pct=inst.maxDur>0?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0;
+    const pct=inst.maxDur>0?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0;
     const GKR={str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')};
     const gtags=this.eng.growthTagsActive(inst)||[];
-    return h('div',{key:inst.uid,onClick:()=>this.setState({repairSel:inst.uid}),style:{background:'#18191d',border:'1px solid #36383c',borderRadius:8,padding:'14px 15px',cursor:'pointer',display:'flex',flexDirection:'column',gap:10,alignSelf:'stretch'}},
-      h('div',{style:{display:'flex',alignItems:'center',gap:4,flexWrap:'wrap'}},
-        this.fchip(CATKR[src.Category]||src.Category||'', eqp?'#83b289':'#a9abaf', eqp?'#83b289':'#36383c', true),
-        at?this.fchip(at.kr,'#a9abaf','#36383c',false):null,
-        ...gtags.map(tg=>this.fchip(GKR[tg]||tg,'#a9abaf','#36383c',false))),
-      h('span',{style:{fontFamily:T.sans,fontSize:14,color:'#eaebee'}}, this.itemLabel(inst)),
-      h('div',null,
-        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}},
-          h('span',{style:{fontFamily:T.mono,fontSize:11,color:'#6f7276'}}, this.t('item_durability')),
-          h('span',{style:{fontFamily:T.mono,fontSize:12,color:'#a9abaf'}}, inst.dur+' / '+inst.maxDur)),
-        h('div',{style:{height:5,background:'#2b2e32',borderRadius:1,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:'#a5acb2'}}))));
+    const chip=(txt,col,dot)=>h('div',{style:{display:'flex',alignItems:'center',gap:6,height:16,boxSizing:'border-box',padding:'0 8px',borderRadius:4,background:dot?'#212327':'rgba(10,11,14,0.55)'}},
+      dot?h('div',{style:{width:5,height:5,borderRadius:999,background:col,flexShrink:0}}):null,
+      h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'16px',color:dot?'#EAEBEE':'#A9ABAF',whiteSpace:'nowrap'}},txt));
+    return h('div',{key:inst.uid,onClick:()=>this.setState({repairSel:inst.uid}),
+      style:{height:104,boxSizing:'border-box',padding:'9px 16px 0',cursor:'pointer',borderBottom:'1px solid '+T.line}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:16}},
+        chip(CATKR[src.Category]||src.Category||'', eqp?'#83B289':'#A9ABAF', true),
+        gtags.length? chip(GKR[gtags[0]]||gtags[0],'#A9ABAF',false) : null),
+      h('div',{style:{fontFamily:T.sans,fontSize:16,lineHeight:'20px',color:'#EAEBEE',marginTop:12,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:13,marginTop:12}},
+        h('span',{style:{fontFamily:T.sans,fontSize:13,lineHeight:'13px',color:'#6F7276'}}, this.t('item_durability')),
+        h('span',{style:{fontFamily:T.mono,fontSize:13,lineHeight:'13px',color:'#A9ABAF'}}, inst.dur+' / '+inst.maxDur)),
+      h('div',{style:{height:5,background:'#2B2E32',borderRadius:2.5,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:'#A5ACB2'}})));
   }
   repairConfirm(){
     const inst=this.eng.instById(this.gs,this.state.repairSel); if(!inst) return null;
@@ -3757,37 +3805,177 @@ void main(){
     const p=Math.round(this.eng.N(this.eng.DATA.config.repair_fail_chance_per_point,0.06)*100); const expFail=worn*p/100; const aff=this.gs.sato>=cost; const successPct=Math.max(0,Math.round(Math.pow(1-this.eng.N(this.eng.DATA.config.repair_fail_chance_per_point,0.06),worn)*100));
     const row=(k,v,col)=>h('div',{key:k,style:{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid '+T.line}}, h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}},k), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col||T.hi}},v));
     return h('div',{onClick:()=>this.setState({repairSel:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.66)',display:'flex',alignItems:'flex-end',zIndex:34,animation:'rlFade .18s'}},
-      h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:'24px 16px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
-        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.06em',color:'#4b4d52',marginBottom:5}}, this.en()?'REPAIR DETAILS':'수리 내역'),
-        h('div',{style:{fontFamily:T.sans,fontSize:16,fontWeight:400,color:'#eaebee',marginBottom:16}}, this.itemLabel(inst)),
-        h('div',{style:{marginBottom:16}},
-          h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8}},
-            h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#6f7276',letterSpacing:'.05em'}}, this.t('item_durability')),
-            h('span',{ref:el=>this._repNum=el,style:{fontFamily:T.mono,fontSize:10,color:'#a9abaf',letterSpacing:'.05em'}}, Math.round(inst.dur)+' / '+Math.round(inst.maxDur))),
+      h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 24px',background:'#18191D',borderRadius:24,padding:'0 17px 25px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
+        h('div',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'10px',letterSpacing:'.12em',color:'#4B4D52',padding:'24px 0 0'}}, this.en()?'REPAIR DETAILS':'수리 내역'),
+        h('div',{style:{fontFamily:T.sans,fontSize:20,lineHeight:'20px',fontWeight:500,color:'#EAEBEE',margin:'8px 0 0'}}, this.itemLabel(inst)),
+        h('div',null,
+          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:13,margin:'21px 0 8px'}},
+            h('span',{style:{fontFamily:T.sans,fontSize:13,lineHeight:'13px',color:'#6F7276'}}, this.t('item_durability')),
+            h('span',{ref:el=>this._repNum=el,style:{fontFamily:T.mono,fontSize:13,lineHeight:'13px',color:'#A9ABAF',letterSpacing:'.05em'}}, Math.round(inst.dur)+' / '+Math.round(inst.maxDur))),
           h('div',{className:'rcv-bar',ref:el=>this._repBar=el,style:{position:'relative',height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden','--rcv-edge':'#c9cfd4','--rcv-pulse':'rgba(131,178,137,.55)'}},
             h('div',{className:'rcv-fill',ref:el=>this._repFill=el,style:{width:(inst.maxDur>0?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0)+'%',background:'#a5acb2'}}),
             h('div',{className:'rcv-shim'}))),
-        h('div',{style:{marginBottom:16}},
-          this.frow(this.en()?'Perfect repair':'완벽 수리 확률', successPct+'%','#cca26e',false),
-          this.frow(this.en()?'Durability to repair':'수리할 내구도', String(worn),'#a9abaf',true),
-          this.frow(this.t('repair_cost'), cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85b3c5':'#c4675d', true)),
-        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:'#1a1b21',borderRadius:16,padding:'10px 12px',marginBottom:16}},
-          icCaution(18,aff?'#cca26e':'#6f7276',1.7),
-          h('span',{style:{fontFamily:T.sans,fontSize:12,color:aff?'#cca26e':'#6f7276',lineHeight:1.4}}, aff?this.t('repair_fail_warn'):(this.en()?'Not enough Sato.':'사토가 부족합니다.'))),
-        h('div',{style:{display:'flex',gap:8}},
-          h('button',{disabled:!aff,onClick:aff?()=>this.doRepair(inst):null,style:{flex:1,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color:aff?'#eaebee':'#4b4d52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:aff?'pointer':'default'}}, this.en()?'Repair':'수리'),
-          h('button',{onClick:()=>this.setState({repairSel:null}),style:{flex:1,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color:'#eaebee',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_cancel')))));
+        h('div',{style:{marginTop:8}},
+          this.frow(this.en()?'Perfect repair':'완벽 수리 확률', successPct+'%','#CCA26E',false),
+          this.frow(this.en()?'Durability to repair':'수리할 내구도', String(worn),'#A9ABAF',true),
+          this.frow(this.t('repair_cost'), cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85B3C5':'#C4675D', true)),
+        aff? this.infoBox('nosato', this.t('repair_fail_warn')) : this.infoBox('nosato', this.t('shop_insufficient_sato')),
+        h('div',{style:{display:'flex',gap:8,marginTop:16}},
+          h('button',{disabled:!aff,onClick:aff?()=>this.doRepair(inst):null,style:{flex:1,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:24,color:aff?'#EAEBEE':'#4B4D52',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:aff?'pointer':'default'}}, this.en()?'Repair':'수리'),
+          h('button',{onClick:()=>this.setState({repairSel:null}),style:{flex:1,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:24,color:'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.t('btn_cancel')))));
   }
   // ---- vendor (구매/판매/수리 · Services 기반) ----
+  // ===== 상점 메뉴 (svg/screen-clinic-menu.svg) =====
+  // 상점 아트 배경 + 하단 패널. 항목은 Vendor.Services에서 만든다 —
+  // 서비스(치료/수리/…) → 거래하기(구매·판매 통합) → 퀘스트(잠금) → 나가기 순.
+  vendorMenuItems(v){
+    const svc=this.services(v), out=[];
+    const add=(k,label,locked)=>out.push({k,label,locked:!!locked});
+    if(svc.includes('Heal')) add('heal', this.t('heal_treat'));
+    if(svc.includes('Repair')) add('repair', this.en()?'Repair':'수리하기');
+    if(svc.includes('Feed')||svc.includes('Distribute')) add('feed', this.en()?'Rations':'배식하기');
+    if(svc.includes('Appraisal')) add('appraise', this.en()?'Appraise':'감정하기');
+    if(svc.includes('Module')) add('module', this.t('module_tab'));
+    if(svc.includes('Load')) add('load', this.t('usb_decode'));
+    const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID);
+    if(buyRows.length||svc.includes('Sell')) add('trade', this.en()?'Trade':'거래하기');
+    if(svc.includes('Quest')) add('quest', this.t('nav_quest'), true);   // 백로그 — 잠금
+    add('exit', this.en()?'Leave':'나가기');
+    return out;
+  }
+  // 상점 아트 배경 — 402x516, 위(0~303)·아래(370~516) 페이드. 메뉴/치료 화면 공용.
+  shopArtBg(shopId){
+    return h('div',{key:'shopart',style:{position:'absolute',left:0,right:0,top:0,height:516,zIndex:0,pointerEvents:'none',
+      backgroundImage:'linear-gradient(180deg,#111315 0%,rgba(17,19,21,0) 58.76%),'
+        +'linear-gradient(180deg,rgba(17,19,21,0) 71.73%,#111315 100%), url(assets/art/shop/'+shopId+'.webp)',
+      backgroundSize:'cover',backgroundPosition:'center'}});
+  }
+  vendorMenu(){
+    const v=this.eng.byId.vendor[this.state.vendor]||{};
+    const items=this.vendorMenuItems(v);
+    return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
+      this.shopArtBg(v.ShopID),
+      this.shopHeader(this.shopName(v.ShopID,v), ()=>this.go('safehouse')),
+      h('div',{style:{flex:'1 1 auto',minHeight:0}}),
+      // 패널 — svg x16.5 y516.5 369x287 r24 · 버튼 333x48 r24 간격 16
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',flexDirection:'column',gap:16}},
+        ...items.map(it=>h('button',{key:it.k,disabled:it.locked,
+          onClick:it.locked?null:()=>{ if(it.k==='exit') this.go('safehouse'); else if(it.k==='trade') this.openVendorTab(this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID)?'buy':'sell'); else this.openVendorTab(it.k); },
+          style:{height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:it.locked?'#6F7276':'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:it.locked?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
+          it.locked? svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',15,'#6F7276',1.6) : null,
+          h('span',{key:'l'}, it.label)))));
+  }
+  // ===== 수리 리스트 (svg/screen-hardware-fix-item.svg) =====
+  // 아트 175 + '수리 가능 아이템' 라벨 바(y175~223, 하단 모서리 r16) + 행(pitch 104) + 뒤로가기 박스
+  shopArtTop(shopId){
+    return h('div',{key:'shoptop',style:{position:'absolute',left:0,right:0,top:0,height:175,zIndex:0,pointerEvents:'none',
+      backgroundImage:'linear-gradient(180deg,#111315 0%,rgba(17,19,21,0) 87.88%), url(assets/art/shop/'+shopId+'.webp)',
+      backgroundSize:'cover',backgroundPosition:'center'}});
+  }
+  shopBackBox(){
+    return h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D'}},
+      h('button',{onClick:()=>this.setState({screen:'vendorMenu'}),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.en()?'Back':'뒤로가기'));
+  }
+  vendorRepairScreen(v){
+    const list=this.repairables();
+    return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
+      this.shopArtTop(v.ShopID),
+      this.shopHeader(this.shopName(v.ShopID,v), ()=>this.setState({screen:'vendorMenu'})),
+      h('div',{style:{flex:'0 0 auto',height:85}}),
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',height:48,boxSizing:'border-box',background:'#18191D',borderRadius:'0 0 16px 16px',display:'flex',alignItems:'center',padding:'0 16px'}},
+        h('span',{style:{fontFamily:T.mono,fontSize:12,letterSpacing:'.06em',color:'#6F7276'}}, this.en()?'REPAIRABLE ITEMS':'수리 가능 아이템')),
+      h('div',{style:{position:'relative',zIndex:1,flex:1,minHeight:0,overflowY:'auto'}},
+        list.length? list.map((inst,i)=>this.repairRow(inst,i)) : this.repairEmpty()),
+      this.shopBackBox());
+  }
+  // ===== 거래 화면 (svg/screen-clinic-shop.svg) — 7개 상점 공통 =====
+  vendorTrade(v,tab){
+    const canBuy=this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID);
+    const canSell=this.services(v).includes('Sell');
+    const segs=[]; if(canBuy) segs.push(['buy',this.t('shop_buy')]); if(canSell) segs.push(['sell',this.t('shop_sell')]);
+    return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
+      // 아트 — svg 402x175, 위로 페이드
+      h('div',{key:'tradeart',style:{position:'absolute',left:0,right:0,top:0,height:175,zIndex:0,pointerEvents:'none',
+        backgroundImage:'linear-gradient(180deg,#111315 0%,rgba(17,19,21,0) 87.88%), url(assets/art/shop/'+v.ShopID+'.webp)',
+        backgroundSize:'cover',backgroundPosition:'center'}}),
+      this.shopHeader(this.shopName(v.ShopID,v), ()=>this.setState({screen:'vendorMenu'})),
+      h('div',{style:{flex:'0 0 auto',height:85}}),   // 헤더(90) + 85 = 아트 바닥 175
+      // 구매/판매 = 인벤토리 소지품/금고와 같은 2버튼 바. svg y175~219(h44), 하단 모서리만 r16
+      segs.length>1? h('div',{style:{position:'relative',zIndex:1,display:'flex',flex:'0 0 auto',height:44}},
+        ...segs.map(([k,l],i)=>h('button',{key:k,onClick:()=>this.setState({vtab:k,sel:null}),
+          style:{flex:1,height:44,background:'#18191D',border:'none',borderRadius:i===0?'0 0 0 16px':'0 0 16px 0',color:tab===k?'#EAEBEE':'#6F7276',fontFamily:T.sans,fontSize:14,fontWeight:tab===k?500:400,cursor:'pointer',padding:0}}, l))) : null,
+      h('div',{style:{position:'relative',zIndex:1,flex:1,minHeight:0,display:'flex',flexDirection:'column'}}, tab==='buy'?this.vendorBuy(v):this.vendorSell(v)),
+      // 하단 박스 — svg x16.5 y708.5 369x95 · 버튼 333x48
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D'}},
+        h('button',{onClick:()=>this.setState({screen:'vendorMenu'}),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.en()?'Back':'뒤로가기')));
+  }
+  // ===== 회복 화면 (svg/screen-clinic-heal.svg · screen-canteen-meal.svg) =====
+  // 치료(보건소)와 배식(급식소)은 좌표가 완전히 같고 라벨·색·대상 스탯만 다르다. 연출·계산은 기존 그대로.
+  recoverSpec(kind){
+    const g=this.gs;
+    if(kind==='feed') return { kicker:this.en()?'RECOVERY':'회복 내역', title:this.en()?'Recover':'회복하기',
+      statKey:'stat_stamina', cur:g.sta, max:this.staMax, cost:this.feedCost(),
+      fill:'#c19e6f', edge:'#e0c39a', pulse:'rgba(193,158,111,.55)', accent:'#C19E6F',
+      amountLabel:this.en()?'Stamina 100% (+':'스태미너 100% (+', costLabel:this.en()?'Meal cost':'식사 비용',
+      btn:this.en()?'Recover':'회복', done:this._feedDone, act:()=>this.doFeed(),
+      refs:{num:el=>this._staNum=el, bar:el=>this._staBar=el, fill:el=>this._staFill=el},
+      info:{ 'default':this.en()?'All stamina will be restored.':'모든 스태미너를 회복합니다.',
+             full:this.en()?'Stamina is already full.':'이미 스태미너가 가득차있습니다.',
+             done:this.en()?'Stamina fully restored.':'모든 스태미너가 회복되었습니다.' } };
+    return { kicker:this.en()?'TREATMENT':'치료 내역', title:this.en()?'Treat':'치료하기',
+      statKey:'stat_hp', cur:g.hp, max:g.maxHp, cost:this.healCost(),
+      fill:'#ae615c', edge:'#d68f7f', pulse:'rgba(174,97,92,.55)', accent:'#83B289',
+      amountLabel:this.en()?'HP 100% (+':'생명력 100% (+', costLabel:this.t('heal_cost'),
+      btn:this.t('heal_treat'), done:this._healDone, act:()=>this.doHeal(),
+      refs:{num:el=>this._hpNum=el, bar:el=>this._hpBar=el, fill:el=>this._hpFill=el},
+      info:{ 'default':this.en()?'All HP will be restored.':'모든 생명력을 회복합니다.',
+             full:this.en()?'HP is already fully restored.':'이미 모든 생명력이 회복되었습니다.',
+             done:this.t('heal_done') } };
+  }
+  vendorRecoverScreen(v,kind){
+    const sp=this.recoverSpec(kind);
+    const full=sp.cur>=sp.max, aff=this.gs.sato>=sp.cost, can=!full&&aff&&!sp.done;
+    const pct=sp.max>0?Math.max(0,Math.min(100,sp.cur/sp.max*100)):0;
+    const ik=sp.done?'done':(full?'full':(aff?'default':'nosato'));
+    const info=ik==='nosato'?this.t('shop_insufficient_sato'):sp.info[ik];
+    const row=(label,val,col,first)=>h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:44,borderTop:first?'none':'1px solid #36383C'}},
+      h('span',{style:{fontFamily:T.sans,fontSize:14,color:'#A9ABAF'}},label), h('span',{style:{fontFamily:T.mono,fontSize:14,color:col}},val));
+    return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
+      this.shopArtBg(v.ShopID),
+      this.shopHeader(this.shopName(v.ShopID,v), ()=>this.setState({screen:'vendorMenu'})),
+      h('div',{style:{flex:'1 1 auto',minHeight:0}}),
+      // 패널 — svg x16 y477 370x327 r24
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'0 17px 25px',boxSizing:'border-box',borderRadius:24,background:'#18191D'}},
+        h('div',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'10px',letterSpacing:'.12em',color:'#4B4D52',padding:'24px 0 0'}}, sp.kicker),
+        h('div',{style:{fontFamily:T.sans,fontSize:20,lineHeight:'20px',fontWeight:500,color:T.hi,margin:'8px 0 0'}}, sp.title),
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:13,margin:'21px 0 8px'}},
+          h('span',{style:{fontFamily:T.sans,fontSize:13,lineHeight:'13px',color:'#6F7276'}}, this.t(sp.statKey)),
+          h('span',{ref:sp.refs.num,style:{fontFamily:T.mono,fontSize:13,lineHeight:'13px',color:'#A9ABAF',letterSpacing:'.05em'}}, Math.round(sp.cur)+' / '+Math.round(sp.max))),
+        h('div',{className:'rcv-bar',ref:sp.refs.bar,style:{position:'relative',height:6,background:'#2B2E32',borderRadius:1,overflow:'hidden','--rcv-edge':sp.edge,'--rcv-pulse':sp.pulse}},
+          h('div',{className:'rcv-fill',ref:sp.refs.fill,style:{width:pct+'%',background:sp.fill}}),
+          h('div',{className:'rcv-shim'})),
+        h('div',null,
+          row(this.t('heal_amount'), sp.amountLabel+Math.round(sp.max-sp.cur)+')', sp.accent, true),
+          row(sp.costLabel, sp.cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85B3C5':T.danger, false)),
+        this.infoBox(ik, info),
+        h('div',{style:{display:'flex',gap:8,marginTop:16}},
+          h('button',{disabled:!can,onClick:can?sp.act:null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:can?'#EAEBEE':'#4B4D52',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:can?'pointer':'default'}}, sp.btn),
+          h('button',{onClick:()=>this.setState({screen:'vendorMenu'}),style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.en()?'Leave':'나가기'))));
+  }
   vendorScreen(){
     const v=this.eng.byId.vendor[this.state.vendor]||{};
     const svc=this.services(v);
+    // 개편된 화면 2종은 여기서 갈라진다. 나머지 서비스 탭(수리·감정·모듈·해독·배식)은 구 레이아웃 유지.
+    if(this.state.vtab==='buy'||this.state.vtab==='sell') return this.vendorTrade(v,this.state.vtab);
+    if(this.state.vtab==='heal') return this.vendorRecoverScreen(v,'heal');
+    if(this.state.vtab==='feed') return this.vendorRecoverScreen(v,'feed');
+    if(this.state.vtab==='repair') return this.vendorRepairScreen(v);
     const tabs=[]; if(svc.includes('Buy'))tabs.push(['buy',this.t('shop_buy')]); if(svc.includes('Sell'))tabs.push(['sell',this.t('shop_sell')]); if(svc.includes('Repair'))tabs.push(['repair',this.t('nav_repair')]); if(svc.includes('Heal'))tabs.push(['heal',this.t('heal_treat')]); if(svc.includes('Feed')||svc.includes('Distribute'))tabs.push(['feed',this.en()?'Recover':'회복']); if(svc.includes('Load'))tabs.push(['load',this.t('usb_decode')]); if(svc.includes('Appraisal'))tabs.push(['appraise',this.t('appraise_tab')]); if(svc.includes('Module'))tabs.push(['module',this.t('module_tab')]);
     let tab=this.state.vtab; if(!tabs.some(t=>t[0]===tab)) tab=(tabs[0]||['buy'])[0];
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       h('div',{style:{position:'relative',flex:'0 0 auto',height:118,background:T.s3,overflow:'hidden'}},
         h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, oklch(0.28 0.01 264) 0%, rgb(24,25,29) 100%)'}}),
-        h('button',{onClick:()=>this.go('safehouse'),style:{position:'absolute',top:14,left:14,zIndex:2,background:'rgba(10,11,14,0.6)',border:'none',borderRadius:3,width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}, svg('M15 6l-6 6 6 6',18,'rgb(234,235,238)')),
+        h('button',{onClick:()=>this.setState({screen:'vendorMenu'}),style:{position:'absolute',top:14,left:14,zIndex:2,background:'rgba(10,11,14,0.6)',border:'none',borderRadius:3,width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}, svg('M15 6l-6 6 6 6',18,'rgb(234,235,238)')),
         h('div',{style:{position:'absolute',top:14,right:14,zIndex:2,display:'flex',alignItems:'center',gap:7,background:'rgb(33,35,39)',border:'1px solid rgb(54,56,60)',borderRadius:3,padding:'5px 10px'}},
           h('span',{style:{borderRadius:2,border:'1px solid rgb(133,179,197)',padding:'2px 6px',fontFamily:T.mono,fontWeight:500,fontSize:10,lineHeight:'100%',letterSpacing:'0.4px',color:'rgb(133,179,197)'}},'SATO'),
           h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:14,lineHeight:'100%',color:'rgb(133,179,197)'}}, this.gs.sato.toLocaleString())),
@@ -3902,7 +4090,7 @@ void main(){
   doHeal(){ const g=this.gs; if(g.hp>=g.maxHp){ this.flash(this.t('heal_already_full')); return; } const cost=this.healCost(); if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
     if(this._rcvAnim) return; const startHp=g.hp; g.sato-=cost; this._rcvAnim=true;
     this.animRecover(this._hpFill,this._hpNum,this._hpBar,startHp,g.maxHp,g.maxHp).then(()=>{
-      g.hp=g.maxHp; this._rcvAnim=false; this.flash(this.t('heal_done')); this.forceUpdate(); this.saveGame(); }); }
+      g.hp=g.maxHp; this._rcvAnim=false; this._healDone=true; this.flash(this.t('heal_done')); this.forceUpdate(); this.saveGame(); }); }
   vendorHeal(v){
     const g=this.gs; const cost=this.healCost();
     const full=g.hp>=g.maxHp; const aff=g.sato>=cost; const can=!full&&aff;
@@ -4287,7 +4475,7 @@ void main(){
   doFeed(){ const g=this.gs; if(g.sta>=this.staMax){ this.flash(this.en()?'Stamina already full':'스태미너가 가득 찼습니다'); return; } const cost=this.feedCost(); if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
     if(this._rcvAnim) return; const startSta=g.sta; g.sato-=cost; this._rcvAnim=true;
     this.animRecover(this._staFill,this._staNum,this._staBar,startSta,this.staMax,this.staMax).then(()=>{
-      g.sta=this.staMax; this._rcvAnim=false; this.flash(this.t('feed_done')); this.forceUpdate(); this.saveGame(); }); }
+      g.sta=this.staMax; this._rcvAnim=false; this._feedDone=true; this.flash(this.t('feed_done')); this.forceUpdate(); this.saveGame(); }); }
   vendorFeed(v){
     const g=this.gs; const cost=this.feedCost();
     const full=g.sta>=this.staMax; const aff=g.sato>=cost; const can=!full&&aff;
