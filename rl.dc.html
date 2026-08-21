@@ -197,8 +197,8 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 18;
-const TITLE_DATE = '0820';
+const TITLE_VER = 19;
+const TITLE_DATE = '0821';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -991,10 +991,61 @@ class Component extends DCLogic {
   // right = 우측에 나란히 놓을 요소(재화 칩 등). 좌측 블록은 minWidth:0 이라 kicker가 길면 말줄임된다.
   // 화면 헤더 — svg/header-default.svg 기준(402 스테이지). 높이 90 고정 · 좌우 24 · 하단 헤어라인.
   // 키커/타이틀/재화칩은 절대배치 = SVG 좌표 그대로(키커 cap 27, 타이틀 글리프 45.7~60, 칩 y24~51).
-  screenTitle(kicker,title,right){ return h('div',{style:{position:'relative',height:90,flex:'0 0 auto',boxSizing:'border-box',borderBottom:'1px solid #36383C'}},
-    h('div',{style:{position:'absolute',left:24,top:25,right:right?150:24,fontFamily:T.mono,fontSize:10,lineHeight:'10px',letterSpacing:'.14em',color:'#4B4D52',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.eng.t(kicker)),
+  // opts.hairline===false → 하단 헤어라인 없음(전투 화면: 배경 아트가 헤더 바로 아래에서 시작한다)
+  screenTitle(kicker,title,right,opts){ return h('div',{style:{position:'relative',height:90,flex:'0 0 auto',boxSizing:'border-box',borderBottom:(opts&&opts.hairline===false)?'none':'1px solid #36383C'}},
+    h('div',{style:{position:'absolute',left:24,top:25,right:right?150:24,fontFamily:T.mono,fontSize:10,lineHeight:'10px',letterSpacing:'.14em',color:(opts&&opts.kickerColor)||'#4B4D52',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.eng.t(kicker)),
     h('div',{style:{position:'absolute',left:24,top:44,right:right?150:24,fontFamily:T.sans,fontSize:16,lineHeight:'16px',fontWeight:400,color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.eng.t(title)),
     right?h('div',{style:{position:'absolute',right:24,top:24,height:27,display:'flex',alignItems:'center'}}, right):null); }
+
+  // ===== 전투 화면 공통 (svg/screen-battle-*.svg · screen-loot-*.svg · 402x828) =====
+  // 배경 4겹 — 바닥 #111315 · 존 아트 cover · 상단 페이드(y89~407, 위로 갈수록 어두움) · 하단 페이드(y407~828).
+  // y=407(49.2%)이 가장 선명한 지점. mode 'log'은 screen-battle-log.svg 전용 —
+  // 아트가 하단 360px(=43.48%, 텍스트 로그 뒤)에만 깔리고 y577부터 완전히 가려진다.
+  zoneBg(zoneId,mode,artOverride){
+    const fb='url(assets/battle/encounter-banner.webp)';
+    const art=artOverride? ('url('+artOverride+')')
+      : (zoneId? ('url(assets/art/zones/'+zoneId+'.webp), '+fb) : fb);
+    const st=(mode==='log')
+      ? {position:'absolute',left:0,right:0,bottom:0,height:'43.48%',backgroundImage:'linear-gradient(180deg,rgba(17,19,21,.81) 0%,#111315 30.3%), '+art}
+      : (mode==='return')
+      // screen-return-*.svg — 페이드가 하나뿐이다. y89에서 완전 #111315 → y828에서 투명(아래로 갈수록 아트가 드러남).
+      ? {position:'absolute',inset:0,backgroundImage:'linear-gradient(180deg,#111315 0%,#111315 10.75%,rgba(17,19,21,0) 100%), '+art}
+      : {position:'absolute',inset:0,backgroundImage:'linear-gradient(180deg,#111315 0%,#111315 10.75%,rgba(17,19,21,0) 49.2%,#111315 100%), '+art};
+    return h('div',{key:'zonebg'+(mode||'full'),style:Object.assign({zIndex:0,pointerEvents:'none',backgroundSize:'cover',backgroundPosition:'center'},st)});
+  }
+  // 보스 확률 칩 — 헤더 우측. 알약 142x27 r8(black 50%) + 배지 82x17 r4 #6B6B6B.
+  // 값 = boss_spawn_bonus × 100 × clamp(depth / grade_ramp_fights) — engine.spawnDistribution과 같은 식.
+  // depth = 지금 화면이 가리키는 조우 회차. 카드 드로우·휴식은 '다음 전투', 전투 중에는 '이번 전투'.
+  bossChip(){
+    const c=this.combat; if(!c) return null;
+    const C=this.eng.DATA.config, N=(v,d)=>this.eng.N(v,d);
+    const enc=N(c.encounter,0);
+    const depth=(c.phase==='fighting'||c.phase==='won'||c.phase==='timeout'||c.phase==='dead')?enc:enc+1;
+    const pct=N(C.boss_spawn_bonus,0.05)*100*Math.max(0,Math.min(1,depth/Math.max(1,N(C.grade_ramp_fights,10))));
+    return h('div',{style:{display:'flex',alignItems:'center',gap:6,height:27,boxSizing:'border-box',padding:'0 9px',background:'rgba(0,0,0,0.5)',borderRadius:8}},
+      h('span',{style:{flex:'0 0 auto',width:82,height:17,borderRadius:4,background:'#6B6B6B',color:'#111111',fontFamily:T.mono,fontSize:10,fontWeight:500,letterSpacing:'.04em',display:'flex',alignItems:'center',justifyContent:'center'}},'BOSS CHANCE'),
+      h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:'#FFFFFF',whiteSpace:'nowrap'}}, '+'+pct.toFixed(1)+'%'));
+  }
+  // 헤더 아래 카운트 칩 행 — svg y97~124(알약 h27 r8, gap 4, 중앙정렬) · 배지 h17 r4.
+  // items = [[라벨, 값, 배지색], ...]
+  countChips(items){
+    return h('div',{style:{position:'relative',zIndex:2,flex:'0 0 auto',height:35,paddingTop:8,boxSizing:'border-box',display:'flex',justifyContent:'center',alignItems:'flex-start',gap:4}},
+      ...items.map(([label,val,bg],i)=>h('div',{key:i,style:{display:'flex',alignItems:'center',gap:6,height:27,boxSizing:'border-box',padding:'0 9px',background:'rgba(0,0,0,0.5)',borderRadius:8}},
+        h('span',{style:{flex:'0 0 auto',height:17,padding:'0 6px',borderRadius:4,background:bg,color:'#111111',fontFamily:T.sans,fontSize:11,fontWeight:500,lineHeight:'17px',whiteSpace:'nowrap'}}, label),
+        h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:'#FFFFFF',whiteSpace:'nowrap'}}, val))));
+  }
+  // 전투 화면 헤더 — 본체는 screenTitle과 동일 규격이지만 배경 위에 올라가므로 #111315 불투명 판을 깐다.
+  battleHeader(kicker,title,right,opts){
+    return h('div',{style:{position:'relative',zIndex:2,flex:'0 0 auto',background:'#111315'}}, this.screenTitle(kicker,title,right,Object.assign({hairline:false},opts)));
+  }
+  // 전투 화면 헤더의 키커 = 도시명(영문 대문자) · 타이틀 = 존명
+  zoneHead(zoneId){
+    const z=this.eng.byId.zone[zoneId];
+    const city=z&&this.eng.byId.city?this.eng.byId.city[z.CityID]:null;
+    // 키커는 SVG 표기(HARAM CITY) 그대로 — 시트 CityName_EN은 도시 고유명만 담는다(Haram).
+    const kicker=city?(String(city.CityName_EN||city.CityName_KR||'').toUpperCase()+' CITY'):'';
+    return {kicker, title:z?this.tx(z,'ZoneName'):''};
+  }
   // 토스트(높이 48)를 지금 화면의 '하단 버튼'에 정확히 겹쳐 띄운다.
   // 대상 = 시트·모달이 열려 있으면 그 안의 맨 아래 버튼 행, 아니면 화면 하단 버튼 행.
   // 버튼이 없는 화면(내비 필·전투 '교전중' 필)은 그 알약 안에 세로 가운데로 얹는다.
@@ -1292,9 +1343,9 @@ class Component extends DCLogic {
       isHit? h('div',{key:'fl'+fx.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:fx.crit?'rgba(230,64,52,.5)':'rgba(214,64,52,.34)',animation:'rlHitFlash '+(fx.crit?'.42s':'.3s')+' ease-out'}}):null,
       (fx&&fx.crit)? h('div',{key:'brd'+fx.seq,style:{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 1px #FFFFFF',animation:'rlBorderFlash .42s ease-out'}}):null,
       (fx&&fx.crit)? h('div',{key:'ig'+fx.seq,style:{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 36px 4px rgba(255,255,255,0.5)',animation:'rlInnerGlow .22s ease-out'}}):null,
-      isMonster? h('div',{style:{position:'relative',height:58,overflow:'hidden',background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
+      isMonster? h('div',{style:{position:'relative',height:114,overflow:'hidden',background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
         (!prof.isUser)?h('img',{src:'assets/art/monsters/'+prof.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}):null,
-        h('div',{style:{position:'absolute',left:12,bottom:8,fontFamily:T.mono,fontSize:9,color:prof.isUser?T.sato:T.faint,letterSpacing:'.1em'}}, prof.isUser?this.t('kicker_userdata'):((md.Category||'')+''+this.t('kicker_dot_monsters'))), prof.grade?h('div',{style:{position:'absolute',right:10,top:10,fontFamily:T.mono,fontSize:9,letterSpacing:'.1em',color:T.hi,background:'oklch(0.15 0.006 264 / .55)',border:'1px solid oklch(0.9 0 0 / .18)',borderRadius:3,padding:'2px 7px'}}, prof.grade):null) : null,
+        h('div',{style:{position:'absolute',left:12,bottom:8,fontFamily:T.mono,fontSize:9,color:prof.isUser?T.sato:T.faint,letterSpacing:'.1em'}}, prof.isUser?this.t('kicker_userdata'):((md.Category||'')+''+this.t('kicker_dot_monsters'))), prof.grade?h('div',{style:{position:'absolute',right:10,top:10,height:15,boxSizing:'border-box',display:'flex',alignItems:'center',fontFamily:T.mono,fontSize:9,letterSpacing:'.1em',color:T.hi,background:'rgba(10,11,14,0.55)',borderRadius:3,padding:'0 8px'}}, prof.grade):null) : null,
       h('div',{style:{padding:'11px 13px'}},
         h('div',{style:{display:'flex',alignItems:'center',gap:7,marginBottom:8}},
           h('span',{style:{fontFamily:T.sans,fontSize:13,fontWeight:500,color:T.hi,flex:'0 1 auto',minWidth:0,maxWidth:'55%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, isMonster?prof.name:this.t('common_me')),
@@ -1321,7 +1372,7 @@ class Component extends DCLogic {
     const lim=c.mProf.timeLimit||20; const rem=Math.max(0,lim-this.combatElapsed());
     const mmss=Math.floor(rem/60)+':'+String(Math.floor(rem%60)).padStart(2,'0');
     const fist=(spd)=>h('div',{style:{animation:animate?('rlPunch '+(1/Math.max(0.1,spd)).toFixed(2)+'s linear infinite'):'none',flex:'0 0 auto'}}, icDuel(16));
-    return h('div',{style:{display:'flex',alignItems:'center',gap:7,padding:'14px 0'}},
+    return h('div',{style:{display:'flex',alignItems:'center',gap:7,padding:'15px 0'}},
       fist(mSpd),
       h('div',{style:{flex:1,height:5,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{key:animate?'ma':'ms',style:{height:'100%',background:T.dur,width:animate?undefined:'0%',animation:animate?('rlCharge '+mdur+'s linear infinite'):'none'}})),
       h('div',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:11,color:T.warn,border:'1px solid '+T.line2,borderRadius:3,padding:'3px 9px',minWidth:52,textAlign:'center'}}, mmss),
@@ -1350,6 +1401,7 @@ class Component extends DCLogic {
     if(c.phase==='pvpWin'||c.phase==='pvpLose') return this.pvpResultScreen();
     if(!c.res) return this.phone();
     const revealed=c.res.log.slice(0,c.revealed);
+    const head=this.zoneHead(c.zoneId);
     const dead=c.phase==='dead';
     const fx=c.fx;
     const hw=this.hpWarnTier(); if(hw){ this._hpWarnAmp=hw.amp; this._hpWarnOp=hw.op; }
@@ -1362,12 +1414,15 @@ class Component extends DCLogic {
       dead?h('div',{style:{position:'absolute',top:0,left:0,right:0,height:'65%',pointerEvents:'none',zIndex:5}},
         h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, #3E0018 0%, rgba(62,0,24,0.5) 40%, rgba(17,19,21,0) 70%)'}}),
         h('div',{style:{position:'absolute',inset:0,opacity:0.3,backgroundImage:'url(assets/battle/death-overlay.webp)',backgroundSize:'cover',backgroundPosition:'center top'}})):null,
-      h('div',{style:{flex:'0 0 auto',background:T.s1,borderBottom:'1px solid '+T.line,padding:'12px 16px 18px'}},
-        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:8}}, 'COMBAT · '+(this.eng.byId.zone[c.zoneId]?this.tx(this.eng.byId.zone[c.zoneId],'ZoneName'):'')+' · '+c.encounter+'전'),
+      // 배경 = 존 아트가 하단 360px(로그 뒤)에만 (screen-battle-log.svg)
+      this.zoneBg(c.zoneId,'log'),
+      this.battleHeader(head.kicker, head.title, this.bossChip()),
+      // 카드 블록 — svg: 몬스터 89.5~309.5 · 타임바 325~345 · 플레이어 360~468 (헤더 바로 아래 붙음)
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 16px'}},
         this.combatantCard(c.mProf,true,this.combatHp('monster'),c.phase==='fighting'),
         this.speedDuel(),
         this.combatantCard(c.prof,false,this.combatHp('player'),c.phase==='fighting')),
-      h('div',{ref:el=>this.logRef=el,style:{flex:1,overflowY:'auto',padding:'12px 16px',display:'flex',flexDirection:'column',gap:0,fontFamily:T.mono}},
+      h('div',{ref:el=>this.logRef=el,style:{position:'relative',zIndex:1,flex:1,overflowY:'auto',padding:'12px 18px',display:'flex',flexDirection:'column',gap:0,fontFamily:T.mono}},
         ...revealed.map((ln,i)=> h('div',{key:i,style:{padding:'6px 0',borderBottom:'1px solid '+T.line,display:'flex',gap:10,animation:'rlIn .18s'}},
           h('span',{style:{color:ln.who==='player'?T.sato:(ln.who==='monster'?T.danger:T.faint),fontSize:11,fontWeight:600,whiteSpace:'nowrap',paddingTop:1}}, ln.who==='player'?this.t('common_me_arrow'):(ln.who==='monster'?(c.mProf.name+' ›'):'▪')),
           h('span',{style:{color:this.logColor(ln),fontSize:12.5,lineHeight:1.45,flex:1}}, ln.text)))),
@@ -1377,8 +1432,8 @@ class Component extends DCLogic {
   combatControls(){
     const c=this.combat;
     const durLine=null;
-    if(c.phase==='fighting') return h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
-      h('div',{style:{height:64,boxSizing:'border-box',borderRadius:999,background:'#18191D',border:'1px solid #36383C',display:'flex',alignItems:'center',justifyContent:'center',gap:10}}, icBattle(18,'#6F7276'), h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#6F7276'}}, this.en()?'Engaging':'\uad50\uc804\uc911')));
+    if(c.phase==='fighting') return h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 17px 24px'}},
+      h('div',{style:{height:64,boxSizing:'border-box',borderRadius:32,background:'#18191D',display:'flex',alignItems:'center',justifyContent:'center',gap:10}}, icBattle(18,'#6F7276'), h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#6F7276'}}, this.en()?'Engaging':'\uad50\uc804\uc911')));
     const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
     if(c.phase==='pvpWin'||c.phase==='pvpLose') return this.pvpControls();
     const g=this.gs;
@@ -1396,7 +1451,7 @@ class Component extends DCLogic {
     } else {
       buttons=h('div',{style:{display:'flex',gap:8}}, sbtn(this.t('btn_confirm_result'),()=>this.death(),'rgb(196,103,93)'));
     }
-    return h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
+    return h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 18px 24px'}},
       h('div',{style:{background:'rgb(24,25,29)',borderRadius:24,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}}, bars, statusEl, buttons));
   }
   // 휴식하기: 회복 아이템을 낱장 코버플로우로, 위로 올려 사용(보건소식 게이지 차오름), 하단은 완료 1개.
@@ -1463,7 +1518,9 @@ class Component extends DCLogic {
   restScreen(){
     const c=this.combat, list=this.restCards(), g=this.gs;
     if(c.restFocus==null||c.restFocus>=list.length) c.restFocus=0;
-    const {zoneName,placeTitle}=this.placeTitleFor(c);
+    const head=this.zoneHead(c.zoneId);
+    // 헤더 아래 칩 = 소지한 의약품/음식 개수(수량 합산). svg 배지색 #83B289 / #D8B25A
+    const catQty=(cat)=>this.consumables().reduce((n,inst)=>{ const it=this.eng.byId.item[inst.id]; return n+((it&&it.Category===cat)?(inst.qty||1):0); },0);
     const backToDone=()=>{ this.combat.phase=this.combat.restReturn||'won'; this.forceUpdate(); };
     const hpPct=Math.max(0,Math.min(100,g.hp/g.maxHp*100)), staPct=Math.max(0,Math.min(100,g.sta/this.staMax*100));
     const gbar=(label,barRef,fillRef,numRef,curV,maxV,pct,fill,edge,pulse)=> h('div',{style:{flex:1}},
@@ -1476,19 +1533,26 @@ class Component extends DCLogic {
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}},
       // 회복 시 화면 테두리 이너글로우 (ref 직접 제어, 평소 opacity 0)
       h('div',{ref:el=>this._restGlowEl=el,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:60,opacity:0,boxShadow:'inset 0 0 60px 6px #83B289'}}),
-      this.battleBanner(placeTitle,zoneName,c.encounter),
-      // 낱장 코버플로우
-      h('div',{onPointerDown:(e)=>{this._rsx=e.clientX;this._rmoved=false;},onPointerMove:(e)=>{if(this._rsx!=null&&Math.abs(e.clientX-this._rsx)>8)this._rmoved=true;},onPointerUp:(e)=>{if(this._rsx==null)return;const dx=e.clientX-this._rsx;this._rsx=null;if(Math.abs(dx)>30){ if(dx<0)this.restNav(1); else this.restNav(-1);} },style:{flex:'1 1 auto',position:'relative',overflow:'hidden'}},
+      this.zoneBg(c.zoneId),
+      this.battleHeader(head.kicker, head.title, this.bossChip()),
+      this.countChips([
+        [this.en()?'Meds':'의약품', String(catQty('Medicine')), '#83B289'],
+        [this.en()?'Food':'음식', String(catQty('Food')), '#D8B25A']]),
+      // 낱장 코버플로우 — 로우 카드와 같은 규격(컨테이너 125~627)
+      h('div',{onPointerDown:(e)=>{this._rsx=e.clientX;this._rmoved=false;},onPointerMove:(e)=>{if(this._rsx!=null&&Math.abs(e.clientX-this._rsx)>8)this._rmoved=true;},onPointerUp:(e)=>{if(this._rsx==null)return;const dx=e.clientX-this._rsx;this._rsx=null;if(Math.abs(dx)>30){ if(dx<0)this.restNav(1); else this.restNav(-1);} },style:{position:'relative',zIndex:1,flex:'0 1 502px',minHeight:0,overflow:'hidden'}},
         list.length? list.map((card,i)=>{ const off=i-c.restFocus, abs=Math.abs(off), isC=off===0; const x=off*250, s=isC?1:0.9, o=isC?1:0.42;
             const handlers=isC?this.restCenterHandlers():{onClick:()=>{ if(!this._rmoved){c.restFocus=i;this.forceUpdate();} }};
             return h('div',Object.assign({key:card.uid+'#'+i,'data-rscard':isC?'focus':null},handlers,{style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(482px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'grab':'pointer',touchAction:'none'}}), this.lootCardBig(card)); })
-          : h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}, this.emptyRow(this.en()?'No food or medicine to use.':'사용할 음식이나 의약품이 없습니다.'))),
+          : h('div',{style:{position:'absolute',left:0,right:0,top:262,height:54,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',gap:10}},
+              h('svg',{width:22,height:22,viewBox:'0 0 22 22',fill:'none',stroke:'#EAEBEE',strokeWidth:1.4,strokeLinecap:'round'},
+                h('circle',{key:'c',cx:11,cy:11,r:8.3}), h('path',{key:'l',d:'M11 6.6v5.2'}), h('path',{key:'d',d:'M11 15.1v.1'})),
+              h('span',{style:{fontFamily:T.sans,fontSize:14,color:'#EAEBEE'}}, this.en()?'No food or medicine to use.':'사용할 음식이나 의약품이 없습니다.'))),
       // 힌트 (위로 올려 사용)
-      list.length? h('div',{style:{flex:'0 0 auto',padding:'6px 16px 16px'}},
+      h('div',{style:{position:'relative',zIndex:1,flex:'1 1 auto',minHeight:0}}, list.length? h('div',{style:{height:'100%',padding:'6px 16px 16px',boxSizing:'border-box',display:'flex',flexDirection:'column',justifyContent:'center'}},
         this.lmChevron('down'),
-        h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, this.en()?'Pull down to use':'아래로 내려 사용하기')) : null,
-      // 하단 패널: 게이지 + 완료
-      h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
+        h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, this.en()?'Pull down to use':'아래로 내려 사용하기')) : null),
+      // 하단 패널: 게이지 + 완료 — svg x17 y683~804 (h121)
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 17px 24px'}},
         h('div',{style:{background:'rgb(24,25,29)',borderRadius:24,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}},
           h('div',{style:{display:'flex',gap:12}},
             gbar(this.t('stat_hp'), el=>this._rHpBar=el, el=>this._rHpFill=el, el=>this._rHpNum=el, g.hp, g.maxHp, hpPct, '#ae615c', '#d68f7f', 'rgba(174,97,92,.55)'),
@@ -1906,11 +1970,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
   }
   cardScreen(){
     const c=this.combat, g=this.gs;
-    const zObj=this.eng.byId.zone[c.zoneId];
-    const zoneName=zObj?this.tx(zObj,'ZoneName'):'';
-    const cityObj=zObj&&this.eng.byId.city?this.eng.byId.city[zObj.CityID]:null;
-    const cityName=cityObj?(this.tx(cityObj,'CityName')||''):'';
-    const placeTitle=(cityName?cityName+' · ':'')+zoneName;
+    const head=this.zoneHead(c.zoneId);
     const flipped=c.flipped;
     const bossFrame = flipped && String((c.mProf&&c.mProf.grade)||'').toLowerCase()==='boss';
     const hw=this.hpWarnTier(); if(hw){ this._hpWarnAmp=hw.amp; this._hpWarnOp=hw.op; }
@@ -1921,22 +1981,21 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       (flipped&&this.staWarn())?h('canvas',{key:'stawarn',ref:el=>this.mountStaWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:4,mixBlendMode:'screen',opacity:0.37}}):null,
       // 저체력 경보 — 적색 Aurora(상단). 조우 시점 HP 낮으면(이전 전투 부상) 표시
       hw?h('canvas',{key:'hpwarn',ref:el=>this.mountHpWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:5,mixBlendMode:'plus-lighter',opacity:hw.op,transition:'opacity .6s ease-out'}}):null,
-      h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/art/zones/'+c.zoneId+'.webp), url(assets/battle/encounter-banner.webp)',backgroundSize:'cover',backgroundPosition:'center'}},
-        h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:4}},
-          h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, placeTitle),
-          h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.2px',color:'rgb(111,114,118)',lineHeight:'100%'}}, 'ENCOUNTER · '+zoneName+' · '+(this.en()?('Encounter #'+(c.encounter+1)):((c.encounter+1)+'전 조우'))))),
+      // 배경 = 존 아트 + 상하 페이드 (screen-battle-card-draw.svg). 헤더는 그 위에 불투명하게 고정.
+      this.zoneBg(c.zoneId),
+      this.battleHeader(head.kicker, head.title, this.bossChip()),
       h('div',{onPointerDown:(e)=>{this._sx=e.clientX;this._moved=false;},onPointerMove:(e)=>{if(this._sx!=null&&Math.abs(e.clientX-this._sx)>8)this._moved=true;},onPointerUp:(e)=>{if(this._sx==null)return;const dx=e.clientX-this._sx;this._sx=null;if(this.combat.flipped)return;if(Math.abs(dx)>30){ if(dx<0)this.focusCard(Math.min(this.combat.cards.length-1,this.combat.cardFocus+1)); else this.focusCard(Math.max(0,this.combat.cardFocus-1)); }},style:{flex:1,position:'relative',overflow:'hidden'}},
         c.cards.map((id,i)=>{ const off=i-c.cardFocus, abs=Math.abs(off); const isCenter=off===0; const x=off*250, s=isCenter?1:0.9; let o=isCenter?1:0.5; if(flipped&&!isCenter) o=0; const rot=(flipped&&isCenter)?180:0; const settled=this.flipSettled(c,'enc'+i,flipped&&isCenter); const flat=settled||!(flipped&&isCenter);   // 3D는 센터 플립 순간에만 — 그 외 평면(레이어 승격·z-index 무시 방지)
               const cbm=(id&&id.type==='monster')?this.eng.byId.monster[id.id]:null; const isBossBack=!!(cbm&&String(cbm.Grade||'').toLowerCase()==='boss');
               return h('div',{key:i,onClick:()=>{ if(this._moved||flipped) return; isCenter?this.flipCenter():this.focusCard(i); },
-                style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(473px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:isCenter?1:o,zIndex:isCenter?20:10-abs,transition:isCenter?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:(flipped&&!isCenter)?'none':'auto'}},
+                style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(473px, 100%)',transform:'translate(calc(-50% + '+x+'px), calc(-50% - 16px)) scale('+s+')',opacity:isCenter?1:o,zIndex:isCenter?20:10-abs,transition:isCenter?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:(flipped&&!isCenter)?'none':'auto'}},
                 h('div',{style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
                   (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/monster_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/monster_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}},
                     isBossBack? h('div',{style:{position:'absolute',inset:0,pointerEvents:'none',borderRadius:8,animation:'rlBossTell 5.5s ease-in-out infinite'}}):null),
                   (isCenter&&!(flat&&!flipped))? h('div',{style:flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden'}}, flipped?(c.pvp?this.userFront(c.mProf):this.monsterFront(c.mProf)):null):null)); }),
         (!flipped? cardNav(c.cardFocus, c.cards.length, ()=>this.focusCard(Math.max(0,c.cardFocus-1)), ()=>this.focusCard(Math.min(c.cards.length-1,c.cardFocus+1))) : null)),
-      h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 12px'}}, ...c.cards.map((id,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===c.cardFocus?'rgb(169,171,175)':'rgb(43,46,50)'}}))),
-      h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 12px'}}, ...c.cards.map((id,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===c.cardFocus?'rgb(169,171,175)':'rgb(43,46,50)'}}))),
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 18px 24px'}},
         h('div',{style:{background:'rgb(24,25,29)',borderRadius:24,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}},
           h('div',{style:{display:'flex',gap:5}},
             h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_hp'), Math.round(g.hp), Math.round(g.maxHp), Math.max(0,Math.min(100,g.hp/g.maxHp*100)), 'rgb(174,97,92)')),
@@ -2676,7 +2735,7 @@ void main(){
           h('span',{style:{fontFamily:T.mono,fontSize:14,color:SATO,lineHeight:1}}, '+'),
           h('span',{'data-satonum':'1',style:{fontFamily:T.mono,fontWeight:600,fontSize:19,lineHeight:1,color:HI,letterSpacing:'-.01em',transformOrigin:'right center',willChange:'transform'}}, '0'))),
       h('div',{style:{position:'relative',display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:14,paddingTop:12,borderTop:'1px solid '+LN}},
-        h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.8px',color:MUT}}, this.en()?'VAULT':'금고'),
+        h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.8px',color:MUT}}, this.t('nav_vault').toUpperCase()),
         h('span',{'data-satowallet':'1',style:{fontFamily:T.mono,fontSize:12,color:WAL}}, before.toLocaleString())));
   }
   runSatoCount(statEl){
@@ -2735,14 +2794,13 @@ void main(){
   result(){
     const c=this.combat; const death=c.result==='death';
     if(death){
-      return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'rgb(17,19,21)'}},
-        h('div',{style:{padding:'18px 18px 14px',flex:'0 0 auto'}},
-          h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:400,color:T.hi,letterSpacing:'-.01em',marginBottom:6}}, this.en()?'Extraction Failed':'귀환 실패'),
-          h('div',{style:{fontFamily:T.mono,fontSize:11,letterSpacing:'.2em',color:T.danger}}, 'EXTRACTION FAILED')),
-        h('div',{style:{flex:1,overflowY:'auto',padding:'6px 0 16px'}},
+      return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'rgb(17,19,21)'}},
+        this.zoneBg(c.zoneId,'return'),
+        this.battleHeader('EXTRACTION FAILED', this.en()?'Extraction Failed':'귀환 실패', null, {kickerColor:T.danger}),
+        h('div',{style:{position:'relative',zIndex:1,flex:1,overflowY:'auto',padding:'16px 0 16px'}},
           h('div',{style:{fontFamily:T.mono,fontSize:11,letterSpacing:'1.1px',color:'rgb(75,77,82)',margin:'0 16px 10px'}}, this.en()?'GROWTH THIS RAID':'이번 레이드 성장'),
           this.resultGrowth()),
-        h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
+        h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 16px 26px'}},
           h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
             h('button',{onClick:()=>this.toSafehouse(),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_to_safehouse')))));
     }
@@ -2751,26 +2809,22 @@ void main(){
     const allOpen=uids.every((_,i)=>open.has(i));
     const stage=c.resultStage||(uids.length?'loot':'growth');
     if(stage==='growth'){
-      return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'rgb(17,19,21)'}},
-        h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/art/zones/'+c.zoneId+'.webp), url(assets/battle/encounter-banner.webp)',backgroundSize:'cover',backgroundPosition:'center'}},
-          h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:8}},
-            h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, this.t('combat_return_success')),
-            h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'2px',color:'rgb(131,178,137)',lineHeight:'100%'}}, 'EXTRACTION COMPLETE'))),
-        h('div',{style:{flex:1,overflowY:'auto',padding:'20px 0 16px'}},
+      return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'rgb(17,19,21)'}},
+        this.zoneBg(c.zoneId,'return'),
+        this.battleHeader('EXTRACTION COMPLETE', this.t('combat_return_success'), null, {kickerColor:'#83B289'}),
+        h('div',{style:{position:'relative',zIndex:1,flex:1,overflowY:'auto',padding:'20px 0 16px'}},
           h('div',{style:{fontFamily:T.mono,fontSize:11,letterSpacing:'1.1px',color:'rgb(75,77,82)',margin:'0 16px 10px'}}, this.en()?'GROWTH THIS RAID':'이번 레이드 성장'),
           this.resultGrowth(),
           this.resultSato()),
-        h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
+        h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 16px 26px'}},
           h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
             h('button',{onClick:()=>{ if(this._resAnimating) this.skipResultAnim(); else this.toReturnHeal(); },style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_to_safehouse')))));
     }
     // loot 카드 개봉 — 전투 진입 몬스터 카드 화면과 동일 (성장 정보 없음)
     const focus=c.lootFocusIdx||0;
-    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:T.bg}},
-      h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:'url(assets/art/zones/'+c.zoneId+'.webp), url(assets/battle/encounter-banner.webp)',backgroundSize:'cover',backgroundPosition:'center'}},
-        h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:8}},
-          h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, this.t('combat_return_success')),
-          h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'2px',color:'rgb(131,178,137)',lineHeight:'100%'}}, 'EXTRACTION COMPLETE'))),
+    return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:T.bg}},
+      this.zoneBg(c.zoneId,'return'),
+      this.battleHeader('EXTRACTION COMPLETE', this.t('combat_return_success'), null, {kickerColor:'#83B289'}),
       h('div',{ref:(el)=>{ if(el&&el.clientHeight&&el.clientHeight!==this._lootStageH){ this._lootStageH=el.clientHeight; this.forceUpdate(); } },onPointerDown:(e)=>{this._lx=e.clientX;this._lmoved=false;},onPointerMove:(e)=>{if(this._lx!=null&&Math.abs(e.clientX-this._lx)>8)this._lmoved=true;},onPointerUp:(e)=>{if(this._lx==null)return;const dx=e.clientX-this._lx;this._lx=null;if(Math.abs(dx)>30){ if(dx<0)this.lootFocus(focus+1); else this.lootFocus(focus-1); }},style:{flex:1,position:'relative',overflow:'hidden'}},
         uids.map((uid,i)=>{ const inst=this.eng.instById(this.gs,uid); if(!inst) return null;
           const off=i-focus, abs=Math.abs(off), isCenter=off===0, flipped=open.has(i);
@@ -2784,8 +2838,8 @@ void main(){
               (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
               (flat&&!flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden'}}, flipped?this.lootCardBig(inst,true):null))); }),
         cardNav(focus, uids.length, ()=>this.lootFocus(focus-1), ()=>this.lootFocus(focus+1))),
-      !allOpen? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 10px'}}, ...uids.map((_,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===focus?T.mid:(open.has(i)?T.line2:T.s3)}}))) : null,
-      h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
+      !allOpen? h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 10px'}}, ...uids.map((_,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===focus?T.mid:(open.has(i)?T.line2:T.s3)}}))) : null,
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 16px 26px'}},
         h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
           allOpen
             ? h('button',{key:'next',onClick:()=>{ this.combat.resultStage='growth'; this.forceUpdate(); },style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'Next':'다음')
@@ -3074,24 +3128,24 @@ void main(){
       h('path',{key:1,d:'M6 8h12l-1 12H7L6 8z'}), h('path',{key:2,d:'M9 8V6a3 3 0 0 1 6 0v2'})); }
   lootManage(){ const lm=this.state.lm; if(!lm) return null; const isField=lm.view==='field'; const cards=this.lmCards(lm); const focus=Math.max(0,Math.min(lm.focus||0,cards.length-1));
     const gold='#d8b25a', blue='#7CA5BB'; const focusEntry=!isField?lm.bag[focus]:null; const focusLocked=!!(focusEntry&&focusEntry.locked);
-    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-      // header — eyebrow + title (좌) · 카운트(우)
-      h('div',{style:{position:'relative',padding:'14px 16px 6px',flex:'0 0 auto',display:'flex',alignItems:'flex-end',justifyContent:'space-between'}},
-        h('div',null,
-          h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.4px',color:T.lo,paddingBottom:4}}, isField?'DROPPED LOOT':'BAG'),
-          h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:T.hi,letterSpacing:'-0.2px',lineHeight:'100%'}}, isField?(this.en()?'Loot':'전리품'):(this.en()?'Bag':'가방'))),
+    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}},
+      // 배경 — 전리품은 존 아트(screen-loot-card-draw.svg), 가방은 inventory_bag(screen-loot-card-bag.svg)
+      isField? this.zoneBg((this.combat&&this.combat.zoneId)||'')
+             : this.zoneBg('','full','assets/art/scenes/inventory_bag.webp'),
+      // 헤더 — 우측 슬롯 = 잠금(주머니 보관) 아이콘. 전리품에서는 표시만, 가방에서는 토글.
+      this.battleHeader(isField?'DROPPED LOOT':'BAG',
+        isField?(this.en()?'Loot':'전리품'):(this.en()?'Bag':'가방'),
         h('div',{style:{display:'flex',alignItems:'center',gap:10}},
           !lm.fromCombat? h('button',{onClick:()=>this.setState({screen:'safehouse'}),style:{background:'transparent',border:'1px solid '+T.line2,color:T.faint,fontSize:13,cursor:'pointer',borderRadius:4,padding:'1px 8px',lineHeight:1.3}}, '×') : null,
           isField? h('span',{style:{lineHeight:0}}, this.lmLockIcon(false))
                  : h('button',{onClick:()=>this.lmToggleLock(),style:{background:'transparent',border:'none',cursor:'pointer',padding:0,lineHeight:0},title:'주머니 잠금'}, this.lmLockIcon(focusLocked)))),
-      // 카운트바 (상단) — 주머니/가방/전리품
-      h('div',{style:{display:'flex',gap:16,justifyContent:'center',fontFamily:T.mono,fontSize:11,color:T.lo,padding:'2px 0 10px',flex:'0 0 auto'}},
-        h('span',null, h('span',{style:{display:'inline-block',width:8,height:8,borderRadius:2,background:blue,verticalAlign:'-1px',marginRight:6}}), (this.en()?'Pocket ':'주머니 ')+this.lmLocked(lm)+'/2'),
-        h('span',null, h('span',{style:{display:'inline-block',width:8,height:8,borderRadius:2,background:gold,verticalAlign:'-1px',marginRight:6}}), (this.en()?'Bag ':'가방 ')+(lm.bag.length-this.lmLocked(lm))+'/'+this.lmBagCap()),
-        h('span',null, h('span',{style:{display:'inline-block',width:8,height:8,borderRadius:2,background:T.faint,verticalAlign:'-1px',marginRight:6}}), (this.en()?'Loot ':'전리품 ')+lm.field.length)),
-      h('div',{style:{flex:'1 1 auto'}}),
-      // coverflow (실제 카드)
-      h('div',{onPointerDown:(e)=>{this._lsx=e.clientX;this._lmoved=false;},onPointerMove:(e)=>{if(this._lsx!=null&&Math.abs(e.clientX-this._lsx)>8)this._lmoved=true;},onPointerUp:(e)=>{if(this._lsx==null)return;const dx=e.clientX-this._lsx;this._lsx=null;if(Math.abs(dx)>30){if(dx<0)this.lmFocus(1);else this.lmFocus(-1);}},style:{flex:'0 1 560px',minHeight:0,position:'relative',overflow:'hidden'}},
+      // 카운트 칩 — svg y97~124 (주머니 #7CA5BB · 가방 #D8B25A · 전리품 #6B6B6B)
+      this.countChips([
+        [this.en()?'Pocket':'주머니', this.lmLocked(lm)+'/2', blue],
+        [this.en()?'Bag':'가방', (lm.bag.length-this.lmLocked(lm))+'/'+this.lmBagCap(), gold],
+        [this.en()?'Loot':'전리품', String(lm.field.length), '#6B6B6B']]),
+      // coverflow (실제 카드) — svg 카드 y135~617(482). 컨테이너 125~627 중앙정렬.
+      h('div',{onPointerDown:(e)=>{this._lsx=e.clientX;this._lmoved=false;},onPointerMove:(e)=>{if(this._lsx!=null&&Math.abs(e.clientX-this._lsx)>8)this._lmoved=true;},onPointerUp:(e)=>{if(this._lsx==null)return;const dx=e.clientX-this._lsx;this._lsx=null;if(Math.abs(dx)>30){if(dx<0)this.lmFocus(1);else this.lmFocus(-1);}},style:{zIndex:1,flex:'0 1 502px',minHeight:0,position:'relative',overflow:'hidden'}},
         cards.length? cards.map((inst,i)=>{ const off=i-focus, abs=Math.abs(off), isC=off===0; const x=off*250, sc=isC?1:0.9; const o=isC?1:0.42; const lk=!isField&&inst.locked;
           const flipped=!isField||(lm.opened&&lm.opened.has(inst.uid)); const ch=flipped?this.lootCardH(inst):482;
           const settled=this.flipSettled(lm,'lm'+inst.uid,flipped); const flat=settled||!(flipped&&isC);
@@ -3102,15 +3156,14 @@ void main(){
               (flat&&!flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden',boxShadow:lk?('0 0 0 2px '+blue):'none'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden',boxShadow:lk?('0 0 0 2px '+blue):'none'}}, flipped?this.lootCardBig(inst,true):null))); })
           : h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, isField?(this.en()?'No loot on the field':'필드에 남은 전리품 없음'):(this.en()?'Bag empty':'가방이 비었음')),
         cards.length>1? cardNav(focus, cards.length, ()=>this.lmFocus(-1), ()=>this.lmFocus(1)) : null),
-      // 셰브론 + 힌트 (카드 아래)
-      (function(needFlip){ return h('div',{style:{flex:'0 0 auto',padding:'6px 16px 4px'}},
+      // 셰브론 + 힌트 (카드 아래) — 남은 공간을 차지하고 세로 중앙
+      (function(needFlip){ return h('div',{style:{position:'relative',zIndex:1,flex:'1 1 auto',minHeight:0,padding:'6px 16px 4px',display:'flex',flexDirection:'column',justifyContent:'center'}},
         needFlip? this.lmTapIcon() : this.lmChevron(isField?'down':'up'),
         h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, needFlip?(this.en()?'Tap to reveal':'탭하여 확인'):(isField?(this.en()?'Pull down to stash':'아래로 당겨 소지품에 넣기'):(this.en()?'Pull up to remove':'위로 올려 꺼내기')))); }).call(this, isField&&cards[focus]&&!(lm.opened&&lm.opened.has(cards[focus].uid))),
-      h('div',{style:{flex:'1 1 auto'}}),
-      // footer — 플로팅 둥근 컨테이너
-      h('div',{style:{flex:'0 0 auto',margin:'0 16px 26px',padding:8,borderRadius:24,background:T.s1,border:'1px solid '+T.line,display:'flex',gap:10,boxShadow:'0 8px 28px rgba(0,0,0,.45)'}},
-        h('button',{onClick:()=>{ lm.view=isField?'bag':'field'; lm.focus=0; this.forceUpdate(); },style:{flex:1,height:46,borderRadius:999,border:'1px solid '+T.line2,background:'transparent',color:T.mid,fontFamily:T.sans,fontSize:13,cursor:'pointer'}}, isField?(this.en()?'Bag':'가방'):(this.en()?'Loot':'전리품')),
-        h('button',{onClick:()=>{ if(lm.fromCombat){ this.commitLootDraw(); } else { lm.field=this.lmSample().field; lm.view='field'; lm.focus=0; this.flash(this.en()?'Next fight — new loot':'다음 전투 — 새 전리품'); this.forceUpdate(); } },style:{flex:1,height:46,borderRadius:999,border:'none',background:T.hi,color:'#111',fontFamily:T.sans,fontSize:13,fontWeight:500,cursor:'pointer'}}, lm.fromCombat?(this.en()?'Done':'완료'):(this.en()?'Proceed':'진행하기'))));
+      // footer — svg x16 y722~804 (h82 r24) · 버튼 y739 h48 gap8
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:17,borderRadius:24,background:T.s1,border:'1px solid '+T.line,display:'flex',gap:8,boxShadow:'0 8px 28px rgba(0,0,0,.45)'}},
+        h('button',{onClick:()=>{ lm.view=isField?'bag':'field'; lm.focus=0; this.forceUpdate(); },style:{flex:1,height:48,borderRadius:999,border:'none',background:'#212227',color:T.mid,fontFamily:T.sans,fontSize:13,cursor:'pointer'}}, isField?(this.en()?'Bag':'가방'):(this.en()?'Loot':'전리품')),
+        h('button',{onClick:()=>{ if(lm.fromCombat){ this.commitLootDraw(); } else { lm.field=this.lmSample().field; lm.view='field'; lm.focus=0; this.flash(this.en()?'Next fight — new loot':'다음 전투 — 새 전리품'); this.forceUpdate(); } },style:{flex:1,height:48,borderRadius:999,border:'none',background:'#212227',color:T.hi,fontFamily:T.sans,fontSize:13,fontWeight:400,cursor:'pointer'}}, lm.fromCombat?(this.en()?'Done':'완료'):(this.en()?'Proceed':'진행하기'))));
   }
 
   // ---- inventory ----
@@ -3125,7 +3178,7 @@ void main(){
       // 2버튼 바 — svg/header-2button.svg. 헤더에 바로 붙고 하단 모서리만 r16, 높이 47.
       // (구 안내문구 "레이드에 소지하는 아이템 슬롯"은 삭제 — SVG 기준)
       h('div',{style:{display:'flex',flex:'0 0 auto',height:47}},
-        ...[['bag',this.t('nav_belongings'),'0 0 0 16px'],['vault',(this.en()?'Vault':'금고'),'0 0 16px 0']].map(([k,l,br])=>
+        ...[['bag',this.t('nav_belongings'),'0 0 0 16px'],['vault',this.t('nav_vault'),'0 0 16px 0']].map(([k,l,br])=>
           h('button',{key:k,onClick:()=>this.setState({seg:k}),
             style:{flex:1,height:47,background:'#18191D',border:'none',borderRadius:br,color:seg===k?'#EAEBEE':'#6F7276',fontFamily:T.sans,fontSize:14,fontWeight:seg===k?500:400,cursor:'pointer',padding:0}}, l))),
       // 소지품=슬롯 3섹션(belongings) · 금고=필터칩+리스트(기존)
@@ -4166,15 +4219,12 @@ void main(){
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}},
       // 회복 이너글로우 — 초록 단색(#83B289), restGlow와 동일 톤
       h('div',{ref:el=>this._retGlowEl=el,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:60,opacity:0,boxShadow:'inset 0 0 60px 6px #83B289'}}),
-      h('div',{style:{flex:1,overflowY:'auto'}},
-        // 배너 118px + 하단 그라디언트 (레이드한 존 아트)
-        h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:(zone?'url(assets/art/zones/'+zone+'.webp), ':'')+'url(assets/battle/zone-banner.webp)',backgroundSize:'cover',backgroundPosition:'center'}},
-          h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(17,19,21,0) 0%, #111315 100%)'}}),
-          // 제목은 배너 위에 겹친다(svg y75~110). 흐름에 두고 음수 마진을 주면 배너에 가려짐.
-          h('div',{style:{position:'absolute',left:16,bottom:8}},
-            h('div',{style:{fontFamily:T.sans,fontSize:22,fontWeight:400,letterSpacing:'-0.22px',color:'#EAEBEE'}}, this.en()?'Extraction Complete':'귀환 성공'),
-            h('div',{style:{fontFamily:T.mono,fontSize:11,letterSpacing:'1.1px',color:'#83B289',paddingTop:9}}, 'EXTRACTION COMPLETE'))),
-        h('div',{style:{padding:'0 16px'}},
+      // 배경 = 레이드한 존 아트 (screen-return-auto-heal.svg) · 헤더는 그 위에 고정
+      this.zoneBg(zone||'','return'),
+      this.battleHeader('EXTRACTION COMPLETE', this.en()?'Extraction Complete':'귀환 성공', null, {kickerColor:'#83B289'}),
+      h('div',{style:{position:'relative',zIndex:1,flex:1,overflowY:'auto'}},
+        // 본문 패널 — svg x16 y109 w370 (배경 아트 위라 판이 필요하다)
+        h('div',{style:{margin:'20px 16px 0',padding:'0 17px',boxSizing:'border-box',borderRadius:8,background:'#18191D',border:'1px solid #36383C'}},
           h('div',{style:{fontFamily:T.sans,fontSize:12,color:'#4B4D52',margin:'19px 0 16px'}}, this.en()?'Recover':'회복하기'),
           gauge(this.t('stat_hp'),g.hp,g.maxHp,'#AE615C','#d68f7f','rgba(174,97,92,.55)',{num:el=>this._retHpNum=el,bar:el=>this._retHpBar=el,fill:el=>this._retHpFill=el}),
           amountBox((this.en()?'HP 100% (+':'생명력 100% (+')+lack+')','#83B289'),
@@ -4183,7 +4233,7 @@ void main(){
           amountBox((this.en()?'Stamina 100% (+':'스태미너 100% (+')+lackSta+')','#C19E6F'),
           h('div',{style:{height:24}}))),
       // 하단 고정 박스 — 지불 비용 + [모두 회복 / 건너뛰기]
-      h('div',{style:{flex:'0 0 auto',margin:'0 16px 26px',padding:'22px 15px 16px',boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid #36383C'}},
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 26px',padding:'22px 15px 16px',boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid #36383C'}},
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',marginBottom:22}},
           h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#A9ABAF'}}, this.en()?'Total cost':'지불 비용'),
           h('span',{style:{fontFamily:T.mono,fontSize:13,color:aff?'#85B3C5':T.danger}}, cost.toLocaleString()+' '+this.t('currency_sato'))),
