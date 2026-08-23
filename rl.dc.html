@@ -1192,7 +1192,8 @@ class Component extends DCLogic {
       // 헤더는 스크롤 밖에 고정 — 설정·캐릭터 화면과 같은 구조(높이 74.5 동일).
       // 스크롤 안에 두면 벤더 카드와 함께 밀려 올라간다.
       this.screenTitle('PROTOCOL','nav_safehouse',this.currencyChips()),
-      h('div',{style:{padding:'16px 16px 100px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:8}},
+      // 하단 여백 = 내비 필(100) + 상점 슬롯 한 칸(63+gap 8) — 마지막 행이 내비에 걸치지 않게 더 내려간다
+      h('div',{style:{padding:'16px 16px 171px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:8}},
         // 아지트 — svg/screen-shop-list.svg. 370x191(아트 151 + 하단 띠 40) · 현재 잠금.
         h('div',{style:{position:'relative',flexShrink:0,height:193,boxSizing:'border-box',border:'1px solid #36383C',borderRadius:8,overflow:'hidden',background:'#111315',marginBottom:6}},
           h('div',{style:{position:'absolute',left:0,right:0,top:0,height:151,backgroundImage:'url(assets/art/shop/hide.webp)',backgroundSize:'cover',backgroundPosition:'center bottom'}}),
