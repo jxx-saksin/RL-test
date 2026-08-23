@@ -314,7 +314,13 @@ export function appraise(inst, proofPct){
     inst.apprDelta[key] = after > before ? 1 : (after < before ? -1 : 0);
     changes.push({ key, from: before, to: after });
   }
-  if (inst.unappraised.includes('maxDur')) inst.dur = Math.min(inst.dur, inst.rolls.maxDur);
+  // 감정된 최대 내구도는 rolls뿐 아니라 인스턴스 본체에도 반영해야 한다 —
+  // maxDur은 전투 소모·수리·itemState가 전부 inst.maxDur을 보므로, 안 옮기면 감정 결과가 무효가 된다.
+  // 내구도는 정수 단위(수리 실패 롤이 point 단위)라 반올림해서 넣는다.
+  if (inst.unappraised.includes('maxDur')) {
+    inst.maxDur = Math.max(1, Math.round(inst.rolls.maxDur));
+    inst.dur = Math.min(inst.dur, inst.maxDur);
+  }
   inst.unappraised = [];
   inst.appraised = true;
   return changes;

@@ -35,6 +35,8 @@
   @keyframes rlCharge{from{width:0}to{width:100%}}
   @keyframes rlPunch{0%,84%{transform:scale(1)}92%{transform:scale(1.22)}100%{transform:scale(1)}}
   @keyframes rlSpin{to{transform:rotate(360deg)}}
+  @keyframes rlCardLift{from{transform:none;opacity:1}to{transform:translateY(-130%);opacity:0}}
+  @keyframes rlCardDrop{from{transform:translateY(-130%);opacity:0}to{transform:none;opacity:1}}
   /* --- 회복(보건소/급식소) 게이지 차오름 --- */
   .rcv-fill{position:absolute;left:0;top:0;height:100%;border-radius:1px}
   .rcv-fill::after{content:'';position:absolute;right:-1px;top:0;bottom:0;width:9px;border-radius:1px;opacity:0;transition:opacity .2s;background:linear-gradient(90deg,transparent,var(--rcv-edge,#fff))}
@@ -115,6 +117,18 @@ const ATTR = { bleed:{kr:'출혈',c:T.bleed}, stun:{kr:'기절',c:T.stun}, pierc
 const AT = (x)=> (x && ATTR[x]) ? ATTR[x] : null;
 // 장비 박스 슬롯 표시 순서(gs.equip 키 ↔ 카테고리 라벨). 미착용도 자리를 지킨다.
 const GEAR_SLOTS = [['bag','가방'],['weapon','무기'],['head','투구'],['body','갑옷'],['artifact1','장신구'],['artifact2','징표']];
+// 전당포 흥정 대사 폴백 — 시트 NpcDialogue(NPC=vendor_pawnshop / Flow=haggle)가 비었을 때만 쓴다
+const HAGGLE_TPL = {
+  intro:[['귀중품… 귀한 걸 찾아왔네?','Valuables... you brought something rare.'],
+         ['어디 보자. 손 좀 타긴 했군.',"Let me see. Been handled a bit, hasn't it."],
+         ['물건은 물건이네. 값은 따로 치고.',"It's the real thing. The price is another matter."]],
+  again:[['더 받고 싶다는 얼굴이군.',"That's the face of someone who wants more."],
+         ['다시 보자고? 후회는 자네 몫이야.','Another look? The regret is yours to keep.'],
+         ['한 번 더 재보지. 오를지 내릴지는 몰라.',"I'll weigh it again. Up or down, who knows."]],
+  max:[['더 이상은 나도 안 돼.','That is as far as I go.'],
+       ['여기까지야. 팔든지 들고 가든지.','This is it. Sell it or take it home.'],
+       ['세 번 봤으면 됐지.','Three looks is enough.']],
+};
 const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Valuable:'귀중품', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소' };
 // 몬스터 아트 보유 목록 — 레이드 로딩 배경 랜덤 픽 판정용(assets/art/monsters/*.webp). 아트 추가 시 갱신.
 const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','monster_bloated_toad','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_pale_lynx','monster_rogue_emergency','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_spore_gardener','monster_wandering_sentry','monster_abandoned_chihuahua',
@@ -197,12 +211,14 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 22;
-const TITLE_DATE = '0821';
+const TITLE_VER = 23;
+const TITLE_DATE = '0823';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:23, date:'23/Aug', lines:[
+    ['상점 및 서비스 항목 감정, 흥정 시스템 개편.','Shops and their service menus reworked, along with the appraisal and haggle systems.'] ] },
   { ver:22, date:'22/Aug', lines:[
     ['상점 시스템 개편 진행 및 전투 인터페이스 변경중.','Shop system rework in progress; combat interface is being changed.'] ] },
   { ver:13, date:'18/Aug', lines:[
@@ -289,8 +305,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val2');
-      const loader = await import('./sheet-loader.js?v=val2');
+      const eng = await import('./engine.js?v=val3');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val3');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -688,7 +704,7 @@ class Component extends DCLogic {
     }
     // 상점 진입 = 메뉴 화면(screen-clinic-menu.svg). 서비스 탭은 메뉴에서 고른 뒤 'vendor'로 간다.
     this.setState({screen:'vendorMenu',vendor:id,vtab:first,sel:null,repairSel:null,modalZone:null,apr:null,mod:null}); }
-  openVendorTab(tab){ this._healDone=false; this._feedDone=false; this.setState({screen:'vendor',vtab:tab,sel:null,repairSel:null,apr:null,mod:null}); }
+  openVendorTab(tab){ this._healDone=false; this._feedDone=false; this.setState({screen:'vendor',vtab:tab,sel:null,repairSel:null,apr:null,mod:null,hg:(tab==='haggle'?{phase:'list',focus:0}:null)}); }
   // ---------- shop ----------
   buy(shopId, row, qty){
     qty=Math.max(1, qty||1);
@@ -1080,7 +1096,7 @@ class Component extends DCLogic {
     const C={ 'default':['hex','#6F7276'], full:['hex','#6F7276'], nosato:['tri','#C19E6F'], done:['hex','#83B289'] }[kind]||['hex','#6F7276'];
     return h('div',{style:{height:40,boxSizing:'border-box',borderRadius:16,background:'#1A1B21',display:'flex',alignItems:'center',justifyContent:'center',gap:10}},
       this.icAlert(C[0],17,C[1]),
-      h('span',{style:{fontFamily:T.sans,fontSize:13,color:C[1]}}, text));
+      h('span',{style:{fontFamily:T.sans,fontSize:12,color:C[1]}}, text));
   }
   // 상점 헤더 — svg 기준. 뒤로가기 28x28 r8 @(18,24) · 재화칩 우측 끝 383 · 타이틀 좌24 y≈62.
   // screenTitle과 달리 키커가 없고 타이틀만 온다(높이는 동일하게 90).
@@ -1178,30 +1194,30 @@ class Component extends DCLogic {
       this.screenTitle('PROTOCOL','nav_safehouse',this.currencyChips()),
       h('div',{style:{padding:'16px 16px 100px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:8}},
         // 아지트 — svg/screen-shop-list.svg. 370x191(아트 151 + 하단 띠 40) · 현재 잠금.
-        h('div',{style:{position:'relative',flexShrink:0,height:191,borderRadius:8,overflow:'hidden',background:'#111315',marginBottom:8}},
+        h('div',{style:{position:'relative',flexShrink:0,height:193,boxSizing:'border-box',border:'1px solid #36383C',borderRadius:8,overflow:'hidden',background:'#111315',marginBottom:6}},
           h('div',{style:{position:'absolute',left:0,right:0,top:0,height:151,backgroundImage:'url(assets/art/shop/hide.webp)',backgroundSize:'cover',backgroundPosition:'center bottom'}}),
           h('div',{style:{position:'absolute',left:0,right:0,top:0,height:151,background:'linear-gradient(180deg, rgba(17,19,21,0.94) 0%, rgba(17,19,21,0) 70.7%)'}}),
           // 잠금 밴드 (svg y196~257 = 카드 기준 90~151)
           h('div',{style:{position:'absolute',left:0,right:0,top:90,height:61,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',gap:10}},
             this.icAlert('hex',20,'#A9ABAF'),
-            h('span',{style:{fontFamily:T.sans,fontSize:14,color:'#A9ABAF'}}, this.en()?'No access':'접근 금지')),
+            h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#A9ABAF'}}, this.en()?'No access':'접근 금지')),
           // 하단 띠 (svg y257~297)
           h('div',{style:{position:'absolute',left:0,right:0,top:151,height:40,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 17px'}},
             h('span',{style:{fontFamily:T.sans,fontSize:16,fontWeight:500,color:'#6F7276'}}, this.en()?'Hideout':'아지트'),
-            h('span',{style:{display:'inline-flex',alignItems:'center',height:20,padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)',fontFamily:T.mono,fontSize:10.5,letterSpacing:'1px',color:'#6F7276',whiteSpace:'nowrap'}}, this.en()?'SOON':'준비중'))),
+            h('span',{style:{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.22)',fontFamily:T.mono,fontSize:10.5,letterSpacing:'1px',color:'#6F7276',whiteSpace:'nowrap'}}, this.en()?'SOON':'준비중'))),
         // 상점 행 7개 — 370x61 r8, 간격 8
-        ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Feed')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Module')||svc.includes('Sell'); const act=()=>this.openVendor(v.VendorID);
+        ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Feed')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Module')||svc.includes('Sell')||svc.includes('Haggle')||svc.includes('Register')||svc.includes('Claim'); const act=()=>this.openVendor(v.VendorID);
             const CHIP={ shop_clinic:['치료','Heal'], shop_hardware:['수리','Repair'], shop_canteen:['급식','Ration'], shop_tavern:['감정','Appraise'], shop_pawnshop:['흥정','Haggle'], shop_blackmarket:['거래','Trade'], shop_auction:['경매','Auction'] };
             const chipTxt=(CHIP[v.ShopID]||[])[this.en()?1:0]||'';
             return h('button',{key:v.VendorID,disabled:!open,onClick:open?act:null,
-              style:{position:'relative',flexShrink:0,height:61,textAlign:'left',border:'none',borderRadius:8,padding:0,cursor:open?'pointer':'default',overflow:'hidden',background:T.s3}},
+              style:{position:'relative',flexShrink:0,height:63,boxSizing:'border-box',textAlign:'left',border:'1px solid #36383C',borderRadius:8,padding:0,cursor:open?'pointer':'default',overflow:'hidden',background:T.s3}},
               h('div',{style:{position:'absolute',inset:0,backgroundImage:'url(assets/art/shop/'+v.ShopID+'.webp)',backgroundSize:'cover',backgroundPosition:'center'}}),
               h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(17,19,21,0.20) 0%, rgba(17,19,21,0.94) 100%)'}}),
               h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px 0 17px'}},
                 h('span',{style:{fontFamily:T.sans,fontSize:16,fontWeight:500,color:open?'#EAEBEE':'#6F7276',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.shopName(v.ShopID,v)),
                 open
-                  ? (chipTxt?h('div',{style:{flexShrink:0,display:'inline-flex',alignItems:'center',height:20,padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)'}}, h('span',{style:{fontFamily:T.mono,fontSize:10.5,letterSpacing:'1px',color:'#EAEBEE',whiteSpace:'nowrap'}}, chipTxt)):null)
-                  : h('div',{style:{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:20,padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)',color:T.faint,fontFamily:T.mono,fontSize:10}}, svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',12,T.faint,1.6), this.t('common_locked'))));
+                  ? (chipTxt?h('div',{style:{flexShrink:0,display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.22)'}}, h('span',{style:{fontFamily:T.mono,fontSize:10.5,letterSpacing:'1px',color:'#EAEBEE',whiteSpace:'nowrap'}}, chipTxt)):null)
+                  : h('div',{style:{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:24,boxSizing:'border-box',padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.22)',color:T.faint,fontFamily:T.mono,fontSize:10}}, svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',12,T.faint,1.6), this.t('common_locked'))));
           }))
       );
   }
@@ -2591,61 +2607,131 @@ void main(){
     const seen=new Set(); return [...eq,...inv].filter(x=>x&&x.sockets&&x.sockets.length>0&&!seen.has(x.uid)&&seen.add(x.uid)); }
   consumeInst(uid){ const dec=(arr)=>{ const i=arr.findIndex(x=>x.uid===uid); if(i<0)return false; if((arr[i].qty||1)>1)arr[i].qty--; else arr.splice(i,1); return true; }; return dec(this.gs.bag)||dec(this.gs.vault); }
 
-  // ================= 감정 (마르타 콜 · 전당포) =================
-  aprDialogue(line){ return h('div',{style:{background:T.s1,border:'1px solid '+T.line,borderRadius:6,padding:'13px 15px',marginBottom:16}},
-    h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:7}}, this.t('vendor_marta_label')),
-    h('div',{style:{fontFamily:T.sans,fontSize:14,color:T.hi,lineHeight:1.65,wordBreak:'keep-all'}}, '"'+line+'"')); }
-  runAppraise(){ const a=this.state.apr; const liq=this.eng.instById(this.gs,a.liquorUid), item=this.eng.instById(this.gs,a.itemUid); if(!liq||!item) return;
-    const cost=this.eng.N(this.eng.DATA.config.appraise_cost,0);
-    if(this.gs.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
-    const proof=liq.proof; const changes=this.eng.appraise(item,proof);
-    this.gs.sato-=cost; this.consumeInst(liq.uid);   // 감정 1회 = 술 1병 통째 소모(용량 개념 폐지 2026-08-18)
+  // ================= 감정 (주점 · 미스터 박) =================
+  // 흐름: 미감정 아이템 선택 → 술 최대 3병 선택 → 감정 → 카드 뒷면 → 플립 → 수치 카운트업.
+  // 술 도수는 "합산"해서 엔진 appraise(inst, proofPct)에 그대로 넘긴다(엔진 무수정).
+  aprMax(){ return Math.max(1, Math.round(this.eng.N(this.eng.DATA.config.appraise_max_liquor, 3))); }
+  // 수수료 = floor(도수 합) × 사토/도. 소수점은 도수 합 쪽에서 버린다(목업 19.50% → 1900 사토).
+  appraiseFee(totalProof){ return Math.floor(this.eng.N(totalProof)) * this.eng.N(this.eng.DATA.config.appraise_sato_per_proof, 100); }
+  aprLiquors(){ const a=this.state.apr||{}; return (a.liq||[]).map(u=>this.eng.instById(this.gs,u)).filter(Boolean); }
+  aprTotalProof(){ return this.aprLiquors().reduce((t,l)=>t+this.eng.N(l.proof), 0); }
+  aprToggleLiquor(uid){ const a=this.state.apr||{}; const cur=(a.liq||[]).slice(); const i=cur.indexOf(uid);
+    if(i>=0) cur.splice(i,1); else { if(cur.length>=this.aprMax()) return; cur.push(uid); }
+    this.setState({apr:Object.assign({},a,{liq:cur})}); }
+  runAppraise(){
+    const a=this.state.apr||{}; const item=this.eng.instById(this.gs,a.itemUid); const liqs=this.aprLiquors();
+    if(!item||!liqs.length) return;
+    const total=liqs.reduce((t,l)=>t+this.eng.N(l.proof),0); const fee=this.appraiseFee(total);
+    if(this.gs.sato<fee){ this.flash(this.t('shop_insufficient_sato')); return; }
+    const changes=this.eng.appraise(item,total);          // 도수 합 = ±변동폭
+    this.gs.sato-=fee; liqs.forEach(l=>this.consumeInst(l.uid));   // 제출한 술은 병째 소모
     const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp);
-    this.setState({apr:{...a,results:changes,proof}}); }
-  aprValFmt(k,v){ if(k==='growthTags') return ''; if(['accuracy','critChance','evasion','statusResist','atkSpeed','minAtk','maxAtk','def','maxDur','potency'].includes(k)) return Number(v).toFixed(2); return Number(v).toFixed(2); }
-  vendorAppraise(v){
-    const a=this.state.apr||{}; const step=a.results?'result':(!a.liquorUid?'liquor':(!a.itemUid?'item':'confirm'));
-    const label=(t)=>h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 10px'}}, t);
-    const card=(sel,onClick,inner)=>h('div',{onClick,style:{border:'1px solid '+(sel?T.line2:T.line),background:sel?T.s2:T.s1,borderRadius:6,padding:'12px 14px',cursor:'pointer',marginBottom:8}}, inner);
-    const primBtn=(t,onClick,disabled)=>h('button',{disabled,onClick:disabled?null:onClick,style:{width:'100%',background:'transparent',border:'1px solid '+(disabled?T.line:T.hi),color:disabled?T.faint:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'14px',borderRadius:4,cursor:disabled?'default':'pointer'}}, t);
-    const ghost=(t,onClick)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'11px',borderRadius:4,cursor:'pointer',marginTop:8}}, t);
-    let body=[], line;
-    if(step==='liquor'){ line=this.t('marta_intro'); const list=this.ownedLiquor();
-      body=[label(this.t('appraise_pick_liquor')), ...(list.length?list.map(inst=>{ const lq=this.eng.byId.liquor[inst.id];
-        return card(false,()=>this.setState({apr:{liquorUid:inst.uid}}), h('div',null,
-          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline'}},
-            h('span',{style:{fontFamily:T.sans,fontSize:14.5,fontWeight:500,color:T.hi}}, this.eng.anyName(inst.id)),
-            h('span',{style:{fontFamily:T.mono,fontSize:13,color:T.sato}}, '±'+Number(inst.proof).toFixed(2)+'%')),
-          h('div',{style:{fontFamily:T.mono,fontSize:10.5,color:T.lo,marginTop:3}}, this.t('appraise_proof_band')))); })
-        : [h('div',{key:'e',style:{fontFamily:T.sans,fontSize:13,color:T.faint,padding:'18px 0',textAlign:'center'}}, this.t('appraise_no_liquor'))])];
-    } else if(step==='item'){ line=this.t('marta_pick'); const liq=this.eng.instById(this.gs,a.liquorUid); const list=this.unappItems();
-      body=[label(this.t('appraise_pick_item')+' · ±'+Number(liq.proof).toFixed(2)+'%'), ...(list.length?list.map(inst=>
-        card(false,()=>this.setState({apr:{...a,itemUid:inst.uid}}), h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}},
-          h('div',null, h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:500,color:T.hi}}, this.itemLabel(inst)),
-            h('div',{style:{fontFamily:T.mono,fontSize:10.5,color:T.warn,marginTop:3}}, '◇ '+this.t('appraise_hidden_opts')+' '+inst.unappraised.length)),
-          this.unappBadge())))
-        : [h('div',{key:'e',style:{fontFamily:T.sans,fontSize:13,color:T.faint,padding:'18px 0',textAlign:'center'}}, this.t('appraise_no_item'))]),
-        ghost(this.t('btn_back'),()=>this.setState({apr:{}}))];
-    } else if(step==='confirm'){ line=this.t('marta_confirm'); const liq=this.eng.instById(this.gs,a.liquorUid), item=this.eng.instById(this.gs,a.itemUid);
-      const cost=this.eng.N(this.eng.DATA.config.appraise_cost,0);
-      body=[label(this.t('appraise_confirm')),
-        h('div',{key:'s',style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'14px',marginBottom:14}},
-          h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8}}, h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}}, this.itemLabel(item)), h('span',{style:{fontFamily:T.mono,fontSize:12,color:T.warn}}, '◇×'+item.unappraised.length)),
-          h('div',{style:{display:'flex',justifyContent:'space-between'}}, h('span',{style:{fontFamily:T.sans,fontSize:12.5,color:T.lo}}, this.eng.anyName(liq.id)), h('span',{style:{fontFamily:T.mono,fontSize:12,color:T.sato}}, '±'+Number(liq.proof).toFixed(2)+'%'+(cost>0?' · '+cost+' '+this.t('currency_sato'):'')))),
-        primBtn(this.t('appraise_execute'),()=>this.runAppraise()),
-        ghost(this.t('btn_back'),()=>this.setState({apr:{liquorUid:a.liquorUid}}))];
-    } else { line=this.t('marta_done'); const item=this.eng.instById(this.gs,a.itemUid); const rs=a.results||[];
-      body=[label(this.t('appraise_revealed')),
-        h('div',{key:'r',style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'6px 14px',marginBottom:14}},
-          ...rs.map((r,i)=>h('div',{key:i,style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',padding:'9px 0',borderBottom:i<rs.length-1?'1px solid '+T.line:'none'}},
-            h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}}, this.t(this.optStatKey(r.key))),
-            r.key==='growthTags'
-              ? h('span',{style:{fontFamily:T.mono,fontSize:12.5,color:T.growth}}, (r.growth&&r.growth.length?r.growth.map(g=>({str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')}[g])).join(' · '):'—'))
-              : h('span',{style:{fontFamily:T.mono,fontSize:12.5}}, h('span',{style:{color:T.faint}}, this.aprValFmt(r.key,r.from)), h('span',{style:{color:T.lo,margin:'0 6px'}},'→'), h('span',{style:{color:r.to>=r.from?T.good:T.danger,fontWeight:500}}, this.aprValFmt(r.key,r.to)))))),
-        primBtn(this.t('btn_confirm'),()=>this.setState({apr:{}}))];
-    }
-    return h('div',{style:{flex:1,overflowY:'auto',padding:'16px 18px 20px'}}, this.aprDialogue(line), ...body);
+    this.flipSettled(this,'apr',false);   // 직전 감정의 '평면 복귀' 표시를 지운다 — 안 지우면 2회차 플립이 3D로 안 돈다
+    this.setState({apr:{itemUid:a.itemUid,liq:[],phase:'card',results:changes,proof:total,flipped:false}});
   }
+  // 카운트업 — rolls를 from으로 되돌린 뒤 to까지 보간한다.
+  // 색(증가 초록·감소 빨강)은 itemDetailStats가 apprDelta로 이미 칠하므로 손대지 않는다.
+  aprNums(){ return (((this.state.apr||{}).results)||[]).filter(r=>r.key!=='growthTags'&&r.from!=null); }
+  // maxDur은 rolls만 바꿔선 화면(durTxt)이 안 따라온다 — 인스턴스 본체까지 같이 굴린다.
+  aprPutRoll(item,key,v){ item.rolls[key]=v;
+    if(key==='maxDur'){ item.maxDur=Math.max(1,Math.round(v)); item.dur=Math.min(item.dur,item.maxDur); } }
+  aprSettle(){ if(this._aprRaf){ cancelAnimationFrame(this._aprRaf); this._aprRaf=null; }
+    clearTimeout(this._aprT);
+    const item=this.eng.instById(this.gs,(this.state.apr||{}).itemUid);
+    if(item&&item.rolls) this.aprNums().forEach(r=>{ this.aprPutRoll(item,r.key,r.to); }); }
+  aprFlip(){ const a=this.state.apr; if(!a||a.flipped) return;
+    const item=this.eng.instById(this.gs,a.itemUid);
+    if(item&&item.rolls) this.aprNums().forEach(r=>{ this.aprPutRoll(item,r.key,r.from); });
+    this.setState({apr:Object.assign({},a,{flipped:true})});
+    clearTimeout(this._aprT); this._aprT=setTimeout(()=>this.aprAnimate(), 330);   // 앞면이 드러난 뒤 시작
+  }
+  aprAnimate(){
+    const item=this.eng.instById(this.gs,(this.state.apr||{}).itemUid); const num=this.aprNums();
+    if(!item||!item.rolls||!num.length) return;
+    const dur=900, t0=performance.now();
+    const step=(now)=>{ const p=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-p,3);
+      num.forEach(r=>{ this.aprPutRoll(item,r.key,r.from+(r.to-r.from)*e); });
+      this.forceUpdate();
+      if(p<1){ this._aprRaf=requestAnimationFrame(step); }
+      else { this._aprRaf=null; this.aprSettle(); this.forceUpdate(); } };
+    this._aprRaf=requestAnimationFrame(step);
+  }
+  aprDone(){ this.aprSettle(); this.setState({apr:null}); this.go('safehouse'); }
+  // ================= 흥정 (전당포 · 마르타 콜) =================
+  // 귀중품은 가치가 숨어 있다. 카드를 위로 올려 보내면 마르타가 값을 부르고(최대 3회),
+  // 매번 직전 제시가에서 오르내린다. 수수료 없음(2026-08-23 확정 — 구 valuable_fee_k 폐기).
+  hgMax(){ return Math.max(1, Math.round(this.eng.N(this.eng.DATA.config.haggle_max_rounds, 3))); }
+  hgSwing(){ return this.eng.N(this.eng.DATA.config.haggle_swing, 0.35); }
+  valuablesOwned(){ return this.ownedBy(x=>this.eng.byId.valuable&&this.eng.byId.valuable[x.id]); }
+  // 1회차 = 밴드 균등롤 / 2회차부터 = 직전값 ±swing, Min~Max 클램프
+  hgRoll(inst){
+    const v=(this.eng.byId.valuable&&this.eng.byId.valuable[inst.id])||{};
+    const lo=Math.max(1,this.eng.N(v.MinValue)), hi=Math.max(lo,this.eng.N(v.MaxValue));
+    const u=(a,b)=>a+Math.random()*(b-a);
+    const prev=(inst.value==null)?null:this.eng.N(inst.value);
+    const s=this.hgSwing();
+    const raw=(prev==null)? u(lo,hi) : Math.min(hi,Math.max(lo, prev*u(1-s,1+s)));
+    return { from:(prev==null?0:prev), to:Math.max(1,Math.round(raw)) };
+  }
+  // 대사 — 시트 NpcDialogue(NPC=vendor_pawnshop, Flow=haggle) 우선, 없으면 내장 폴백
+  hgLine(stage){
+    const rows=(this.eng.DATA.npcDialogue||[]).filter(r=>String(r.NPC||'')==='vendor_pawnshop'&&String(r.Flow||'')==='haggle'&&String(r.Stage||'')===stage);
+    if(rows.length){ const r=rows[Math.floor(Math.random()*rows.length)]; return this.tx(r,'Line')||r.Line_KR||''; }
+    const pool=HAGGLE_TPL[stage]||[['','']];
+    return pool[Math.floor(Math.random()*pool.length)][this.en()?1:0];
+  }
+  // 소진 대사는 렌더마다 새로 뽑히면 깜빡인다 — 아이템별 1회만 뽑아 고정
+  hgMaxLine(uid){ if(!this._hgMaxL||this._hgMaxL.uid!==uid) this._hgMaxL={uid,line:this.hgLine('max')}; return this._hgMaxL.line; }
+  hgVendorName(){ const v=this.eng.byId.vendor['vendor_pawnshop']; return (v&&this.tx(v,'VendorName'))||'마르타 콜'; }
+  hgSel(){ const g=this.state.hg||{}; const list=this.valuablesOwned(); return list[Math.min(g.focus||0, Math.max(0,list.length-1))]||null; }
+  hgFocus(i){ const list=this.valuablesOwned(); const g=this.state.hg||{}; this.setState({hg:Object.assign({},g,{focus:Math.max(0,Math.min(list.length-1,i))})}); }
+  // 위로 올려 흥정 — 카드 리프트 → 대사 → 뒷면 하강
+  hgStart(){
+    const g=this.state.hg||{}; const inst=this.hgSel();
+    if(!inst||g.phase==='lift'||g.phase==='talk') return;
+    if((inst.haggle||0)>=this.hgMax()) return;
+    if(g.phase==='list'&&inst.value!=null) return;   // 화면을 한 번 벗어난 카드는 값이 확정된 것
+    const stage=(inst.haggle||0)===0?'intro':'again';
+    this.setState({hg:Object.assign({},g,{phase:'lift'})});
+    clearTimeout(this._hgT);
+    this._hgT=setTimeout(()=>{
+      this.setState({hg:Object.assign({},this.state.hg,{phase:'talk',line:this.hgLine(stage)})});
+      this._hgT=setTimeout(()=>{
+        const r=this.hgRoll(inst); inst.haggle=(inst.haggle||0)+1;
+        this.setState({hg:Object.assign({},this.state.hg,{phase:'back',pend:r})});
+      }, 1400);
+    }, 450);
+  }
+  hgFlip(){
+    const g=this.state.hg||{}; if(g.phase!=='back') return;
+    const inst=this.hgSel(), r=g.pend; if(!inst||!r) return;
+    inst.value=r.from; inst.valueUp=(r.to>=r.from);
+    this.setState({hg:Object.assign({},g,{phase:'front'})});
+    clearTimeout(this._hgAnimT);
+    this._hgAnimT=setTimeout(()=>this.hgAnimate(inst,r), 330);   // 앞면이 드러난 뒤 카운트업
+  }
+  hgAnimate(inst,r){
+    if(this._hgRaf) cancelAnimationFrame(this._hgRaf);
+    const dur=900, t0=performance.now();
+    const step=(now)=>{ const p=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-p,3);
+      inst.value=Math.round(r.from+(r.to-r.from)*e); this.forceUpdate();
+      if(p<1) this._hgRaf=requestAnimationFrame(step); else { this._hgRaf=null; inst.value=r.to; this.forceUpdate(); } };
+    this._hgRaf=requestAnimationFrame(step);
+  }
+  hgSettle(){ if(this._hgRaf){ cancelAnimationFrame(this._hgRaf); this._hgRaf=null; }
+    clearTimeout(this._hgT); clearTimeout(this._hgAnimT);
+    const g=this.state.hg||{}, inst=this.hgSel();
+    if(inst&&g.pend&&g.phase==='front') inst.value=g.pend.to; }
+  hgSell(){
+    const inst=this.hgSel(); if(!inst||inst.value==null) return;
+    this.hgSettle();
+    const price=Math.max(0,Math.round(this.eng.N(inst.value)));
+    this.gs.sato+=price; this.consumeInst(inst.uid);
+    this.flash(this.eng.anyName(inst.id)+' · '+price.toLocaleString()+' '+this.t('currency_sato'));
+    const n=this.valuablesOwned().length;
+    this.setState({hg:{focus:Math.max(0,Math.min((this.state.hg||{}).focus||0, n-1)),phase:'list'}});
+  }
+  hgBack(){ this.hgSettle(); this.setState({hg:null,screen:'vendorMenu'}); }
 
   // ================= 모듈 (미스터 박 · 소켓) =================
   attachModuleNow(){ const m=this.state.mod; const item=this.eng.instById(this.gs,m.itemUid); const cost=this.eng.N(this.eng.DATA.config.module_attach_cost,500);
@@ -3046,7 +3132,8 @@ void main(){
     const itRow=this.eng.byId.item[inst.id]; const maxStk=(itRow&&!liq&&!md&&!usb)?this.eng.N(itRow.MaxStack):0;
     // 귀중품: 흥정(전당포) 전이라 확정 가격이 없다 → 가치 밴드만 보여준다. 판매는 sellables()에서 이미 제외됨.
     const val=this.eng.byId.valuable&&this.eng.byId.valuable[inst.id];
-    const allStats=val?[[this.en()?'Value':'가치', this.eng.N(val.MinValue)+'~'+this.eng.N(val.MaxValue)+(this.en()?' sato':' 사토')]]:usb?[[this.t('usb_permanent_growth'),this.eng.substUsbTokens('{STAT}',usb)],[this.t('combat_time_limit'),this.eng.N(usb.UploadMinutes,1)+(this.en()?'m':'분')]]:(isBag?[[this.en()?'Slots':'슬롯',String(this.eng.N(s.Capacity)),'#83B289']]:((isGear||liq||md||s.Category==='Medicine'||s.Category==='Food')?this.itemDetailStats(inst):[]));
+    // 귀중품 가치는 흥정 전까지 완전 숨김(미감정 원칙) — 흥정 후에만 확정값 노출
+    const allStats=val?[[this.en()?'Value':'가치', (inst.value!=null? Math.round(this.eng.N(inst.value)).toLocaleString() : (this.en()?'Unknown':'알 수 없음')), (inst.value!=null&&inst.valueUp===false)?'#C4675D':'#83B289']]:usb?[[this.t('usb_permanent_growth'),this.eng.substUsbTokens('{STAT}',usb)],[this.t('combat_time_limit'),this.eng.N(usb.UploadMinutes,1)+(this.en()?'m':'분')]]:(isBag?[[this.en()?'Slots':'슬롯',String(this.eng.N(s.Capacity)),'#83B289']]:((isGear||liq||md||s.Category==='Medicine'||s.Category==='Food')?this.itemDetailStats(inst):[]));
     const stats=allStats.filter(([k])=>k!==this.t('item_durability'));
     const desc=this.tx(s,'Description')||(inst.kind==='talisman'&&(this.tx(s,'EffectDesc')||s.EffectDesc_KR))||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||(usb&&this.tx(usb,'Description'))||'';
     const hasSockets=isGear&&inst.sockets&&inst.sockets.length;
@@ -3608,7 +3695,7 @@ void main(){
     h('div',{style:{height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:color}}))); }
   fstepper(q,max){ const box=(t,fn)=>h('button',{onClick:fn,style:{width:30,height:30,background:'transparent',border:'1px solid #4a4d53',borderRadius:4,color:'#a9abaf',fontFamily:T.mono,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0}},t);
     return h('div',{style:{display:'flex',alignItems:'center',gap:12}}, box('−',()=>this.setState({moveQty:Math.max(1,q-1)})), h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#eaebee',minWidth:45,textAlign:'center'}}, q+' / '+max), box('+',()=>this.setState({moveQty:Math.min(max,q+1)}))); }
-  frow(label,val,color,divider){ return h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:44,borderTop:divider?'1px solid #36383C':'none'}}, h('span',{style:{fontFamily:T.sans,fontSize:14,color:'#A9ABAF'}},label), h('span',{style:{fontFamily:T.mono,fontSize:14,color:color||'#A9ABAF'}},val)); }
+  frow(label,val,color,divider){ return h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:36,borderTop:divider?'1px solid #36383C':'none'}}, h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#A9ABAF'}},label), h('span',{style:{fontFamily:T.mono,fontSize:13,color:color||'#A9ABAF'}},val)); }
   // ---- character ----
   character(){
     const g=this.gs; const full=this.eng.playerProfile(g,false);
@@ -3774,8 +3861,9 @@ void main(){
         list.length? h('div',{style:{padding:'16px 16px 0',display:'flex',flexDirection:'column',gap:16}}, ...list.map((inst,i)=>this.repairRow(inst,i))) : this.repairEmpty()));
   }
   fchip(label,color,border,dot){ return h('div',{style:{display:'flex',alignItems:'center',gap:5,background:'#212327',border:'1px solid '+border,borderRadius:4,padding:'3px 7px',boxSizing:'border-box'}}, dot?h('div',{style:{width:5,height:5,borderRadius:999,background:color,flexShrink:0}}):null, h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color}},label)); }
-  emptyRow(text){ return h('div',{style:{display:'flex',justifyContent:'center',alignItems:'center',gap:6,padding:'20px 8px'}},
-    icInfo(22,'#6f7276',1.7),
+  // 빈 목록 안내 — 목록 영역 세로 중앙(svg/screen-pawnshop-shop.svg y405). 아이콘 17 · 텍스트 12
+  emptyRow(text){ return h('div',{style:{flex:1,minHeight:120,display:'flex',justifyContent:'center',alignItems:'center',gap:10,padding:'20px 8px'}},
+    icInfo(17,'#6f7276',1.7),
     h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#6f7276',lineHeight:1.55}}, text)); }
   repairEmpty(){ return this.emptyRow(this.t('repair_none')); }
   // 수리 가능 행 — svg/screen-hardware-fix-item.svg (pitch 104 · 칩 h16 · 바 y305 h5)
@@ -3785,19 +3873,19 @@ void main(){
     const pct=inst.maxDur>0?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0;
     const GKR={str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')};
     const gtags=this.eng.growthTagsActive(inst)||[];
-    const chip=(txt,col,dot)=>h('div',{style:{display:'flex',alignItems:'center',gap:6,height:16,boxSizing:'border-box',padding:'0 8px',borderRadius:4,background:dot?'#212327':'rgba(10,11,14,0.55)'}},
+    const chip=(txt,col,dot)=>h('div',{style:{display:'flex',alignItems:'center',gap:6,height:20,boxSizing:'border-box',padding:'0 8px',borderRadius:4,background:dot?'#212327':'rgba(10,11,14,0.55)'}},
       dot?h('div',{style:{width:5,height:5,borderRadius:999,background:col,flexShrink:0}}):null,
-      h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'16px',color:dot?'#EAEBEE':'#A9ABAF',whiteSpace:'nowrap'}},txt));
+      h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'20px',color:dot?'#EAEBEE':'#A9ABAF',whiteSpace:'nowrap'}},txt));
     return h('div',{key:inst.uid,onClick:()=>this.setState({repairSel:inst.uid}),
       style:{height:104,boxSizing:'border-box',padding:'9px 16px 0',cursor:'pointer',borderBottom:'1px solid '+T.line}},
-      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:16}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:20}},
         chip(CATKR[src.Category]||src.Category||'', eqp?'#83B289':'#A9ABAF', true),
         gtags.length? chip(GKR[gtags[0]]||gtags[0],'#A9ABAF',false) : null),
-      h('div',{style:{fontFamily:T.sans,fontSize:16,lineHeight:'20px',color:'#EAEBEE',marginTop:12,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
-      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:13,marginTop:12}},
-        h('span',{style:{fontFamily:T.sans,fontSize:13,lineHeight:'13px',color:'#6F7276'}}, this.t('item_durability')),
-        h('span',{style:{fontFamily:T.mono,fontSize:13,lineHeight:'13px',color:'#A9ABAF'}}, inst.dur+' / '+inst.maxDur)),
-      h('div',{style:{height:5,background:'#2B2E32',borderRadius:2.5,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:'#A5ACB2'}})));
+      h('div',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',color:'#EAEBEE',marginTop:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:13,marginTop:5}},
+        h('span',{style:{fontFamily:T.sans,fontSize:11,lineHeight:'13px',color:'#6F7276'}}, this.t('item_durability')),
+        h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'13px',color:'#A9ABAF'}}, this.durTxt(inst,' / '))),
+      h('div',{style:{height:5,marginTop:8,background:'#2B2E32',borderRadius:2.5,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:'#A5ACB2'}})));
   }
   repairConfirm(){
     const inst=this.eng.instById(this.gs,this.state.repairSel); if(!inst) return null;
@@ -3806,23 +3894,23 @@ void main(){
     const row=(k,v,col)=>h('div',{key:k,style:{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid '+T.line}}, h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}},k), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col||T.hi}},v));
     return h('div',{onClick:()=>this.setState({repairSel:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.66)',display:'flex',alignItems:'flex-end',zIndex:34,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 24px',background:'#18191D',borderRadius:24,padding:'0 17px 25px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
-        h('div',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'10px',letterSpacing:'.12em',color:'#4B4D52',padding:'24px 0 0'}}, this.en()?'REPAIR DETAILS':'수리 내역'),
-        h('div',{style:{fontFamily:T.sans,fontSize:20,lineHeight:'20px',fontWeight:500,color:'#EAEBEE',margin:'8px 0 0'}}, this.itemLabel(inst)),
+        h('div',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'10px',letterSpacing:'.12em',color:'#4B4D52',padding:'26px 0 0'}}, this.en()?'REPAIR DETAILS':'수리 내역'),
+        h('div',{style:{fontFamily:T.sans,fontSize:16,lineHeight:'16px',fontWeight:500,color:'#EAEBEE',margin:'10px 0 0'}}, this.itemLabel(inst)),
         h('div',null,
-          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:13,margin:'21px 0 8px'}},
-            h('span',{style:{fontFamily:T.sans,fontSize:13,lineHeight:'13px',color:'#6F7276'}}, this.t('item_durability')),
-            h('span',{ref:el=>this._repNum=el,style:{fontFamily:T.mono,fontSize:13,lineHeight:'13px',color:'#A9ABAF',letterSpacing:'.05em'}}, Math.round(inst.dur)+' / '+Math.round(inst.maxDur))),
+          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:13,margin:'22px 0 7px'}},
+            h('span',{style:{fontFamily:T.sans,fontSize:10,lineHeight:'13px',color:'#6F7276'}}, this.t('item_durability')),
+            h('span',{ref:el=>this._repNum=el,style:{fontFamily:T.mono,fontSize:12,lineHeight:'13px',color:'#A9ABAF',letterSpacing:'.05em'}}, Math.round(inst.dur)+' / '+Math.round(inst.maxDur))),
           h('div',{className:'rcv-bar',ref:el=>this._repBar=el,style:{position:'relative',height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden','--rcv-edge':'#c9cfd4','--rcv-pulse':'rgba(131,178,137,.55)'}},
             h('div',{className:'rcv-fill',ref:el=>this._repFill=el,style:{width:(inst.maxDur>0?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0)+'%',background:'#a5acb2'}}),
             h('div',{className:'rcv-shim'}))),
-        h('div',{style:{marginTop:8}},
+        h('div',{style:{marginTop:16}},
           this.frow(this.en()?'Perfect repair':'완벽 수리 확률', successPct+'%','#CCA26E',false),
           this.frow(this.en()?'Durability to repair':'수리할 내구도', String(worn),'#A9ABAF',true),
           this.frow(this.t('repair_cost'), cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85B3C5':'#C4675D', true)),
         aff? this.infoBox('nosato', this.t('repair_fail_warn')) : this.infoBox('nosato', this.t('shop_insufficient_sato')),
         h('div',{style:{display:'flex',gap:8,marginTop:16}},
-          h('button',{disabled:!aff,onClick:aff?()=>this.doRepair(inst):null,style:{flex:1,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:24,color:aff?'#EAEBEE':'#4B4D52',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:aff?'pointer':'default'}}, this.en()?'Repair':'수리'),
-          h('button',{onClick:()=>this.setState({repairSel:null}),style:{flex:1,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:24,color:'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.t('btn_cancel')))));
+          h('button',{disabled:!aff,onClick:aff?()=>this.doRepair(inst):null,style:{flex:1,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:24,color:aff?'#EAEBEE':'#4B4D52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:aff?'pointer':'default'}}, this.en()?'Repair':'수리'),
+          h('button',{onClick:()=>this.setState({repairSel:null}),style:{flex:1,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:24,color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_cancel')))));
   }
   // ---- vendor (구매/판매/수리 · Services 기반) ----
   // ===== 상점 메뉴 (svg/screen-clinic-menu.svg) =====
@@ -3834,11 +3922,13 @@ void main(){
     if(svc.includes('Heal')) add('heal', this.t('heal_treat'));
     if(svc.includes('Repair')) add('repair', this.en()?'Repair':'수리하기');
     if(svc.includes('Feed')||svc.includes('Distribute')) add('feed', this.en()?'Rations':'배식하기');
-    if(svc.includes('Appraisal')) add('appraise', this.en()?'Appraise':'감정하기');
+    if(svc.includes('Appraisal')) add('appraise', this.en()?'Appraise':'감정받기');
+    if(svc.includes('Haggle')) add('haggle', this.en()?'Haggle':'흥정하기');   // Buyout은 별도 항목 없이 흥정 화면의 [판매하기]
     if(svc.includes('Module')) add('module', this.t('module_tab'));
     if(svc.includes('Load')) add('load', this.t('usb_decode'));
     const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID);
     if(buyRows.length||svc.includes('Sell')) add('trade', this.en()?'Trade':'거래하기');
+    if(svc.includes('Register')||svc.includes('Claim')) add('auction', this.en()?'Online Auction':'온라인 경매장', true);   // 백로그 — 잠금
     if(svc.includes('Quest')) add('quest', this.t('nav_quest'), true);   // 백로그 — 잠금
     add('exit', this.en()?'Leave':'나가기');
     return out;
@@ -3860,21 +3950,21 @@ void main(){
       // 패널 — svg x16.5 y516.5 369x287 r24 · 버튼 333x48 r24 간격 16
       h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',flexDirection:'column',gap:16}},
         ...items.map(it=>h('button',{key:it.k,disabled:it.locked,
-          onClick:it.locked?null:()=>{ if(it.k==='exit') this.go('safehouse'); else if(it.k==='trade') this.openVendorTab(this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID)?'buy':'sell'); else this.openVendorTab(it.k); },
-          style:{height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:it.locked?'#6F7276':'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:it.locked?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
+          onClick:it.locked?null:()=>{ if(it.k==='exit') this.go('safehouse'); else if(it.k==='trade') this.openVendorTab((this.services(v).includes('Buy')||this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID))?'buy':'sell'); else this.openVendorTab(it.k); },
+          style:{height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:it.locked?'#6F7276':'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:it.locked?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
           it.locked? svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',15,'#6F7276',1.6) : null,
           h('span',{key:'l'}, it.label)))));
   }
   // ===== 수리 리스트 (svg/screen-hardware-fix-item.svg) =====
   // 아트 175 + '수리 가능 아이템' 라벨 바(y175~223, 하단 모서리 r16) + 행(pitch 104) + 뒤로가기 박스
-  shopArtTop(shopId){
-    return h('div',{key:'shoptop',style:{position:'absolute',left:0,right:0,top:0,height:175,zIndex:0,pointerEvents:'none',
+  shopArtTop(shopId,hh){
+    return h('div',{key:'shoptop',style:{position:'absolute',left:0,right:0,top:0,height:hh||175,zIndex:0,pointerEvents:'none',
       backgroundImage:'linear-gradient(180deg,#111315 0%,rgba(17,19,21,0) 87.88%), url(assets/art/shop/'+shopId+'.webp)',
       backgroundSize:'cover',backgroundPosition:'center'}});
   }
   shopBackBox(){
     return h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D'}},
-      h('button',{onClick:()=>this.setState({screen:'vendorMenu'}),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.en()?'Back':'뒤로가기'));
+      h('button',{onClick:()=>this.setState({screen:'vendorMenu'}),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'Back':'뒤로가기'));
   }
   vendorRepairScreen(v){
     const list=this.repairables();
@@ -3883,15 +3973,215 @@ void main(){
       this.shopHeader(this.shopName(v.ShopID,v), ()=>this.setState({screen:'vendorMenu'})),
       h('div',{style:{flex:'0 0 auto',height:85}}),
       h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',height:48,boxSizing:'border-box',background:'#18191D',borderRadius:'0 0 16px 16px',display:'flex',alignItems:'center',padding:'0 16px'}},
-        h('span',{style:{fontFamily:T.mono,fontSize:12,letterSpacing:'.06em',color:'#6F7276'}}, this.en()?'REPAIRABLE ITEMS':'수리 가능 아이템')),
-      h('div',{style:{position:'relative',zIndex:1,flex:1,minHeight:0,overflowY:'auto'}},
+        h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.06em',color:'#6F7276'}}, this.en()?'REPAIRABLE ITEMS':'수리 가능 아이템')),
+      h('div',{style:{position:'relative',zIndex:1,flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column'}},
         list.length? list.map((inst,i)=>this.repairRow(inst,i)) : this.repairEmpty()),
       this.shopBackBox());
   }
+  // ===== 감정 리스트 (svg/screen-bar-appraisal.svg) =====
+  // 아트 175 + '미감정 아이템' 라벨 바(y175~223, 하단 r16) + 행(pitch 101) + 뒤로가기 박스
+  aprItemRow(inst){
+    const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||{};
+    const GKR={str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')};
+    const gtags=this.eng.growthTagsActive(inst)||[];
+    const desc=this.tx(src,'Description')||[src.Material,(AT(src.Attribute)?this.t('status_'+src.Attribute):null)].filter(Boolean).join(' · ');
+    return h('div',{key:inst.uid,onClick:()=>this.setState({apr:{itemUid:inst.uid,liq:[]}}),
+      style:{height:101,boxSizing:'border-box',padding:'15px 16px 0',cursor:'pointer',borderBottom:'1px solid '+T.line}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,height:20}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:6,minWidth:0}},
+          this.catChip(CATKR[src.Category]||src.Category||'',false), this.unappTag()),
+        gtags.length? this.shopPill(GKR[gtags[0]]||gtags[0],'rgb(169,171,175)') : null),
+      h('div',{style:{display:'flex',alignItems:'center',gap:8,marginTop:8,height:20}},
+        h('span',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',color:'#EAEBEE',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
+        (inst.sockets&&inst.sockets.length)?this.socketBars(inst):null),
+      desc? h('div',{style:{fontFamily:T.sans,fontSize:12,lineHeight:'17px',color:'#6F7276',marginTop:5,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, desc):null);
+  }
+  vendorAppraiseScreen(v){
+    const list=this.unappItems();
+    return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
+      this.shopArtTop(v.ShopID),
+      this.shopHeader(this.shopName(v.ShopID,v), ()=>this.setState({screen:'vendorMenu'})),
+      h('div',{style:{flex:'0 0 auto',height:85}}),
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',height:48,boxSizing:'border-box',background:'#18191D',borderRadius:'0 0 16px 16px',display:'flex',alignItems:'center',padding:'0 16px'}},
+        h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.06em',color:'#6F7276'}}, this.en()?'UNAPPRAISED ITEMS':'미감정 아이템')),
+      h('div',{style:{position:'relative',zIndex:1,flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column'}},
+        list.length? list.map(inst=>this.aprItemRow(inst)) : this.emptyRow(this.t('appraise_no_item'))),
+      this.shopBackBox());
+  }
+  // ===== 술 선택 (svg/screen-bar-appraisal-liquor.svg) =====
+  // 아트를 116으로 줄이고 '소지품' 라벨 바(y116~164) + 술 행 + 하단 고정 패널(x16 y520 370x284 r24).
+  // 선택 표시는 catChip의 on(초록 테두리+초록 dot) 그대로. 최대 3병, 다시 누르면 해제.
+  aprLiquorRow(inst,on){
+    const lq=this.eng.byId.liquor[inst.id]||{};
+    return this.shopRow({key:inst.uid, cat:'술', on,
+      name:this.eng.anyName(inst.id),
+      desc:this.tx(lq,'Description')||this.tx(lq,'Notes')||'',
+      priceLabel:Number(this.eng.N(inst.proof)).toFixed(2)+'%', priceColor:'rgb(133,179,197)',
+      countLabel:null, onClick:()=>this.aprToggleLiquor(inst.uid)});
+  }
+  appraiseLiquorScreen(v){
+    const a=this.state.apr||{}; const item=this.eng.instById(this.gs,a.itemUid);
+    if(!item) return this.vendorAppraiseScreen(v);
+    const list=this.ownedLiquor(), sel=a.liq||[], MAX=this.aprMax();
+    const total=this.aprTotalProof(), fee=this.appraiseFee(total);
+    const aff=this.gs.sato>=fee, can=sel.length>0&&aff, left=MAX-sel.length;
+    // 안내 문구 3종 — 사토 부족이 최우선(행동을 막으므로), 그다음 가득참, 기본은 남은 선택 가능 수
+    const ik=!aff?'nosato':(left<=0?'full':'default');
+    const info=ik==='nosato'? this.t('shop_insufficient_sato')
+      : ik==='full'? (this.en()?'All bottles selected.':'모든 술이 선택되었습니다.')
+      : (this.en()?('You can select '+left+' more bottle'+(left>1?'s':'')+'.'):('총 '+left+'개의 술을 선택 가능합니다.'));
+    const row=(label,val,col,first)=>h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:36,borderTop:first?'none':'1px solid #36383C'}},
+      h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#A9ABAF'}},label),
+      h('span',{style:{fontFamily:T.mono,fontSize:13,color:col}},val));
+    const back=()=>this.setState({apr:{}});
+    return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
+      this.shopArtTop(v.ShopID,116),
+      this.shopHeader(this.shopName(v.ShopID,v), back),
+      h('div',{style:{flex:'0 0 auto',height:26}}),
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',height:48,boxSizing:'border-box',background:'#18191D',borderRadius:'0 0 16px 16px',display:'flex',alignItems:'center',padding:'0 16px'}},
+        h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.06em',color:'#6F7276'}}, this.t('nav_belongings'))),
+      h('div',{style:{position:'relative',zIndex:1,flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column'}},
+        list.length? list.map(l=>this.aprLiquorRow(l, sel.indexOf(l.uid)>=0)) : this.emptyRow(this.t('appraise_no_liquor'))),
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'0 17px 25px',boxSizing:'border-box',borderRadius:24,background:'#18191D'}},
+        h('div',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'10px',letterSpacing:'.12em',color:'#4B4D52',padding:'26px 0 0'}}, this.en()?'APPRAISAL ITEM':'감정 아이템'),
+        h('div',{style:{fontFamily:T.sans,fontSize:16,lineHeight:'16px',fontWeight:500,color:T.hi,margin:'10px 0 0',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(item)),
+        h('div',{style:{marginTop:26}},
+          row(this.t('appraise_tab'), total.toFixed(2)+'% ('+sel.length+'/'+MAX+')', 'rgb(133,179,197)', true),
+          row(this.en()?'Fee':'수수료', fee.toLocaleString()+' '+this.t('currency_sato'), aff?'rgb(133,179,197)':T.danger, false)),
+        this.infoBox(ik,info),
+        h('div',{style:{display:'flex',gap:8,marginTop:16}},
+          h('button',{disabled:!can,onClick:can?()=>this.runAppraise():null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:can?'#EAEBEE':'#4B4D52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:can?'pointer':'default'}}, this.t('appraise_execute')),
+          h('button',{onClick:back,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'Back':'뒤로가기'))));
+  }
+  // ===== 감정 카드 (svg/screen-bar-appraisal-card-back.svg · -card-result.svg) =====
+  // 뒷면 = 전리품과 같은 item_back, 플립 = 전투 카드와 동일한 3D 경로(flipSettled로 평면 복귀).
+  // 배경만 세로 아트(shop_tavern_top) — _top 아트는 주점·전당포 서비스 화면 전용.
+  // 카드 아래 힌트 — kind 'flip'(카드 두 장 겹친 글리프) / 'up'(더블 셰브런). 둘 다 목업에서 그대로 뽑은 패스.
+  // 위치는 svg 기준 아이콘 y631 · 텍스트 y653 (주점·전당포 동일)
+  cardHint(kind,text,absolute){
+    const box=absolute===false?{}:{position:'absolute',left:0,right:0,bottom:0};
+    const ic = kind==='up'
+      ? h('svg',{width:16,height:12,viewBox:'192 631 16 12',fill:'#454545',style:{display:'block'}},
+          h('path',{key:'p',fillRule:'evenodd',clipRule:'evenodd',d:'M207.819 642.738C207.55 643.053 207.076 643.089 206.762 642.819L200.25 637.238L193.738 642.819C193.424 643.089 192.95 643.053 192.681 642.738C192.411 642.424 192.447 641.95 192.762 641.681L199.762 635.681C200.043 635.44 200.457 635.44 200.738 635.681L207.738 641.681C208.053 641.95 208.089 642.424 207.819 642.738ZM207.819 638.738C207.55 639.053 207.076 639.089 206.762 638.819L200.25 633.238L193.738 638.819C193.424 639.089 192.95 639.053 192.681 638.738C192.411 638.424 192.447 637.95 192.762 637.681L199.762 631.681C200.043 631.44 200.457 631.44 200.738 631.681L207.738 637.681C208.053 637.95 208.089 638.424 207.819 638.738Z'}))
+      : h('svg',{width:17,height:17,viewBox:'193 629 17 17',fill:'#454545',style:{display:'block'}},
+        h('path',{key:'p',fillRule:'evenodd',clipRule:'evenodd',d:'M205.211 629.61L205.264 629.624C206.151 629.857 206.853 630.041 207.406 630.237C207.971 630.437 208.432 630.667 208.811 631.015C209.364 631.523 209.751 632.18 209.923 632.904C210.041 633.401 210.013 633.907 209.907 634.487C209.804 635.054 209.616 635.743 209.378 636.612L208.946 638.193C208.709 639.062 208.521 639.751 208.321 640.293C208.117 640.847 207.883 641.299 207.528 641.671C207.026 642.196 206.382 642.569 205.672 642.745C205.465 643.211 205.162 643.634 204.78 643.985C204.4 644.333 203.939 644.563 203.374 644.763C202.822 644.959 202.119 645.143 201.233 645.376L201.179 645.39C200.293 645.623 199.59 645.808 199.012 645.909C198.42 646.013 197.904 646.04 197.398 645.925C196.66 645.756 195.99 645.376 195.472 644.834C195.117 644.462 194.883 644.01 194.679 643.456C194.479 642.914 194.291 642.225 194.054 641.355L193.622 639.775C193.384 638.906 193.196 638.217 193.093 637.65C192.987 637.07 192.959 636.564 193.077 636.067C193.249 635.343 193.636 634.686 194.189 634.178C194.568 633.829 195.029 633.6 195.594 633.4C196.147 633.204 196.849 633.02 197.736 632.787L197.763 632.78C197.976 632.724 198.178 632.671 198.369 632.621C198.684 631.515 198.962 630.733 199.504 630.166C200.022 629.624 200.692 629.244 201.429 629.075C201.936 628.96 202.452 628.987 203.043 629.091C203.622 629.192 204.324 629.377 205.211 629.61ZM198.003 633.945C197.122 634.176 196.491 634.344 196.005 634.516C195.514 634.69 195.225 634.851 195.015 635.044C194.637 635.391 194.372 635.841 194.255 636.336C194.189 636.611 194.191 636.937 194.283 637.441C194.377 637.953 194.551 638.593 194.797 639.494L195.215 641.022C195.461 641.924 195.636 642.564 195.816 643.053C195.994 643.535 196.158 643.817 196.355 644.023C196.709 644.394 197.168 644.654 197.673 644.769C197.953 644.834 198.285 644.832 198.799 644.741C199.321 644.65 199.974 644.479 200.893 644.237C201.812 643.996 202.465 643.824 202.963 643.647C203.455 643.473 203.743 643.312 203.953 643.119C204.064 643.017 204.165 642.906 204.256 642.788C204.111 642.768 203.963 642.743 203.809 642.713C203.267 642.607 202.617 642.436 201.814 642.225L201.767 642.213C200.881 641.98 200.178 641.796 199.626 641.6C199.061 641.4 198.6 641.171 198.22 640.822C197.667 640.314 197.28 639.657 197.108 638.933C196.99 638.436 197.018 637.93 197.124 637.35C197.228 636.783 197.416 636.094 197.653 635.225L198.003 633.945ZM202.831 630.259C202.316 630.168 201.984 630.166 201.704 630.231C201.199 630.346 200.741 630.606 200.386 630.977C200.035 631.345 199.818 631.914 199.442 633.265C199.381 633.484 199.316 633.721 199.246 633.978L198.829 635.506C198.582 636.407 198.408 637.047 198.315 637.559C198.223 638.063 198.221 638.389 198.286 638.664C198.404 639.159 198.669 639.609 199.047 639.956C199.257 640.149 199.545 640.31 200.037 640.484C200.535 640.661 201.188 640.833 202.107 641.074C202.934 641.292 203.547 641.452 204.045 641.55C204.541 641.646 204.878 641.67 205.154 641.637C205.214 641.629 205.271 641.619 205.327 641.607C205.832 641.491 206.291 641.232 206.645 640.861C206.842 640.655 207.006 640.372 207.184 639.89C207.364 639.401 207.539 638.761 207.785 637.859L208.203 636.332C208.449 635.43 208.623 634.79 208.717 634.278C208.809 633.774 208.811 633.448 208.745 633.173C208.628 632.678 208.363 632.228 207.985 631.881C207.775 631.688 207.486 631.527 206.995 631.353C206.496 631.176 205.844 631.004 204.924 630.763C204.005 630.521 203.352 630.35 202.831 630.259Z'}));
+    return h('div',{key:'cardhint',style:Object.assign({display:'flex',flexDirection:'column',alignItems:'center',gap:8,pointerEvents:'none'},box)},
+      ic, h('span',{style:{fontFamily:T.sans,fontSize:11,color:'#A5ACB2'}}, text));
+  }
+  // NPC 대사 블록 — 라벨(11 #A5ACB2 자간) + 대사(14 #EAEBEE). 목업 y626/651
+  npcLineBlock(name,line,absolute){
+    const box=absolute===false?{}:{position:'absolute',left:0,right:0,bottom:0};
+    return h('div',{key:'npcline',style:Object.assign({display:'flex',flexDirection:'column',alignItems:'center',gap:12,padding:'0 24px',textAlign:'center',pointerEvents:'none'},box)},
+      h('span',{style:{fontFamily:T.sans,fontSize:11,letterSpacing:'.1em',color:'#A5ACB2'}}, name),
+      h('span',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',color:'#EAEBEE',wordBreak:'keep-all'}}, line));
+  }
+  appraiseCardScreen(v){
+    const a=this.state.apr||{}; const item=this.eng.instById(this.gs,a.itemUid);
+    if(!item) return this.vendorAppraiseScreen(v);
+    const flipped=!!a.flipped;
+    const settled=this.flipSettled(this,'apr',flipped); const flat=settled||!flipped;   // 3D는 플립 순간에만
+    const BACK={position:'absolute',inset:0,borderRadius:8,background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,boxShadow:'0 12px 36px rgba(0,0,0,.5)'};
+    const FRONT={position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden'};
+    const hide3d={backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transition:'visibility 0s linear .275s'};
+    return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
+      this.shopArtBg(v.ShopID+'_top'),
+      this.shopHeader(this.shopName(v.ShopID,v), ()=>this.aprDone()),
+      h('div',{style:{position:'relative',zIndex:1,flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center'}},
+        h('div',{key:'aprcard',onClick:flipped?null:()=>this.aprFlip(),
+          style:Object.assign({width:342,height:'min(460px, 100%)',position:'relative',cursor:flipped?'default':'pointer'}, flat?null:{perspective:'1200px'})},
+          h('div',{key:'in',style:Object.assign({position:'relative',width:'100%',height:'100%'}, flat?null:{transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:flipped?'rotateY(180deg)':'none'})},
+            (flat&&flipped)?null:h('div',{key:'b',style:flat?BACK:Object.assign({},BACK,hide3d,{transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible'})}),
+            (flat&&!flipped)?null:h('div',{key:'f',style:flat?FRONT:Object.assign({},FRONT,hide3d,{transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden'})}, flipped?this.lootCardBig(item,true):null))),
+        flipped?null:this.cardHint('flip', this.en()?'Reveal':'확인하기')),
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D'}},
+        h('button',{onClick:()=>this.aprDone(),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_confirm'))));
+  }
+  // ===== 흥정 (svg/screen-pawnshop-haggle*.svg) — 전당포 전용 =====
+  // 한 화면 4단계: list(카드 캐러셀) → lift/talk(대사) → back(뒷면 하강) → front(가치 공개).
+  // 카드 342x442 @y142 · 힌트/대사 y631~664 · 하단 박스 y708.5 — 전부 목업 좌표.
+  pawnHaggleScreen(v){
+    const g=this.state.hg||{phase:'list',focus:0};
+    const list=this.valuablesOwned();
+    const phase=g.phase||'list';
+    const inst=this.hgSel();
+    const MAX=this.hgMax();
+    const used=inst?(inst.haggle||0):0;
+    const done=used>=MAX;
+    const canSell=!!(inst&&inst.value!=null&&phase!=='lift'&&phase!=='talk'&&phase!=='back');
+    const showBack=(phase==='back');
+    const flipping=(phase==='back'||phase==='front');
+    const settled=this.flipSettled(this,'hg',phase==='front'); const flat=settled||phase!=='front';
+    const BACK={position:'absolute',inset:0,borderRadius:8,background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,boxShadow:'0 12px 36px rgba(0,0,0,.5)'};
+    const FRONT={position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden'};
+    const hide3d={backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transition:'visibility 0s linear .275s'};
+    // 하단 박스 — 단계별 버튼 1개 (닫기 / 종료하기(비활성) / 판매하기)
+    const btnLabel = canSell ? (this.en()?'Sell':'판매하기')
+      : (phase==='list'? (this.en()?'Close':'닫기') : (this.en()?'End':'종료하기'));
+    const btnOn = canSell || phase==='list';
+    const bottom=h('div',{style:{position:'relative',zIndex:2,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D'}},
+      h('button',{disabled:!btnOn,onClick:btnOn?(canSell?()=>this.hgSell():()=>this.hgBack()):null,
+        style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:btnOn?'#EAEBEE':'#454545',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:btnOn?'pointer':'default'}}, btnLabel));
+
+    if(!list.length) return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
+      this.shopArtBg(v.ShopID+'_top'),
+      this.shopHeader(this.shopName(v.ShopID,v), ()=>this.hgBack()),
+      h('div',{style:{position:'relative',zIndex:1,flex:1,minHeight:0,display:'flex'}},
+        this.emptyRow(this.en()?'No valuables to haggle.':'흥정할 귀중품이 없습니다.')),
+      bottom);
+
+    // 카드 슬롯(342x442) + 힌트/대사 — 목업은 슬롯 y142~584, 힌트 y631~664
+    const canHaggle = !!inst && !done && !(phase==='list'&&inst.value!=null);   // 값이 확정된 카드는 재흥정 불가
+    const swipe={
+      onPointerDown:(e)=>{ this._hgP={x:e.clientX,y:e.clientY,moved:false}; },
+      onPointerMove:(e)=>{ if(!this._hgP)return; if(Math.abs(e.clientX-this._hgP.x)>8||Math.abs(e.clientY-this._hgP.y)>8) this._hgP.moved=true; },
+      onPointerUp:(e)=>{ const p=this._hgP; this._hgP=null; if(!p)return;
+        const dx=e.clientX-p.x, dy=e.clientY-p.y;
+        if(phase!=='list'&&phase!=='front') return;
+        if(Math.abs(dx)>Math.abs(dy)){ if(Math.abs(dx)>36) this.hgFocus((g.focus||0)+(dx<0?1:-1)); return; }
+        if(dy<-60&&canHaggle) this.hgStart(); },
+      onPointerCancel:()=>{ this._hgP=null; }
+    };
+    const cardAnim = phase==='lift' ? 'rlCardLift .45s cubic-bezier(.4,0,.9,.3) forwards'
+                   : phase==='back' ? 'rlCardDrop .5s cubic-bezier(.16,1,.3,1)' : null;
+    const cardEl = (phase==='talk') ? null : h('div',{key:'hgcard'+(inst?inst.uid:'')+phase,
+      onClick:showBack?()=>this.hgFlip():null,
+      style:Object.assign({width:342,height:'min(442px, 100%)',position:'relative',flex:'0 0 auto',cursor:showBack?'pointer':'default'},
+        cardAnim?{animation:cardAnim}:null, (flipping&&!flat)?{perspective:'1200px'}:null)},
+      flipping
+        ? h('div',{key:'in',style:Object.assign({position:'relative',width:'100%',height:'100%'}, flat?null:{transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:phase==='front'?'rotateY(180deg)':'none'})},
+            (flat&&phase==='front')?null:h('div',{key:'b',style:flat?BACK:Object.assign({},BACK,hide3d,{transform:'translateZ(-1px)',visibility:phase==='front'?'hidden':'visible'})}),
+            (flat&&phase!=='front')?null:h('div',{key:'f',style:flat?FRONT:Object.assign({},FRONT,hide3d,{transform:'rotateY(180deg) translateZ(1px)',visibility:phase==='front'?'visible':'hidden'})}, phase==='front'?this.lootCardBig(inst,true):null))
+        : this.lootCardBig(inst,true));
+
+    // 힌트 자리(카드 아래 47px) — 단계별로 힌트 / 대사 / 빈칸
+    let under=null;
+    if(phase==='back') under=this.cardHint('flip', this.en()?'Reveal':'확인하기', false);
+    else if(phase==='list'&&inst.value==null) under=this.cardHint('up', this.en()?'Swipe up to haggle':'위로 올려 흥정 하기', false);
+    else if(phase==='front'&&!done) under=this.cardHint('up', this.en()?'Swipe up to haggle again':'위로 올려 다시 흥정하기', false);
+    else if(phase==='front'&&done) under=this.npcLineBlock(this.hgVendorName(), this.hgMaxLine(inst.uid), false);
+
+    return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
+      this.shopArtBg(v.ShopID+'_top'),
+      this.shopHeader(this.shopName(v.ShopID,v), ()=>this.hgBack()),
+      h('div',Object.assign({style:{position:'relative',zIndex:1,flex:1,minHeight:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',touchAction:'none'}},
+        (phase==='list'||phase==='front')?swipe:null),
+        // 카드 슬롯 — talk 단계에선 카드 대신 대사(목업 y436 = 슬롯의 66% 지점)
+        h('div',{key:'slot',style:{position:'relative',width:342,height:'min(442px, 100%)',flex:'0 0 auto',display:'flex',alignItems:'center',justifyContent:'center'}},
+          cardEl,
+          phase==='talk'? h('div',{key:'talk',style:{position:'absolute',left:0,right:0,top:'66%'}}, this.npcLineBlock(this.hgVendorName(), g.line||'', false)) : null),
+        // 힌트/대사 자리는 단계와 무관하게 항상 같은 높이를 차지한다 —
+        // 안 그러면 카드 슬롯이 단계마다 위아래로 튄다(목업은 전 단계 카드 y142 고정)
+        h('div',{key:'under',style:{flex:'0 0 auto',marginTop:47,height:40,width:'100%',display:'flex',justifyContent:'center',alignItems:'flex-start'}}, under),
+        // 캐러셀 인디케이터 — 여러 개일 때만
+        (phase==='list'&&list.length>1)? h('div',{key:'ind',style:{position:'absolute',left:0,right:0,bottom:0,display:'flex',justifyContent:'center',gap:8}},
+          list.map((x,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===(g.focus||0)?'rgb(169,171,175)':'rgb(43,46,50)'}}))) : null),
+      bottom);
+  }
   // ===== 거래 화면 (svg/screen-clinic-shop.svg) — 7개 상점 공통 =====
   vendorTrade(v,tab){
-    const canBuy=this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID);
-    const canSell=this.services(v).includes('Sell');
+    const svc=this.services(v);
+    const canBuy=svc.includes('Buy')||this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID);
+    const canSell=svc.includes('Sell');
     const segs=[]; if(canBuy) segs.push(['buy',this.t('shop_buy')]); if(canSell) segs.push(['sell',this.t('shop_sell')]);
     return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
       // 아트 — svg 402x175, 위로 페이드
@@ -3900,14 +4190,15 @@ void main(){
         backgroundSize:'cover',backgroundPosition:'center'}}),
       this.shopHeader(this.shopName(v.ShopID,v), ()=>this.setState({screen:'vendorMenu'})),
       h('div',{style:{flex:'0 0 auto',height:85}}),   // 헤더(90) + 85 = 아트 바닥 175
-      // 구매/판매 = 인벤토리 소지품/금고와 같은 2버튼 바. svg y175~219(h44), 하단 모서리만 r16
-      segs.length>1? h('div',{style:{position:'relative',zIndex:1,display:'flex',flex:'0 0 auto',height:44}},
+      // 구매/판매 = 인벤토리 소지품/금고와 같은 2버튼 바. svg y175~222(h47), 하단 모서리만 r16
+      // 라벨 14/weight500·47px 전부 인벤토리 바와 동일 — 목업 4개 상점(보건소·급식소·철물점·주점) 실측 일치
+      segs.length>1? h('div',{style:{position:'relative',zIndex:1,display:'flex',flex:'0 0 auto',height:47}},
         ...segs.map(([k,l],i)=>h('button',{key:k,onClick:()=>this.setState({vtab:k,sel:null}),
-          style:{flex:1,height:44,background:'#18191D',border:'none',borderRadius:i===0?'0 0 0 16px':'0 0 16px 0',color:tab===k?'#EAEBEE':'#6F7276',fontFamily:T.sans,fontSize:14,fontWeight:tab===k?500:400,cursor:'pointer',padding:0}}, l))) : null,
+          style:{flex:1,height:47,background:'#18191D',border:'none',borderRadius:i===0?'0 0 0 16px':'0 0 16px 0',color:tab===k?'#EAEBEE':'#6F7276',fontFamily:T.sans,fontSize:14,fontWeight:tab===k?500:400,cursor:'pointer',padding:0}}, l))) : null,
       h('div',{style:{position:'relative',zIndex:1,flex:1,minHeight:0,display:'flex',flexDirection:'column'}}, tab==='buy'?this.vendorBuy(v):this.vendorSell(v)),
       // 하단 박스 — svg x16.5 y708.5 369x95 · 버튼 333x48
       h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D'}},
-        h('button',{onClick:()=>this.setState({screen:'vendorMenu'}),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.en()?'Back':'뒤로가기')));
+        h('button',{onClick:()=>this.setState({screen:'vendorMenu'}),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'Back':'뒤로가기')));
   }
   // ===== 회복 화면 (svg/screen-clinic-heal.svg · screen-canteen-meal.svg) =====
   // 치료(보건소)와 배식(급식소)은 좌표가 완전히 같고 라벨·색·대상 스탯만 다르다. 연출·계산은 기존 그대로.
@@ -3938,29 +4229,29 @@ void main(){
     const pct=sp.max>0?Math.max(0,Math.min(100,sp.cur/sp.max*100)):0;
     const ik=sp.done?'done':(full?'full':(aff?'default':'nosato'));
     const info=ik==='nosato'?this.t('shop_insufficient_sato'):sp.info[ik];
-    const row=(label,val,col,first)=>h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:44,borderTop:first?'none':'1px solid #36383C'}},
-      h('span',{style:{fontFamily:T.sans,fontSize:14,color:'#A9ABAF'}},label), h('span',{style:{fontFamily:T.mono,fontSize:14,color:col}},val));
+    const row=(label,val,col,first)=>h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:36,borderTop:first?'none':'1px solid #36383C'}},
+      h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#A9ABAF'}},label), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col}},val));
     return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
       this.shopArtBg(v.ShopID),
       this.shopHeader(this.shopName(v.ShopID,v), ()=>this.setState({screen:'vendorMenu'})),
       h('div',{style:{flex:'1 1 auto',minHeight:0}}),
       // 패널 — svg x16 y477 370x327 r24
       h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'0 17px 25px',boxSizing:'border-box',borderRadius:24,background:'#18191D'}},
-        h('div',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'10px',letterSpacing:'.12em',color:'#4B4D52',padding:'24px 0 0'}}, sp.kicker),
-        h('div',{style:{fontFamily:T.sans,fontSize:20,lineHeight:'20px',fontWeight:500,color:T.hi,margin:'8px 0 0'}}, sp.title),
-        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:13,margin:'21px 0 8px'}},
-          h('span',{style:{fontFamily:T.sans,fontSize:13,lineHeight:'13px',color:'#6F7276'}}, this.t(sp.statKey)),
-          h('span',{ref:sp.refs.num,style:{fontFamily:T.mono,fontSize:13,lineHeight:'13px',color:'#A9ABAF',letterSpacing:'.05em'}}, Math.round(sp.cur)+' / '+Math.round(sp.max))),
+        h('div',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'10px',letterSpacing:'.12em',color:'#4B4D52',padding:'26px 0 0'}}, sp.kicker),
+        h('div',{style:{fontFamily:T.sans,fontSize:16,lineHeight:'16px',fontWeight:500,color:T.hi,margin:'10px 0 0'}}, sp.title),
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:13,margin:'22px 0 7px'}},
+          h('span',{style:{fontFamily:T.sans,fontSize:10,lineHeight:'13px',color:'#6F7276'}}, this.t(sp.statKey)),
+          h('span',{ref:sp.refs.num,style:{fontFamily:T.mono,fontSize:12,lineHeight:'13px',color:'#A9ABAF',letterSpacing:'.05em'}}, Math.round(sp.cur)+' / '+Math.round(sp.max))),
         h('div',{className:'rcv-bar',ref:sp.refs.bar,style:{position:'relative',height:6,background:'#2B2E32',borderRadius:1,overflow:'hidden','--rcv-edge':sp.edge,'--rcv-pulse':sp.pulse}},
           h('div',{className:'rcv-fill',ref:sp.refs.fill,style:{width:pct+'%',background:sp.fill}}),
           h('div',{className:'rcv-shim'})),
-        h('div',null,
+        h('div',{style:{marginTop:16}},
           row(this.t('heal_amount'), sp.amountLabel+Math.round(sp.max-sp.cur)+')', sp.accent, true),
           row(sp.costLabel, sp.cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85B3C5':T.danger, false)),
         this.infoBox(ik, info),
         h('div',{style:{display:'flex',gap:8,marginTop:16}},
-          h('button',{disabled:!can,onClick:can?sp.act:null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:can?'#EAEBEE':'#4B4D52',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:can?'pointer':'default'}}, sp.btn),
-          h('button',{onClick:()=>this.setState({screen:'vendorMenu'}),style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, this.en()?'Leave':'나가기'))));
+          h('button',{disabled:!can,onClick:can?sp.act:null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:can?'#EAEBEE':'#4B4D52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:can?'pointer':'default'}}, sp.btn),
+          h('button',{onClick:()=>this.setState({screen:'vendorMenu'}),style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'Leave':'나가기'))));
   }
   vendorScreen(){
     const v=this.eng.byId.vendor[this.state.vendor]||{};
@@ -3970,6 +4261,13 @@ void main(){
     if(this.state.vtab==='heal') return this.vendorRecoverScreen(v,'heal');
     if(this.state.vtab==='feed') return this.vendorRecoverScreen(v,'feed');
     if(this.state.vtab==='repair') return this.vendorRepairScreen(v);
+    if(this.state.vtab==='haggle'&&svc.includes('Haggle')) return this.pawnHaggleScreen(v);
+    if(this.state.vtab==='appraise'&&svc.includes('Appraisal')){
+      const a=this.state.apr||{};
+      if(a.phase==='card') return this.appraiseCardScreen(v);
+      if(a.itemUid) return this.appraiseLiquorScreen(v);
+      return this.vendorAppraiseScreen(v);
+    }
     const tabs=[]; if(svc.includes('Buy'))tabs.push(['buy',this.t('shop_buy')]); if(svc.includes('Sell'))tabs.push(['sell',this.t('shop_sell')]); if(svc.includes('Repair'))tabs.push(['repair',this.t('nav_repair')]); if(svc.includes('Heal'))tabs.push(['heal',this.t('heal_treat')]); if(svc.includes('Feed')||svc.includes('Distribute'))tabs.push(['feed',this.en()?'Recover':'회복']); if(svc.includes('Load'))tabs.push(['load',this.t('usb_decode')]); if(svc.includes('Appraisal'))tabs.push(['appraise',this.t('appraise_tab')]); if(svc.includes('Module'))tabs.push(['module',this.t('module_tab')]);
     let tab=this.state.vtab; if(!tabs.some(t=>t[0]===tab)) tab=(tabs[0]||['buy'])[0];
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
@@ -3985,7 +4283,7 @@ void main(){
       tabs.length? h('div',{style:{display:'flex',flex:'0 0 auto',background:'rgb(24,25,29)',borderBottom:'1px solid rgb(54,56,60)'}},
         ...tabs.map(([k,l])=>{ const on=tab===k;
           return h('button',{key:k,onClick:()=>this.setState({vtab:k}),style:{flex:1,background:'none',border:'none',borderBottom:'2px solid '+(on?'rgb(169,171,175)':'transparent'),padding:'13px 0',cursor:'pointer',fontFamily:T.sans,fontSize:14,fontWeight:500,textAlign:'center',color:on?'rgb(234,235,238)':'rgb(111,114,118)'}}, l); })) : null,
-      tab==='buy'?this.vendorBuy(v):tab==='sell'?this.vendorSell(v):tab==='repair'?this.vendorRepair():tab==='feed'?this.vendorFeed(v):tab==='load'?this.vendorLoad(v):tab==='appraise'?this.vendorAppraise(v):tab==='module'?this.vendorModule(v):this.vendorHeal(v),
+      tab==='buy'?this.vendorBuy(v):tab==='sell'?this.vendorSell(v):tab==='repair'?this.vendorRepair():tab==='feed'?this.vendorFeed(v):tab==='load'?this.vendorLoad(v):tab==='appraise'?this.vendorAppraiseScreen(v):tab==='module'?this.vendorModule(v):this.vendorHeal(v),
       (tab==='buy'||tab==='sell')?this.shopExitBox():null
     );
   }
@@ -3998,18 +4296,18 @@ void main(){
   shopPill(txt,color){ return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'5px 8px',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:color,whiteSpace:'nowrap'}}, txt); }
   shopRow(o){ return h('div',{key:o.key,onClick:o.disabled?null:o.onClick,style:{display:'flex',flexDirection:'column',gap:8,padding:'16px 18px',borderBottom:'1px solid rgb(54,56,60)',cursor:o.disabled?'default':'pointer',opacity:(o.disabled||o.dim)?0.5:1}},
       h('div',{style:{display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8}},
-        this.catChip(o.cat,false),
-        h('div',{style:{display:'flex',flexDirection:'row',gap:4,alignItems:'center',flexShrink:0}}, this.shopPill(o.priceLabel,o.priceColor), this.shopPill(o.countLabel,'rgb(169,171,175)'))),
+        this.catChip(o.cat,!!o.on),
+        h('div',{style:{display:'flex',flexDirection:'row',gap:4,alignItems:'center',flexShrink:0}}, o.priceLabel!=null?this.shopPill(o.priceLabel,o.priceColor):null, o.countLabel!=null?this.shopPill(o.countLabel,'rgb(169,171,175)'):null)),
       h('div',{style:{display:'flex',flexDirection:'column',gap:4}},
         h('div',{style:{fontFamily:T.sans,fontSize:14,color:'rgb(234,235,238)'}}, o.name),
         o.desc?h('div',{style:{fontFamily:T.sans,fontSize:12,color:'rgb(111,114,118)',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}, o.desc):null)); }
   vendorBuy(v){
     const rows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID);
-    return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px'}},
+    return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px',display:'flex',flexDirection:'column'}},
       rows.length? rows.map(r=>{ const price=this.eng.N(r.BuyPrice); const key=v.ShopID+'|'+r.ItemID; const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(r.StockMax,99); const aff=this.gs.sato>=price&&stock>0; const liq=this.eng.byId.liquor&&this.eng.byId.liquor[r.ItemID]; const md=this.eng.byId.module&&this.eng.byId.module[r.ItemID]; const usb=this.eng.byId.usb&&this.eng.byId.usb[r.ItemID]; const src=this.eng.byId.item[r.ItemID]||this.eng.byId.weapon[r.ItemID]||this.eng.byId.armor[r.ItemID]||this.eng.byId.artifact[r.ItemID]||(this.eng.byId.talisman&&this.eng.byId.talisman[r.ItemID])||(this.eng.byId.bag&&this.eng.byId.bag[r.ItemID])||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
         const desc=(this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'')+(src.EffectValue?((' '+this.t('frag_dot_heal'))+src.EffectValue):'');
         return this.shopRow({key:r.ItemID,cat,name:this.tx(r,'ItemName')||this.eng.anyName(r.ItemID),desc,priceLabel:'BUY '+price.toLocaleString(),priceColor:'rgb(133,179,197)',countLabel:(this.en()?'Stock ':'재고 ')+String(stock).padStart(2,'0'),onClick:()=>this.openBuy(v.ShopID,r),disabled:!aff}); })
-        : this.emptyRow(this.en()?'No items to sell.':'판매 가능한 아이템이 없습니다.'));
+        : this.emptyRow(this.en()?'No items for sale.':'구매 가능 품목이 없습니다.'));
   }
   sellables(v){
     const tc=String(v.TradeCategories||'').split(',').map(s=>s.trim());
@@ -4057,7 +4355,7 @@ void main(){
   }
   vendorSell(v){
     const groups=this.sellGroups(v);
-    return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px'}},
+    return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px',display:'flex',flexDirection:'column'}},
       groups.length? groups.map(g=>{ const inst=g.rep; const eq=this.isEquipped(inst.uid); const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]; const md=this.eng.byId.module&&this.eng.byId.module[inst.id]; const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id]; const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
         return this.shopRow({key:g.uids[0],cat,name:this.itemLabel(inst),desc:this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'',priceLabel:'SELL '+g.price.toLocaleString(),priceColor:'rgb(204,162,110)',countLabel:(this.en()?'Owned ':'소지 ')+String(g.total).padStart(2,'0'),onClick:()=>this.openSell(g),dim:eq}); })
         : this.emptyRow(this.en()?'No items to sell.':'판매 가능한 아이템이 없습니다.'));
