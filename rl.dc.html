@@ -141,7 +141,8 @@ const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','mo
 // ⚠️ 모바일은 사용자 제스처 안에서 한 번 재생해야 이후 재생이 풀린다 → sfxUnlock()을 타이틀 첫 탭에서 부른다.
 const SFX = {
   card_insert:      'assets/sound/effect/card_insert.mp3',       // 카드가 단말로 빨려 들어가는 순간 (1.34s)
-  tap_terminal_done:'assets/sound/effect/tap_terminal_done.mp3'  // 삽입이 확정되는 순간 (0.65s)
+  tap_terminal_done:'assets/sound/effect/tap_terminal_done.mp3', // 삽입이 확정되는 순간 (0.65s)
+  open_bag:         'assets/sound/effect/open_bag.mp3'           // 전리품 화면 → 가방으로 전환하는 순간 (1.00s)
 };
 // 자동재생 해제 전용 0.01초 무음 WAV(124B). ⚠️ iOS Safari는 volume 설정을 무시하므로(읽기 전용·항상 1)
 // 진짜 효과음을 volume=0으로 틀면 타이틀 탭에서 그대로 들린다. muted로도 해제가 안 되는 기기가 있어
@@ -211,12 +212,14 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 23;
-const TITLE_DATE = '0823';
+const TITLE_VER = 24;
+const TITLE_DATE = '0825';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:24, date:'25/Aug', lines:[
+    ['카드 상세 팝업 화면 조정 및 사운드 추가.','Item detail card views adjusted; sound effects added.'] ] },
   { ver:23, date:'23/Aug', lines:[
     ['상점 및 서비스 항목 감정, 흥정 시스템 개편.','Shops and their service menus reworked, along with the appraisal and haggle systems.'] ] },
   { ver:22, date:'22/Aug', lines:[
@@ -1179,7 +1182,7 @@ class Component extends DCLogic {
     else if(s==='pass') body=this.passScreen();
     else if(s==='tap') body=this.tapScreen();
     const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap';
-    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, this.state.notice?this.noticeModal():null);
+    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null);
   }
 
   // ---- safehouse ----
@@ -3337,7 +3340,8 @@ void main(){
         h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, needFlip?(this.en()?'Tap to reveal':'탭하여 확인'):(isField?(this.en()?'Pull down to stash':'아래로 당겨 소지품에 넣기'):(this.en()?'Pull up to remove':'위로 올려 꺼내기')))); }).call(this, isField&&cards[focus]&&!(lm.opened&&lm.opened.has(cards[focus].uid))),
       // footer — svg x16 y722~804 (h82 r24) · 버튼 y739 h48 gap8
       h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:17,borderRadius:24,background:T.s1,border:'1px solid '+T.line,display:'flex',gap:8,boxShadow:'0 8px 28px rgba(0,0,0,.45)'}},
-        h('button',{onClick:()=>{ lm.view=isField?'bag':'field'; lm.focus=0; this.forceUpdate(); },style:{flex:1,height:48,borderRadius:999,border:'none',background:'#212227',color:T.mid,fontFamily:T.sans,fontSize:13,cursor:'pointer'}}, isField?(this.en()?'Bag':'가방'):(this.en()?'Loot':'전리품')),
+        // 가방을 여는 소리는 전리품 → 가방 방향에서만. 되돌아올 때는 울리지 않는다(open_bag).
+        h('button',{onClick:()=>{ if(isField) this.sfx('open_bag'); lm.view=isField?'bag':'field'; lm.focus=0; this.forceUpdate(); },style:{flex:1,height:48,borderRadius:999,border:'none',background:'#212227',color:T.mid,fontFamily:T.sans,fontSize:13,cursor:'pointer'}}, isField?(this.en()?'Bag':'가방'):(this.en()?'Loot':'전리품')),
         h('button',{onClick:()=>{ if(lm.fromCombat){ this.commitLootDraw(); } else { lm.field=this.lmSample().field; lm.view='field'; lm.focus=0; this.flash(this.en()?'Next fight — new loot':'다음 전투 — 새 전리품'); this.forceUpdate(); } },style:{flex:1,height:48,borderRadius:999,border:'none',background:'#212227',color:T.hi,fontFamily:T.sans,fontSize:13,fontWeight:400,cursor:'pointer'}}, lm.fromCombat?(this.en()?'Done':'완료'):(this.en()?'Proceed':'진행하기'))));
   }
 
@@ -3643,6 +3647,21 @@ void main(){
           isConsum?this.fbtn(this.t('heal_use_item'),'#83b289',()=>this.useConsumable(inst),true):null,
           equippable?this.fbtn(equipped?this.t('equip_unequip_btn'):this.t('equip_equip'),equipped?'#a9abaf':'#eaebee',()=>{ this.toggleEquip(inst); this.setState({sel:null,moveQty:null,peek:false}); },true):null,
           this.fbtn((inVault?this.t('btn_to_belongings'):this.t('btn_to_vault')),'#eaebee',()=>{this.moveStack(inst.uid,q);this.setState({sel:null,moveQty:null,peek:false});},true))));
+  }
+
+  // 감정 확인 모달 (svg/screen-bar-item-select.svg) — 미감정 리스트에서 아이템을 탭하면 먼저 뜬다.
+  // 리스트에서 술 선택으로 바로 넘어가면 어떤 아이템을 감정하는지 확인할 방법이 없어서 넣은 중간 단계.
+  // 목업 = buySheet와 같은 조립(딤 + lootCardBig 'fit' + 하단 박스 369x79 · 버튼 165x48 2개)이라 그대로 재사용.
+  aprSheet(){
+    const a=this.state.apr||{}; const inst=this.eng.instById(this.gs,a.itemUid); if(!inst) return null;
+    const close=()=>this.setState({apr:{}});
+    return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
+      h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...inst,qty:1},'fit'))),
+      h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
+        h('div',{style:{display:'flex',gap:8}},
+          this.fbtn(this.en()?'Appraise':'감정받기','#eaebee',()=>this.setState({apr:{itemUid:inst.uid,liq:[]}}),true),
+          this.fbtn(this.en()?'Close':'닫기','#eaebee',close,true))));
   }
 
   // 상점 구매 모달 — itemSheet 패턴 재사용(상세카드 + 수량 스테퍼 + 닫기/구매하기)
@@ -3986,7 +4005,7 @@ void main(){
     const GKR={str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')};
     const gtags=this.eng.growthTagsActive(inst)||[];
     const desc=this.tx(src,'Description')||[src.Material,(AT(src.Attribute)?this.t('status_'+src.Attribute):null)].filter(Boolean).join(' · ');
-    return h('div',{key:inst.uid,onClick:()=>this.setState({apr:{itemUid:inst.uid,liq:[]}}),
+    return h('div',{key:inst.uid,onClick:()=>this.setState({apr:{itemUid:inst.uid,liq:[],preview:true}}),
       style:{height:101,boxSizing:'border-box',padding:'15px 16px 0',cursor:'pointer',borderBottom:'1px solid '+T.line}},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,height:20}},
         h('div',{style:{display:'flex',alignItems:'center',gap:6,minWidth:0}},
@@ -4084,12 +4103,16 @@ void main(){
     const BACK={position:'absolute',inset:0,borderRadius:8,background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,boxShadow:'0 12px 36px rgba(0,0,0,.5)'};
     const FRONT={position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden'};
     const hide3d={backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transition:'visibility 0s linear .275s'};
+    // 소켓 있는 장비는 카드가 460보다 길어진다(MODULE 라벨 + 소켓 행 = lootCardH). 슬롯을 460 고정으로 두면
+    // 앞면(FRONT는 inset:0 + overflow:hidden)에서 하단 설명·소켓 행이 잘린다 → 뒤집은 뒤엔 실제 카드 높이를 쓴다.
+    // 목업도 뒷면 443 → 결과 479.75로 높이가 바뀐다(screen-bar-appraisal-card-back/result.svg).
+    const ch=flipped?this.lootCardH(item):460;
     return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
       this.shopArtBg(v.ShopID+'_top'),
       this.shopHeader(this.shopName(v.ShopID,v), ()=>this.aprDone()),
       h('div',{style:{position:'relative',zIndex:1,flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center'}},
         h('div',{key:'aprcard',onClick:flipped?null:()=>this.aprFlip(),
-          style:Object.assign({width:342,height:'min(460px, 100%)',position:'relative',cursor:flipped?'default':'pointer'}, flat?null:{perspective:'1200px'})},
+          style:Object.assign({width:342,height:'min('+ch+'px, 100%)',position:'relative',cursor:flipped?'default':'pointer'}, flat?null:{perspective:'1200px'})},
           h('div',{key:'in',style:Object.assign({position:'relative',width:'100%',height:'100%'}, flat?null:{transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:flipped?'rotateY(180deg)':'none'})},
             (flat&&flipped)?null:h('div',{key:'b',style:flat?BACK:Object.assign({},BACK,hide3d,{transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible'})}),
             (flat&&!flipped)?null:h('div',{key:'f',style:flat?FRONT:Object.assign({},FRONT,hide3d,{transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden'})}, flipped?this.lootCardBig(item,true):null))),
@@ -4142,11 +4165,14 @@ void main(){
         if(dy<-60&&canHaggle) this.hgStart(); },
       onPointerCancel:()=>{ this._hgP=null; }
     };
+    // 귀중품 카드는 lootCardH 하한이 460이라 목업 442 슬롯에 넣으면 하단이 18px 잘린다.
+    // 단계마다 높이가 바뀌면 슬롯이 위아래로 튀므로(힌트 자리 고정 원칙) 전 단계 같은 값을 쓴다.
+    const cardH = inst ? this.lootCardH(inst) : 442;
     const cardAnim = phase==='lift' ? 'rlCardLift .45s cubic-bezier(.4,0,.9,.3) forwards'
                    : phase==='back' ? 'rlCardDrop .5s cubic-bezier(.16,1,.3,1)' : null;
     const cardEl = (phase==='talk') ? null : h('div',{key:'hgcard'+(inst?inst.uid:'')+phase,
       onClick:showBack?()=>this.hgFlip():null,
-      style:Object.assign({width:342,height:'min(442px, 100%)',position:'relative',flex:'0 0 auto',cursor:showBack?'pointer':'default'},
+      style:Object.assign({width:342,height:'min('+cardH+'px, 100%)',position:'relative',flex:'0 0 auto',cursor:showBack?'pointer':'default'},
         cardAnim?{animation:cardAnim}:null, (flipping&&!flat)?{perspective:'1200px'}:null)},
       flipping
         ? h('div',{key:'in',style:Object.assign({position:'relative',width:'100%',height:'100%'}, flat?null:{transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:phase==='front'?'rotateY(180deg)':'none'})},
@@ -4167,7 +4193,7 @@ void main(){
       h('div',Object.assign({style:{position:'relative',zIndex:1,flex:1,minHeight:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',touchAction:'none'}},
         (phase==='list'||phase==='front')?swipe:null),
         // 카드 슬롯 — talk 단계에선 카드 대신 대사(목업 y436 = 슬롯의 66% 지점)
-        h('div',{key:'slot',style:{position:'relative',width:342,height:'min(442px, 100%)',flex:'0 0 auto',display:'flex',alignItems:'center',justifyContent:'center'}},
+        h('div',{key:'slot',style:{position:'relative',width:342,height:'min('+cardH+'px, 100%)',flex:'0 0 auto',display:'flex',alignItems:'center',justifyContent:'center'}},
           cardEl,
           phase==='talk'? h('div',{key:'talk',style:{position:'absolute',left:0,right:0,top:'66%'}}, this.npcLineBlock(this.hgVendorName(), g.line||'', false)) : null),
         // 힌트/대사 자리는 단계와 무관하게 항상 같은 높이를 차지한다 —
@@ -4224,6 +4250,14 @@ void main(){
              full:this.en()?'HP is already fully restored.':'이미 모든 생명력이 회복되었습니다.',
              done:this.t('heal_done') } };
   }
+  // 회복 시 화면 테두리 이너글로우 — 휴식(restGlow)·귀환(returnGlow)과 같은 규격.
+  // 치료=초록 #83B289 / 배식=노랑 #C19E6F. 구 탭 레이아웃엔 레이어가 없어 el 가드로 그냥 넘어간다.
+  recoverGlow(col){ const el=this._rcvGlowEl; if(!el) return;
+    clearTimeout(this._rcvGlowT);
+    el.style.boxShadow='inset 0 0 60px 6px '+col;
+    el.style.transition='opacity .3s ease-out'; el.style.opacity='0.5';
+    this._rcvGlowT=setTimeout(()=>{ if(!this._rcvGlowEl)return; this._rcvGlowEl.style.transition='opacity 1s ease-in'; this._rcvGlowEl.style.opacity='0'; }, 750);
+  }
   vendorRecoverScreen(v,kind){
     const sp=this.recoverSpec(kind);
     const full=sp.cur>=sp.max, aff=this.gs.sato>=sp.cost, can=!full&&aff&&!sp.done;
@@ -4233,6 +4267,8 @@ void main(){
     const row=(label,val,col,first)=>h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:36,borderTop:first?'none':'1px solid #36383C'}},
       h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#A9ABAF'}},label), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col}},val));
     return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
+      // 회복 이너글로우 (ref 직접 제어, 평소 opacity 0) — 휴식·귀환 화면과 동일 규격
+      h('div',{ref:el=>this._rcvGlowEl=el,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:60,opacity:0,boxShadow:'inset 0 0 60px 6px '+sp.accent}}),
       this.shopArtBg(v.ShopID),
       this.shopHeader(this.shopName(v.ShopID,v), ()=>this.setState({screen:'vendorMenu'})),
       h('div',{style:{flex:'1 1 auto',minHeight:0}}),
@@ -4266,7 +4302,7 @@ void main(){
     if(this.state.vtab==='appraise'&&svc.includes('Appraisal')){
       const a=this.state.apr||{};
       if(a.phase==='card') return this.appraiseCardScreen(v);
-      if(a.itemUid) return this.appraiseLiquorScreen(v);
+      if(a.itemUid&&!a.preview) return this.appraiseLiquorScreen(v);
       return this.vendorAppraiseScreen(v);
     }
     const tabs=[]; if(svc.includes('Buy'))tabs.push(['buy',this.t('shop_buy')]); if(svc.includes('Sell'))tabs.push(['sell',this.t('shop_sell')]); if(svc.includes('Repair'))tabs.push(['repair',this.t('nav_repair')]); if(svc.includes('Heal'))tabs.push(['heal',this.t('heal_treat')]); if(svc.includes('Feed')||svc.includes('Distribute'))tabs.push(['feed',this.en()?'Recover':'회복']); if(svc.includes('Load'))tabs.push(['load',this.t('usb_decode')]); if(svc.includes('Appraisal'))tabs.push(['appraise',this.t('appraise_tab')]); if(svc.includes('Module'))tabs.push(['module',this.t('module_tab')]);
@@ -4388,6 +4424,7 @@ void main(){
   }
   doHeal(){ const g=this.gs; if(g.hp>=g.maxHp){ this.flash(this.t('heal_already_full')); return; } const cost=this.healCost(); if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
     if(this._rcvAnim) return; const startHp=g.hp; g.sato-=cost; this._rcvAnim=true;
+    this.recoverGlow('#83B289');
     this.animRecover(this._hpFill,this._hpNum,this._hpBar,startHp,g.maxHp,g.maxHp).then(()=>{
       g.hp=g.maxHp; this._rcvAnim=false; this._healDone=true; this.flash(this.t('heal_done')); this.forceUpdate(); this.saveGame(); }); }
   vendorHeal(v){
@@ -4773,6 +4810,7 @@ void main(){
   feedCost(){ return Math.max(0, Math.ceil((this.staMax - this.gs.sta) * this.eng.N(this.eng.DATA.config.stamina_cost_per_point, 2))); }
   doFeed(){ const g=this.gs; if(g.sta>=this.staMax){ this.flash(this.en()?'Stamina already full':'스태미너가 가득 찼습니다'); return; } const cost=this.feedCost(); if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
     if(this._rcvAnim) return; const startSta=g.sta; g.sato-=cost; this._rcvAnim=true;
+    this.recoverGlow('#C19E6F');
     this.animRecover(this._staFill,this._staNum,this._staBar,startSta,this.staMax,this.staMax).then(()=>{
       g.sta=this.staMax; this._rcvAnim=false; this._feedDone=true; this.flash(this.t('feed_done')); this.forceUpdate(); this.saveGame(); }); }
   vendorFeed(v){
