@@ -142,7 +142,8 @@ const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','mo
 const SFX = {
   card_insert:      'assets/sound/effect/card_insert.mp3',       // 카드가 단말로 빨려 들어가는 순간 (1.34s)
   tap_terminal_done:'assets/sound/effect/tap_terminal_done.mp3', // 삽입이 확정되는 순간 (0.65s)
-  open_bag:         'assets/sound/effect/open_bag.mp3'           // 전리품 화면 → 가방으로 전환하는 순간 (1.00s)
+  open_bag:         'assets/sound/effect/open_bag.mp3',          // 전리품 화면 → 가방으로 전환하는 순간 (1.00s)
+  close_bag:        'assets/sound/effect/close_bag.mp3'           // 가방을 닫는 순간 (0.80s) — 화면 되돌리기 + 아이템 넣고 꺼내기 양방향
 };
 // 자동재생 해제 전용 0.01초 무음 WAV(124B). ⚠️ iOS Safari는 volume 설정을 무시하므로(읽기 전용·항상 1)
 // 진짜 효과음을 volume=0으로 틀면 타이틀 탭에서 그대로 들린다. muted로도 해제가 안 되는 기기가 있어
@@ -212,16 +213,18 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 26;
+const TITLE_VER = 27;
 const TITLE_DATE = '0825';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:27, date:'25/Aug', lines:[
+    ['흥정 시스템 개편 및 전리품 화면 개선.','Haggling system reworked; loot screen improved.'],
+    ['· 흥정할 때마다 값을 새로 매기도록 변경','· Each haggle now re-appraises the value from scratch'],
+    ['· 카드 잘림 수정 및 가방 사운드 추가','· Fixed clipped cards; added bag sound effects'] ] },
   { ver:26, date:'25/Aug', lines:[
-    ['성장 태그에 따른 성장률 및 드랍율 조정.','Growth rate and drop rate adjusted for growth tags.'],
-    ['· 기본 성장률 상향','· Base growth rate increased'],
-    ['· 태그 옵션 발생확률 하향','· Growth tag drop chance reduced'] ] },
+    ['성장 태그 밸런스(기본 성장률 상향 및 태그 드랍율 하향).','Growth tag balance: base growth rate up, tag drop rate down.'] ] },
   { ver:24, date:'25/Aug', lines:[
     ['카드 상세 팝업 화면 조정 및 사운드 추가.','Item detail card views adjusted; sound effects added.'] ] },
   { ver:23, date:'23/Aug', lines:[
@@ -1648,10 +1651,7 @@ class Component extends DCLogic {
         list.length? list.map((card,i)=>{ const off=i-c.restFocus, abs=Math.abs(off), isC=off===0; const x=off*250, s=isC?1:0.9, o=1;
             const handlers=isC?this.restCenterHandlers():{onClick:()=>{ if(!this._rmoved){c.restFocus=i;this.forceUpdate();} }};
             return h('div',Object.assign({key:card.uid+'#'+i,'data-rscard':isC?'focus':null},handlers,{style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(482px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'grab':'pointer',touchAction:'none'}}), this.lootCardBig(card)); })
-          : h('div',{style:{position:'absolute',left:0,right:0,top:262,height:54,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',gap:10}},
-              h('svg',{width:22,height:22,viewBox:'0 0 22 22',fill:'none',stroke:'#EAEBEE',strokeWidth:1.4,strokeLinecap:'round'},
-                h('circle',{key:'c',cx:11,cy:11,r:8.3}), h('path',{key:'l',d:'M11 6.6v5.2'}), h('path',{key:'d',d:'M11 15.1v.1'})),
-              h('span',{style:{fontFamily:T.sans,fontSize:14,color:'#EAEBEE'}}, this.en()?'No food or medicine to use.':'사용할 음식이나 의약품이 없습니다.'))),
+          : this.cardEmptyBand(this.en()?'No food or medicine to use.':'사용할 음식이나 의약품이 없습니다.')),
       // 힌트 (위로 올려 사용)
       h('div',{style:{position:'relative',zIndex:1,flex:'1 1 auto',minHeight:0}}, list.length? h('div',{style:{height:'100%',padding:'6px 16px 16px',boxSizing:'border-box',display:'flex',flexDirection:'column',justifyContent:'center'}},
         this.lmChevron('down'),
@@ -2681,17 +2681,46 @@ void main(){
   // 귀중품은 가치가 숨어 있다. 카드를 위로 올려 보내면 마르타가 값을 부르고(최대 3회),
   // 매번 직전 제시가에서 오르내린다. 수수료 없음(2026-08-23 확정 — 구 valuable_fee_k 폐기).
   hgMax(){ return Math.max(1, Math.round(this.eng.N(this.eng.DATA.config.haggle_max_rounds, 3))); }
-  hgSwing(){ return this.eng.N(this.eng.DATA.config.haggle_swing, 0.35); }
+  // 흥정 값 밴드 — Config에서 `haggle_band_<하한>_<상한>` = 확률 형태의 키를 전부 긁어 만든다.
+  // JSON 한 줄 대신 행 5개로 둔 이유: 시트에서 확률 한 칸만 고치면 되고, 오타가 조용히 묻히지 않는다.
+  // 구간 조정 = 키 이름 변경 / 구간 추가·삭제 = 행 추가·삭제. 키가 하나도 없으면 폴백.
+  // ⚠️ 결과를 캐시하지 않는다 — 설정의 '시트 다시 불러오기'(reloadSheet)와 어긋날 수 있고,
+  //    키 63개 훑기 × 흥정 1회당 최대 3번이라 비용이 없다.
+  hgBands(){
+    const FB=[[91,100,0.05],[81,90,0.10],[71,80,0.15],[45,70,0.35],[0,44,0.35]];
+    const C=this.eng.DATA.config||{}, out=[];
+    for(const k in C){ const m=/^haggle_band_(\d+)_(\d+)$/.exec(k); if(!m) continue;
+      const lo=+m[1], hi=+m[2], p=Math.max(0,this.eng.N(C[k]));
+      if(hi>=lo && p>0) out.push([lo,hi,p]); }
+    if(!out.length) return FB;
+    out.sort((a,b)=>a[0]-b[0]);
+    // 검증: 0~100을 빈틈·겹침 없이 덮는지. 어긋나도 굴리기는 하되 콘솔로 알린다(조용한 밸런스 사고 방지).
+    const warn=[];
+    if(out[0][0]!==0) warn.push('0~'+(out[0][0]-1)+'% 구간이 비어 있음');
+    if(out[out.length-1][1]!==100) warn.push((out[out.length-1][1]+1)+'~100% 구간이 비어 있음');
+    for(let i=1;i<out.length;i++){
+      if(out[i][0]>out[i-1][1]+1) warn.push((out[i-1][1]+1)+'~'+(out[i][0]-1)+'% 구간이 비어 있음');
+      else if(out[i][0]<=out[i-1][1]) warn.push(out[i][0]+'~'+out[i-1][1]+'% 구간이 겹침'); }
+    const sum=out.reduce((a,b)=>a+b[2],0);
+    if(Math.abs(sum-1)>0.001) warn.push('확률 합이 '+sum.toFixed(3)+' (정규화해서 사용)');
+    if(warn.length && this._hgWarn!==warn.join()){ this._hgWarn=warn.join(); console.warn('[haggle_band] '+warn.join(' · ')); }
+    return out;
+  }
   valuablesOwned(){ return this.ownedBy(x=>this.eng.byId.valuable&&this.eng.byId.valuable[x.id]); }
-  // 1회차 = 밴드 균등롤 / 2회차부터 = 직전값 ±swing, Min~Max 클램프
+  // ★ 매 라운드 독립 추첨 (2026-08-25 재설계). 구 방식 `직전값 × u(1±haggle_swing)`은 폐기 —
+  // 곱셈 랜덤워크는 기하평균이 1 미만(-2.1%/라운드)이고 상한 클램프가 위쪽만 잘라서
+  // 재흥정 중앙 배율이 0.957, 즉 "밀면 손해"라 3라운드 결정이 무의미했다.
+  // 독립 추첨이면 "현재 값 < 기대값이면 다시 굴린다"가 성립해 매 라운드가 진짜 선택이 된다.
   hgRoll(inst){
     const v=(this.eng.byId.valuable&&this.eng.byId.valuable[inst.id])||{};
     const lo=Math.max(1,this.eng.N(v.MinValue)), hi=Math.max(lo,this.eng.N(v.MaxValue));
-    const u=(a,b)=>a+Math.random()*(b-a);
-    const prev=(inst.value==null)?null:this.eng.N(inst.value);
-    const s=this.hgSwing();
-    const raw=(prev==null)? u(lo,hi) : Math.min(hi,Math.max(lo, prev*u(1-s,1+s)));
-    return { from:(prev==null?0:prev), to:Math.max(1,Math.round(raw)) };
+    const bands=this.hgBands();
+    const sum=bands.reduce((a,b)=>a+b[2],0);
+    let r=Math.random()*sum, pick=bands[bands.length-1];
+    for(const b of bands){ r-=b[2]; if(r<0){ pick=b; break; } }
+    const pct=pick[0]+Math.random()*(pick[1]-pick[0]);
+    const prev=(inst.value==null)?0:this.eng.N(inst.value);
+    return { from:prev, to:Math.max(1, Math.min(hi, Math.max(lo, Math.round(lo+(hi-lo)*pct/100)))) };
   }
   // 대사 — 시트 NpcDialogue(NPC=vendor_pawnshop, Flow=haggle) 우선, 없으면 내장 폴백
   hgLine(stage){
@@ -3262,6 +3291,8 @@ void main(){
       if((entry.qty||1)>1){ entry.qty--; const one=this.eng.mkInstance(entry.id,1); one.qty=1; one.locked=false; lm.field.push(one); lm.opened.add(one.uid); }
       else { lm.bag.splice(i,1); entry.locked=false; entry.qty=1; lm.field.push(entry); lm.opened.add(entry.uid); }
       this.flash(this.en()?'Pulled out':'전리품으로 꺼냄'); }
+    // 넣기(down)·꺼내기(up) 양방향 모두 close_bag. 실패 경로(lmReject·조기 return)는 여기 못 오므로 성공 시에만 울린다.
+    this.sfx('close_bag');
     this.lmFix(); this.forceUpdate();
     this.normFocusCard('[data-lmcard="focus"]'); // 재사용된 포커스 카드에 남은 날아가기 스타일 정상화
   }
@@ -3338,7 +3369,10 @@ void main(){
         [this.en()?'Bag':'가방', (lm.bag.length-this.lmLocked(lm))+'/'+this.lmBagCap(), gold],
         [this.en()?'Loot':'전리품', String(lm.field.length), '#6B6B6B']]),
       // coverflow (실제 카드) — svg 카드 y135~617(482). 컨테이너 125~627 중앙정렬.
-      h('div',{onPointerDown:(e)=>{this._lsx=e.clientX;this._lmoved=false;},onPointerMove:(e)=>{if(this._lsx!=null&&Math.abs(e.clientX-this._lsx)>8)this._lmoved=true;},onPointerUp:(e)=>{if(this._lsx==null)return;const dx=e.clientX-this._lsx;this._lsx=null;if(Math.abs(dx)>30){if(dx<0)this.lmFocus(1);else this.lmFocus(-1);}},style:{zIndex:1,flex:'0 1 502px',minHeight:0,position:'relative',overflow:'hidden'}},
+      // ⚠️ overflow:hidden 금지 — 소켓 있는 장비는 lootCardH가 502를 넘어(최대 585) 상·하단이 잘렸다.
+      // zIndex 3 = 칩(2)·헤더(2) 위. 카드가 길면 칩과 힌트를 덮되 카드 전체가 보이는 쪽을 택했다(사용자 결정).
+      // 가로는 프레임(.rl-frame)이 이미 overflow:hidden으로 자르므로 사이드 카드 노출은 변화 없다.
+      h('div',{onPointerDown:(e)=>{this._lsx=e.clientX;this._lmoved=false;},onPointerMove:(e)=>{if(this._lsx!=null&&Math.abs(e.clientX-this._lsx)>8)this._lmoved=true;},onPointerUp:(e)=>{if(this._lsx==null)return;const dx=e.clientX-this._lsx;this._lsx=null;if(Math.abs(dx)>30){if(dx<0)this.lmFocus(1);else this.lmFocus(-1);}},style:{zIndex:3,flex:'0 1 502px',minHeight:0,position:'relative'}},
         cards.length? cards.map((inst,i)=>{ const off=i-focus, abs=Math.abs(off), isC=off===0; const x=off*250, sc=isC?1:0.9; const o=1; const lk=!isField&&inst.locked;
           const flipped=!isField||(lm.opened&&lm.opened.has(inst.uid)); const ch=flipped?this.lootCardH(inst):482;
           const settled=this.flipSettled(lm,'lm'+inst.uid,flipped); const flat=settled||!(flipped&&isC);
@@ -3347,16 +3381,17 @@ void main(){
             h('div',{style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+(flipped?180:0)+'deg)'}},
               (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
               (flat&&!flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden',boxShadow:lk?('0 0 0 2px '+blue):'none'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden',boxShadow:lk?('0 0 0 2px '+blue):'none'}}, flipped?this.lootCardBig(inst,true):null))); })
-          : h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, isField?(this.en()?'No loot on the field':'필드에 남은 전리품 없음'):(this.en()?'Bag empty':'가방이 비었음')),
+          : this.cardEmptyBand(isField?(this.en()?'No loot on the field':'필드에 남은 전리품 없음'):(this.en()?'Bag empty':'가방이 비었음')),
         cards.length>1? cardNav(focus, cards.length, ()=>this.lmFocus(-1), ()=>this.lmFocus(1)) : null),
       // 셰브론 + 힌트 (카드 아래) — 남은 공간을 차지하고 세로 중앙
       (function(needFlip){ return h('div',{style:{position:'relative',zIndex:1,flex:'1 1 auto',minHeight:0,padding:'6px 16px 4px',display:'flex',flexDirection:'column',justifyContent:'center'}},
         needFlip? this.lmTapIcon() : this.lmChevron(isField?'down':'up'),
         h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, needFlip?(this.en()?'Tap to reveal':'탭하여 확인'):(isField?(this.en()?'Pull down to stash':'아래로 당겨 소지품에 넣기'):(this.en()?'Pull up to remove':'위로 올려 꺼내기')))); }).call(this, isField&&cards[focus]&&!(lm.opened&&lm.opened.has(cards[focus].uid))),
       // footer — svg x16 y722~804 (h82 r24) · 버튼 y739 h48 gap8
-      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:17,borderRadius:24,background:T.s1,border:'1px solid '+T.line,display:'flex',gap:8,boxShadow:'0 8px 28px rgba(0,0,0,.45)'}},
-        // 가방을 여는 소리는 전리품 → 가방 방향에서만. 되돌아올 때는 울리지 않는다(open_bag).
-        h('button',{onClick:()=>{ if(isField) this.sfx('open_bag'); lm.view=isField?'bag':'field'; lm.focus=0; this.forceUpdate(); },style:{flex:1,height:48,borderRadius:999,border:'none',background:'#212227',color:T.mid,fontFamily:T.sans,fontSize:13,cursor:'pointer'}}, isField?(this.en()?'Bag':'가방'):(this.en()?'Loot':'전리품')),
+      // zIndex 4 = 카드(3)보다 위 — 카드가 아무리 길어져도 [가방]·[완료] 버튼은 가려지면 안 된다.
+      h('div',{style:{position:'relative',zIndex:4,flex:'0 0 auto',margin:'0 16px 24px',padding:17,borderRadius:24,background:T.s1,border:'1px solid '+T.line,display:'flex',gap:8,boxShadow:'0 8px 28px rgba(0,0,0,.45)'}},
+        // 전리품 → 가방은 open_bag, 가방 → 전리품은 close_bag. 화면 전환 방향에 따라 갈린다.
+        h('button',{onClick:()=>{ this.sfx(isField?'open_bag':'close_bag'); lm.view=isField?'bag':'field'; lm.focus=0; this.forceUpdate(); },style:{flex:1,height:48,borderRadius:999,border:'none',background:'#212227',color:T.mid,fontFamily:T.sans,fontSize:13,cursor:'pointer'}}, isField?(this.en()?'Bag':'가방'):(this.en()?'Loot':'전리품')),
         h('button',{onClick:()=>{ if(lm.fromCombat){ this.commitLootDraw(); } else { lm.field=this.lmSample().field; lm.view='field'; lm.focus=0; this.flash(this.en()?'Next fight — new loot':'다음 전투 — 새 전리품'); this.forceUpdate(); } },style:{flex:1,height:48,borderRadius:999,border:'none',background:'#212227',color:T.hi,fontFamily:T.sans,fontSize:13,fontWeight:400,cursor:'pointer'}}, lm.fromCombat?(this.en()?'Done':'완료'):(this.en()?'Proceed':'진행하기'))));
   }
 
@@ -3900,6 +3935,16 @@ void main(){
   emptyRow(text){ return h('div',{style:{flex:1,minHeight:120,display:'flex',justifyContent:'center',alignItems:'center',gap:10,padding:'20px 8px'}},
     icInfo(17,'#6f7276',1.7),
     h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#6f7276',lineHeight:1.55}}, text)); }
+  // 카드 스테이지 빈 상태 — svg/screen-battle-rest-empty.svg 실측 규격
+  // (밴드 h54 @top262 · icInfo 20x22 · 텍스트 12 · 간격 6, 아이콘·글자 모두 #EAEBEE)
+  // ⚠️ emptyRow(회색 #6f7276)를 쓰면 안 된다 — 여긴 존 아트 위라 회색이 안 읽힌다. 흰색 + 반투명 검은 띠.
+  // 휴식·전리품 스테이지가 둘 다 flex:'0 1 502px'라 top 262가 두 화면에서 같은 자리에 떨어진다.
+  // 부모는 position:relative 여야 한다.
+  cardEmptyBand(text){
+    return h('div',{style:{position:'absolute',left:0,right:0,top:262,height:54,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',gap:6}},
+      icInfo(22,'#EAEBEE'),
+      h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#EAEBEE'}}, text));
+  }
   repairEmpty(){ return this.emptyRow(this.t('repair_none')); }
   // 수리 가능 행 — svg/screen-hardware-fix-item.svg (pitch 104 · 칩 h16 · 바 y305 h5)
   repairRow(inst,i){

@@ -54,11 +54,15 @@ export const DATA = {
       "appraise_sato_per_proof": 100,
       "appraise_max_liquor": 3,
       "haggle_max_rounds": 3,
-      "haggle_swing": 0.35,
       "growth_tag_chance_1": 0.15,
       "growth_tag_chance_2": 0.01,
       "growth_tag_chance_1_rare": 0.2,
-      "growth_tag_chance_2_rare": 0.03
+      "growth_tag_chance_2_rare": 0.03,
+      "haggle_band_91_100": 0.05,
+      "haggle_band_81_90": 0.1,
+      "haggle_band_71_80": 0.15,
+      "haggle_band_45_70": 0.25,
+      "haggle_band_0_44": 0.45
   },
   "primaryStats": [
     {"PrimaryStatID": "stat_str", "StatName_KR": "힘", "StatName_EN": "Strength", "Role_KR": "물리적 힘과 공격력 중심", "Role_EN": "", "GrowthCondition": "공격이 적에게 명중(적중)한 횟수", "GrowthPointPerTrigger": 0.6, "Status": "Planning", "Notes": "1차 스탯", "LastUpdated": 46209},
