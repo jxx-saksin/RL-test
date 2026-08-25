@@ -231,12 +231,14 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 28;
+const TITLE_VER = 29;
 const TITLE_DATE = '0826';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:29, date:'26/Aug', lines:[
+    ['사망 시 패널티 강화됨.','Death penalty increased.'] ] },
   { ver:27, date:'25/Aug', lines:[
     ['흥정 시스템 개편 및 전리품 화면 개선.','Haggling system reworked; loot screen improved.'],
     ['흥정할 때마다 값을 새로 매기도록 변경','Each haggle now re-appraises the value from scratch'],
@@ -663,11 +665,13 @@ class Component extends DCLogic {
     this.gs.equip.bag = null; // 가방 슬롯 먼저 해제 → 가방 인스턴스가 isEquipped=false가 되어 아래 필터에서 제거됨
     this.gs.bag = this.gs.bag.filter(x=>this.isEquipped(x.uid) || x.loc==='pocket'); // 착용 장비 + 주머니만 생존 (가방·배낭 내용물은 제외됨)
     const eq = [this.gs.equip.weapon,this.gs.equip.head,this.gs.equip.body,this.gs.equip.artifact1,this.gs.equip.artifact2].filter(Boolean);
-    let broke=null;
+    let broke=null, brokeFrom=0;
     if(eq.length){ const uid=eq[Math.floor(Math.random()*eq.length)]; const inst=this.eng.instById(this.gs,uid);
-      // 사망 시 장비는 this.t('item_current_durability')만 손상된다 — 최대 내구도는 수리 실패로만 영구 감소한다
-      if(inst){ inst.dur=Math.max(0,(inst.dur||0)-this.eng.R.randInt(2,5)); broke=inst; } }
-    this.combat.result='death'; this.combat.broke=broke;
+      // 착용 장비 중 랜덤 1개를 뽑아 death_durability_loss 확률로 현재 내구도를 0으로 만든다(파손). 안 걸리면 무사.
+      // ★ 최대 내구도는 건드리지 않는다 — 최대치를 깎는 장치는 수리 실패뿐이고, 파손은 수리로 되살아난다.
+      const p=this.eng.N(this.eng.DATA.config.death_durability_loss, 0.5);
+      if(inst && this.eng.N(inst.dur)>0 && Math.random()<p){ brokeFrom=this.eng.N(inst.dur); inst.dur=0; broke=inst; } }
+    this.combat.result='death'; this.combat.broke=broke; this.combat.brokeFrom=brokeFrom;
     this.setState({ screen:'result' });
   }
   toSafehouse(){ this.gs.sorties++; this.combat=null; this.go('safehouse'); }
@@ -2978,9 +2982,25 @@ void main(){
         h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.8px',color:MUT}}, this.t('nav_vault').toUpperCase()),
         h('span',{'data-satowallet':'1',style:{fontFamily:T.mono,fontSize:12,color:WAL}}, before.toLocaleString())));
   }
+  // 사망 시 파손된 장비 카드 — 귀환 성공의 resultSato()와 같은 자리·같은 규격.
+  // 미발동(확률에 안 걸림)이면 아예 그리지 않는다(사토가 0일 때 안 그리는 것과 동일 규칙).
+  resultBroke(){
+    const c=this.combat, inst=c&&c.broke; if(!inst) return null;
+    const from=this.eng.N(c.brokeFrom,0), max=Math.max(1,this.eng.N(inst.maxDur,1));
+    const HI='rgb(234,235,238)', LN='rgb(54,56,60)', SUB='rgb(169,171,175)';
+    const pct=Math.max(0,Math.min(100,from/max*100));
+    return h('div',{'data-broke':'1','data-from':String(from),'data-max':String(max),
+      style:{position:'relative',margin:'12px 16px 0',background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px '+LN,padding:16,transition:'box-shadow .5s ease-out'}},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
+        h('span',{style:{fontFamily:T.sans,fontSize:13,color:SUB}}, this.itemLabel(inst)),
+        h('span',{'data-brokenum':'1',style:{fontFamily:T.mono,fontSize:13,color:HI,letterSpacing:'-.01em'}}, from+' / '+max)),
+      h('div',{style:{marginTop:10,height:6,background:T.s3,borderRadius:999,overflow:'hidden'}},
+        h('div',{'data-brokefill':'1',style:{width:pct+'%',height:'100%',borderRadius:999,background:T.danger,transition:'none'}})));
+  }
+  // 성장 연출이 끝나면 사토(귀환 성공) 또는 파손(사망) 중 있는 쪽을 이어서 연출한다.
   runSatoCount(statEl){
     const box = statEl && statEl.parentNode && statEl.parentNode.querySelector('[data-sato]');
-    if(!box){ this._resAnimating=false; return; }   // 사토 보상 없음 → 연출 종료
+    if(!box){ this.runBrokeCount(statEl); return; }   // 사토 보상 없음 → 파손 카드 확인
     if(box._sato) return; box._sato=1;
     const gain=parseInt(box.getAttribute('data-gain'),10)||0, before=parseInt(box.getAttribute('data-before'),10)||0;
     const num=box.querySelector('[data-satonum]'), wal=box.querySelector('[data-satowallet]'), halo=box.querySelector('[data-satohalo]');
@@ -3003,6 +3023,46 @@ void main(){
       }
     };
     requestAnimationFrame(tick);
+  }
+  // 내구도 카운트다운 — 사망 직전 값에서 0까지. 사토 카운트업과 같은 2.5초·감속 곡선.
+  runBrokeCount(statEl){
+    const box = statEl && statEl.parentNode && statEl.parentNode.querySelector('[data-broke]');
+    if(!box){ this._resAnimating=false; return; }   // 파손 없음(확률 미발동) → 연출 종료
+    if(box._brk) return; box._brk=1;
+    const from=parseInt(box.getAttribute('data-from'),10)||0, max=parseInt(box.getAttribute('data-max'),10)||1;
+    const num=box.querySelector('[data-brokenum]'), fill=box.querySelector('[data-brokefill]');
+    // ⚠️ 시작 상태로 먼저 리셋한다(runGrowthSeq와 같은 처리). 카운트다운이 textContent를 명령형으로 쓰는데
+    // DC는 vdom끼리 비교하므로, 같은 내구도로 두 번 사망하면 새 vdom 텍스트가 직전과 같아 diff가 스킵되고
+    // 재사용된 노드에 옛 '0 / max'가 그대로 눌어붙는다. 명령형으로 쓴 값은 명령형으로 되돌려야 한다.
+    if(num){ num.textContent=from+' / '+max; num.style.transition=''; num.style.transform='scale(1)'; }
+    if(fill) fill.style.width=(from/max*100)+'%';
+    box.style.boxShadow='inset 0 0 0 1px '+T.danger;
+    this.brokeGlow(true);   // 내구도가 깎이는 동안 화면 전체 이너글로우(위험색)
+    const easeOut=t=>1-Math.pow(1-t,4);
+    let st=null; const dur=2500;
+    const tick=now=>{
+      if(this._resSkip) return;
+      if(st==null)st=now;
+      const t=Math.min(1,(now-st)/dur), f=easeOut(t), v=Math.round(from*(1-f));
+      if(num){ num.textContent=v+' / '+max; num.style.color=T.danger; }
+      if(fill) fill.style.width=(v/max*100)+'%';
+      if(t<1) requestAnimationFrame(tick);
+      else{
+        if(num){ num.textContent='0 / '+max; num.style.color=T.danger;
+          num.style.transition='transform .16s ease-out'; num.style.transform='scale(1.14)';
+          setTimeout(()=>{ num.style.transition='transform .34s cubic-bezier(.2,.85,.2,1)'; num.style.transform='scale(1)'; },170); }
+        if(fill) fill.style.width='0%';
+        this.brokeGlow(false);   // 카운트다운 종료 → 글로우 페이드아웃
+        this._resAnimating=false;
+      }
+    };
+    requestAnimationFrame(tick);
+  }
+  // 사망 파손 연출용 화면 전체 이너글로우 — 회복 글로우 3종(restGlow·returnGlow·recoverGlow)과 같은 규격이되
+  // 카운트다운이 2.5초라 '켜고 끄기'로 나눠 그동안 계속 떠 있게 한다.
+  brokeGlow(on){ const el=this._brokeGlowEl; if(!el) return;
+    if(on){ el.style.boxShadow='inset 0 0 60px 6px '+T.danger; el.style.transition='opacity .35s ease-out'; el.style.opacity='0.5'; }
+    else { el.style.transition='opacity 1s ease-in'; el.style.opacity='0'; }
   }
   // 프로토콜 지구으로 1번째 클릭: 성장·사토 연출을 즉시 최종값으로 확정 (forceUpdate 없이 명령형 — 사토 기본 렌더는 0이라)
   skipResultAnim(){
@@ -3035,11 +3095,14 @@ void main(){
     const c=this.combat; const death=c.result==='death';
     if(death){
       return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'rgb(17,19,21)'}},
+        // 파손 이너글로우 (ref 직접 제어, 평소 opacity 0) — 내구도 카운트다운 동안만 켜진다
+        h('div',{ref:el=>this._brokeGlowEl=el,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:60,opacity:0,boxShadow:'inset 0 0 60px 6px '+T.danger}}),
         this.zoneBg(c.zoneId,'return'),
         this.battleHeader('EXTRACTION FAILED', this.en()?'Extraction Failed':'귀환 실패', null, {kickerColor:T.danger}),
         h('div',{style:{position:'relative',zIndex:1,flex:1,overflowY:'auto',padding:'16px 0 16px'}},
           h('div',{style:{fontFamily:T.mono,fontSize:11,letterSpacing:'1.1px',color:'rgb(75,77,82)',margin:'0 16px 10px'}}, this.en()?'GROWTH THIS RAID':'이번 레이드 성장'),
-          this.resultGrowth()),
+          this.resultGrowth(),
+          this.resultBroke()),
         h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 16px 26px'}},
           h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
             h('button',{onClick:()=>this.toSafehouse(),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_to_safehouse')))));
