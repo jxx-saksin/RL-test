@@ -240,6 +240,18 @@ function seedOpt(kind, key, w, a){
   return 0;
 }
 
+// 성장 태그 개수 롤 — 1개/2개 확률이 서로 독립(롤 1회로 갈라짐). 무기·투구·갑옷·장신구 공통.
+// ★ 감정과 무관하다: 드랍 시점에 확정·공개된다(2026-08-25). 도수는 수치 옵션에만 작용하므로
+//   성장 태그를 감정에 묶어두면 "좋은 술을 쓰면 태그가 잘 나온다"는 잘못된 학습을 부른다.
+// 히든(IsHidden)·PvP(IsPvP) 존 드랍은 _rare 확률을 쓴다. 두 태그의 스탯은 각각 독립 랜덤(같은 스탯 = 1/4).
+function rollGrowthTags(rare){
+  const p2 = clamp(N(rare ? C.growth_tag_chance_2_rare : C.growth_tag_chance_2, rare ? 0.03 : 0.01), 0, 1);
+  const p1 = clamp(N(rare ? C.growth_tag_chance_1_rare : C.growth_tag_chance_1, rare ? 0.2 : 0.15), 0, 1);
+  const r = Math.random();
+  const n = r < p2 ? 2 : (r < p2 + p1 ? 1 : 0);
+  return Array.from({ length: n }, () => STAT_KEYS[randInt(0, 3)]);
+}
+
 // v3 instance: 베이스ID · sockets[] · unappraised[] · rolls{} · growthTags[] · dur/maxDur
 export function mkInstance(id, qty = 1, opts = {}) {
   const w = byId.weapon[id], a = byId.armor[id], it = byId.item[id], af = byId.artifact[id], tal = byId.talisman && byId.talisman[id], bg = byId.bag && byId.bag[id];
@@ -255,10 +267,8 @@ export function mkInstance(id, qty = 1, opts = {}) {
   if (af) { // 장신구: 소켓·감정 없음. 옵션 롤 + 성장태그 랜덤(감정 없이 항상 공개)
     inst.stat1 = randInt(N(af.Value1_Low), N(af.Value1_High));
     if (af.Stat2 && af.Stat2 !== '-') inst.stat2 = randInt(N(af.Value2_Low), N(af.Value2_High));
-    // 성장태그 0~2개: str/dex/vit/will 중 랜덤(중복 허용). accP마다 독립 시도 → 0:25% / 1:50% / 2:25%.
-    const accP = clamp(N(C.accessory_growth_tag_chance, 0.5), 0, 1);
-    let nTags = 0; if (Math.random() < accP) nTags++; if (Math.random() < accP) nTags++;
-    inst.growthTags = Array.from({ length: nTags }, () => STAT_KEYS[randInt(0, 3)]);
+    // 성장태그: 무기·방어구와 완전 동일한 확률(2026-08-25 통일). 예전 accessory_growth_tag_chance는 폐지.
+    inst.growthTags = rollGrowthTags(opts.rareZone);
     return inst;
   }
   if (!w && !a) {
@@ -275,16 +285,12 @@ export function mkInstance(id, qty = 1, opts = {}) {
   // 2) 옵션 롤값 (미감정이어도 내부 작동)
   inst.rolls = {}; for (const k of APPRAISE_OPTS[kind]) inst.rolls[k] = seedOpt(kind, k, w, a);
   inst.maxDur = inst.rolls.maxDur; inst.dur = inst.rolls.maxDur;
-  // 3) 미감정 롤: 옵션마다 독립 · p = clamp(base × zoneMult, 0, 1) · growthTags 포함
+  // 3) 미감정 롤: 수치 옵션마다 독립 · p = clamp(base × zoneMult, 0, 1). ★growthTags는 감정 대상이 아니다.
   const mult = N(opts.unappraisedMult, 1);
   const p = clamp(N(C.unappraised_base_chance, 0.1) * mult, 0, 1);
-  const optPool = APPRAISE_OPTS[kind].concat(['growthTags']);
-  inst.unappraised = optPool.filter(() => Math.random() < p);
-  // 4) 성장 태그 결정 (미감정=1~2개 최소보장·중복허용 / 공개=0~1개). 활성 = growthTags 미감정 아님.
-  const gUnapp = inst.unappraised.includes('growthTags');
-  const two = clamp(N(C.growth_tag_2_chance, 0.2), 0, 1);
-  const nTags = gUnapp ? (Math.random() < two ? 2 : 1) : (Math.random() < 0.5 ? 1 : 0);
-  inst.growthTags = Array.from({ length: nTags }, () => STAT_KEYS[randInt(0, 3)]);
+  inst.unappraised = APPRAISE_OPTS[kind].filter(() => Math.random() < p);
+  // 4) 성장 태그 — 드랍 시 확정·공개 (장신구와 동일 규칙)
+  inst.growthTags = rollGrowthTags(opts.rareZone);
   inst.appraised = inst.unappraised.length === 0;
   return inst;
 }
@@ -295,14 +301,14 @@ export function isHidden(inst, key){ return !!(inst && inst.unappraised && inst.
 export function growthTagsActive(inst){ return (inst && inst.growthTags && !isHidden(inst, 'growthTags')) ? inst.growthTags : []; }
 
 // ---------- appraisal (마르타 · 술) ----------
-// 술 도수 = 개체별 ± 변동폭. 각 미감정 옵션 독립 균일랜덤 ±proof%. 성장태그는 확정·활성만.
+// 술 도수 = 개체별 ± 변동폭. 각 미감정 옵션 독립 균일랜덤 ±proof%.
+// 성장 태그는 감정 대상이 아니다(드랍 시 이미 공개) — 여기서 다루지 않는다.
 export function liquorProof(liq){ return rand(N(liq.ProofMin), N(liq.ProofMax)); }
 export function appraise(inst, proofPct){
   if (!inst || !inst.unappraised || !inst.unappraised.length) return [];
   const changes = [];
   const f = N(proofPct) / 100;
   for (const key of inst.unappraised.slice()){
-    if (key === 'growthTags'){ changes.push({ key, growth: inst.growthTags.slice() }); continue; }
     const before = inst.rolls[key];
     const delta = before * rand(-f, f);
     let after = before + delta;
@@ -796,8 +802,10 @@ function groupMembers(groupId){ return (DATA.lootGroupItems || []).filter(m => m
 export function rollLoot(monsterId, zoneId) {
   const zone = zoneId ? byId.zone[zoneId] : null;
   const mult = zone ? N(zone.UnappraisedMult, 1) : 1;
+  // 성장 태그 확률은 존 등급(히든·PvP)으로만 갈린다 — UnappraisedMult(1~3)를 재사용하면 태그가 폭주한다.
+  const rareZone = !!(zone && (N(zone.IsHidden) || N(zone.IsPvP)));
   const out = [];
-  const push = (id, n) => { const ex = out.find(o => o.id === id); if (ex) ex.qty += n; else out.push({ id, qty: n, unappraisedMult: mult }); };
+  const push = (id, n) => { const ex = out.find(o => o.id === id); if (ex) ex.qty += n; else out.push({ id, qty: n, unappraisedMult: mult, rareZone }); };
   for (const r of DATA.lootTable) {
     if (r.MonsterID !== monsterId || !r.ItemID) continue;
     if (Math.random() * 100 >= N(r.DropRate)) continue;
@@ -820,7 +828,7 @@ export function growthMultiplier(state, stat) {
     if (!uid) continue; const inst = instById(state, uid); if (!inst) continue;
     tags += growthTagsActive(inst).filter(t => t === stat).length; // v3: 확정·활성 태그만 (무기·방어구·장신구·부적)
   }
-  return N(C.growth_tag_mult_base, 0.25) + N(C.growth_tag_mult_step, 0.25) * tags;
+  return N(C.growth_tag_mult_base, 0.5) + N(C.growth_tag_mult_step, 0.5) * tags;
 }
 export function growthReq(level) { return N(C.growth_A, 5) * Math.pow(N(C.growth_r, 1.35), level - 1); }
 const POINT_PER = { str: 1, dex: 2, vit: 1.5, will: 4 };

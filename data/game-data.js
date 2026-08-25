@@ -4,7 +4,7 @@ export const DATA = {
   "config": {
       "growth_A": 3,
       "growth_r": 1.8,
-      "growth_tag_mult_base": 0.25,
+      "growth_tag_mult_base": 0.5,
       "growth_tag_mult_step": 0.5,
       "stamina_penalty_rate": 0.8,
       "flee_chance_base": 0.7,
@@ -38,7 +38,6 @@ export const DATA = {
       "pvp_win_reward_rate": 0.5,
       "pvp_flee_fail_rate": 0.33,
       "death_durability_loss": 0.5,
-      "growth_tag_2_chance": 3,
       "module_attach_cost": 500,
       "module_remove_cost": 1000,
       "unappraised_base_chance": 0.1,
@@ -46,7 +45,6 @@ export const DATA = {
       "sato_drop_stamina_mult_max": 1.8,
       "sato_drop_boss_mult_min": 1,
       "sato_drop_boss_mult_max": 8,
-      "accessory_growth_tag_chance": 0.5,
       "boss_spawn_bonus": 0.05,
       "grade_ramp_fights": 15,
       "pass_cap": 50,
@@ -56,7 +54,11 @@ export const DATA = {
       "appraise_sato_per_proof": 100,
       "appraise_max_liquor": 3,
       "haggle_max_rounds": 3,
-      "haggle_swing": 0.35
+      "haggle_swing": 0.35,
+      "growth_tag_chance_1": 0.15,
+      "growth_tag_chance_2": 0.01,
+      "growth_tag_chance_1_rare": 0.2,
+      "growth_tag_chance_2_rare": 0.03
   },
   "primaryStats": [
     {"PrimaryStatID": "stat_str", "StatName_KR": "힘", "StatName_EN": "Strength", "Role_KR": "물리적 힘과 공격력 중심", "Role_EN": "", "GrowthCondition": "공격이 적에게 명중(적중)한 횟수", "GrowthPointPerTrigger": 0.6, "Status": "Planning", "Notes": "1차 스탯", "LastUpdated": 46209},
@@ -140,11 +142,11 @@ export const DATA = {
     {"ItemID": "item_mold_clump", "ItemName_KR": "곰팡이 덩이", "ItemName_EN": "Mold Clump", "Category": "Junk", "Material": "Organic", "Description": "축축하게 뭉친 곰팡이 덩어리. 살아 있는 것처럼 꿈틀댄다.", "Description_EN": "A damp clump of congealed mold. It writhes as though alive.", "MaxStack": 30, "SellPrice": 9, "EffectType": "none", "EffectStat": "-", "EffectValue": "-", "EffectDuration": "-", "Status": "Planning", "Notes": "Game item icon of a clump of mold, a damp congealed mass of fuzzy grey-green mold, moist and lumpy, post-apocalyptic mutant material, single object centered on a dark neutral background, muted desaturated palette, semi-realistic painterly render, soft top-down lighting, no legible text.", "LastUpdated": 46251}
   ],
   "valuables": [
-    {"ValuableID": "item_salt", "Name_KR": "소금 한 봉지", "Name_EN": "Bag of Salt", "MinValue": 15, "MaxValue": 150, "Description_KR": "눅눅해진 소금 한 봉지. 흔했던 시절이 무색하게, 이제 음식을 지키는 귀한 것이 됐다.", "Description_EN": "A damp bag of salt. Once so common, it is now a precious thing that keeps food from spoiling.", "Status": "Planning", "Notes": "-", "LastUpdated": 46250},
-    {"ValuableID": "item_working_battery", "Name_KR": "살아있는 배터리", "Name_EN": "Working Battery", "MinValue": 20, "MaxValue": 200, "Description_KR": "아직 전기가 도는 멀쩡한 배터리. 죽은 것들 사이에서 이건 특히 귀하다.", "Description_EN": "A working battery that still holds a charge. Among so many dead ones, this is especially prized.", "Status": "Planning", "Notes": "-", "LastUpdated": 46250},
-    {"ValuableID": "item_smartphone", "Name_KR": "구형 스마트폰", "Name_EN": "Old Smartphone", "MinValue": 20, "MaxValue": 240, "Description_KR": "액정이 깨진 구형 스마트폰. 배터리는 죽었어도, 데이터를 다루는 이들이 안을 궁금해한다.", "Description_EN": "An old smartphone with a cracked screen. The battery is dead, but those who work with data are curious about what is inside.", "Status": "Planning", "Notes": "-", "LastUpdated": 46250},
-    {"ValuableID": "item_pocketwatch", "Name_KR": "멈춘 회중시계", "Name_EN": "Stopped Pocket Watch", "MinValue": 25, "MaxValue": 320, "Description_KR": "바늘이 멈춘 낡은 회중시계. 쓸모는 잃었어도 그 세공을 알아보는 사람이 있다.", "Description_EN": "An old pocket watch with its hands stopped. Its use is gone, but someone still recognizes the craftsmanship.", "Status": "Planning", "Notes": "-", "LastUpdated": 46250},
-    {"ValuableID": "item_gold_scrap", "Name_KR": "금붙이 조각", "Name_EN": "Gold Scrap", "MinValue": 30, "MaxValue": 500, "Description_KR": "어디서 떨어져 나왔는지 모를 금붙이 조각. 세상이 무너져도 금은 금이다.", "Description_EN": "A piece of gold broken off from who knows what. Even when the world falls apart, gold is still gold.", "Status": "Planning", "Notes": "-", "LastUpdated": 46250}
+    {"ValuableID": "item_salt", "Name_KR": "소금 한 봉지", "Name_EN": "Bag of Salt", "MinValue": 100, "MaxValue": 10000, "Description_KR": "눅눅해진 소금 한 봉지. 흔했던 시절이 무색하게, 이제 음식을 지키는 귀한 것이 됐다.", "Description_EN": "A damp bag of salt. Once so common, it is now a precious thing that keeps food from spoiling.", "Status": "Planning", "Notes": "-", "LastUpdated": 46250},
+    {"ValuableID": "item_working_battery", "Name_KR": "살아있는 배터리", "Name_EN": "Working Battery", "MinValue": 100, "MaxValue": 10000, "Description_KR": "아직 전기가 도는 멀쩡한 배터리. 죽은 것들 사이에서 이건 특히 귀하다.", "Description_EN": "A working battery that still holds a charge. Among so many dead ones, this is especially prized.", "Status": "Planning", "Notes": "-", "LastUpdated": 46250},
+    {"ValuableID": "item_smartphone", "Name_KR": "구형 스마트폰", "Name_EN": "Old Smartphone", "MinValue": 100, "MaxValue": 10000, "Description_KR": "액정이 깨진 구형 스마트폰. 배터리는 죽었어도, 데이터를 다루는 이들이 안을 궁금해한다.", "Description_EN": "An old smartphone with a cracked screen. The battery is dead, but those who work with data are curious about what is inside.", "Status": "Planning", "Notes": "-", "LastUpdated": 46250},
+    {"ValuableID": "item_pocketwatch", "Name_KR": "멈춘 회중시계", "Name_EN": "Stopped Pocket Watch", "MinValue": 100, "MaxValue": 10000, "Description_KR": "바늘이 멈춘 낡은 회중시계. 쓸모는 잃었어도 그 세공을 알아보는 사람이 있다.", "Description_EN": "An old pocket watch with its hands stopped. Its use is gone, but someone still recognizes the craftsmanship.", "Status": "Planning", "Notes": "-", "LastUpdated": 46250},
+    {"ValuableID": "item_gold_scrap", "Name_KR": "금붙이 조각", "Name_EN": "Gold Scrap", "MinValue": 100, "MaxValue": 10000, "Description_KR": "어디서 떨어져 나왔는지 모를 금붙이 조각. 세상이 무너져도 금은 금이다.", "Description_EN": "A piece of gold broken off from who knows what. Even when the world falls apart, gold is still gold.", "Status": "Planning", "Notes": "-", "LastUpdated": 46250}
   ],
   "monsters": [
     {"MonsterID": "monster_gutter_roach", "MonsterName_KR": "거대바퀴", "MonsterName_EN": "Gutter Roach", "Category": "Beast", "BaseHP": 24, "MinATK": 1, "MaxATK": 3, "Defense": 1, "AttackSpeed": 1.2, "Accuracy": 3, "Evasion": 8, "CritChance": 1, "StatusResist": 5, "CritResist": 1, "StatusAttack": "none", "Potency": 0, "Description": "오염된 폐허에서 몸집을 불린 거대 바퀴벌레. 어둠 속에서 떼로 기어 나오며, 밟아도 좀처럼 죽지 않는 끈질긴 생명력을 지녔다.", "Description_EN": "A giant cockroach swollen in the polluted ruins. It crawls out in droves from the dark, clinging to life with a stubbornness that refuses to be stamped out.", "Status": "Planning", "Notes": "", "Grade": "Common", "StaminaCost": 1, "CombatTimeLimit": 15, "Material": "", "LastUpdated": 46228},
@@ -220,7 +222,7 @@ export const DATA = {
     {"LootID": 1, "MonsterID_KR": "거대바퀴", "MonsterID": "monster_gutter_roach", "DropType": "Item", "Category": "USB", "itemID": "usb_gutter_roach", "RefName": "거대 바퀴 데이터", "DropRate": 5, "MinQty": 1, "MaxQty": 1, "ItemID": "usb_gutter_roach"},
     {"LootID": 2, "MonsterID_KR": "거대바퀴", "MonsterID": "monster_gutter_roach", "DropType": "Group", "Category": "짐승 잔해", "itemID": "group_mat_beast", "RefName": "짐승 잔해", "DropRate": 25, "MinQty": 1, "MaxQty": 2, "ItemID": "group_mat_beast"},
     {"LootID": 3, "MonsterID_KR": "거대바퀴", "MonsterID": "monster_gutter_roach", "DropType": "Group", "Category": "경장 방어구", "itemID": "group_arm_light", "RefName": "경장 방어구", "DropRate": 10, "MinQty": 1, "MaxQty": 1, "ItemID": "group_arm_light"},
-    {"LootID": 77, "MonsterID_KR": "거대바퀴", "MonsterID": "monster_gutter_roach", "DropType": "Item", "Category": "Valuable", "itemID": "item_gold_scrap", "RefName": "금붙이 조각", "DropRate": 2, "MinQty": 1, "MaxQty": 1, "ItemID": "item_gold_scrap"},
+    {"LootID": 77, "MonsterID_KR": "거대바퀴", "MonsterID": "monster_gutter_roach", "DropType": "Item", "Category": "Valuable", "itemID": "item_pocketwatch", "RefName": "멈춘 회중시계", "DropRate": 30, "MinQty": 1, "MaxQty": 1, "ItemID": "item_pocketwatch"},
     {"LootID": 4, "MonsterID_KR": "들개", "MonsterID": "monster_feral_dog", "DropType": "Item", "Category": "USB", "itemID": "usb_feral_dog", "RefName": "들개 데이터", "DropRate": 5, "MinQty": 1, "MaxQty": 1, "ItemID": "usb_feral_dog"},
     {"LootID": 5, "MonsterID_KR": "들개", "MonsterID": "monster_feral_dog", "DropType": "Group", "Category": "짐승 잔해", "itemID": "group_mat_beast", "RefName": "짐승 잔해", "DropRate": 25, "MinQty": 1, "MaxQty": 2, "ItemID": "group_mat_beast"},
     {"LootID": 6, "MonsterID_KR": "들개", "MonsterID": "monster_feral_dog", "DropType": "Group", "Category": "경량 무기", "itemID": "group_wpn_light", "RefName": "경량 무기", "DropRate": 10, "MinQty": 1, "MaxQty": 1, "ItemID": "group_wpn_light"},
@@ -238,6 +240,7 @@ export const DATA = {
     {"LootID": 18, "MonsterID_KR": "콘크리트 까마귀", "MonsterID": "monster_concrete_crow", "DropType": "Item", "Category": "USB", "itemID": "usb_concrete_crow", "RefName": "콘크리트 까마귀 데이터", "DropRate": 5, "MinQty": 1, "MaxQty": 1, "ItemID": "usb_concrete_crow"},
     {"LootID": 19, "MonsterID_KR": "콘크리트 까마귀", "MonsterID": "monster_concrete_crow", "DropType": "Group", "Category": "짐승 잔해", "itemID": "group_mat_beast", "RefName": "짐승 잔해", "DropRate": 25, "MinQty": 1, "MaxQty": 2, "ItemID": "group_mat_beast"},
     {"LootID": 20, "MonsterID_KR": "콘크리트 까마귀", "MonsterID": "monster_concrete_crow", "DropType": "Group", "Category": "경량 무기", "itemID": "group_wpn_light", "RefName": "경량 무기", "DropRate": 10, "MinQty": 1, "MaxQty": 1, "ItemID": "group_wpn_light"},
+    {"LootID": 113, "MonsterID_KR": "콘크리트 까마귀", "MonsterID": "monster_concrete_crow", "DropType": "Item", "Category": "Valuable", "itemID": "item_gold_scrap", "RefName": "금붙이 조각", "DropRate": 35, "MinQty": 1, "MaxQty": 1, "ItemID": "item_gold_scrap"},
     {"LootID": 21, "MonsterID_KR": "녹슨 멧돼지", "MonsterID": "monster_rust_boar", "DropType": "Item", "Category": "USB", "itemID": "usb_rust_boar", "RefName": "녹슨 멧돼지 데이터", "DropRate": 5, "MinQty": 1, "MaxQty": 1, "ItemID": "usb_rust_boar"},
     {"LootID": 22, "MonsterID_KR": "녹슨 멧돼지", "MonsterID": "monster_rust_boar", "DropType": "Group", "Category": "짐승 잔해", "itemID": "group_mat_beast", "RefName": "짐승 잔해", "DropRate": 35, "MinQty": 1, "MaxQty": 2, "ItemID": "group_mat_beast"},
     {"LootID": 23, "MonsterID_KR": "녹슨 멧돼지", "MonsterID": "monster_rust_boar", "DropType": "Group", "Category": "경장 방어구", "itemID": "group_arm_light", "RefName": "경장 방어구", "DropRate": 15, "MinQty": 1, "MaxQty": 1, "ItemID": "group_arm_light"},

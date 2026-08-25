@@ -212,12 +212,16 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 25;
+const TITLE_VER = 26;
 const TITLE_DATE = '0825';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:26, date:'25/Aug', lines:[
+    ['성장 태그에 따른 성장률 및 드랍율 조정.','Growth rate and drop rate adjusted for growth tags.'],
+    ['· 기본 성장률 상향','· Base growth rate increased'],
+    ['· 태그 옵션 발생확률 하향','· Growth tag drop chance reduced'] ] },
   { ver:24, date:'25/Aug', lines:[
     ['카드 상세 팝업 화면 조정 및 사운드 추가.','Item detail card views adjusted; sound effects added.'] ] },
   { ver:23, date:'23/Aug', lines:[
@@ -308,7 +312,7 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val3');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const eng = await import('./engine.js?v=val4');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val3');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -397,6 +401,13 @@ class Component extends DCLogic {
     const rebuild=(inst)=>{ if(!inst) return inst;
       const rk = eng.byId.weapon[inst.id]?'weapon':eng.byId.armor[inst.id]?'armor':eng.byId.artifact[inst.id]?'artifact':null;
       if(rk && (inst.kind!==rk || inst.maxDur==null || !inst.rolls)){ const fresh=eng.mkInstance(inst.id, inst.qty||1, {}); fresh.uid=inst.uid; return fresh; }
+      // 마이그레이션(2026-08-25): 성장 태그가 감정 대상에서 빠졌다. 옛 세이브에 'growthTags'가 미감정으로
+      // 남아 있으면 영영 안 열리는 태그가 되고, 그것만 미감정인 아이템은 감정해도 아무 변화가 없다.
+      // 이미 굴려둔 태그는 그대로 두고 공개만 한다(재롤 금지 — 갖고 있던 아이템이 바뀌면 안 된다).
+      if(inst.unappraised && inst.unappraised.includes('growthTags')){
+        inst.unappraised = inst.unappraised.filter(k=>k!=='growthTags');
+        inst.appraised = inst.unappraised.length===0;
+      }
       return inst; };
     gs.bag=gs.bag.map(rebuild); gs.vault=gs.vault.map(rebuild);
     gs.equip=Object.assign({weapon:null,head:null,body:null,artifact1:null,artifact2:null,bag:null}, gs.equip||{});
@@ -580,7 +591,7 @@ class Component extends DCLogic {
       c.lootInsts=[]; c.lootDraw=[];
       // 전투 드랍 → 루팅 카드 화면에서 직접 담게 인스턴스 생성. 드랍은 전부 낱개(qty 1)로 분리 — 스택은 가방에 담길 때만.
       for(const l of loot){ c.runLoot.push(l); const n=Math.max(1, l.qty||1);
-        for(let k=0;k<n;k++){ const inst=this.eng.mkInstance(l.id, 1, {unappraisedMult:l.unappraisedMult}); inst.qty=1; inst.locked=false; c.lootDraw.push(inst); } }
+        for(let k=0;k<n;k++){ const inst=this.eng.mkInstance(l.id, 1, {unappraisedMult:l.unappraisedMult, rareZone:l.rareZone}); inst.qty=1; inst.locked=false; c.lootDraw.push(inst); } }
       c.loot = loot;
       // 사토 드롭 (Config 공식: StaminaCost × per × rand(등급 배율)) — 누적만, 귀환 성공 시 지급(사망 시 0)
       { const cfg=this.eng.DATA.config, per=this.eng.N(cfg.stamina_cost_per_point,20), sc=this.eng.N(c.mProf.staminaCost,1);
@@ -655,12 +666,12 @@ class Component extends DCLogic {
   moveItem(uid){
     const inVault0=this.gs.vault.find(x=>x.uid===uid); const cap0=inVault0?this.slotRoomFor(inVault0):null;
     if(cap0){ if(cap0.room<=0){ this.flash(cap0.label+(this.en()?(' slots full ('+cap0.max+')'):(' 소지 한도 '+cap0.max+'개'))); return; } if((inVault0.qty||1)>cap0.room){ this.moveStack(uid, cap0.room); return; } }
-    const merge=(dst,inst)=>{ if(this.maxStack(inst.id)>1){ this.stackAdd(dst, inst.id, inst.qty||1, {unappraisedMult:inst.unappraisedMult}); return true; } return false; };
+    const merge=(dst,inst)=>{ if(this.maxStack(inst.id)>1){ this.stackAdd(dst, inst.id, inst.qty||1, {unappraisedMult:inst.unappraisedMult, rareZone:inst.rareZone}); return true; } return false; };
     const inV = this.gs.vault.findIndex(x=>x.uid===uid);
     if(inV>=0){ const it=this.gs.vault[inV];
       // 스택 아이템이고 소지품에 같은 더미가 있으면 거기 병합(새 칸 안 먹음)
       const hasDump=this.maxStack(it.id)>1 && this.gs.bag.some(x=>x.id===it.id && !this.isEquipped(x.uid));
-      if(hasDump){ this.gs.vault.splice(inV,1); this.stackAdd(this.gs.bag,it.id,it.qty||1,{unappraisedMult:it.unappraisedMult}); }
+      if(hasDump){ this.gs.vault.splice(inV,1); this.stackAdd(this.gs.bag,it.id,it.qty||1,{unappraisedMult:it.unappraisedMult, rareZone:it.rareZone}); }
       else {
         // 새 칸 필요: 배낭(착용 가방 용량) 우선 → 없으면 주머니 2칸 → 둘 다 가득이면 거부.
         const bagCap=this.eng.equippedBagCapacity?this.eng.equippedBagCapacity(this.gs):0;
@@ -688,7 +699,7 @@ class Component extends DCLogic {
     if(inVault){ const cap=this.slotRoomFor(inst); if(cap){ if(cap.room<=0){ this.flash(cap.label+(this.en()?(' slots full ('+cap.max+')'):(' 소지 한도 '+cap.max+'개'))); return; } n=Math.min(n,cap.room); } }
     if(n>=total){ this.moveItem(uid); return; }
     inst.qty-=n;
-    this.stackAdd(dst, inst.id, n, {unappraisedMult:inst.unappraisedMult});
+    this.stackAdd(dst, inst.id, n, {unappraisedMult:inst.unappraisedMult, rareZone:inst.rareZone});
     this.saveGame();
     this.forceUpdate();
   }
@@ -2640,7 +2651,7 @@ void main(){
   }
   // 카운트업 — rolls를 from으로 되돌린 뒤 to까지 보간한다.
   // 색(증가 초록·감소 빨강)은 itemDetailStats가 apprDelta로 이미 칠하므로 손대지 않는다.
-  aprNums(){ return (((this.state.apr||{}).results)||[]).filter(r=>r.key!=='growthTags'&&r.from!=null); }
+  aprNums(){ return (((this.state.apr||{}).results)||[]).filter(r=>r.from!=null); }
   // maxDur은 rolls만 바꿔선 화면(durTxt)이 안 따라온다 — 인스턴스 본체까지 같이 굴린다.
   aprPutRoll(item,key,v){ item.rolls[key]=v;
     if(key==='maxDur'){ item.maxDur=Math.max(1,Math.round(v)); item.dur=Math.min(item.dur,item.maxDur); } }
@@ -2820,7 +2831,7 @@ void main(){
     return h('div',{ref:el=>this.runGrowthSeq(el),style:{alignSelf:'stretch',margin:'0 16px',background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:'4px 16px'}},
       ...prim.map(([k,kr],idx)=>{
         const g=this.gs.growth[k]; const pct=this.eng.growthPct(this.gs,k);
-        const gtb=this.eng.growthMultiplier(this.gs,k)-this.eng.N(this.eng.DATA.config.growth_tag_mult_base,0.25);
+        const gtb=this.eng.growthMultiplier(this.gs,k)-this.eng.N(this.eng.DATA.config.growth_tag_mult_base,0.5);
         const s=snap?snap[k]:{level:g.level,pct:pct};
         const fromLv=s.level, fromP=Math.max(0,Math.min(100,s.pct));
         const toLv=g.level, toP=Math.max(0,Math.min(100,pct));
@@ -3164,10 +3175,8 @@ void main(){
         gtags.length?h('div',{style:{position:'absolute',right:15,top:15,display:'flex',flexDirection:'row-reverse',gap:7}},
           ...gtags.map((tg,i)=>h('div',{key:i,style:{height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'0 8px',display:'flex',alignItems:'center'}},
             h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:HI,whiteSpace:'nowrap'}}, abbr[tg]||tg))))
-          // 성장 태그가 미감정이면 태그 자리에 미감정 배지(성장색 #7683F3) — 어디가 미감정인지 알림
-          :(this.eng.isHidden(inst,'growthTags')?h('div',{style:{position:'absolute',right:15,top:15,display:'flex'}},
-            h('div',{style:{height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(118,131,243,0.55)',padding:'0 8px',display:'flex',alignItems:'center',gap:3}},
-              h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'0.6px',color:'#7683F3',whiteSpace:'nowrap'}}, this.t('appraise_unappraised')))):null),
+          // 성장 태그는 드랍 시 확정·공개라 미감정 배지가 없다(2026-08-25). 태그가 0개면 아무것도 안 그린다.
+          :null,
         h('span',{style:{position:'absolute',left:15,bottom:13,display:'flex',alignItems:'center',gap:7,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}},
           h('span',null,cat),
           this.isEquipped(inst.uid)?h('span',{style:{color:'#83B289'}}, this.en()?'EQUIPPED':'착용중'):null),
@@ -3459,7 +3468,7 @@ void main(){
     const slot=this.slotOf(inst); if(slot) this.gs.equip[slot]=null;
     const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp);
     if(inst.kind==='bag'){ const dump=this.gs.bag.filter(x=>!this.isEquipped(x.uid)&&x.loc!=='pocket'&&x.uid!==inst.uid);
-      dump.forEach(d=>{ const i=this.gs.bag.findIndex(y=>y.uid===d.uid); if(i<0)return; const [it]=this.gs.bag.splice(i,1); delete it.loc; if(this.maxStack(it.id)>1) this.stackAdd(this.gs.vault,it.id,it.qty||1,{unappraisedMult:it.unappraisedMult}); else this.gs.vault.push(it); }); }
+      dump.forEach(d=>{ const i=this.gs.bag.findIndex(y=>y.uid===d.uid); if(i<0)return; const [it]=this.gs.bag.splice(i,1); delete it.loc; if(this.maxStack(it.id)>1) this.stackAdd(this.gs.vault,it.id,it.qty||1,{unappraisedMult:it.unappraisedMult, rareZone:it.rareZone}); else this.gs.vault.push(it); }); }
     const bi=this.gs.bag.findIndex(x=>x.uid===inst.uid); if(bi>=0){ const [it]=this.gs.bag.splice(bi,1); delete it.loc; this.gs.vault.push(it); }
     this.saveGame(); this.forceUpdate(); this.flash(this.en()?'Unequipped → Vault':'해제 → 금고');
   }
@@ -3750,7 +3759,7 @@ void main(){
             return (this.en()&&i===2)?[chip,h('div',{key:'brk',style:{flexBasis:'100%',height:0}})]:[chip]; })),
         h('div',{style:{display:'flex',flexDirection:'column',gap:16,marginBottom:24}},
           ...prim.map(([k,kr])=>{ const pv=this.eng.growthPct(g,k); const bo=bonus[k]||0;
-            const gtb=this.eng.growthMultiplier(g,k)-this.eng.N(this.eng.DATA.config.growth_tag_mult_base,0.25);
+            const gtb=this.eng.growthMultiplier(g,k)-this.eng.N(this.eng.DATA.config.growth_tag_mult_base,0.5);
             return h('div',{key:k},
               h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}},
                 h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, kr),
