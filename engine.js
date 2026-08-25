@@ -971,7 +971,8 @@ export function coldProfile(bot){
     potency: wd ? N(wd.Potency) : 0,
     attribute: (wd && wd.Attribute && wd.Attribute !== 'none') ? wd.Attribute : null,
     weaponMaxDmg: w ? w.maxAtk : 2,
-    grade: '생존자', staminaCost: 1, timeLimit: N(C.pvp_time_limit, 20),
+    // PvP는 상대가 콜드데이터라 Monster 탭 행이 없다 → 스태미너·제한시간을 Config로 관리(2026-08-26).
+    grade: '생존자', staminaCost: N(C.pvp_stamina_cost, 3), timeLimit: N(C.pvp_time_limit, 60),
   };
 }
 // 매칭: 순수 1차 스탯 총합 ±pvp_match_range, 같은 CityID. 범위 내 없으면 가장 가까운 후보로 폴백.

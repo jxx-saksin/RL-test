@@ -62,7 +62,9 @@ export const DATA = {
       "haggle_band_81_90": 0.1,
       "haggle_band_71_80": 0.15,
       "haggle_band_45_70": 0.25,
-      "haggle_band_0_44": 0.45
+      "haggle_band_0_44": 0.45,
+      "pvp_time_limit": 60,
+      "pvp_stamina_cost": 3
   },
   "primaryStats": [
     {"PrimaryStatID": "stat_str", "StatName_KR": "힘", "StatName_EN": "Strength", "Role_KR": "물리적 힘과 공격력 중심", "Role_EN": "", "GrowthCondition": "공격이 적에게 명중(적중)한 횟수", "GrowthPointPerTrigger": 0.6, "Status": "Planning", "Notes": "1차 스탯", "LastUpdated": 46209},
