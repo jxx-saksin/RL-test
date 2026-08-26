@@ -231,12 +231,14 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 31;
+const TITLE_VER = 32;
 const TITLE_DATE = '0826';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:32, date:'26/Aug', lines:[
+    ['장신구 카드 능력치 표시 오류 수정','Fixed accessory cards not showing their stat values'] ] },
   { ver:31, date:'26/Aug', lines:[
     ['사토 드랍 밸런스 상향 조정','Sato drop rates increased'],
     ['보스 사토 드랍 랜덤치 증폭됨.','Boss sato drops now swing much wider.'] ] },
@@ -341,7 +343,7 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val7');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const eng = await import('./engine.js?v=val8');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val3');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -3303,6 +3305,18 @@ void main(){
     const md=this.eng.byId.module&&this.eng.byId.module[inst.id];
     const isGear=inst.kind==='weapon'||inst.kind==='armor';
     const isBag=inst.kind==='bag';
+    const isAcc=inst.kind==='artifact';   // 장신구 — 가방과 같은 1열 레이아웃에 스탯 증감을 얹는다
+    // 장신구 스탯 행: 라벨=스탯명(힘·민첩·체력·의지) / 값=인스턴스 롤값(+4 초록 · -3 빨강).
+    // 옵션이 1개면 1행, 2개면 2행 — 그리드가 stats.length로 잡히므로 줄 수는 자동.
+    const accRows=()=>{ const af=this.eng.byId.artifact[inst.id]||{}; const out=[];
+      const row=(krKey,enKey,v)=>{ const kr=af[krKey], en=af[enKey];
+        const name=this.en()?(en&&en!=='-'?en:kr):kr;
+        if(!kr||kr==='-'||v==null) return;
+        const n=Math.round(this.eng.N(v));
+        out.push([name, (n>=0?'+':'')+n, n<0?'#C4675D':'#83B289']); };
+      row('Stat1_KR','Stat1_EN', inst.stat1!=null?inst.stat1:this.eng.N(af.Value1_Low));
+      row('Stat2_KR','Stat2_EN', inst.stat2!=null?inst.stat2:(af.Stat2&&af.Stat2!=='-'?this.eng.N(af.Value2_Low):null));
+      return out; };
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', MID='rgb(169,171,175)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', UNC='rgb(124,165,187)';
     const UNW=this.t('appraise_unappraised');
     const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id];
@@ -3313,7 +3327,7 @@ void main(){
     // 귀중품: 흥정(전당포) 전이라 확정 가격이 없다 → 가치 밴드만 보여준다. 판매는 sellables()에서 이미 제외됨.
     const val=this.eng.byId.valuable&&this.eng.byId.valuable[inst.id];
     // 귀중품 가치는 흥정 전까지 완전 숨김(미감정 원칙) — 흥정 후에만 확정값 노출
-    const allStats=val?[[this.en()?'Value':'가치', (inst.value!=null? Math.round(this.eng.N(inst.value)).toLocaleString() : (this.en()?'Unknown':'알 수 없음')), (inst.value!=null&&inst.valueUp===false)?'#C4675D':'#83B289']]:usb?[[this.t('usb_permanent_growth'),this.eng.substUsbTokens('{STAT}',usb)],[this.t('combat_time_limit'),this.eng.N(usb.UploadMinutes,1)+(this.en()?'m':'분')]]:(isBag?[[this.en()?'Slots':'슬롯',String(this.eng.N(s.Capacity)),'#83B289']]:((isGear||liq||md||s.Category==='Medicine'||s.Category==='Food')?this.itemDetailStats(inst):[]));
+    const allStats=val?[[this.en()?'Value':'가치', (inst.value!=null? Math.round(this.eng.N(inst.value)).toLocaleString() : (this.en()?'Unknown':'알 수 없음')), (inst.value!=null&&inst.valueUp===false)?'#C4675D':'#83B289']]:usb?[[this.t('usb_permanent_growth'),this.eng.substUsbTokens('{STAT}',usb)],[this.t('combat_time_limit'),this.eng.N(usb.UploadMinutes,1)+(this.en()?'m':'분')]]:(isBag?[[this.en()?'Slots':'슬롯',String(this.eng.N(s.Capacity)),'#83B289']]:(isAcc?accRows():((isGear||liq||md||s.Category==='Medicine'||s.Category==='Food')?this.itemDetailStats(inst):[])));
     const stats=allStats.filter(([k])=>k!==this.t('item_durability'));
     const desc=this.tx(s,'Description')||(inst.kind==='talisman'&&(this.tx(s,'EffectDesc')||s.EffectDesc_KR))||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||(usb&&this.tx(usb,'Description'))||'';
     const hasSockets=isGear&&inst.sockets&&inst.sockets.length;
@@ -3344,8 +3358,8 @@ void main(){
       h('div',{style:{alignSelf:'stretch',flexGrow:1,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start',minHeight:0}},
         h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center'}},
           h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.itemLabel(inst)+((inst.qty||1)>1?' ×'+inst.qty:''))),
-        (!isGear&&desc)?h('div',{style:{alignSelf:'stretch',flexShrink:0,padding:'8px 0 2px',fontFamily:T.sans,fontSize:12.5,lineHeight:1.5,color:SUB}}, desc):null,
-        isGear?h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
+        (!(isGear||isAcc)&&desc)?h('div',{style:{alignSelf:'stretch',flexShrink:0,padding:'8px 0 2px',fontFamily:T.sans,fontSize:12.5,lineHeight:1.5,color:SUB}}, desc):null,
+        (isGear||isAcc)?h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('item_durability')),
           h('div',{style:{height:6,flexGrow:1,borderRadius:999,overflow:'hidden',background:ART}}, h('div',{style:{height:6,borderRadius:999,background:inst.dur<=0?'rgb(196,103,93)':SUB,width:(inst.maxDur?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0)+'%'}})),
           h('span',{style:{width:50,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:'100%',color:this.durCol(inst,MID),flexShrink:0}}, this.durTxt(inst))):null,
@@ -3362,8 +3376,9 @@ void main(){
               h('span',{style:{fontFamily:T.mono,fontSize:11.5,lineHeight:'100%',color:sk?MID:MUT}}, sk?this.eng.tr(mo,'ColorName'):this.t('common_empty'))),
             h('span',{style:{fontFamily:T.mono,fontSize:11.5,lineHeight:'100%',color:HI,textAlign:'right',whiteSpace:'nowrap'}}, sk?(this.eng.tr(mo,'TargetStat')+' +'+sk.value):'-')); })):null,
         h('div',{style:{flexGrow:1,minHeight:0}})),
-      // FOOTER — 장비만 (소모품/정크/모듈/술은 설명이 제목 아래로 이동)
-      isGear?h('div',{style:{alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'3px 15px 16px',display:'flex',alignItems:'flex-start'}},
+      // FOOTER — 내구도를 가진 장비(무기·갑옷·장신구)만. 설명을 아래로 내려야 내구도가 타이틀 바로 밑에 붙는다.
+      // (소모품/정크/모듈/술은 내구도가 없어 설명이 제목 바로 아래에 온다)
+      (isGear||isAcc)?h('div',{style:{alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'3px 15px 16px',display:'flex',alignItems:'flex-start'}},
         h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:1.5,color:desc?SUB:MUT,maxWidth:'100%'}}, desc||this.t('item_desc_label'))):null);
   }
   catKey(cat){ const map={Weapon:'item_slot_weapon',Head:'item_head',Body:'item_body',Medicine:'item_medicine',Food:'item_food',Junk:'item_junk',Valuable:'item_quest',Quest:'item_quest',Key:'item_key',Accessory:'item_accessory',Talisman:'item_talisman',Bag:'item_bag',USB:'usb_decode',Material:'item_material_type'}; return map[cat]||cat; }
@@ -3748,11 +3763,14 @@ void main(){
     } else if(this.eng.byId.module&&this.eng.byId.module[inst.id]){ const md=this.eng.byId.module[inst.id];
       out.push([this.en()?'Equip':'장착', md.Tag==='weapon'?this.t('item_slot_weapon'):this.t('item_slot_armor')], [this.eng.tr(md,'TargetStat'), '+'+md.Value_Min+'~'+md.Value_Max]);
     } else if(inst.kind==='artifact'){ const af=this.eng.byId.artifact[inst.id]||{};
-      const s1=(af.Stat1_KR&&af.Stat1_KR!=='-')?(af.Stat1_KR+' +'+(inst.stat1!=null?inst.stat1:af.Value1_Low)):null;
-      if(s1) out.push([this.t('item_effect'), s1]);
-      const s2v=(inst.stat2!=null?inst.stat2:this.eng.N(af.Value2_Low)); const s2=(af.Stat2_KR&&af.Stat2_KR!=='-')?(af.Stat2_KR+' '+(s2v>=0?'+':'')+s2v):null;
-      if(s2) out.push([this.t('item_effect2'), s2]);
-      out.push([this.t('item_slot'), this.t('item_accessory')], [this.t('item_durability'), this.durTxt(inst)]);
+      // 카드(lootCardBig)와 같은 형식 — 라벨=스탯명, 값=부호 붙은 롤값, 증가 초록/감소 빨강.
+      // 예전엔 라벨이 '효과'고 스탯명이 값 안에 박혀 있어(힘 +3) 카드와 어긋났다.
+      const arow=(krKey,enKey,v)=>{ const kr=af[krKey], en=af[enKey]; if(!kr||kr==='-'||v==null) return;
+        const nm=this.en()?(en&&en!=='-'?en:kr):kr, n=Math.round(N(v));
+        out.push([nm, (n>=0?'+':'')+n, n<0?'#C4675D':'#83B289']); };
+      arow('Stat1_KR','Stat1_EN', inst.stat1!=null?inst.stat1:N(af.Value1_Low));
+      arow('Stat2_KR','Stat2_EN', inst.stat2!=null?inst.stat2:(af.Stat2&&af.Stat2!=='-'?N(af.Value2_Low):null));
+      out.push([this.t('item_slot'), this.t('item_accessory')], [this.t('item_durability'), this.durTxt(inst), this.durCol(inst,'#EAEBEE')]);
     } else if(inst.kind==='bag'){ const bg=this.eng.byId.bag[inst.id]||{};
       out.push([this.en()?'Slots':'슬롯', String(N(bg.Capacity)), 'rgb(131,178,137)']);
     } else { const it=this.eng.byId.item[inst.id]||{};

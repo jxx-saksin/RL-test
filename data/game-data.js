@@ -27,6 +27,7 @@ export const DATA = {
       "start_primary_stats": "5,5,5,5",
       "dura_weapon_hits_per_loss": 50,
       "dura_armor_hits_per_loss": 80,
+      "dura_accessory_hits_per_loss": 100,
       "repair_fail_chance_per_point": 0.03,
       "repair_fail_maxdur_loss": 1,
       "repair_cost_per_point": 50,

@@ -714,10 +714,13 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
 // ---------- durability wear (combat) ----------
 // weapon loses 1 dur per dura_weapon_hits_per_loss successful hits landed;
 // each worn armor piece loses 1 dur per dura_armor_hits_per_loss hits taken.
+// 장신구(artifact1)는 적중·피격을 '합산'해 dura_accessory_hits_per_loss마다 -1 —
+// 공격형·방어형 어느 빌드에서도 비슷하게 닳게 하려는 의도(무기=적중만·방어구=피격만과 다름).
 // remainders accumulate on the instance (_wear) across encounters.
 export function applyDurabilityWear(state, triggers) {
   const wpl = N(C.dura_weapon_hits_per_loss, 20);
   const apl = N(C.dura_armor_hits_per_loss, 20);
+  const cpl = N(C.dura_accessory_hits_per_loss, 100);
   const changes = [];
   const wear = (inst, add, per) => {
     if (!inst || N(inst.maxDur) <= 0 || N(inst.dur) <= 0 || add <= 0 || per <= 0) return;
@@ -735,6 +738,9 @@ export function applyDurabilityWear(state, triggers) {
   const head = state.equip.head ? instById(state, state.equip.head) : null;
   const body = state.equip.body ? instById(state, state.equip.body) : null;
   [head, body].filter(Boolean).forEach(p => wear(p, N(triggers.hitsTaken), apl));
+  // artifact1 = 장신구. artifact2(징표)는 maxDur이 0이라 wear()의 가드에서 자동으로 걸러진다.
+  const acc = state.equip.artifact1 ? instById(state, state.equip.artifact1) : null;
+  wear(acc, N(triggers.hitsLanded) + N(triggers.hitsTaken), cpl);
   return changes;
 }
 
