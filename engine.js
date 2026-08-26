@@ -775,25 +775,39 @@ export function repair(state, inst) {
 // ---------- monster spawn & card draw (RL_SpawnTable) ----------
 // per-zone distribution: specials use SpawnChance %, the single IsBase monster
 // fills the remainder (100 - sum of specials). Missing monsters are skipped.
-// depth = 이번 레이드의 조우 회차(1-based, "N전"). 회차가 오를수록 보스 등장 %p가 선형 가산되고
+// bossUp = 이번 레이드에서 처치로 누적한 보스 확률 상승분(%p). 보스 몫이 늘면
 // 베이스 몬스터가 자동으로 그만큼 차감됨(100 - 스페셜합). 다른 등급은 불변.
-export function spawnDistribution(zoneId, depth = 0) {
+// 등급별 보스 확률 상승치(%p). 값이 그대로 %p다 — 중간 환산 없음.
+// 보스 행은 조우 시 누적이 리셋되므로 실제로는 쓰이지 않는다(표 완성용).
+export function bossChanceUp(grade) {
+  const g = String(grade || '').trim().toLowerCase();
+  return N(C['boss_chance_up_' + g], 0);
+}
+
+// bossUp = 이번 레이드에서 처치로 누적한 보스 확률 상승분(%p).
+// 2026-08-26 개편: 전투 '횟수' 램프(boss_spawn_bonus × depth/grade_ramp_fights)를 폐지하고
+// 등급별 누적 %p로 바꿨다. 시트 값이 곧 %p라 몇 % 오르는지 시트만 봐도 안다.
+// ★상한(boss_chance_max)은 반드시 여기서 클램프한다 — 칩에서만 자르면 표시는 15%인데
+//   실제 굴림은 20%가 되는 어긋남이 생긴다. 표시와 굴림이 같은 계산을 써야 한다.
+export function spawnDistribution(zoneId, bossUp = 0) {
   const rows = (DATA.spawnTable || []).filter(r => r.ZoneID === zoneId && byId.monster[r.MonsterID]);
   if (!rows.length) return null;
   const base = rows.find(r => N(r.IsBase) === 1);
   const specials = rows.filter(r => N(r.IsBase) !== 1);
-  const ramp = clamp(N(depth) / Math.max(1, N(C.grade_ramp_fights, 10)), 0, 1);
   const isBoss = id => String((byId.monster[id] || {}).Grade || '').trim() === 'Boss';
   const bossRows = specials.filter(r => isBoss(r.MonsterID));
-  const perBoss = bossRows.length ? (N(C.boss_spawn_bonus, 0.05) * 100 * ramp) / bossRows.length : 0;
-  const dist = specials.map(r => ({ id: r.MonsterID, chance: N(r.SpawnChance) + (isBoss(r.MonsterID) ? perBoss : 0) }));
+  // 존 기본% 합 + 누적분을, 존과 무관하게 boss_chance_max(15%)로 자른다
+  const bossBase = bossRows.reduce((s, r) => s + N(r.SpawnChance), 0);
+  const capped = clamp(bossBase + Math.max(0, N(bossUp)), 0, N(C.boss_chance_max, 15));
+  const scale = bossBase > 0 ? capped / bossBase : 0;   // 보스가 여럿이면 기본 비율대로 나눠 갖는다
+  const dist = specials.map(r => ({ id: r.MonsterID, chance: isBoss(r.MonsterID) ? N(r.SpawnChance) * scale : N(r.SpawnChance) }));
   const specialSum = dist.reduce((s, d) => s + d.chance, 0);
   if (base) dist.push({ id: base.MonsterID, chance: Math.max(0, 100 - specialSum), base: true });
   return dist.filter(d => d.chance > 0);
 }
 // one weighted draw; falls back to any same-zone/legacy monster if no table
-export function drawMonster(zoneId, depth = 0) {
-  const dist = spawnDistribution(zoneId, depth);
+export function drawMonster(zoneId, bossUp = 0) {
+  const dist = spawnDistribution(zoneId, bossUp);
   if (!dist || !dist.length) {
     const pool = DATA.monsters.filter(m => String(m.SpawnZones || '').split(',').map(s => s.trim()).includes(zoneId));
     const use = pool.length ? pool : DATA.monsters;
@@ -805,8 +819,8 @@ export function drawMonster(zoneId, depth = 0) {
   return dist[dist.length - 1].id;
 }
 // n independent draws (cards may repeat) for the pre-combat card pick
-export function drawCards(zoneId, n, depth = 0) {
-  const out = []; for (let i = 0; i < Math.max(1, n); i++) out.push(drawMonster(zoneId, depth)); return out;
+export function drawCards(zoneId, n, bossUp = 0) {
+  const out = []; for (let i = 0; i < Math.max(1, n); i++) out.push(drawMonster(zoneId, bossUp)); return out;
 }
 
 // ---------- loot ----------

@@ -75,6 +75,13 @@
   @keyframes rlEdgeFlash{0%{opacity:0}14%{opacity:1}44%{opacity:.32}100%{opacity:.32}}
   /* 타이틀 "TAP TO START" — 천천히 숨쉬는 표현(글리치 삭제) */
   @keyframes rlBreath{0%,100%{opacity:.32}50%{opacity:1}}
+  /* 보스 확률 MAX — 이너글로우+아웃글로우가 같이 숨쉰다. 테두리 링도 알파가 함께 오르내린다.
+     ★링을 실제 border로 그리면 안 된다 — 알약에 고정 높이(27)만 있고 고정 폭이 없어서
+     border-box가 세로만 흡수하고 가로는 2px 늘어나 좌우 여백만 벌어진다. inset shadow는 크기 불변. */
+  @keyframes rlBossMax{
+    0%,100%{box-shadow:inset 0 0 0 1px rgba(229,100,91,.30),inset 0 0 8px 1px rgba(229,100,91,.16),0 0 6px 1px rgba(229,100,91,.13)}
+    50%{box-shadow:inset 0 0 0 1px rgba(229,100,91,.62),inset 0 0 13px 2px rgba(229,100,91,.34),0 0 13px 3px rgba(229,100,91,.28)}
+  }
   /* 타이틀 아트 — 아주 느린 확대(켄번즈). 기준점을 바닥으로 잡아야 프레임 아래에 틈이 안 생긴다. */
   @keyframes rlTitleZoom{from{transform:scale(1)}to{transform:scale(1.08)}}
   /* 태그 단말 LED — 대기=붉게 숨쉬기 / 인증=초록 빠른 점멸 */
@@ -231,7 +238,7 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 32;
+const TITLE_VER = 33;
 const TITLE_DATE = '0826';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -343,7 +350,7 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val8');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const eng = await import('./engine.js?v=val9');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val3');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -528,7 +535,8 @@ class Component extends DCLogic {
     const z=this.eng.byId.zone[zoneId];
     if(z && this.eng.N(z.IsHidden)===1 && z.UnlockType==='item' && z.UnlockKey){ this.consumeItem(z.UnlockKey); this.flash(this.t('zone_keycard_used')); }
     this.saveNow();   // 진입 비용(키카드 소모) 확정 — combat 세팅 전이라 inSortie 가드와 무관
-    this.combat = { zoneId, encounter:0, runLoot:[], runLootInsts:[], satoGained:0 };
+    this.combat = { zoneId, encounter:0, runLoot:[], runLootInsts:[], satoGained:0, bossUp:0 };
+    this._bcShown=null; if(this._bcRaf){cancelAnimationFrame(this._bcRaf);this._bcRaf=null;} this._bcTo=null;   // 보스 칩 카운트업 상태 리셋
     // 귀환 화면 성장 그래프용 — 레이드 시작 시점 스냅샷
     this.combat.gSnap = Object.fromEntries(['str','dex','vit','will'].map(k=>[k,{ level:this.gs.growth[k].level, pct:this.eng.growthPct(this.gs,k) }]));
     // 레이드 로딩 화면(강제 2.5초) → beginSortieCombat에서 실제 카드 드로우
@@ -549,7 +557,7 @@ class Component extends DCLogic {
     const isPvp = this.isPvpZone(zone);
     const userChance = zone ? this.eng.N(String(zone.UserDataChance==null?'':zone.UserDataChance).replace('%',''))/100 : 0;
     // 조우 카드: PvP 존에서는 각 카드가 UserDataChance(%)로 몬스터/유저(콜드데이터) 확정 (§6-6)
-    const cards = this.eng.drawCards(this.combat.zoneId, n, (this.combat.encounter||0)+1).map(id=>{
+    const cards = this.eng.drawCards(this.combat.zoneId, n, this.combat.bossUp||0).map(id=>{
       if(isPvp && Math.random()<userChance){
         const bot=this.eng.pickColdOpponent(this.gs, zone.CityID);
         if(bot) return { type:'user', bot };
@@ -567,6 +575,11 @@ class Component extends DCLogic {
     this.forceUpdate();
   }
   enterCombat(){
+    // 보스를 만나면 누적을 0으로 되돌린다 — 처치가 아니라 '조우' 시점이다.
+    // 카드 화면 도망이 폐지돼 보스가 뽑히면 무조건 싸우므로, 시간 초과로 못 잡았을 때
+    // 누적이 남아 다음 판에 또 보스가 뜨는 연속 보스를 막는다. 램프의 목적은 만난 순간 달성된다.
+    { const g=String((this.eng.byId.monster[(this.combat.mProf||{}).id]||{}).Grade||'').trim();
+      if(g==='Boss' && this.combat) this.combat.bossUp=0; }
     if(typeof navigator!=='undefined' && navigator.vibrate){ try{ navigator.vibrate(40); }catch(e){} } // 제스처 결합 진동(활성화 확보 + 전투 시작 피드백)
     const mProf = this.combat.mProf;
     // 탈진 판정 = 진입 시점 스태미너 0(이전 전투 누적). 이번 전투 소모는 종료 후(finishCombat)로 이동 —
@@ -635,6 +648,10 @@ class Component extends DCLogic {
         const curve=Math.max(0.01, isBoss?this.eng.N(cfg.sato_drop_boss_curve,1):1);
         const gain=Math.max(0, Math.round(sc*per*(lo+(hi-lo)*Math.pow(Math.random(),curve))));
         c.satoGained=(c.satoGained||0)+gain; }
+      // 보스 확률 누적 — 승리했을 때만. 시간 초과·도망은 안 센다("이 구역을 얼마나 훑었나"의 지표).
+      // 값이 곧 %p라 중간 환산이 없다. 상한 클램프는 engine.spawnDistribution이 맡는다.
+      { const g=(this.eng.byId.monster[c.mProf.id]||{}).Grade;
+        c.bossUp=(c.bossUp||0)+this.eng.bossChanceUp(g); }
       if(loot.length){ c.res.log.push({t:res.elapsed||0, who:'sys', type:'win', text:this.eng.logTpl('loot',{}), hpP:res.playerHpEnd, hpM:0}); c.revealed=c.res.log.length; }
       c.ups = this.eng.applyGrowth(this.gs, res.triggers);
       const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp;
@@ -1088,30 +1105,59 @@ class Component extends DCLogic {
     return h('div',{key:'zonebg'+(mode||'full'),style:Object.assign({zIndex:0,pointerEvents:'none',backgroundSize:'cover',backgroundPosition:'center'},st)});
   }
   // 보스 확률 칩 — 헤더 우측. 알약 142x27 r8(black 50%) + 배지 82x17 r4 #6B6B6B.
-  // 값 = 이번 조우에서 보스가 뜰 '실제 확률'(2026-08-26 변경). 존 SpawnTable의 보스 기본 % 에서 시작해
-  // 조우가 깊어질수록 depth 램프만큼 올라간다. 예) 무너진 상가 보스 5% → 1전 5.5% … 10전 10.0%.
-  // 이전에는 램프 가산분(+0.7% 식)만 보여줘서 "이 존의 보스가 얼마나 나오는지"를 알 수 없었다.
-  // engine.spawnDistribution이 기본%+램프를 모두 계산하므로 그 값을 그대로 합산한다(계산 중복 방지).
-  // depth = 지금 화면이 가리키는 조우 회차. 카드 드로우·휴식은 '다음 전투', 전투 중에는 '이번 전투'.
+  // 값 = 이번 조우에서 보스가 뜰 '실제 확률'. 존 SpawnTable의 보스 기본 %에서 시작해
+  // 처치한 몬스터의 등급별 상승치(boss_chance_up_*)가 누적되고, boss_chance_max(15%)에서 멈춘다.
+  // 예) 무너진 상가 5.0% → Common 처치마다 +1%p → 15%에서 'MAX'.
+  // ★계산은 engine.spawnDistribution 한 곳에서만 한다 — 칩에서 따로 더하거나 자르면
+  //   표시와 실제 굴림이 어긋난다(표시 15%인데 굴림은 20%가 되는 식).
   bossChip(){
     const c=this.combat; if(!c) return null;
     // PvP 존에는 보스가 없다 — 같은 자리에 유저 조우 확률(PVP CHANCE)을 띄운다.
     const z=this.eng.byId.zone[c.zoneId];
     if(this.isPvpZone(z)) return this.pvpChip(z);
     const N=(v,d)=>this.eng.N(v,d);
-    const enc=N(c.encounter,0);
-    const depth=(c.phase==='fighting'||c.phase==='won'||c.phase==='timeout'||c.phase==='dead')?enc:enc+1;
     // 보스 확률을 확정할 수 없으면 '??%'. 두 경우 모두 해당한다:
     //  · SpawnTable이 없는 존(도시2·3) — drawMonster가 폴백 풀로 굴려서 확률을 계산할 수 없다
     //  · 테이블에 Boss 등급 행이 없는 존 — 보스가 없는 맵
     // 0.0%로 찍으면 "보스가 확실히 안 나온다"는 단정이 되므로 쓰지 않는다.
-    const dist=this.eng.spawnDistribution(c.zoneId, depth);
+    const dist=this.eng.spawnDistribution(c.zoneId, c.bossUp||0);
     const isBoss=id=>String((this.eng.byId.monster[id]||{}).Grade||'').trim()==='Boss';
     const pct=(dist&&dist.length)?dist.filter(d=>isBoss(d.id)).reduce((s,d)=>s+N(d.chance),0):0;
-    const label=pct>0?(pct.toFixed(1)+'%'):'??%';
-    return h('div',{style:{display:'flex',alignItems:'center',gap:6,height:27,boxSizing:'border-box',padding:'0 9px',background:'rgba(0,0,0,0.5)',borderRadius:8}},
-      h('span',{style:{flex:'0 0 auto',width:82,height:17,borderRadius:4,background:'#6B6B6B',color:'#111111',fontFamily:T.mono,fontSize:10,fontWeight:500,letterSpacing:'.04em',display:'flex',alignItems:'center',justifyContent:'center'}},'BOSS CHANCE'),
-      h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:'#FFFFFF',whiteSpace:'nowrap'}}, label));
+    const cap=N(this.eng.DATA.config.boss_chance_max, 15);
+    if(pct<=0) return this.bossChipEl('??%', false);
+    // 카운트업 — 표시값(_bcShown)을 vdom에 그대로 넣고 rAF가 그 값을 올린다.
+    // 명령형으로 textContent를 쓰면 DC 노드 재사용 때 눌어붙으므로(값이 같으면 diff가 스킵된다)
+    // vdom과 DOM이 항상 같은 값을 보게 하는 이 방식이 안전하다 — 감정 카운트업(aprAnimate)과 같은 패턴.
+    this.bcSync(pct);
+    const v=this._bcShown==null?pct:this._bcShown;
+    const maxed = v>=cap-0.05;
+    // 상한에 닿으면 숫자 대신 MAX% — 더 잡아도 안 오른다는 신호. 부동소수 오차를 감안해 0.05 여유.
+    return this.bossChipEl(maxed?'MAX%':v.toFixed(1)+'%', maxed);
+  }
+  // 목표치가 바뀌면 0.52초 easeOut으로 따라 올라간다. 리셋(감소)은 연출 없이 즉시 — 보스 조우로
+  // 화면이 어차피 바뀌는 순간이라, 내려가는 카운트다운은 오히려 눈에 걸린다.
+  bcSync(target){
+    if(this._bcShown==null){ this._bcShown=target; return; }
+    if(Math.abs(this._bcShown-target)<0.005) return;
+    if(target<this._bcShown){ this._bcShown=target; if(this._bcRaf){cancelAnimationFrame(this._bcRaf);this._bcRaf=null;} return; }
+    if(this._bcTo!=null && Math.abs(this._bcTo-target)<0.005) return;   // 이미 그 목표로 달리는 중
+    if(this._bcRaf) cancelAnimationFrame(this._bcRaf);
+    const from=this._bcShown, to=target, t0=performance.now(), dur=520;
+    this._bcTo=to;
+    const step=(now)=>{ const p=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-p,3);
+      this._bcShown=from+(to-from)*e; this.forceUpdate();
+      if(p<1) this._bcRaf=requestAnimationFrame(step);
+      else { this._bcRaf=null; this._bcTo=null; this._bcShown=to; this.forceUpdate(); } };
+    this._bcRaf=requestAnimationFrame(step);
+  }
+  // 칩 본체. MAX면 배지가 빨강+노랑 글자로 바뀌고 테두리가 숨쉰다.
+  bossChipEl(label, maxed){
+    // 좌우 패딩 9→6: MAX 링이 상시 노출되는 요소가 되면서 상하(5px)와의 여백 차이가 드러났다.
+    // 6이면 상하와 1px 차이라 링이 균등하게 둘러싼다. 헤더 우측 정렬이라 폭이 줄어도 레이아웃 영향 없음.
+    return h('div',{style:{display:'flex',alignItems:'center',gap:6,height:27,boxSizing:'border-box',padding:'0 6px',background:'rgba(0,0,0,0.5)',borderRadius:8,
+        animation:maxed?'rlBossMax 2.6s ease-in-out infinite':'none'}},
+      h('span',{style:{flex:'0 0 auto',width:82,height:17,borderRadius:4,background:maxed?'#C4675D':'#6B6B6B',color:maxed?'#F2D08A':'#111111',fontFamily:T.mono,fontSize:10,fontWeight:500,letterSpacing:'.04em',display:'flex',alignItems:'center',justifyContent:'center'}},'BOSS CHANCE'),
+      h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:maxed?'#E5645B':'#FFFFFF',whiteSpace:'nowrap'}}, label));
   }
   // PvP 확률 칩 — svg/screen-battle-pvp-*.svg. 알약 122x27 r8 · 배지 76x17 r4 #C4675D.
   // 값 = Zone.UserDataChance(%) — drawCards가 조우 카드를 유저로 굴릴 때 쓰는 바로 그 확률.
@@ -1184,37 +1230,29 @@ class Component extends DCLogic {
   // 대상 = 시트·모달이 열려 있으면 그 안의 맨 아래 버튼 행, 아니면 화면 하단 버튼 행.
   // 버튼이 없는 화면(내비 필·전투 '교전중' 필)은 그 알약 안에 세로 가운데로 얹는다.
   TOAST_H = 48;
+  // 토스트 위치 = **상단 헤더에 겹침** (2026-08-26 변경. 그 전에는 하단 버튼 행에 포갰다).
+  // 늘 같은 자리에 떠야 눈이 찾기 쉽다 — 하단 방식은 화면마다 버튼 높이가 달라 미묘하게 흔들렸다.
+  // 헤더가 없는 화면(상세 시트·모달·부팅)에서도 **상단 고정**으로 간다(폴백 top:21).
   toastAnchor(){
-    const D={bottom:26+8,left:16,right:16};   // 폴백 = 하단 박스 슬롯(64) 안에 48을 가운데
+    const D={top:21,left:16,right:16};   // 폴백 = screenTitle 90px 기준 48px를 세로 중앙
     try{
       const fr=document.querySelector('.rl-frame'); if(!fr) return D;
       const R=fr.getBoundingClientRect();
       // 프레임 테두리 제외한 패딩 박스 기준 — absolute의 기준면과 같다
-      const pL=R.left+fr.clientLeft, pT=R.top+fr.clientTop, pR=pL+fr.clientWidth, pB=pT+fr.clientHeight;
-      const ov=[...fr.children].filter(el=>{ const cs=getComputedStyle(el); return cs.position==='absolute' && (parseInt(cs.zIndex,10)||0)>=30; }).pop();
-      const root=ov||fr;
-      let box=null;
-      // ① 맨 아래 버튼 행 (높이 40~56 · 폭 60+ · 화면 하단부)
-      const btns=[...root.querySelectorAll('button')].map(b=>b.getBoundingClientRect())
-        .filter(r=>r.height>=40&&r.height<=56&&r.width>60&&r.bottom>pB-300&&r.bottom<=pB+1);
-      if(btns.length){
-        const mb=Math.max(...btns.map(r=>r.bottom)), row=btns.filter(r=>Math.abs(r.bottom-mb)<=4);
-        box={h:Math.max(...row.map(r=>r.height)),bottom:mb,left:Math.min(...row.map(r=>r.left)),right:Math.max(...row.map(r=>r.right))};
-      } else {
-        // ② 버튼이 없으면 하단 알약/박스 자체
-        const cand=[...root.querySelectorAll('div')].map(d=>d.getBoundingClientRect())
-          .filter(r=>r.width>250&&r.height>=56&&r.height<=80&&r.bottom>pB-60&&r.bottom<=pB+1);
-        if(!cand.length) return D;
-        const mb=Math.max(...cand.map(r=>r.bottom)), r0=cand.filter(r=>r.bottom===mb)[0];
-        box={h:r0.height,bottom:mb,left:r0.left,right:r0.right};
-      }
-      const bot=Math.round(pB-box.bottom-(this.TOAST_H-box.h)/2);
-      return { bottom:Math.max(4,bot), left:Math.round(box.left-pL), right:Math.round(pR-box.right) };
+      const pL=R.left+fr.clientLeft, pT=R.top+fr.clientTop, pR=pL+fr.clientWidth;
+      // 헤더 = 프레임 맨 위에 붙어 있고 높이 60~130인 블록(screenTitle 90 · battleHeader가 감쌈).
+      // 오버레이(시트·모달)에는 헤더가 없으므로 항상 프레임 본문에서 찾는다.
+      const hit=[...fr.querySelectorAll('div')].map(d=>d.getBoundingClientRect())
+        .filter(r=>r.height>=60&&r.height<=130&&r.width>250&&Math.abs(r.top-pT)<=2)
+        .sort((a,b)=>b.width-a.width)[0];
+      if(!hit) return D;
+      const top=Math.round(hit.top-pT+(hit.height-this.TOAST_H)/2);
+      return { top:Math.max(4,top), left:Math.round(hit.left-pL)+16, right:Math.round(pR-hit.right)+16 };
     }catch(_){ return D; }
   }
-  toastEl(){ if(!this.state.toast) return null; const a=this._toastAnc||{bottom:34,left:16,right:16}; const out=!!this.state.toastOut;
+  toastEl(){ if(!this.state.toast) return null; const a=this._toastAnc||{top:21,left:16,right:16}; const out=!!this.state.toastOut;
     // key를 바꿔 새 노드로 마운트 — 노드가 재활용돼도 페이드 아웃이 항상 처음부터 재생된다
-    return h('div',{key:out?'toast-out':'toast-in',style:{position:'absolute',bottom:a.bottom,left:a.left,right:a.right,display:'flex',alignItems:'center',justifyContent:'center',gap:9,height:this.TOAST_H,boxSizing:'border-box',padding:'0 20px',background:'#18191D',border:'1px solid #36383C',borderRadius:999,color:'#A1A1A1',fontFamily:T.mono,fontSize:12,lineHeight:1.35,textAlign:'center',animation:out?'rlToastOut .5s ease-out forwards':'rlFade .2s',zIndex:70,pointerEvents:'none'}},
+    return h('div',{key:out?'toast-out':'toast-in',style:{position:'absolute',top:a.top,left:a.left,right:a.right,display:'flex',alignItems:'center',justifyContent:'center',gap:9,height:this.TOAST_H,boxSizing:'border-box',padding:'0 20px',background:'#18191D',border:'1px solid #36383C',borderRadius:999,color:'#A1A1A1',fontFamily:T.mono,fontSize:12,lineHeight:1.35,textAlign:'center',animation:out?'rlToastOut .5s ease-out forwards':'rlFade .2s',zIndex:70,pointerEvents:'none'}},
     h('svg',{key:'ic',width:15,height:15,viewBox:'123 660.2 15.6 17.2',fill:'none',style:{flex:'0 0 auto'}},
       h('path',{key:'a',d:'M130.8 664.2C131.131 664.2 131.4 664.469 131.4 664.8V669.6C131.4 669.932 131.131 670.2 130.8 670.2C130.469 670.2 130.2 669.932 130.2 669.6V664.8C130.2 664.469 130.469 664.2 130.8 664.2Z',fill:'#A1A1A1'}),
       h('path',{key:'b',d:'M131.6 672C131.6 672.442 131.242 672.8 130.8 672.8C130.358 672.8 130 672.442 130 672C130 671.558 130.358 671.2 130.8 671.2C131.242 671.2 131.6 671.558 131.6 672Z',fill:'#A1A1A1'}),

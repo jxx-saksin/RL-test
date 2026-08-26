@@ -46,8 +46,6 @@ export const DATA = {
       "sato_drop_boss_mult_min": 15,
       "sato_drop_boss_mult_max": 45,
       "sato_drop_boss_curve": 3,
-      "boss_spawn_bonus": 0.05,
-      "grade_ramp_fights": 15,
       "pass_cap": 50,
       "pass_auto_threshold": 10,
       "pass_regen_minutes": 30,
@@ -67,7 +65,13 @@ export const DATA = {
       "pvp_time_limit": 60,
       "pvp_stamina_cost": 3,
       "flee_extract_chance_1": 0.1,
-      "flee_extract_chance_2": 0.5
+      "flee_extract_chance_2": 0.5,
+      "boss_chance_up_common": 1,
+      "boss_chance_up_rare": 2,
+      "boss_chance_up_unique": 3,
+      "boss_chance_up_special": 5,
+      "boss_chance_up_boss": 0,
+      "boss_chance_max": 15
   },
   "primaryStats": [
     {"PrimaryStatID": "stat_str", "StatName_KR": "힘", "StatName_EN": "Strength", "Role_KR": "물리적 힘과 공격력 중심", "Role_EN": "", "GrowthCondition": "공격이 적에게 명중(적중)한 횟수", "GrowthPointPerTrigger": 0.6, "Status": "Planning", "Notes": "1차 스탯", "LastUpdated": 46209},
