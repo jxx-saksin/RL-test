@@ -69,6 +69,8 @@ export function t(key){
 const V3_STRINGS = {
   appraise_tab:['감정','Appraise'], module_tab:['모듈','Modules'],
   appraise_unappraised:['미감정','Unappraised'],
+  // 도주 카드 뒤집기 전 경고. 실패해도 즉시 전투가 아니라 '다음 조우 카드'로 간다(2026-08-26 도망 개편).
+  combat_flee_warn:['도주 실패시 다음 전투로 강제 진입합니다.','On failure, the next encounter is forced.'],
   appraise_pick_liquor:['감정에 쓸 술을 고른다','Pick a liquor to appraise with'],
   appraise_uses:['감정 횟수','Uses'], appraise_proof_band:['도수 = 변동폭','Proof = variance'],
   appraise_no_liquor:['감정용 술이 없다 — 몬스터가 드랍한다','No liquor — monsters drop it'],
@@ -323,9 +325,15 @@ export function appraise(inst, proofPct){
   // 감정된 최대 내구도는 rolls뿐 아니라 인스턴스 본체에도 반영해야 한다 —
   // maxDur은 전투 소모·수리·itemState가 전부 inst.maxDur을 보므로, 안 옮기면 감정 결과가 무효가 된다.
   // 내구도는 정수 단위(수리 실패 롤이 point 단위)라 반올림해서 넣는다.
+  // ★현재 내구도는 클램프가 아니라 "잔량 비율 보존"으로 옮긴다. min(dur, newMax)로 두면 최대치가
+  //   올라갔을 때 현재값만 뒤처져(44/50) 쓰지도 않은 장비가 닳아 보인다. 비율을 유지하면
+  //   새 드랍 44/44 → 50/50, 3 닳은 물건 41/44 → 47/50, 파손 0/44 → 0/50이 된다.
+  //   (마모량 보존은 파손품이 감정만으로 6/50으로 부활해 버려서 못 쓴다 — 수리를 건너뛰게 된다.)
   if (inst.unappraised.includes('maxDur')) {
+    const oldMax = Math.max(1, Math.round(N(inst.maxDur)));
+    const ratio = clamp(N(inst.dur) / oldMax, 0, 1);
     inst.maxDur = Math.max(1, Math.round(inst.rolls.maxDur));
-    inst.dur = Math.min(inst.dur, inst.maxDur);
+    inst.dur = clamp(Math.round(inst.maxDur * ratio), 0, inst.maxDur);
   }
   inst.unappraised = [];
   inst.appraised = true;

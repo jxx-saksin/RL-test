@@ -231,12 +231,15 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 29;
+const TITLE_VER = 30;
 const TITLE_DATE = '0826';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:30, date:'26/Aug', lines:[
+    ['미감정 아이템 내구도 감정 여부 수정','Fixed durability showing through on unappraised items'],
+    ['도망, 귀환하기 개편, 전투 전 도망 가기 삭제됨.','Flee and extraction reworked; pre-combat flee removed.'] ] },
   { ver:29, date:'26/Aug', lines:[
     ['사망 시 패널티 강화됨.','Death penalty increased.'] ] },
   { ver:27, date:'25/Aug', lines:[
@@ -335,7 +338,7 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val5');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const eng = await import('./engine.js?v=val7');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val3');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -1573,11 +1576,16 @@ class Component extends DCLogic {
       h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_hp'),Math.round(g.hp),Math.round(g.maxHp),Math.max(0,Math.min(100,g.hp/g.maxHp*100)),'rgb(174,97,92)')),
       h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_stamina'),Math.round(g.sta),Math.round(this.staMax),Math.max(0,Math.min(100,g.sta/this.staMax*100)),'rgb(193,158,111)')));
     let statusEl=null, buttons;
+    // 이탈 버튼: 해당 회차에 도망 확률 행이 있으면 [도망가기](도주 카드 판정), 없으면 [귀환하기](100%).
+    // 시간 초과도 '한 판 치렀다'로 본다 — 아니면 시간을 끌어 초과시키는 게 자유 귀환 우회로가 된다.
+    const outBtn=()=> this.fleeChance()!=null
+      ? sbtn(this.t('btn_flee_out'),()=>this.attemptFlee())
+      : sbtn(this.t('btn_return'),()=>this.extract());
     if(c.phase==='won'){
-      buttons=h('div',{style:{display:'flex',gap:8}}, sbtn(this.t('btn_continue'),()=>this.drawCards()), sbtn(this.en()?'Rest':'휴식 하기',toRest), sbtn(this.t('btn_return'),()=>this.extract()));
+      buttons=h('div',{style:{display:'flex',gap:8}}, sbtn(this.t('btn_continue'),()=>this.drawCards()), sbtn(this.en()?'Rest':'휴식 하기',toRest), outBtn());
     } else if(c.phase==='timeout'){
       statusEl=h('div',{style:{fontFamily:T.mono,fontSize:11,color:T.warn,textAlign:'center'}}, this.t('combat_timeout'));
-      buttons=h('div',{style:{display:'flex',gap:8}}, sbtn(this.t('combat_reengage'),()=>this.drawCards()), sbtn(this.en()?'Rest':'휴식 하기',toRest), sbtn(this.t('btn_return'),()=>this.extract()));
+      buttons=h('div',{style:{display:'flex',gap:8}}, sbtn(this.t('combat_reengage'),()=>this.drawCards()), sbtn(this.en()?'Rest':'휴식 하기',toRest), outBtn());
     } else {
       buttons=h('div',{style:{display:'flex',gap:8}}, sbtn(this.t('btn_confirm_result'),()=>this.death(),'rgb(196,103,93)'));
     }
@@ -2127,9 +2135,10 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
           h('div',{style:{display:'flex',gap:5}},
             h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_hp'), Math.round(g.hp), Math.round(g.maxHp), Math.max(0,Math.min(100,g.hp/g.maxHp*100)), 'rgb(174,97,92)')),
             h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_stamina'), Math.round(g.sta), Math.round(this.staMax), Math.max(0,Math.min(100,g.sta/this.staMax*100)), 'rgb(193,158,111)'))),
+          // 카드 화면 도망은 폐지됐다(2026-08-26) — 카드를 뽑았으면 그 판은 확정. 도망은 전투 사이에서만 시도한다.
+          // 몬스터를 보고 무를 수 있으면 depth 램프(깊이=보스 확률)가 무의미해지고, 전투 사이 [도망가기]의 우회로가 된다.
           h('div',{style:{display:'flex',gap:8}},
-            h('button',{disabled:!flipped,onClick:flipped?()=>this.enterCombat():null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:flipped?'rgb(196,103,93)':'rgb(75,77,82)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:flipped?'pointer':'default'}}, this.t('combat_start')),
-            h('button',{disabled:!flipped,onClick:flipped?()=>this.attemptFlee():null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:flipped?'rgb(234,235,238)':'rgb(75,77,82)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:flipped?'pointer':'default'}}, this.t('combat_flee'))))));
+            h('button',{disabled:!flipped,onClick:flipped?()=>this.enterCombat():null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:flipped?'rgb(196,103,93)':'rgb(75,77,82)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:flipped?'pointer':'default'}}, this.t('combat_start'))))));
   }
   cardBack(i,n){
     return h('button',{key:i,onClick:()=>this.pickCard(i),
@@ -2169,7 +2178,13 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
           h('button',{onClick:()=>this.enterCombat(),style:{flex:1,background:'transparent',border:'1px solid '+T.danger,color:T.danger,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer',letterSpacing:'.02em'}}, this.t('combat_start')))));
   }
   // ---- flee (pre-combat) : 3-card flip, master-sheet flee chance ----
-  fleePct(){ return Math.round(this.eng.N(this.eng.DATA.config.flee_chance_base, 0.9) * 100); }
+  // 도망 확률 = Config `flee_extract_chance_<회차>`. 행이 없으면 null = 도망 아님(= [귀환하기] 100%).
+  // c.encounter는 enterCombat에서 오르므로 전투 종료 화면에서 1전=1·2전=2. 시트에 _3 행을 추가하면
+  // 3전도 코드 수정 없이 도박이 된다 — 밸런싱을 시트에서만 돌리기 위한 설계.
+  fleeChance(enc){ const n=(enc==null)?((this.combat&&this.combat.encounter)||0):enc;
+    const v=this.eng.DATA.config['flee_extract_chance_'+n];
+    return (v==null||v==='') ? null : Math.max(0,Math.min(1,this.eng.N(v))); }
+  fleePct(){ const p=this.fleeChance(); return Math.round((p==null?0:p)*100); }
   battleBanner(placeTitle,zoneName,enc){ const zid=this.combat&&this.combat.zoneId; return h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:(zid?'url(assets/art/zones/'+zid+'.webp), ':'')+'url(assets/battle/encounter-banner.webp)',backgroundSize:'cover',backgroundPosition:'center'}},
     h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:4}},
       h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, placeTitle),
@@ -2177,8 +2192,13 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
   cardFace(){ return h('div',{style:{width:342,height:'min(442px, 100%)',borderRadius:8,background:T.s2,backgroundImage:'url(assets/art/card_back/flee_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}); }
   placeTitleFor(c){ const zObj=this.eng.byId.zone[c.zoneId]; const zoneName=zObj?this.tx(zObj,'ZoneName'):''; const cityObj=zObj&&this.eng.byId.city?this.eng.byId.city[zObj.CityID]:null; return {zoneName, placeTitle:(cityObj?(this.tx(cityObj,'CityName')||'')+' · ':'')+zoneName}; }
   attemptFlee(){ ['flee-Success','flee-Failed'].forEach(n=>{ const im=new Image(); im.src='assets/art/scenes/'+n+'.webp'; }); Object.assign(this.combat,{phase:'fleeCards', fleeFocus:1, fleeFlipped:false, fleeSuccess:null}); if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate(); }
-  flipFlee(){ const c=this.combat; if(c.fleeFlipped) return; const p=this.eng.N(this.eng.DATA.config.flee_chance_base,0.9); c.fleeSuccess=Math.random()<p; c.fleeFlipped=true; this.forceUpdate();
-    if(this._ct) clearTimeout(this._ct); this._ct=setTimeout(()=>{ if(this.combat&&this.combat.fleeSuccess){ this.flash(this.t('combat_flee_success')); this.extract(); } else if(this.combat){ this.enterCombat(); } }, 3000); }
+  flipFlee(){ const c=this.combat; if(c.fleeFlipped) return; const p=this.fleeChance(); c.fleeSuccess=Math.random()<(p==null?1:p); c.fleeFlipped=true; this.forceUpdate();
+    if(this._ct) clearTimeout(this._ct);
+    // 실패 = 다음 조우 강제. 옛 카드 화면 도망은 '이미 뽑아둔 몬스터'와 즉시 붙었지만(enterCombat),
+    // 지금은 전투 사이에서 시도하므로 몬스터가 아직 없다 → 카드 드로우로 간다.
+    this._ct=setTimeout(()=>{ if(!this.combat) return;
+      if(this.combat.fleeSuccess){ this.flash(this.t('combat_flee_success')); this.extract(); }
+      else { this.flash(this.t('combat_flee_fail_encounter')); this.drawCards(); } }, 3000); }
   fleeFront(){
     const ok=this.combat.fleeSuccess, col=ok?'rgb(131,178,137)':'rgb(196,103,93)';
     return h('div',{style:{width:342,height:'min(442px, 100%)',borderRadius:8,overflow:'hidden',background:'rgb(24,25,29)',border:'1px solid rgb(54,56,60)',display:'flex',flexDirection:'column'}},
@@ -2191,11 +2211,14 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
         h('div',{style:{padding:'8px 0',fontFamily:T.mono,fontSize:10.5,color:'rgb(75,77,82)'}}, ok?(this.en()?'Slip away with what you carry.':'가진 것을 들고 빠져나간다.'):(this.en()?'Combat is imminent, brace yourself.':'곧 전투에 돌입한다, 준비하자.'))));
   }
   fleeCardScreen(){
-    const c=this.combat, g=this.gs; const {zoneName,placeTitle}=this.placeTitleFor(c);
+    // 헤더는 전투·카드 화면과 같은 규격 — 존 아트 배경 + 키커(도시 영문) + 타이틀(존명) + 우측 보스/PvP 칩.
+    const c=this.combat, g=this.gs; const head=this.zoneHead(c.zoneId);
     const flipped=c.fleeFlipped, ok=c.fleeSuccess, col=ok?'rgb(131,178,137)':'rgb(196,103,93)';
-    const foot=ok?(this.en()?'Back to the Protocol in 3s.':'3초 뒤 프로토콜 지구로 이동합니다.'):(this.en()?'Combat starts in 3s.':'3초 뒤 전투에 돌입합니다.');
-    return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-      this.battleBanner(placeTitle,zoneName,c.encounter),
+    // 실패해도 곧장 전투가 아니라 다음 조우 카드로 간다 — 문구도 그에 맞춘다.
+    const foot=ok?(this.en()?'Back to the Protocol in 3s.':'3초 뒤 프로토콜 지구로 이동합니다.'):this.t('combat_flee_fail_encounter');
+    return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      this.zoneBg(c.zoneId),
+      this.battleHeader(head.kicker, head.title, this.bossChip()),
       h('div',{onPointerDown:(e)=>{this._fx=e.clientX;this._fmoved=false;},onPointerMove:(e)=>{if(this._fx!=null&&Math.abs(e.clientX-this._fx)>8)this._fmoved=true;},onPointerUp:(e)=>{if(this._fx==null)return;const dx=e.clientX-this._fx;this._fx=null;if(c.fleeFlipped)return;if(Math.abs(dx)>30){ if(dx<0)c.fleeFocus=Math.min(2,(c.fleeFocus||0)+1); else c.fleeFocus=Math.max(0,(c.fleeFocus||0)-1); this.forceUpdate(); }},style:{flex:1,position:'relative',overflow:'hidden'}},
         [0,1,2].map(i=>{ const off=i-(c.fleeFocus==null?1:c.fleeFocus), abs=Math.abs(off), isC=off===0; const x=off*250; let o=1; if(flipped&&!isC)o=0; const rot=(flipped&&isC)?180:0; const settled=this.flipSettled(c,'flee'+i,flipped&&isC); const flat=settled||!(flipped&&isC);
           return h('div',{key:i,onClick:()=>{ if(this._fmoved||flipped)return; isC?this.flipFlee():(c.fleeFocus=i,this.forceUpdate()); },style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(442px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+(isC?1:0.9)+')',opacity:isC?1:o,zIndex:isC?20:10-abs,transition:isC?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:(flipped&&!isC)?'none':'auto'}},
@@ -2203,11 +2226,11 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
               (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s'}}, this.cardFace()),
               (isC&&!(flat&&!flipped))? h('div',{style:flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden'}}, flipped?this.fleeFront():null):null)); }),
         (!flipped? cardNav(c.fleeFocus==null?1:c.fleeFocus, 3, ()=>{const ff=c.fleeFocus==null?1:c.fleeFocus; c.fleeFocus=Math.max(0,ff-1); this.forceUpdate();}, ()=>{const ff=c.fleeFocus==null?1:c.fleeFocus; c.fleeFocus=Math.min(2,ff+1); this.forceUpdate();}) : null)),
-      !flipped? h('div',{style:{flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 12px'}}, [0,1,2].map(i=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===(c.fleeFocus==null?1:c.fleeFocus)?'rgb(169,171,175)':'rgb(43,46,50)'}}))) : null,
-      h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
+      !flipped? h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 12px'}}, [0,1,2].map(i=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===(c.fleeFocus==null?1:c.fleeFocus)?'rgb(169,171,175)':'rgb(43,46,50)'}}))) : null,
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 16px 26px'}},
         h('div',{style:{background:'rgb(24,25,29)',borderRadius:16,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:24,display:'flex',flexDirection:'column',gap:16}},
           flipped? h('div',{style:{height:6,borderRadius:99,overflow:'hidden',background:'rgb(43,46,50)'}}, h('div',{ref:el=>{ if(el&&!el._an){ el._an=1; el.style.width='100%'; requestAnimationFrame(()=>requestAnimationFrame(()=>{ el.style.transition='width 3s linear'; el.style.width='0%'; })); } },style:{height:'100%',width:'100%',background:ok?'rgb(131,178,137)':'rgb(165,172,178)'}})) : null,
-          h('div',{style:{height:38,display:'flex',alignItems:'center',justifyContent:'center',gap:6}}, icCaution(19,flipped?col:'rgb(204,162,110)'), h('span',{style:{fontFamily:T.sans,fontSize:12,color:flipped?col:'rgb(204,162,110)'}}, flipped?foot:(this.en()?'On failure, combat starts automatically.':'도주 실패시 자동으로 전투에 돌입합니다.'))),
+          h('div',{style:{height:38,display:'flex',alignItems:'center',justifyContent:'center',gap:6}}, icCaution(19,flipped?col:'rgb(204,162,110)'), h('span',{style:{fontFamily:T.sans,fontSize:12,color:flipped?col:'rgb(204,162,110)'}}, flipped?foot:this.t('combat_flee_warn'))),
           flipped? null : h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
             h('span',{style:{fontFamily:T.sans,fontSize:13,color:'rgb(169,171,175)'}}, this.en()?'Flee chance':'도주확률'),
             h('span',{style:{fontFamily:T.mono,fontSize:13,color:'rgb(204,162,110)'}}, this.fleePct()+'%')))));
@@ -2492,7 +2515,10 @@ void main(){
       done? h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 16px 26px'}},
         h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24,display:'flex',gap:8}},
           win?h('button',{onClick:()=>this.drawCards(),style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_continue')):null,
-          h('button',{onClick:()=>{ win?this.extract():this.death(); },style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:win?'#EAEBEE':'#C4675D',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_return')))) : null);
+          // 이탈 버튼: 몬스터 전투와 같은 규칙 — 해당 회차에 도망 확률 행이 있으면 [도망가기](도주 카드 판정).
+          // 패배(!win)는 도망 대상이 아니다(사망 처리로 직행).
+          ((()=>{ const fo=win&&this.fleeChance()!=null;
+            return h('button',{onClick:fo?()=>this.attemptFlee():()=>{ win?this.extract():this.death(); },style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:win?'#EAEBEE':'#C4675D',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t(fo?'btn_flee_out':'btn_return')); })()))) : null);
   }
   pvpControls(){
     const c=this.combat, pc=c.pvpCards;
@@ -2506,7 +2532,10 @@ void main(){
       h('div',{style:{marginBottom:10,fontFamily:T.mono,fontSize:11,color:col,lineHeight:1.5}}, msg),
       (win&&c.ups.length)?h('div',{style:{marginBottom:10,fontFamily:T.mono,fontSize:11,color:T.growth}}, (this.t('frag_growth')+' ')+c.ups.map(u=>({str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')}[u.stat]+' Lv'+u.to)).join(' · ')):null,
       this.pvpCardRow(),
-      done? h('div',{style:{display:'flex',gap:10}}, win?btn(this.t('btn_continue'),()=>this.drawCards()):null, btn(this.t('btn_return'),()=>{ win?this.extract():this.death(); },!win)) : null);
+      done? h('div',{style:{display:'flex',gap:10}}, win?btn(this.t('btn_continue'),()=>this.drawCards()):null,
+        (win&&this.fleeChance()!=null)
+          ? btn(this.t('btn_flee_out'),()=>this.attemptFlee())
+          : btn(this.t('btn_return'),()=>{ win?this.extract():this.death(); },!win)) : null);
   }
 
   // ---- USB 성장 — 일시 중단(주점에서 분리). 아지트(하이드) 신설 시 재연결 ----
@@ -2665,6 +2694,8 @@ void main(){
     if(!item||!liqs.length) return;
     const total=liqs.reduce((t,l)=>t+this.eng.N(l.proof),0); const fee=this.appraiseFee(total);
     if(this.gs.sato<fee){ this.flash(this.t('shop_insufficient_sato')); return; }
+    // 잔량 비율은 감정 전에 재둔다 — 카운트업이 매 프레임 maxDur을 바꾸므로 그때 다시 재면 값이 표류한다.
+    this._aprRatio=Math.max(0, Math.min(1, this.eng.N(item.dur)/Math.max(1,Math.round(this.eng.N(item.maxDur)))));
     const changes=this.eng.appraise(item,total);          // 도수 합 = ±변동폭
     this.gs.sato-=fee; liqs.forEach(l=>this.consumeInst(l.uid));   // 제출한 술은 병째 소모
     const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp);
@@ -2676,7 +2707,8 @@ void main(){
   aprNums(){ return (((this.state.apr||{}).results)||[]).filter(r=>r.from!=null); }
   // maxDur은 rolls만 바꿔선 화면(durTxt)이 안 따라온다 — 인스턴스 본체까지 같이 굴린다.
   aprPutRoll(item,key,v){ item.rolls[key]=v;
-    if(key==='maxDur'){ item.maxDur=Math.max(1,Math.round(v)); item.dur=Math.min(item.dur,item.maxDur); } }
+    if(key==='maxDur'){ const mx=Math.max(1,Math.round(v)); item.maxDur=mx;
+      const rt=(this._aprRatio!=null?this._aprRatio:1); item.dur=Math.max(0,Math.min(mx, Math.round(mx*rt))); } }
   aprSettle(){ if(this._aprRaf){ cancelAnimationFrame(this._aprRaf); this._aprRaf=null; }
     clearTimeout(this._aprT);
     const item=this.eng.instById(this.gs,(this.state.apr||{}).itemUid);
@@ -3299,7 +3331,7 @@ void main(){
         isGear?h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('item_durability')),
           h('div',{style:{height:6,flexGrow:1,borderRadius:999,overflow:'hidden',background:ART}}, h('div',{style:{height:6,borderRadius:999,background:inst.dur<=0?'rgb(196,103,93)':SUB,width:(inst.maxDur?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0)+'%'}})),
-          h('span',{style:{width:50,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:'100%',color:MID,flexShrink:0}}, this.durTxt(inst))):null,
+          h('span',{style:{width:50,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:'100%',color:this.durCol(inst,MID),flexShrink:0}}, this.durTxt(inst))):null,
         stats.length?h('div',{style:{height:28,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'15px 0',display:'flex',alignItems:'flex-start'}}, secLabel((isBag||liq||s.Category==='Medicine'||s.Category==='Food')?'EFFECT':'STAT')):null,
         stats.length?h('div',{style:{alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'2px 0'}},
           h('div',{style:{display:'grid',gridTemplateRows:('31px '.repeat(isGear?nRows:stats.length)).trim(),gridTemplateColumns:isGear?'1fr 1fr':'1fr',gap:'0 16px'}},
@@ -3577,7 +3609,7 @@ void main(){
       hasDur?h('div',{style:{marginTop:8}},
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:'#6F7276'}}, this.t('item_durability')),
-          h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',color:'rgb(169,171,175)'}}, this.durTxt(inst))),
+          h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',color:this.durCol(inst,'rgb(169,171,175)')}}, this.durTxt(inst))),
         this.durBar(inst)):null);
   }
   gearOff(inst){
@@ -3610,7 +3642,13 @@ void main(){
     else { const cnt=this.gs.bag.filter(x=>!this.isEquipped(x.uid)&&(x.loc==='pocket'?'pocket':'bag')===tsec).length; if(cnt>=cap){ this.flash(tsec==='pocket'?(this.en()?'Pocket full':'주머니가 가득 참'):(this.en()?'Backpack full':'배낭이 가득 참')); this.forceUpdate(); return; } it.loc=tsec; }
     this.saveGame(); this.forceUpdate();
   }
-  durTxt(inst, sep){ sep=sep||'/'; const mx=Math.round(this.eng.N(inst.maxDur)), d=Math.round(this.eng.N(inst.dur)); return (this.eng.N(inst.maxDur)>0&&this.eng.N(inst.dur)<=0)?(this.t('item_damaged')+sep+mx):(d+sep+mx); }
+  // 최대 내구도가 미감정이면 '44/44'를 통째로 '미감정'으로 덮는다 — 현재값만 남기면 새 드랍(현재=최대)에서
+  // 최대치가 그대로 새어 나간다. 폰트·사이즈는 호출부(T.mono) 그대로 상속돼 숫자와 같은 크기로 찍힌다.
+  durHidden(inst){ return !!this.eng.isHidden(inst,'maxDur'); }
+  // 미감정 색: 평상시 파랑(#7683F3) · 내구도 0이면 빨강(파손을 감정 전에도 알 수 있어야 한다)
+  durCol(inst, base){ return this.durHidden(inst) ? (this.eng.N(inst.dur)<=0?T.danger:'#7683F3') : base; }
+  durTxt(inst, sep){ if(this.durHidden(inst)) return this.t('appraise_unappraised');
+    sep=sep||'/'; const mx=Math.round(this.eng.N(inst.maxDur)), d=Math.round(this.eng.N(inst.dur)); return (this.eng.N(inst.maxDur)>0&&this.eng.N(inst.dur)<=0)?(this.t('item_damaged')+sep+mx):(d+sep+mx); }
   itemLabel(inst){ const base=this.eng.anyName(inst.id); if(!inst||!inst.affixes||!inst.affixes.length) return base; const pre=inst.affixes.find(a=>a.type==='prefix'); const suf=inst.affixes.find(a=>a.type==='suffix'); return (pre?this.eng.affixName(pre)+' ':'')+(suf?this.eng.affixName(suf)+' ':'')+base; }
   // 인벤 리스트 수량 칩 — 최대스택≥2 아이템에만(현재수량/최대, 최대치는 MAX). svg screen-list.svg 참고
   qtyChip(inst,ms){ return h('span',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',color:'rgb(169,171,175)'}}, ((inst.qty||1)>=ms?'MAX':(inst.qty||1))+'/'+ms); }
@@ -3681,13 +3719,13 @@ void main(){
         [this.t('combat_crit'), opt(inst,'critChance')?HID:Number(r.critChance??N(w.CritChance)).toFixed(2)+'%', col('critChance')]);
       if(AT(w.Attribute)){ out.push([this.t('status_effect'), this.t('status_'+w.Attribute)], [this.t('stat_potency'), opt(inst,'potency')?HID:Number(r.potency??N(w.Potency)).toFixed(2), col('potency')]); }
       out.push([this.t('item_material_type'), w.Material||'—'],
-        [this.t('item_durability'), opt(inst,'maxDur')?(this.eng.N(inst.dur)+'/'+HID):this.durTxt(inst)]);
+        [this.t('item_durability'), this.durTxt(inst), this.durCol(inst,'#EAEBEE')]);
     } else if(inst.kind==='armor'){ const a=this.eng.byId.armor[inst.id]||{}; const r=inst.rolls||{};
       out.push([this.t('stat_def'), opt(inst,'def')?HID:Number(r.def??N(a.Def_Low)).toFixed(2), col('def')],
         [this.t('stat_evasion'), opt(inst,'evasion')?HID:Number(r.evasion??N(a.Evasion)).toFixed(2)+'%', col('evasion')],
         [this.t('stat_status_resist'), opt(inst,'statusResist')?HID:Number(r.statusResist??N(a.StatusResist)).toFixed(2)+'%', col('statusResist')],
         [this.t('item_material_type'), a.Material||'—'],
-        [this.t('item_durability'), opt(inst,'maxDur')?(this.eng.N(inst.dur)+'/'+HID):this.durTxt(inst)]);
+        [this.t('item_durability'), this.durTxt(inst), this.durCol(inst,'#EAEBEE')]);
     } else if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]){ const lq=this.eng.byId.liquor[inst.id];
       out.push([this.en()?'Proof':'도수', Math.round(Number(inst.proof))+'%']);
     } else if(this.eng.byId.module&&this.eng.byId.module[inst.id]){ const md=this.eng.byId.module[inst.id];
@@ -3927,7 +3965,7 @@ void main(){
               ? h('div',{style:{display:'flex',alignItems:'center',gap:10}},
                   h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.lo,flex:'0 0 auto',letterSpacing:'.04em'}}, this.t('item_durability')),
                   h('div',{style:{height:6,flex:1,borderRadius:999,overflow:'hidden',background:T.s3}}, h('div',{style:{height:'100%',borderRadius:999,background:st==='destroyed'?T.danger:st==='broken'?T.warn:'rgb(165,172,178)',width:(inst.maxDur?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0)+'%'}})),
-                  h('span',{style:{fontFamily:T.mono,fontSize:11,color:T.mid,flex:'0 0 auto'}}, this.durTxt(inst)))
+                  h('span',{style:{fontFamily:T.mono,fontSize:11,color:this.durCol(inst,T.mid),flex:'0 0 auto'}}, this.durTxt(inst)))
               : null); })),
       h('div',{style:{flex:'0 0 auto',padding:'6px 16px 22px'}},
         h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
@@ -3967,7 +4005,8 @@ void main(){
     );
   }
   // ---- repair (S9 · 철물점) ----
-  repairables(){ return [...this.gs.bag, ...this.gs.vault].filter(i=>(i.kind==='weapon'||i.kind==='armor') && this.eng.N(i.maxDur)>0 && (this.eng.N(i.maxDur)-this.eng.N(i.dur))>0).sort((a,b)=>((b.maxDur-b.dur)-(a.maxDur-a.dur))); }
+  // 미감정 장비는 수리 대상에서 제외한다 — 최대 내구도를 모르는 물건은 수리량·비용을 산정할 수 없다(감정 후 가능).
+  repairables(){ return [...this.gs.bag, ...this.gs.vault].filter(i=>(i.kind==='weapon'||i.kind==='armor') && this.eng.N(i.maxDur)>0 && !this.eng.isHidden(i,'maxDur') && (this.eng.N(i.maxDur)-this.eng.N(i.dur))>0).sort((a,b)=>((b.maxDur-b.dur)-(a.maxDur-a.dur))); }
   durBar(inst){ const pct=inst.maxDur>0?Math.max(0,Math.min(100,(inst.dur/inst.maxDur)*100)):0; const st=this.eng.itemState(inst); const col=st==='destroyed'?T.danger:st==='broken'?T.warn:(pct<35?T.warn:T.dur);
     return h('div',{style:{height:5,background:T.s3,borderRadius:1,overflow:'hidden',marginTop:6}}, h('div',{style:{width:pct+'%',height:'100%',background:col}})); }
   doRepair(inst){ if(this._rcvAnim) return; const fromDur=this.eng.N(inst.dur); const r=this.eng.repair(this.gs,inst);

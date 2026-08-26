@@ -7,7 +7,6 @@ export const DATA = {
       "growth_tag_mult_base": 0.5,
       "growth_tag_mult_step": 0.5,
       "stamina_penalty_rate": 0.8,
-      "flee_chance_base": 0.7,
       "medicine_slot_default": 5,
       "food_slot_default": 5,
       "heal_cost_per_hp": 3,
@@ -64,7 +63,9 @@ export const DATA = {
       "haggle_band_45_70": 0.25,
       "haggle_band_0_44": 0.45,
       "pvp_time_limit": 60,
-      "pvp_stamina_cost": 3
+      "pvp_stamina_cost": 3,
+      "flee_extract_chance_1": 0.1,
+      "flee_extract_chance_2": 0.5
   },
   "primaryStats": [
     {"PrimaryStatID": "stat_str", "StatName_KR": "힘", "StatName_EN": "Strength", "Role_KR": "물리적 힘과 공격력 중심", "Role_EN": "", "GrowthCondition": "공격이 적에게 명중(적중)한 횟수", "GrowthPointPerTrigger": 0.6, "Status": "Planning", "Notes": "1차 스탯", "LastUpdated": 46209},
@@ -778,7 +779,10 @@ export const DATA = {
     {"StringID": "stamina_recover", "Text_KR": "스태미너 회복", "Text_EN": "Stamina recovered", "Category": "item", "UIRole": "toast", "Status": "Planning", "Notes": "수치 +N은 코드에서 #C19E6F로 부착", "LastUpdated": 46230},
     {"StringID": "equip_unequip_btn", "Text_KR": "해제", "Text_EN": "Unequip", "Category": "equip", "UIRole": "button", "Status": "Planning", "Notes": "-", "LastUpdated": 46230},
     {"StringID": "item_talisman", "Text_KR": "징표", "Text_EN": "Token", "Category": "item", "UIRole": "chip", "Status": "Planning", "Notes": "-", "LastUpdated": 46242},
-    {"StringID": "item_bag", "Text_KR": "가방", "Text_EN": "Bag", "Category": "item", "UIRole": "chip", "Status": "Planning", "Notes": "-", "LastUpdated": 46243}
+    {"StringID": "item_bag", "Text_KR": "가방", "Text_EN": "Bag", "Category": "item", "UIRole": "chip", "Status": "Planning", "Notes": "-", "LastUpdated": 46243},
+    {"StringID": "btn_flee_out", "Text_KR": "도망가기", "Text_EN": "Escape", "Category": "btn", "UIRole": "button", "Status": "Planning", "Notes": "-", "LastUpdated": 46260},
+    {"StringID": "combat_flee_fail_encounter", "Text_KR": "도망 중 무언가와 마주쳤다.", "Text_EN": "Something found you as you fled.", "Category": "combat", "UIRole": "message", "Status": "Planning", "Notes": "-", "LastUpdated": 46260},
+    {"StringID": "combat_flee_warn", "Text_KR": "도주 실패시 다음 전투로 강제 진입합니다.", "Text_EN": "On failure, the next encounter is forced.", "Category": "combat", "UIRole": "message", "Status": "Planning", "Notes": "-", "LastUpdated": 46260}
   ],
   "usb": [
     {"USBID": "usb_gutter_roach", "Name_KR": "거대 바퀴 데이터", "Name_EN": "Gutter Roach", "MonsterID": "monster_gutter_roach", "GrantType": "stat", "GrantStat": "stat_will", "GrantValue": 1, "UploadMinutes": 5, "RequiredMaterials": "", "Description": "극한에서도 살아남는 끈질긴 생존의 본능.", "Description_EN": "The relentless survival instinct that endures any extreme.", "Status": "Planning", "Notes": "A grotesquely oversized cockroach the size of a small dog, glossy dark-brown chitin plating slick with grime, twitching antennae and spined legs, wings faintly rattling. Sharp focus on the roach, with a softly blurred background of a filthy sewer drain — wet concrete, rusted pipes, and scattered refuse. Grimy horror-tinged post-apocalyptic realism, dim greenish light, shallow depth of field, low-angle shot.", "LastUpdated": 46228},
