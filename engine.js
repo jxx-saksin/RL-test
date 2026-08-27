@@ -209,6 +209,7 @@ export function startingState() {
     equip,
     sorties: 0,
     shopStock: {},                // shopId+itemId -> remaining
+    shopStockAt: 0,               // 마지막 재고 리셋 시점의 sorties (restockShopsIfDue)
   };
 }
 
@@ -746,6 +747,20 @@ export function applyDurabilityWear(state, triggers) {
   const acc = state.equip.artifact1 ? instById(state, state.equip.artifact1) : null;
   wear(acc, N(triggers.hitsLanded) + N(triggers.hitsTaken), cpl);
   return changes;
+}
+
+// ---------- 상점 재고 리셋 ----------
+// 레이드 '복귀' N회마다(shop_stock_reset_interval) 전 상점 재고를 StockMax로 되돌린다.
+// 성공·도망·사망 무관 — 결과 화면을 거치는 모든 종료가 sorties를 올리므로 그대로 쓴다.
+// ⚠️ sorties % N 으로 재지 말 것: 카운터가 한 번이라도 건너뛰면 그 주기를 통째로 놓친다.
+//    마지막 리셋 시점(shopStockAt)과의 경과분으로 재면 그런 구멍이 없다.
+// shopStock을 비우기만 하면 각 항목이 Shop.StockMax 폴백으로 되살아난다(UI가 그렇게 조회한다).
+export function restockShopsIfDue(state) {
+  const iv = Math.max(1, Math.round(N(C.shop_stock_reset_interval, 3)));
+  if (N(state.sorties) - N(state.shopStockAt, 0) < iv) return false;
+  state.shopStock = {};
+  state.shopStockAt = N(state.sorties);
+  return true;
 }
 
 // ---------- repair (per-point probabilistic) ----------

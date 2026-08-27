@@ -238,12 +238,14 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 36;
+const TITLE_VER = 37;
 const TITLE_DATE = '0827';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:37, date:'27/Aug', lines:[
+    ['상점 재고 초기화, 리셋 업데이트','Shop stock reset and restocking added.'] ] },
   { ver:34, date:'27/Aug', lines:[
     ['장신구 오류내역 수정 및 인터페이스 변경','Fixed accessory issues; interface updated.'] ] },
   { ver:32, date:'26/Aug', lines:[
@@ -352,7 +354,7 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val12');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const eng = await import('./engine.js?v=val13');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val3');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -464,6 +466,8 @@ class Component extends DCLogic {
     const uids=new Set(gs.bag.concat(gs.vault).map(x=>x.uid));
     ['weapon','head','body','artifact1','artifact2','bag'].forEach(s=>{ if(gs.equip[s]&&!uids.has(gs.equip[s])) gs.equip[s]=null; });
     gs.shopStock=gs.shopStock||{}; gs.sato=eng.N(gs.sato,0); gs.sorties=eng.N(gs.sorties,0);
+    // shopStockAt 기본 0 — 옛 세이브는 재고가 영영 안 돌아오던 상태라, 다음 복귀에 바로 한 번 리셋되게 둔다
+    gs.shopStockAt=eng.N(gs.shopStockAt,0);
     this.gs=gs; this.combat=null;
     this.loadPass();   // 패스는 별도 키가 정본(런 세이브 값보다 우선)
     eng.setUidCounter(o.uidCounter);
@@ -706,9 +710,15 @@ class Component extends DCLogic {
     this.combat.result='death'; this.combat.broke=broke; this.combat.brokeFrom=brokeFrom;
     this.setState({ screen:'result' });
   }
-  toSafehouse(){ this.gs.sorties++; this.combat=null; this.go('safehouse'); }
+  // 레이드 종료 1회 = sorties +1 (승리·도망·사망 무관). 복귀할 때마다 상점 재고 리셋을 검사한다.
+  // 두 복귀 경로가 반드시 이걸 거치게 할 것 — 한쪽만 빠지면 그 종료 방식에서만 재고가 안 돈다.
+  endSortie(){ this.gs.sorties++; return this.eng.restockShopsIfDue(this.gs); }
+  // ⚠️ 재고 토스트는 화면 전환이 **끝난 뒤** 띄운다 — flash()가 그 시점의 헤더를 재서 위치를 잡는데,
+  //    go() 직후 곧바로 부르면 아직 옛 화면(결과 화면)이 서 있어 앵커가 엉뚱한 데 잡힌다.
+  flashRestock(){ setTimeout(()=>this.flash(this.t('shop_restocked')), 120); }
+  toSafehouse(){ const r=this.endSortie(); this.combat=null; this.go('safehouse'); if(r) this.flashRestock(); }
   // 귀환 성공 → 회복 스테이션(S5-3). 배너에 쓸 존 ID를 combat 정리 전에 챙겨둔다.
-  toReturnHeal(){ this.gs.sorties++; this._retZoneId=(this.combat&&this.combat.zoneId)||null; this.combat=null; this._retHealing=false; this.go('returnheal'); }
+  toReturnHeal(){ const r=this.endSortie(); this._retZoneId=(this.combat&&this.combat.zoneId)||null; this.combat=null; this._retHealing=false; this.go('returnheal'); if(r) this.flashRestock(); }
 
   // ---------- inventory ----------
   medicineMax(){ return this.eng.N(this.eng.DATA.config.medicine_slot_default,5); }
