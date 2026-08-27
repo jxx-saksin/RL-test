@@ -71,7 +71,10 @@ export const DATA = {
       "boss_chance_up_unique": 3,
       "boss_chance_up_special": 5,
       "boss_chance_up_boss": 0,
-      "boss_chance_max": 15
+      "boss_chance_max": 15,
+      "repair_accessory_cost_per_point": 120,
+      "repair_accessory_cost_base": 0,
+      "repair_accessory_fail_chance_per_point": 0.02
   },
   "primaryStats": [
     {"PrimaryStatID": "stat_str", "StatName_KR": "힘", "StatName_EN": "Strength", "Role_KR": "물리적 힘과 공격력 중심", "Role_EN": "", "GrowthCondition": "공격이 적에게 명중(적중)한 횟수", "GrowthPointPerTrigger": 0.6, "Status": "Planning", "Notes": "1차 스탯", "LastUpdated": 46209},

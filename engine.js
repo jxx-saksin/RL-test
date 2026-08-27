@@ -153,12 +153,15 @@ const randInt = (a, b) => Math.floor(rand(a, b + 1));
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 export const R = { rand, randInt, clamp };
 
-// a weapon/armor instance is 'functional' only while it still has durability.
+// a weapon/armor/accessory instance is 'functional' only while it still has durability.
 // dur 0 / maxDur >=1 = 파손(broken, unusable but repairable); maxDur 0 = 파괴(destroyed).
+// ⚠️ 장신구(artifact)는 2026-08-26에 내구도가 생겼다 — 여기 빠져 있으면 파손·파괴된 장신구의
+// 스탯이 계속 적용된다(2026-08-27 버그). 징표(talisman)는 내구도가 없어 항상 정상이다.
+const DURABLE = { weapon: 1, armor: 1, artifact: 1 };
 export const functional = (inst) => !inst ? false
-  : ((inst.kind !== 'weapon' && inst.kind !== 'armor') ? true : (N(inst.maxDur) > 0 && N(inst.dur) > 0));
+  : (!DURABLE[inst.kind] ? true : (N(inst.maxDur) > 0 && N(inst.dur) > 0));
 export function itemState(inst) {
-  if (!inst || (inst.kind !== 'weapon' && inst.kind !== 'armor')) return 'ok';
+  if (!inst || !DURABLE[inst.kind]) return 'ok';
   if (N(inst.maxDur) <= 0) return 'destroyed'; // 파괴
   if (N(inst.dur) <= 0) return 'broken';       // 파손
   return 'ok';
@@ -391,6 +394,7 @@ export function playerProfile(state, staminaZero = false) {
   // equipped artifacts contribute Stat1/Stat2 (rolled per instance; may be negative)
   for (const uid of [state.equip.artifact1, state.equip.artifact2]) {
     if (!uid) continue; const inst = instById(state, uid); if (!inst) continue;
+    if (!functional(inst)) continue;   // 파손·파괴된 장신구는 착용만 유지되고 효과는 없다(무기·방어구와 동일)
     const ar = byId.artifact[inst.id]; if (!ar) continue;
     const applyStat = (key, val) => { if (!key || key === '-' || val == null || val === '') return; addStat(key, val); };
     applyStat(ar.Stat1, inst.stat1 != null ? inst.stat1 : N(ar.Value1_Low));
@@ -746,13 +750,29 @@ export function applyDurabilityWear(state, triggers) {
 
 // ---------- repair (per-point probabilistic) ----------
 // cost is a placeholder economy (repair_cost_per_point) pending client balancing.
+// 장신구(artifact)는 무기·방어구와 다른 요율을 쓴다 — repair_accessory_* 키를 먼저 보고,
+// 그 행이 없으면 공용 repair_* 로 떨어진다(시트에 일부만 넣어도 동작). 2026-08-27 신설.
+// 값이 0인 행은 '설정 안 함'이 아니라 명시적 0으로 취급한다(기본 수공비 0 등).
+function repairCfg(inst) {
+  const acc = !!inst && inst.kind === 'artifact';
+  const pick = (key, dflt) => {
+    if (acc) { const v = C['repair_accessory_' + key]; if (v != null && v !== '') return N(v, dflt); }
+    return N(C['repair_' + key], dflt);
+  };
+  return { per: pick('cost_per_point', 20), base: pick('cost_base', 0),
+           fail: pick('fail_chance_per_point', 0.06), loss: pick('fail_maxdur_loss', 1) };
+}
+// UI 표기용 — '완벽 수리 확률' 계산에 쓴다. UI가 Config 키를 직접 고르면
+// 장신구(다른 요율)에서 틀린 값을 보여주므로 반드시 이 함수를 통할 것.
+export function repairFailChance(inst) { return repairCfg(inst).fail; }
 export function repairCostPreview(inst) {
   const worn = Math.max(0, N(inst.maxDur) - N(inst.dur));
-  // 수리비 = repair_cost_base + repair_cost_per_point × 닳은점 (시도 기준 과금 — 실패분 포함)
-  return Math.ceil(N(C.repair_cost_base, 0) + worn * N(C.repair_cost_per_point, 20));
+  // 수리비 = base + per × 닳은점 (시도 기준 과금 — 실패분 포함)
+  const cfg = repairCfg(inst);
+  return Math.ceil(cfg.base + worn * cfg.per);
 }
-// each worn point is restored, but with repair_fail_chance_per_point it fails:
-// a failed point is not restored and permanently drops maxDur by repair_fail_maxdur_loss.
+// each worn point is restored, but with the fail chance it fails:
+// a failed point is not restored and permanently drops maxDur by the loss amount.
 export function repair(state, inst) {
   const worn = Math.max(0, N(inst.maxDur) - N(inst.dur));
   if (N(inst.maxDur) <= 0) return { ok: false, reason: 'destroyed' };
@@ -760,8 +780,9 @@ export function repair(state, inst) {
   const cost = repairCostPreview(inst);
   if (state.sato < cost) return { ok: false, reason: 'sato', cost };
   state.sato -= cost;
-  const p = N(C.repair_fail_chance_per_point, 0.06);
-  const perLoss = N(C.repair_fail_maxdur_loss, 1);
+  const cfg = repairCfg(inst);
+  const p = cfg.fail;
+  const perLoss = cfg.loss;
   let restored = 0, fails = 0, maxLoss = 0;
   for (let i = 0; i < worn; i++) {
     if (Math.random() < p) { fails++; inst.maxDur = Math.max(0, inst.maxDur - perLoss); maxLoss += perLoss; }
@@ -973,7 +994,8 @@ export function coldProfile(bot){
     for (const x of inst.affixes){ const pk = PRIM[x.target]; if (pk) primAdd[pk] += x.value; else secAdd[x.target] = (secAdd[x.target] || 0) + x.value; }
   }
   for (const inst of [gear.artifact1, gear.artifact2]){
-    if (!inst) continue; const ar = byId.artifact[inst.id]; if (!ar) continue;
+    if (!inst || !functional(inst)) continue;   // 상대 봇도 동일 — 파손 장신구는 효과 없음(playerProfile과 대칭)
+    const ar = byId.artifact[inst.id]; if (!ar) continue;
     const applyStat = (key, val) => { if (!key || key === '-' || val == null || val === '') return; const pk = PRIM[key]; if (pk) primAdd[pk] += N(val); else secAdd[key] = (secAdd[key] || 0) + N(val); };
     applyStat(ar.Stat1, inst.stat1); applyStat(ar.Stat2, inst.stat2);
   }

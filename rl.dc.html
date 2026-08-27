@@ -238,12 +238,14 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 33;
-const TITLE_DATE = '0826';
+const TITLE_VER = 34;
+const TITLE_DATE = '0827';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:34, date:'27/Aug', lines:[
+    ['장신구 오류내역 수정 및 인터페이스 변경','Fixed accessory issues; interface updated.'] ] },
   { ver:32, date:'26/Aug', lines:[
     ['장신구 카드 능력치 표시 오류 수정','Fixed accessory cards not showing their stat values'] ] },
   { ver:31, date:'26/Aug', lines:[
@@ -350,7 +352,7 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val9');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const eng = await import('./engine.js?v=val12');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val3');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -622,7 +624,7 @@ class Component extends DCLogic {
     if(c.pvp){
       if(res.winner==='player'){
         c.ups = this.eng.applyGrowth(this.gs, res.triggers);
-        const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp;
+        const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; c.prof.maxHp=full.maxHp;
         this.setupPvpReward(); c.phase='pvpWin';
       } else if(res.winner==='monster'){ c.satoGained=0; this.setupPvpFlee(); c.phase='pvpLose'; }  // PvP 패배 = 이번 레이드 사토 몰수(사망과 동일)
       else { c.phase='timeout'; }
@@ -654,7 +656,8 @@ class Component extends DCLogic {
         c.bossUp=(c.bossUp||0)+this.eng.bossChanceUp(g); }
       if(loot.length){ c.res.log.push({t:res.elapsed||0, who:'sys', type:'win', text:this.eng.logTpl('loot',{}), hpP:res.playerHpEnd, hpM:0}); c.revealed=c.res.log.length; }
       c.ups = this.eng.applyGrowth(this.gs, res.triggers);
-      const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp;
+      // c.prof.maxHp도 같이 — 전투 카드가 'cur / prof.maxHp'로 찍어서, 안 올리면 84/80 같은 표기가 난다
+      const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; c.prof.maxHp=full.maxHp;
       c.phase='won';
       if(c.lootDraw && c.lootDraw.length){
         // 사전소지품(주머니/가방)을 드랍 화면에 함께 표시 — gs.bag의 미착용 아이템을 lm.bag으로 이동(중복 방지), 커밋 시 되돌림.
@@ -1232,22 +1235,31 @@ class Component extends DCLogic {
   TOAST_H = 48;
   // 토스트 위치 = **상단 헤더에 겹침** (2026-08-26 변경. 그 전에는 하단 버튼 행에 포갰다).
   // 늘 같은 자리에 떠야 눈이 찾기 쉽다 — 하단 방식은 화면마다 버튼 높이가 달라 미묘하게 흔들렸다.
-  // 헤더가 없는 화면(상세 시트·모달·부팅)에서도 **상단 고정**으로 간다(폴백 top:21).
+  // 헤더가 없는 화면(상세 시트·모달·부팅)에서도 **상단 고정**으로 간다(폴백 = 세이프에어리어 + 21).
   toastAnchor(){
-    const D={top:21,left:16,right:16};   // 폴백 = screenTitle 90px 기준 48px를 세로 중앙
+    let D={top:21,left:16,right:16};     // 폴백 = screenTitle 90px 기준 48px를 세로 중앙
     try{
       const fr=document.querySelector('.rl-frame'); if(!fr) return D;
       const R=fr.getBoundingClientRect();
-      // 프레임 테두리 제외한 패딩 박스 기준 — absolute의 기준면과 같다
+      // ⚠️ 두 기준면을 구분할 것 (2026-08-27 버그의 원인).
+      //   패딩 박스(pT) = absolute 자식의 좌표 기준면 → 반환값은 여기 기준.
+      //   컨텐트 박스(cT) = 실제 화면 콘텐츠가 시작하는 곳 → 헤더는 여기에 붙어 있다.
+      // .rl-frame은 padding-top:env(safe-area-inset-top)이라 아이폰에서 둘이 ~59px 어긋난다.
+      // pT 기준으로 헤더를 찾으면 못 찾고 폴백(21)으로 떨어져 토스트가 다이내믹 아일랜드에 겹쳤다.
+      // 데스크톱은 safe-area가 0이라 두 값이 같아 이 버그가 안 보인다 — 검증은 실기로.
       const pL=R.left+fr.clientLeft, pT=R.top+fr.clientTop, pR=pL+fr.clientWidth;
-      // 헤더 = 프레임 맨 위에 붙어 있고 높이 60~130인 블록(screenTitle 90 · battleHeader가 감쌈).
+      const cs=getComputedStyle(fr);
+      const padT=parseFloat(cs.paddingTop)||0, padL=parseFloat(cs.paddingLeft)||0, padR=parseFloat(cs.paddingRight)||0;
+      const cT=pT+padT;
+      D={ top:Math.round(padT+21), left:Math.round(padL)+16, right:Math.round(padR)+16 };
+      // 헤더 = 콘텐츠 맨 위에 붙어 있고 높이 60~130인 블록(screenTitle 90 · battleHeader가 감쌈).
       // 오버레이(시트·모달)에는 헤더가 없으므로 항상 프레임 본문에서 찾는다.
       const hit=[...fr.querySelectorAll('div')].map(d=>d.getBoundingClientRect())
-        .filter(r=>r.height>=60&&r.height<=130&&r.width>250&&Math.abs(r.top-pT)<=2)
+        .filter(r=>r.height>=60&&r.height<=130&&r.width>250&&Math.abs(r.top-cT)<=2)
         .sort((a,b)=>b.width-a.width)[0];
       if(!hit) return D;
       const top=Math.round(hit.top-pT+(hit.height-this.TOAST_H)/2);
-      return { top:Math.max(4,top), left:Math.round(hit.left-pL)+16, right:Math.round(pR-hit.right)+16 };
+      return { top:Math.max(Math.round(padT)+4,top), left:Math.round(hit.left-pL)+16, right:Math.round(pR-hit.right)+16 };
     }catch(_){ return D; }
   }
   toastEl(){ if(!this.state.toast) return null; const a=this._toastAnc||{top:21,left:16,right:16}; const out=!!this.state.toastOut;
@@ -1415,7 +1427,11 @@ class Component extends DCLogic {
 
   // ---- combat ----
   combatHp(side){
-    const c=this.combat; const r=c.res.log.slice(0,c.revealed);
+    const c=this.combat;
+    // 전투가 끝난 뒤(승리·시간초과·휴식·사망) 플레이어 HP는 로그 마지막 줄이 아니라 실제 상태값을 본다.
+    // 로그값은 종료 시점에 고정돼 있어, 휴식으로 회복해도 하단 플레이어 카드가 안 오르는 버그가 났다(2026-08-27).
+    if(side==='player' && c.phase && c.phase!=='fighting') return this.gs.hp;
+    const r=c.res.log.slice(0,c.revealed);
     const last = r[r.length-1] || c.res.log[0];
     if(!last) return side==='player'?c.prof.maxHp:c.mProf.maxHp;
     return side==='player'?last.hpP:last.hpM;
@@ -1687,7 +1703,10 @@ class Component extends DCLogic {
     const fill=heal?this._rHpFill:this._rStaFill, num=heal?this._rHpNum:this._rStaNum, barEl=heal?this._rHpBar:this._rStaBar;
     // 회복 바 애니(1100ms)는 백그라운드 — 끝날 때 hp/sta 커밋 + 가드 해제. 카드 재배치는 이걸 기다리지 않는다.
     this.animRecover(fill,num,barEl,cur,end,max).then(()=>{
-      if(heal) g.hp=end; else g.sta=end; this._restAnim=false; this.saveGame(); });
+      if(heal) g.hp=end; else g.sta=end; this._restAnim=false; this.saveGame();
+      // 커밋 직후 재렌더 — 애니(1.1초)가 끝나기 전에 [완료]를 누르면 커밋이 렌더보다 늦어
+      // 전투 화면 하단 게이지가 회복 전 값으로 굳는다. vdom을 실제값과 다시 맞춘다.
+      this.forceUpdate(); });
     // 아이템 소모 + 다음 카드 즉시 중앙화 — 날아가기 애니 직후(~300ms), 회복 바를 기다리지 않음
     setTimeout(()=>{
       const dec=(arr)=>{ const i=arr.findIndex(x=>x.uid===card.uid); if(i<0) return false; if((arr[i].qty||1)>1) arr[i].qty--; else arr.splice(i,1); return true; };
@@ -4079,7 +4098,7 @@ void main(){
   }
   // ---- repair (S9 · 철물점) ----
   // 미감정 장비는 수리 대상에서 제외한다 — 최대 내구도를 모르는 물건은 수리량·비용을 산정할 수 없다(감정 후 가능).
-  repairables(){ return [...this.gs.bag, ...this.gs.vault].filter(i=>(i.kind==='weapon'||i.kind==='armor') && this.eng.N(i.maxDur)>0 && !this.eng.isHidden(i,'maxDur') && (this.eng.N(i.maxDur)-this.eng.N(i.dur))>0).sort((a,b)=>((b.maxDur-b.dur)-(a.maxDur-a.dur))); }
+  repairables(){ return [...this.gs.bag, ...this.gs.vault].filter(i=>(i.kind==='weapon'||i.kind==='armor'||i.kind==='artifact') && this.eng.N(i.maxDur)>0 && !this.eng.isHidden(i,'maxDur') && (this.eng.N(i.maxDur)-this.eng.N(i.dur))>0).sort((a,b)=>((b.maxDur-b.dur)-(a.maxDur-a.dur))); }
   durBar(inst){ const pct=inst.maxDur>0?Math.max(0,Math.min(100,(inst.dur/inst.maxDur)*100)):0; const st=this.eng.itemState(inst); const col=st==='destroyed'?T.danger:st==='broken'?T.warn:(pct<35?T.warn:T.dur);
     return h('div',{style:{height:5,background:T.s3,borderRadius:1,overflow:'hidden',marginTop:6}}, h('div',{style:{width:pct+'%',height:'100%',background:col}})); }
   doRepair(inst){ if(this._rcvAnim) return; const fromDur=this.eng.N(inst.dur); const r=this.eng.repair(this.gs,inst);
@@ -4141,7 +4160,7 @@ void main(){
   repairEmpty(){ return this.emptyRow(this.t('repair_none')); }
   // 수리 가능 행 — svg/screen-hardware-fix-item.svg (pitch 104 · 칩 h16 · 바 y305 h5)
   repairRow(inst,i){
-    const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||{};
+    const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.artifact[inst.id]||{};
     const eqp=this.isEquipped(inst.uid);
     const pct=inst.maxDur>0?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0;
     const GKR={str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')};
@@ -4163,7 +4182,9 @@ void main(){
   repairConfirm(){
     const inst=this.eng.instById(this.gs,this.state.repairSel); if(!inst) return null;
     const worn=Math.max(0,inst.maxDur-inst.dur); const cost=this.eng.repairCostPreview(inst);
-    const p=Math.round(this.eng.N(this.eng.DATA.config.repair_fail_chance_per_point,0.06)*100); const expFail=worn*p/100; const aff=this.gs.sato>=cost; const successPct=Math.max(0,Math.round(Math.pow(1-this.eng.N(this.eng.DATA.config.repair_fail_chance_per_point,0.06),worn)*100));
+    // 실패율은 반드시 엔진에서 — 장신구는 repair_accessory_fail_chance_per_point로 요율이 다르다
+    const fp=this.eng.repairFailChance(inst);
+    const aff=this.gs.sato>=cost; const successPct=Math.max(0,Math.round(Math.pow(1-fp,worn)*100));
     const row=(k,v,col)=>h('div',{key:k,style:{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid '+T.line}}, h('span',{style:{fontFamily:T.sans,fontSize:13,color:T.mid}},k), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col||T.hi}},v));
     return h('div',{onClick:()=>this.setState({repairSel:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.66)',display:'flex',alignItems:'flex-end',zIndex:34,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 24px',background:'#18191D',borderRadius:24,padding:'0 17px 25px',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
