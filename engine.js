@@ -210,6 +210,7 @@ export function startingState() {
     sorties: 0,
     shopStock: {},                // shopId+itemId -> remaining
     shopStockAt: 0,               // 마지막 재고 리셋 시점의 sorties (restockShopsIfDue)
+    shopRolls: {},                // shopId+itemId -> 진열분 고정 롤(술 도수). 재고와 함께 리셋된다
   };
 }
 
@@ -279,7 +280,9 @@ export function mkInstance(id, qty = 1, opts = {}) {
   }
   if (!w && !a) {
     const liq = byId.liquor[id];
-    if (liq) { inst.proof = liquorProof(liq); }   // 용량(Volume) 폐지 2026-08-18 — 감정 1회 = 1병
+    // 도수는 opts.proof가 오면 그걸 쓴다 — 상점 진열분은 재고 1주기 동안 같은 병이어야 한다
+    // (안 그러면 미리보기를 열 때마다, 그리고 실제로 살 때 또 한 번 새로 굴려진다).
+    if (liq) { inst.proof = (opts.proof != null) ? N(opts.proof) : liquorProof(liq); }   // 용량(Volume) 폐지 2026-08-18 — 감정 1회 = 1병
     return inst; // plain item / liquor / module chip
   }
 
@@ -759,6 +762,7 @@ export function restockShopsIfDue(state) {
   const iv = Math.max(1, Math.round(N(C.shop_stock_reset_interval, 3)));
   if (N(state.sorties) - N(state.shopStockAt, 0) < iv) return false;
   state.shopStock = {};
+  state.shopRolls = {};          // 진열분 롤(술 도수)도 함께 새로 — 재고가 바뀌면 병도 바뀐 것
   state.shopStockAt = N(state.sorties);
   return true;
 }

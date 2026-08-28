@@ -238,12 +238,14 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 37;
-const TITLE_DATE = '0827';
+const TITLE_VER = 38;
+const TITLE_DATE = '0828';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:38, date:'28/Aug', lines:[
+    ['수리내역 오류 수정 및 가방 소멸 버그 수정','Fixed the repair list; bags are lost on death again.'] ] },
   { ver:37, date:'27/Aug', lines:[
     ['상점 재고 초기화, 리셋 업데이트','Shop stock reset and restocking added.'] ] },
   { ver:34, date:'27/Aug', lines:[
@@ -354,7 +356,7 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val13');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const eng = await import('./engine.js?v=val14');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val3');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -442,7 +444,11 @@ class Component extends DCLogic {
     // 정합: 스테일 데이터로 잘못 생성된 인스턴스 복구 — id가 실제 장비인데 필드가 비면 온전히 재생성(uid·qty 보존)
     const rebuild=(inst)=>{ if(!inst) return inst;
       const rk = eng.byId.weapon[inst.id]?'weapon':eng.byId.armor[inst.id]?'armor':eng.byId.artifact[inst.id]?'artifact':null;
-      if(rk && (inst.kind!==rk || inst.maxDur==null || !inst.rolls)){ const fresh=eng.mkInstance(inst.id, inst.qty||1, {}); fresh.uid=inst.uid; return fresh; }
+      // ⚠️ 무결성 신호는 종류마다 다르다. 장신구는 감정 대상이 아니라 mkInstance가 rolls를 아예 안 만든다 —
+      // !inst.rolls를 그대로 쓰면 모든 장신구가 매 로드마다 재생성돼 스탯·성장태그가 재추첨되고
+      // 내구도가 풀로 리셋된다(2026-08-28 버그). 장신구는 stat1 유무로 본다.
+      const broken = (rk==='artifact') ? (inst.stat1==null) : !inst.rolls;
+      if(rk && (inst.kind!==rk || inst.maxDur==null || broken)){ const fresh=eng.mkInstance(inst.id, inst.qty||1, {}); fresh.uid=inst.uid; return fresh; }
       // 마이그레이션(2026-08-25): 성장 태그가 감정 대상에서 빠졌다. 옛 세이브에 'growthTags'가 미감정으로
       // 남아 있으면 영영 안 열리는 태그가 되고, 그것만 미감정인 아이템은 감정해도 아무 변화가 없다.
       // 이미 굴려둔 태그는 그대로 두고 공개만 한다(재롤 금지 — 갖고 있던 아이템이 바뀌면 안 된다).
@@ -453,6 +459,11 @@ class Component extends DCLogic {
       return inst; };
     gs.bag=gs.bag.map(rebuild); gs.vault=gs.vault.map(rebuild);
     gs.equip=Object.assign({weapon:null,head:null,body:null,artifact1:null,artifact2:null,bag:null}, gs.equip||{});
+    // 불변식: 착용 장비는 소지품(gs.bag)에 산다. 금고에 앉은 채 착용된 인스턴스가 있으면 끌어온다 —
+    // 사망 소멸·배낭 용량·주머니 계산이 전부 gs.bag만 보기 때문에, 어긋나면 조용히 빗나간다.
+    // (옛 세이브에 실제로 있다: 새 게임 초기화가 장신구·징표를 안 옮겼고, moveItem이 착용 가방을 금고로 보냈다.)
+    ['weapon','head','body','artifact1','artifact2','bag'].forEach(s=>{ const u=gs.equip[s]; if(!u) return;
+      const i=gs.vault.findIndex(x=>x.uid===u); if(i>=0){ const [it]=gs.vault.splice(i,1); delete it.loc; gs.bag.push(it); } });
     // loc 정규화(자가치유): 가방 용량 기준 재배치. 가방 미착용이면 배낭칸 0 → 주머니 2칸, 초과분은 금고로.
     // (옛 세이브의 loc 없는 아이템, 또는 가방 없는데 배낭에 남은 아이템 정리)
     { const cap=eng.equippedBagCapacity?eng.equippedBagCapacity(gs):0;
@@ -460,12 +471,12 @@ class Component extends DCLogic {
       const equippedItems=[], pocket=[], bag=[], toVault=[];
       gs.bag.forEach(x=>{ if(eqSet.has(x.uid)){ equippedItems.push(x); return; }
         if(x.loc==='pocket'){ if(pocket.length<2) pocket.push(x); else if(bag.length<cap){ x.loc='bag'; bag.push(x); } else toVault.push(x); }
-        else { if(bag.length<cap){ x.loc='bag'; bag.push(x); } else if(pocket.length<2){ x.loc='pocket'; pocket.push(x); } else toVault.push(x); } });
+        else { if(bag.length<cap){ x.loc='bag'; bag.push(x); } else if(pocket.length<2 && this.canPocket(x)){ x.loc='pocket'; pocket.push(x); } else toVault.push(x); } });
       gs.bag=[...equippedItems, ...pocket, ...bag];
       toVault.forEach(x=>{ delete x.loc; gs.vault.push(x); }); }
     const uids=new Set(gs.bag.concat(gs.vault).map(x=>x.uid));
     ['weapon','head','body','artifact1','artifact2','bag'].forEach(s=>{ if(gs.equip[s]&&!uids.has(gs.equip[s])) gs.equip[s]=null; });
-    gs.shopStock=gs.shopStock||{}; gs.sato=eng.N(gs.sato,0); gs.sorties=eng.N(gs.sorties,0);
+    gs.shopStock=gs.shopStock||{}; gs.shopRolls=gs.shopRolls||{}; gs.sato=eng.N(gs.sato,0); gs.sorties=eng.N(gs.sorties,0);
     // shopStockAt 기본 0 — 옛 세이브는 재고가 영영 안 돌아오던 상태라, 다음 복귀에 바로 한 번 리셋되게 둔다
     gs.shopStockAt=eng.N(gs.shopStockAt,0);
     this.gs=gs; this.combat=null;
@@ -510,7 +521,7 @@ class Component extends DCLogic {
     this.gs = gs; this.combat = null;
     this.loadPass();   // 패스는 런과 무관한 고정 자산 — 기존 보유분이 있으면 그대로 이어받는다
     // equipped gear is 'carried' — it lives in 소지품(bag), never in 금고(vault)
-    ['weapon','head','body','bag'].forEach(s=>{ if(gs.equip[s]) this.moveToBag(gs.equip[s]); });
+    ['weapon','head','body','artifact1','artifact2','bag'].forEach(s=>{ if(gs.equip[s]) this.moveToBag(gs.equip[s]); });
   }
   moveToBag(uid){ const i=this.gs.vault.findIndex(x=>x.uid===uid); if(i>=0){ const [it]=this.gs.vault.splice(i,1); this.gs.bag.push(it); } }
   rest(){ const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=full.maxHp; this.gs.sta=this.staMax; this.saveGame(); }
@@ -689,7 +700,7 @@ class Component extends DCLogic {
     const bagUsed=this.gs.bag.filter(x=>!this.isEquipped(x.uid)&&x.loc!=='pocket').length;
     const pkUsed=this.gs.bag.filter(x=>!this.isEquipped(x.uid)&&x.loc==='pocket').length;
     if(bagUsed<cap){ inst.loc='bag'; this.gs.bag.push(inst); }
-    else if(pkUsed<2){ inst.loc='pocket'; this.gs.bag.push(inst); }
+    else if(pkUsed<2 && this.canPocket(inst)){ inst.loc='pocket'; this.gs.bag.push(inst); }
     else { delete inst.loc; this.gs.vault.push(inst); }
     return inst;
   }
@@ -698,7 +709,10 @@ class Component extends DCLogic {
   death(){
     this.gs.hp = 1;   // 사망(몬스터·PvP) 귀환 시 체력 1로 생존
     // 사망 시 유지: 주머니 2슬롯 + 착용 장비(투구·갑옷·무기·악세서리·부적). 가방(및 가방 속 전리품)은 착용템이라도 예외로 전부 소멸.
+    // 가방은 어디에 있든 잃는다. gs.bag만 훑으면, 금고에 앉은 채 착용으로 남은 유령 가방이 살아남는다.
+    const bagUid = this.gs.equip.bag;
     this.gs.equip.bag = null; // 가방 슬롯 먼저 해제 → 가방 인스턴스가 isEquipped=false가 되어 아래 필터에서 제거됨
+    if(bagUid) this.gs.vault = this.gs.vault.filter(x=>x.uid!==bagUid);
     this.gs.bag = this.gs.bag.filter(x=>this.isEquipped(x.uid) || x.loc==='pocket'); // 착용 장비 + 주머니만 생존 (가방·배낭 내용물은 제외됨)
     const eq = [this.gs.equip.weapon,this.gs.equip.head,this.gs.equip.body,this.gs.equip.artifact1,this.gs.equip.artifact2].filter(Boolean);
     let broke=null, brokeFrom=0;
@@ -729,6 +743,10 @@ class Component extends DCLogic {
   bagFoodQty(){ return this.gs.bag.filter(x=>this.isFood(x)).reduce((s,x)=>s+(x.qty||1),0); }
   medicineRoom(){ return Math.max(0, this.medicineMax()-this.bagMedicineQty()); }
   foodRoom(){ return Math.max(0, this.foodMax()-this.bagFoodQty()); }
+  // 가방은 주머니 칸에 못 들어간다. 주머니 2칸은 사망 시 안전지대라, 가방이 여기 들어가면
+  // "가방은 레이드에서 잃는다"는 규칙 자체를 우회한다(실제로 그렇게 살아 돌아왔다 · 2026-08-28).
+  canPocket(inst){ return !!inst && inst.kind!=='bag'; }
+  noPocketMsg(){ return this.en()?"You can't put a bag in your pocket.":'가방을 주머니에 넣을 수 없다.'; }
   slotRoomFor(inst){ if(this.isMedicine(inst)) return {room:this.medicineRoom(),max:this.medicineMax(),label:this.en()?'Medicine':'의약품'}; if(this.isFood(inst)) return {room:this.foodRoom(),max:this.foodMax(),label:this.en()?'Food':'음식'}; return null; }
   moveItem(uid){
     const inVault0=this.gs.vault.find(x=>x.uid===uid); const cap0=inVault0?this.slotRoomFor(inVault0):null;
@@ -744,11 +762,14 @@ class Component extends DCLogic {
         const bagCap=this.eng.equippedBagCapacity?this.eng.equippedBagCapacity(this.gs):0;
         const bagUsed=this.gs.bag.filter(x=>!this.isEquipped(x.uid)&&x.loc!=='pocket').length;
         const pkUsed=this.gs.bag.filter(x=>!this.isEquipped(x.uid)&&x.loc==='pocket').length;
-        const loc = bagUsed<bagCap ? 'bag' : (pkUsed<2 ? 'pocket' : null);
-        if(!loc){ this.flash(this.en()?'Bag & pocket full':'가방·주머니 가득 참'); return; }
+        const loc = bagUsed<bagCap ? 'bag' : ((pkUsed<2 && this.canPocket(it)) ? 'pocket' : null);
+        if(!loc){ this.flash(this.canPocket(it) ? (this.en()?'Bag & pocket full':'가방·주머니 가득 참') : this.noPocketMsg()); return; }
         this.gs.vault.splice(inV,1); it.loc=loc; this.gs.bag.push(it);
       } }
     else { const inB=this.gs.bag.findIndex(x=>x.uid===uid); if(inB>=0){
+      // 착용 가방은 gearOff로 위임 — 슬롯 해제 + 배낭 내용물까지 금고로. 여기서 직접 옮기면
+      // equip.bag이 금고 안 인스턴스를 계속 가리켜(유령 착용) 배낭 용량이 살아 있고 사망 시 소멸도 안 된다.
+      if(this.gs.bag[inB].kind==='bag' && this.isEquipped(uid)){ this.gearOff(this.gs.bag[inB]); return; }
       // 착용 중인 장비는 금고로 보낼 수 없다 — 옮기면 자동 해제
       if(this.isEquipped(uid)){ const e=this.gs.equip; ['weapon','head','body','artifact1','artifact2'].forEach(s=>{ if(e[s]===uid) e[s]=null; }); const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp); }
       const [it]=this.gs.bag.splice(inB,1); if(!merge(this.gs.vault,it)) this.gs.vault.push(it);
@@ -795,7 +816,7 @@ class Component extends DCLogic {
     const total=price*qty;
     if(this.gs.sato < total){ this.flash(this.t('shop_insufficient_sato')); return; }
     if(stock < qty){ this.flash(this.t('shop_out_of_stock')); return; }
-    this.gs.sato -= total; this.gs.shopStock[key]=stock-qty; this.addToVault(row.ItemID,qty);
+    this.gs.sato -= total; this.gs.shopStock[key]=stock-qty; this.addToVault(row.ItemID,qty,this.shopRollOpts(shopId,row));
     this.flash(this.t('shop_buy_done')); this.setState({buySel:null,buyQty:1});
   }
   // 상점 구매: 행 클릭 → 상세카드+수량박스 모달 (즉시구매 금지)
@@ -805,10 +826,20 @@ class Component extends DCLogic {
     const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(row.StockMax,99);
     if(this.gs.sato<price){ this.flash(this.t('shop_insufficient_sato')); return; }
     if(stock<=0){ this.flash(this.t('shop_out_of_stock')); return; }
-    this._buyPrev=this.eng.mkInstance(row.ItemID,1);   // 미리보기 인스턴스 1회 생성(재렌더 재롤 방지)
+    this._buyPrev=this.eng.mkInstance(row.ItemID,1,this.shopRollOpts(shopId,row));   // 미리보기 = 진열분 그대로(재렌더·재진입 모두 같은 값)
     this.setState({buySel:{shopId,row},buyQty:1});
   }
-  addToVault(id,qty){ this.stackAdd(this.gs.vault, id, qty); }
+  addToVault(id,qty,opts){ this.stackAdd(this.gs.vault, id, qty, opts); }
+  // 상점 진열분의 롤(현재는 술 도수)은 재고 1주기 동안 고정 — 진열장에 놓인 그 병이 그 병이다.
+  // 캐시가 없으면 openBuy가 열 때마다, buy()가 또 한 번 새로 굴려서 "본 것과 산 것"이 달라진다.
+  // 비우는 쪽은 engine.restockShopsIfDue — 재고와 같은 시점에 같이 새로 뽑힌다.
+  shopRollOpts(shopId,row){
+    const liq=this.eng.byId.liquor&&this.eng.byId.liquor[row.ItemID];
+    if(!liq) return {};
+    const key=shopId+'|'+row.ItemID;
+    if(this.gs.shopRolls[key]==null) this.gs.shopRolls[key]=this.eng.liquorProof(liq);
+    return { proof:this.gs.shopRolls[key] };
+  }
 
   // ================= RENDER =================
   renderVals(){ let screenEl; try{ screenEl = this.state.ready ? this.renderApp() : (this.state.splash ? this.splashScreen() : this.loading()); }catch(e){ console.error('renderApp threw:', e); screenEl = this.loading(); } return { screenEl }; }
@@ -3477,7 +3508,7 @@ void main(){
     const bagTgt=ms>1&&lm.bag.some(x=>x.id===inst.id&&!x.locked&&(x.qty||1)<ms);
     const pkTgt=ms>1&&lm.bag.some(x=>x.id===inst.id&&x.locked&&(x.qty||1)<ms);
     const bagRoom=lm.bag.filter(x=>!x.locked).length<this.lmBagCap();
-    const pkRoom=this.lmLocked(lm)<2;
+    const pkRoom=this.lmLocked(lm)<2 && this.canPocket(inst);
     return bagTgt||bagRoom||pkTgt||pkRoom; }
   lmReject(msg){ // 포커스 카드 흔들기 — 바깥 래퍼를 흔들어 안쪽 flip(rotateY 180)을 유지(뒷면 노출 방지). 보더 글로우 없음.
     const w=document.querySelector('[data-lmcard="focus"]');
@@ -3492,12 +3523,12 @@ void main(){
       const bagTgt=ms>1?lm.bag.find(x=>x.id===inst.id&&!x.locked&&(x.qty||1)<ms):null;
       const pkTgt=ms>1?lm.bag.find(x=>x.id===inst.id&&x.locked&&(x.qty||1)<ms):null;
       const bagRoom=lm.bag.filter(x=>!x.locked).length<this.lmBagCap();
-      const pkRoom=this.lmLocked(lm)<2;
+      const pkRoom=this.lmLocked(lm)<2 && this.canPocket(inst);   // 가방은 주머니 폴백 금지
       if(bagTgt){ lm.field.splice(i,1); bagTgt.qty=(bagTgt.qty||1)+1; this.flash(this.en()?'To bag':'가방에 넣음'); }
       else if(bagRoom){ lm.field.splice(i,1); inst.qty=1; inst.locked=false; lm.bag.push(inst); this.flash(this.en()?'To bag':'가방에 넣음'); }
       else if(pkTgt){ lm.field.splice(i,1); pkTgt.qty=(pkTgt.qty||1)+1; this.flash(this.en()?'To pocket (safe)':'주머니에 넣음 (안전)'); }
       else if(pkRoom){ lm.field.splice(i,1); inst.qty=1; inst.locked=true; lm.bag.push(inst); this.flash(this.en()?'To pocket (safe)':'주머니에 넣음 (안전)'); }
-      else { this.lmReject(this.en()?'Bag & pocket full':'가방·주머니 가득 참'); return; } }
+      else { this.lmReject(this.canPocket(inst) ? (this.en()?'Bag & pocket full':'가방·주머니 가득 참') : this.noPocketMsg()); return; } }
     else { if(dir!=='up') return; const i=Math.max(0,Math.min(lm.focus||0,lm.bag.length-1)); const entry=lm.bag[i]; if(!entry) return;
       if(!lm.opened) lm.opened=new Set();
       if((entry.qty||1)>1){ entry.qty--; const one=this.eng.mkInstance(entry.id,1); one.qty=1; one.locked=false; lm.field.push(one); lm.opened.add(one.uid); }
@@ -3514,7 +3545,8 @@ void main(){
       const bagRoom=lm.bag.filter(x=>!x.locked).length<this.lmBagCap();
       if(bagRoom){ entry.locked=false; this.flash(this.en()?'Unlocked':'잠금 해제'); }
       else { const bi=lm.bag.indexOf(entry); if(bi>=0) lm.bag.splice(bi,1); entry.locked=false; if(!lm.opened) lm.opened=new Set(); lm.opened.add(entry.uid); lm.field.push(entry); if(!lm.bag.length) lm.view='field'; this.lmFix(); this.flash(this.en()?'No bag · back to loot':'가방 없음 · 전리품으로'); } }
-    else { if(this.lmLocked(lm)>=2){ this.lmReject(this.en()?'Pocket max 2 · unlock one first':'주머니는 2칸까지 · 하나 해제하세요'); return; } entry.locked=true; this.flash(this.en()?'Locked (safe)':'주머니 잠금 (안전)'); }
+    else { if(!this.canPocket(entry)){ this.lmReject(this.noPocketMsg()); return; }
+      if(this.lmLocked(lm)>=2){ this.lmReject(this.en()?'Pocket max 2 · unlock one first':'주머니는 2칸까지 · 하나 해제하세요'); return; } entry.locked=true; this.flash(this.en()?'Locked (safe)':'주머니 잠금 (안전)'); }
     this.forceUpdate();
   }
   lmCenterHandlers(){ return {
@@ -3736,8 +3768,9 @@ void main(){
     const it=this.gs.bag.find(x=>x.uid===uid); if(!it){ this.forceUpdate(); return; }
     const cur=it.loc==='pocket'?'pocket':'bag';
     if(cur===tsec){ this.forceUpdate(); return; }
+    if(tsec==='pocket' && !this.canPocket(it)){ this.flash(this.noPocketMsg()); this.forceUpdate(); return; }
     const cap=tsec==='pocket'?2:(this.eng.equippedBagCapacity?this.eng.equippedBagCapacity(this.gs):0);
-    if(tuid){ const other=this.gs.bag.find(x=>x.uid===tuid); if(other&&!this.isEquipped(other.uid)){ other.loc=cur; it.loc=tsec; } else { this.forceUpdate(); return; } }
+    if(tuid){ const other=this.gs.bag.find(x=>x.uid===tuid); if(other&&!this.isEquipped(other.uid)&&(cur!=='pocket'||this.canPocket(other))){ other.loc=cur; it.loc=tsec; } else { this.forceUpdate(); return; } }
     else { const cnt=this.gs.bag.filter(x=>!this.isEquipped(x.uid)&&(x.loc==='pocket'?'pocket':'bag')===tsec).length; if(cnt>=cap){ this.flash(tsec==='pocket'?(this.en()?'Pocket full':'주머니가 가득 참'):(this.en()?'Backpack full':'배낭이 가득 참')); this.forceUpdate(); return; } it.loc=tsec; }
     this.saveGame(); this.forceUpdate();
   }
@@ -4175,14 +4208,14 @@ void main(){
     const pct=inst.maxDur>0?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0;
     const GKR={str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')};
     const gtags=this.eng.growthTagsActive(inst)||[];
-    const chip=(txt,col,dot)=>h('div',{style:{display:'flex',alignItems:'center',gap:6,height:20,boxSizing:'border-box',padding:'0 8px',borderRadius:4,background:dot?'#212327':'rgba(10,11,14,0.55)'}},
-      dot?h('div',{style:{width:5,height:5,borderRadius:999,background:col,flexShrink:0}}):null,
-      h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'20px',color:dot?'#EAEBEE':'#A9ABAF',whiteSpace:'nowrap'}},txt));
+    // 칩은 공용 헬퍼만 쓴다 — 목업(screen-hardware-fix-item.svg)의 칩은 배경 #212327 + 1px 테두리다.
+    // 전용 chip()으로 테두리 없이 그리면 통짜 블록으로 보인다(감정 리스트 aprItemRow와 같은 조합으로 통일).
+    // ⚠️ flexShrink:0 필수 — 부모가 flex column + overflow라 없으면 행이 눌려 게이지와 디바이더 사이 16px이 먹힌다.
     return h('div',{key:inst.uid,onClick:()=>this.setState({repairSel:inst.uid}),
-      style:{height:104,boxSizing:'border-box',padding:'9px 16px 0',cursor:'pointer',borderBottom:'1px solid '+T.line}},
+      style:{flexShrink:0,height:104,boxSizing:'border-box',padding:'9px 16px 0',cursor:'pointer',borderBottom:'1px solid '+T.line}},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:20}},
-        chip(CATKR[src.Category]||src.Category||'', eqp?'#83B289':'#A9ABAF', true),
-        gtags.length? chip(GKR[gtags[0]]||gtags[0],'#A9ABAF',false) : null),
+        this.catChip(CATKR[src.Category]||src.Category||'', eqp),
+        gtags.length? this.shopPill(GKR[gtags[0]]||gtags[0],'rgb(169,171,175)') : null),
       h('div',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',color:'#EAEBEE',marginTop:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:13,marginTop:5}},
         h('span',{style:{fontFamily:T.sans,fontSize:11,lineHeight:'13px',color:'#6F7276'}}, this.t('item_durability')),
@@ -4290,7 +4323,7 @@ void main(){
     const gtags=this.eng.growthTagsActive(inst)||[];
     const desc=this.tx(src,'Description')||[src.Material,(AT(src.Attribute)?this.t('status_'+src.Attribute):null)].filter(Boolean).join(' · ');
     return h('div',{key:inst.uid,onClick:()=>this.setState({apr:{itemUid:inst.uid,liq:[],preview:true}}),
-      style:{height:101,boxSizing:'border-box',padding:'15px 16px 0',cursor:'pointer',borderBottom:'1px solid '+T.line}},
+      style:{flexShrink:0,height:101,boxSizing:'border-box',padding:'15px 16px 0',cursor:'pointer',borderBottom:'1px solid '+T.line}},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,height:20}},
         h('div',{style:{display:'flex',alignItems:'center',gap:6,minWidth:0}},
           this.catChip(CATKR[src.Category]||src.Category||'',false), this.unappTag()),
