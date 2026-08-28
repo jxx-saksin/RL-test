@@ -238,13 +238,13 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 38;
+const TITLE_VER = 39;
 const TITLE_DATE = '0828';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
-  { ver:38, date:'28/Aug', lines:[
+  { ver:39, date:'28/Aug', lines:[
     ['수리내역 오류 수정 및 가방 소멸 버그 수정','Fixed the repair list; bags are lost on death again.'] ] },
   { ver:37, date:'27/Aug', lines:[
     ['상점 재고 초기화, 리셋 업데이트','Shop stock reset and restocking added.'] ] },
@@ -464,6 +464,9 @@ class Component extends DCLogic {
     // (옛 세이브에 실제로 있다: 새 게임 초기화가 장신구·징표를 안 옮겼고, moveItem이 착용 가방을 금고로 보냈다.)
     ['weapon','head','body','artifact1','artifact2','bag'].forEach(s=>{ const u=gs.equip[s]; if(!u) return;
       const i=gs.vault.findIndex(x=>x.uid===u); if(i>=0){ const [it]=gs.vault.splice(i,1); delete it.loc; gs.bag.push(it); } });
+    // 옛 세이브 정리: 가방에 박힌 loc:'pocket' 제거(가방은 주머니 금지). 착용 중이면 그냥 지우고,
+    // 아니면 아래 정규화가 배낭/금고로 재배치하게 둔다. 이 값이 남아 있으면 사망 소멸을 통과한다.
+    gs.bag.forEach(x=>{ if(x && x.kind==='bag' && x.loc==='pocket') delete x.loc; });
     // loc 정규화(자가치유): 가방 용량 기준 재배치. 가방 미착용이면 배낭칸 0 → 주머니 2칸, 초과분은 금고로.
     // (옛 세이브의 loc 없는 아이템, 또는 가방 없는데 배낭에 남은 아이템 정리)
     { const cap=eng.equippedBagCapacity?eng.equippedBagCapacity(gs):0;
@@ -713,7 +716,9 @@ class Component extends DCLogic {
     const bagUid = this.gs.equip.bag;
     this.gs.equip.bag = null; // 가방 슬롯 먼저 해제 → 가방 인스턴스가 isEquipped=false가 되어 아래 필터에서 제거됨
     if(bagUid) this.gs.vault = this.gs.vault.filter(x=>x.uid!==bagUid);
-    this.gs.bag = this.gs.bag.filter(x=>this.isEquipped(x.uid) || x.loc==='pocket'); // 착용 장비 + 주머니만 생존 (가방·배낭 내용물은 제외됨)
+    // ⚠️ 가방은 kind로 지운다. loc==='pocket'만 보고 살리면, 옛 세이브에서 loc:'pocket'이 박힌 채
+    // 착용된 가방이 이 조건에 걸려 살아남는다(A0.0038 이후에도 실기에서 그대로 재현됨).
+    this.gs.bag = this.gs.bag.filter(x=>x.kind!=='bag' && (this.isEquipped(x.uid) || x.loc==='pocket')); // 착용 장비 + 주머니만 생존 (가방·배낭 내용물은 제외됨)
     const eq = [this.gs.equip.weapon,this.gs.equip.head,this.gs.equip.body,this.gs.equip.artifact1,this.gs.equip.artifact2].filter(Boolean);
     let broke=null, brokeFrom=0;
     if(eq.length){ const uid=eq[Math.floor(Math.random()*eq.length)]; const inst=this.eng.instById(this.gs,uid);
