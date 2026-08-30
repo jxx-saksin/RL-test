@@ -211,6 +211,7 @@ export function startingState() {
     shopStock: {},                // shopId+itemId -> remaining
     shopStockAt: 0,               // 마지막 재고 리셋 시점의 sorties (restockShopsIfDue)
     shopRolls: {},                // shopId+itemId -> 진열분 고정 롤(술 도수). 재고와 함께 리셋된다
+    buffs: [],                    // 소모품 버프(§6-7) — 레이드 안에서만 산다. buffMods() 참조
   };
 }
 
@@ -376,6 +377,21 @@ export function deriveSecondary(primary) {
 }
 
 // build the full combat profile for the player given state
+// ---------- 소모품 버프 (§6-7) ----------
+// state.buffs = [{ id, type, value, left }] · left = 남은 전투 수(유지력).
+// ⚠️ 레이드 안에서만 산다. saveGame()이 inSortie() 동안 저장을 막고 endSortie()가 비우므로
+//    세이브에 남지 않는다 — "레이드 종료 시 전부 만료"가 설계이지 누락이 아니다.
+// 중첩은 하지 않는다: 같은 EffectType은 갱신(값 큰 쪽 + 유지력 리셋) — rl.dc.html useConsumable 참조.
+export function buffMods(state) {
+  const out = { speedMult: 1, dmgFlatCut: 0 };
+  for (const b of (state && state.buffs) || []) {
+    if (!b || N(b.left) <= 0) continue;
+    if (b.type === 'attack_speed') out.speedMult *= (1 + N(b.value) / 100);   // 값 = 퍼센트
+    else if (b.type === 'damage_reduce') out.dmgFlatCut += N(b.value);        // 값 = 플랫
+  }
+  return out;
+}
+
 export function playerProfile(state, staminaZero = false) {
   // broken/destroyed gear stays equipped but contributes nothing (사용 불가)
   const wRaw = state.equip.weapon ? instById(state, state.equip.weapon) : null;
@@ -415,6 +431,7 @@ export function playerProfile(state, staminaZero = false) {
   const armorEva = armorOpt('evasion');
   const armorSR = armorOpt('statusResist');
   const speedMult = clamp(1 + p.dex * 0.015, 0.3, 3);
+  const bf = buffMods(state);   // 소모품 버프 — 공속 배수 · 받는 피해 플랫 차감
   const sa = k => secAdd[k] || 0;
   return {
     name: t('common_me'),
@@ -422,7 +439,7 @@ export function playerProfile(state, staminaZero = false) {
     minAtk: sec.sec_min_atk + (w ? wOpt('minAtk') : 0) + sa('sec_min_atk'),
     maxAtk: sec.sec_max_atk + (w ? wOpt('maxAtk') : 1) + sa('sec_max_atk'),
     defense: sec.sec_defense + armorDef + sa('sec_defense'),
-    atkSpeed: clamp((w ? wOpt('atkSpeed') || 1 : 1) * speedMult, 0.2, 3),
+    atkSpeed: clamp((w ? wOpt('atkSpeed') || 1 : 1) * speedMult * bf.speedMult, 0.2, 3),   // 버프는 곱한 뒤 clamp — 상한 3은 그대로
     accuracy: sec.sec_accuracy + (w ? wOpt('accuracy') : 0) + sa('sec_accuracy'),
     evasion: sec.sec_evasion + armorEva + sa('sec_evasion'),
     critChance: sec.sec_crit_chance + (w ? wOpt('critChance') : 0) + sa('sec_crit_chance'),
@@ -431,6 +448,7 @@ export function playerProfile(state, staminaZero = false) {
     potency: w ? wOpt('potency') : 0,
     attribute: wd ? wd.Attribute : null,
     weaponMaxDmg: w ? wOpt('maxAtk') : 2,
+    dmgFlatCut: bf.dmgFlatCut,   // 소모품: 받는 피해 플랫 감소 (simulateCombat.strike에서 차감)
     primAdd,
     sec,
     talismans: activeTalismans(state),
@@ -623,7 +641,13 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
       pierceFrac = rand(N(byId.status.pierce?.Value, 0.05), N(byId.status.pierce?.ValueMax, 0.4));
     }
     let final = defMitigate(dmg, foe.defense, pierceFrac);
-    if (foe === A) final *= playerDmgTakenMult();   // 부적: 받는 피해 감소 (피격 전 체력 조건)
+    if (foe === A) {
+      final *= playerDmgTakenMult();   // 부적: 받는 피해 감소 (피격 전 체력 조건)
+      // 소모품(§6-7): 징표 배수를 적용한 **뒤에** 플랫 차감. 순서를 뒤집으면 징표가 좋을수록 약이 약해진다.
+      // 하한 1 — 0을 허용하면 저급 몬스터 상대로 무적이 되고 로그에 '0 피해'가 찍힌다.
+      const cut = N(A.dmgFlatCut, 0);
+      if (cut > 0) final = Math.max(1, final - cut);
+    }
     foe.hp -= final;
     if (actor.side === 'player') triggers.hitsLanded++;
     if (foe.side === 'player') triggers.hitsTaken++;
