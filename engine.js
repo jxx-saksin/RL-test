@@ -379,8 +379,8 @@ export function deriveSecondary(primary) {
 // build the full combat profile for the player given state
 // ---------- 소모품 버프 (§6-7) ----------
 // state.buffs = [{ id, type, value, left }] · left = 남은 전투 수(유지력).
-// ⚠️ 레이드 안에서만 산다. saveGame()이 inSortie() 동안 저장을 막고 endSortie()가 비우므로
-//    세이브에 남지 않는다 — "레이드 종료 시 전부 만료"가 설계이지 누락이 아니다.
+// 안전지대에서도 먹을 수 있고(출발 전 준비) 세이브에 그대로 남는다. 비우는 곳은 endSortie 하나 —
+// 귀환하면 유지력이 남았든 말든 사라진다("매 레이드 재투자"). 다른 데서 또 비우지 말 것.
 // 중첩은 하지 않는다: 같은 EffectType은 갱신(값 큰 쪽 + 유지력 리셋) — rl.dc.html useConsumable 참조.
 export function buffMods(state) {
   const out = { speedMult: 1, dmgFlatCut: 0 };
