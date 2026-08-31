@@ -799,7 +799,6 @@ export const DATA = {
     {"StringID": "shop_restocked", "Text_KR": "상점에 새로운 재고들이 추가되었다.", "Text_EN": "The shops have taken in new stock.", "Category": "shop", "UIRole": "toast", "Status": "Planning", "Notes": "-", "LastUpdated": 46261},
     {"StringID": "item_damage_reduce", "Text_KR": "받는 피해 감소", "Text_EN": "Damage Reduction", "Category": "item", "UIRole": "label", "Status": "Planning", "Notes": "-", "LastUpdated": 46265},
     {"StringID": "item_duration", "Text_KR": "유지력", "Text_EN": "Duration", "Category": "item", "UIRole": "label", "Status": "Planning", "Notes": "-", "LastUpdated": 46265},
-    {"StringID": "item_duration_fights", "Text_KR": "{N}전투", "Text_EN": "{N} fights", "Category": "item", "UIRole": "fragment", "Status": "Planning", "Notes": "-", "LastUpdated": 46265},
     {"StringID": "buff_chip_spd", "Text_KR": "공속", "Text_EN": "SPD", "Category": "item", "UIRole": "chip", "Status": "Planning", "Notes": "-", "LastUpdated": 46265},
     {"StringID": "buff_chip_dmr", "Text_KR": "데감", "Text_EN": "DMR", "Category": "item", "UIRole": "chip", "Status": "Planning", "Notes": "-", "LastUpdated": 46265},
     {"StringID": "buff_applied", "Text_KR": "{Name} 효과 시작 · 유지력 {N}전투", "Text_EN": "{Name} active · {N} fights", "Category": "item", "UIRole": "toast", "Status": "Planning", "Notes": "-", "LastUpdated": 46265},
