@@ -564,7 +564,7 @@ export const DATA = {
     {"StringID": "heal_already_full", "Text_KR": "이미 완전 회복됨", "Text_EN": "Already fully restored", "Category": "heal", "UIRole": "label", "Status": "Planning", "Notes": "통합: 이미 완전하다", "LastUpdated": 46218},
     {"StringID": "heal_restore_first", "Text_KR": "체력을 먼저 회복하세요", "Text_EN": "Restore your health first", "Category": "heal", "UIRole": "message", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
     {"StringID": "heal_no_item", "Text_KR": "사용할 수 있는 회복 아이템이 없다.", "Text_EN": "No usable recovery items", "Category": "heal", "UIRole": "message", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
-    {"StringID": "heal_use_item", "Text_KR": "회복 아이템 사용", "Text_EN": "Use recovery item", "Category": "heal", "UIRole": "button", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
+    {"StringID": "heal_use_item", "Text_KR": "사용하기", "Text_EN": "Use item", "Category": "heal", "UIRole": "button", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
     {"StringID": "stamina_cost", "Text_KR": "스태미너 소모", "Text_EN": "Stamina cost", "Category": "stat", "UIRole": "label", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
     {"StringID": "stamina_restore", "Text_KR": "스태미너 회복", "Text_EN": "Restore stamina", "Category": "stat", "UIRole": "label", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
     {"StringID": "item_weapon", "Text_KR": "무기", "Text_EN": "Weapon", "Category": "item", "UIRole": "chip", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
