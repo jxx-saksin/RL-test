@@ -383,11 +383,14 @@ export function deriveSecondary(primary) {
 // 귀환하면 유지력이 남았든 말든 사라진다("매 레이드 재투자"). 다른 데서 또 비우지 말 것.
 // 중첩은 하지 않는다: 같은 EffectType은 갱신(값 큰 쪽 + 유지력 리셋) — rl.dc.html useConsumable 참조.
 export function buffMods(state) {
-  const out = { speedMult: 1, dmgFlatCut: 0 };
+  const out = { speedMult: 1, dmgFlatCut: 0, immune: {} };
   for (const b of (state && state.buffs) || []) {
     if (!b || N(b.left) <= 0) continue;
     if (b.type === 'attack_speed') out.speedMult *= (1 + N(b.value) / 100);   // 값 = 퍼센트
     else if (b.type === 'damage_reduce') out.dmgFlatCut += N(b.value);        // 값 = 플랫
+    // 상태이상 면역 — b.stat(EffectStat) = 막을 상태이상, 값 = **차단 확률(%)**.
+    // 시트가 100이라 항상 막지만, 60으로 낮추면 코드를 안 고쳐도 부분 저항이 된다.
+    else if (b.type === 'status_resist' && b.stat) out.immune[b.stat] = Math.max(N(out.immune[b.stat]), N(b.value));
   }
   return out;
 }
@@ -449,6 +452,7 @@ export function playerProfile(state, staminaZero = false) {
     attribute: wd ? wd.Attribute : null,
     weaponMaxDmg: w ? wOpt('maxAtk') : 2,
     dmgFlatCut: bf.dmgFlatCut,   // 소모품: 받는 피해 플랫 감소 (simulateCombat.strike에서 차감)
+    statusImmune: bf.immune,     // 소모품: 상태이상별 차단 확률(%) — strike의 관통/상태이상 두 경로가 본다
     primAdd,
     sec,
     talismans: activeTalismans(state),
@@ -633,11 +637,14 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
       if (foe.side === 'player') triggers.evades++;
       return;
     }
+    // 상태이상 면역(§6-7) — 플레이어가 맞는 쪽일 때만. ⚠️ 관통은 피해 계산 **전**에 처리되는
+    // 별개 경로라, 아래 상태이상 블록만 막으면 더마실(pierce)이 조용히 무효가 된다.
+    const immune = (target, eff) => target === A && A.statusImmune && Math.random() * 100 < N(A.statusImmune[eff], 0);
     let dmg = rand(actor.minAtk, actor.maxAtk) * ruptureMult(actor, t);
     const isCrit = opts.forceCrit || Math.random() < critChance(actor.critChance, foe.critResist);
     if (isCrit) { dmg *= N(C.crit_damage_mult, 1.5); if (actor.side === 'player') triggers.critsLanded++; }
     let pierceFrac = 0;
-    if (actor.attribute === 'pierce' && Math.random() < statusChance(actor.potency, foe.statusResist)) {
+    if (actor.attribute === 'pierce' && !immune(foe, 'pierce') && Math.random() < statusChance(actor.potency, foe.statusResist)) {
       pierceFrac = rand(N(byId.status.pierce?.Value, 0.05), N(byId.status.pierce?.ValueMax, 0.4));
     }
     let final = defMitigate(dmg, foe.defense, pierceFrac);
@@ -657,7 +664,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     push(actor.side, isCrit ? 'crit' : 'hit', text);
 
     // status application (non-pierce)
-    if (actor.attribute && actor.attribute !== 'pierce' && foe.hp > 0) {
+    if (actor.attribute && actor.attribute !== 'pierce' && foe.hp > 0 && !immune(foe, actor.attribute)) {
       const sc = statusChance(actor.potency, foe.statusResist);
       if (Math.random() < sc) {
         const eff = actor.attribute;

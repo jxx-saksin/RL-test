@@ -241,12 +241,14 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 43;
-const TITLE_DATE = '0831';
+const TITLE_VER = 44;
+const TITLE_DATE = '0904';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:44, date:'4/Sep', lines:[
+    ['버프(상태이상) 의약품 업데이트','Status-immunity medicines added.'] ] },
   { ver:42, date:'31/Aug', lines:[
     ['버프 아이템이 안전지대에서 먹어도 적용되도록 수정','Buffs taken in the safe zone now carry into the raid.'] ] },
   { ver:41, date:'31/Aug', lines:[
@@ -367,7 +369,7 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val16');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const eng = await import('./engine.js?v=val17');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val3');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -1619,8 +1621,17 @@ class Component extends DCLogic {
   buffChips(){
     const bs=(this.gs&&this.gs.buffs)||[]; if(!bs.length) return [];
     const KEY={attack_speed:'buff_chip_spd', damage_reduce:'buff_chip_dmr'};
-    return bs.filter(b=>KEY[b.type]&&this.eng.N(b.left)>0)
-      .map(b=>h('span',{key:'bf'+b.type,style:{display:'inline-flex'}}, this.plainChip(this.t(KEY[b.type]),'#A5ACB2')));
+    // 상태이상 면역은 상태별 전용 행(buff_chip_imm_bleed …)을 먼저 찾는다. EN 약어(Bld.R)를
+    // status_bleed의 'Bleed'에서 뽑아낼 수 없어서다. 전용 행이 없는 상태이상은 {S} 폴백으로 받는다.
+    const label=(b)=>{
+      if(KEY[b.type]) return this.t(KEY[b.type]);
+      if(b.type!=='status_resist'||!b.stat) return null;
+      const k='buff_chip_imm_'+b.stat, v=this.t(k);
+      if(v && v!==k) return v;
+      return this.tpl('buff_chip_immune',{S:this.t('status_'+b.stat)});
+    };
+    return bs.filter(b=>this.eng.N(b.left)>0).map(b=>{ const lb=label(b); return lb?
+      h('span',{key:'bf'+b.type+(b.stat||''),style:{display:'inline-flex'}}, this.plainChip(lb,'#A5ACB2')):null; }).filter(Boolean);
   }
   combatantCard(prof,isMonster,cur,animate){
     const pct=Math.max(0,Math.min(100,cur/prof.maxHp*100));
@@ -1799,7 +1810,7 @@ class Component extends DCLogic {
   restUse(card){ if(this._restAnim) return; const it=this.eng.byId.item[card.id]||{}; const v=this.eng.N(it.EffectValue); const g=this.gs;
     const ef=this.effectOf(card);
     // 버프는 회복 바가 없다 — animRecover 경로를 타지 않고 등록 + 소모만 한다.
-    if(this.isBuffEffect(ef)){ this.applyBuff(card.id, ef, v, Math.max(1,this.eng.N(it.EffectDuration,1))); this.restConsume(card); return; }
+    if(this.isBuffEffect(ef)){ this.applyBuff(card.id, ef, v, Math.max(1,this.eng.N(it.EffectDuration,1)), this.effectStat(it)); this.restConsume(card); return; }
     const heal=ef!=='stamina'; const cur=heal?g.hp:g.sta, max=heal?g.maxHp:this.staMax;
     if(cur>=max){ this.flash(heal?(this.en()?'HP already full':'생명력이 가득 찼습니다'):(this.en()?'Stamina already full':'스태미너가 가득 찼습니다')); return; }
     const end=Math.min(max, cur+v); this._restAnim=true;
@@ -2447,18 +2458,22 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
   // 소모품 = 효과가 있는 아이템 전부(회복 2종 + 버프 2종 §6-7). 휴식 화면과 전투 미리보기의
   // [회복 아이템 사용] 시트가 **둘 다** 이 목록을 보므로, 여기만 넓히면 두 진입점이 함께 열린다.
   effectOf(inst){ const it=inst&&this.eng.byId.item[inst.id]; const e=it&&String(it.EffectType||'').trim();
-    return (e==='heal'||e==='stamina'||e==='damage_reduce'||e==='attack_speed')?e:null; }
-  isBuffEffect(e){ return e==='damage_reduce'||e==='attack_speed'; }
+    return (e==='heal'||e==='stamina'||e==='damage_reduce'||e==='attack_speed'||e==='status_resist')?e:null; }
+  isBuffEffect(e){ return e==='damage_reduce'||e==='attack_speed'||e==='status_resist'; }
+  // status_resist만 EffectStat을 쓴다(막을 상태이상). 나머지는 시트에 '-'라 null이 된다.
+  effectStat(it){ const v=it&&String(it.EffectStat||'').trim(); return (v && v!=='-')?v:null; }
   // UIString 토큰 치환({Name}·{N}) — CombatLog의 logTpl과 달리 UI 문자열용 간이 버전
   tpl(key,vars){ let out=this.t(key); for(const k in vars) out=out.split('{'+k+'}').join(String(vars[k])); return out; }
   consumables(){ const pool = this.inSortie() ? this.gs.bag : [...this.gs.bag, ...this.gs.vault]; return pool.filter(inst=>!!this.effectOf(inst)); }
   // 버프 등록(§6-7). 같은 EffectType은 **중첩하지 않고 갱신**한다 — 값은 큰 쪽을 남기고 유지력만 리셋.
   // 합산으로 두면 MaxStack 3만큼 쌓여(커피 3개 = 공속 +30%) 자동 전투가 무너지고, 스택 수를 보여줄 UI도 따로 필요해진다.
-  applyBuff(itemId, type, value, dur){
+  // ⚠️ 갱신 판정은 type **과 stat**을 함께 본다. type만 보면 상태이상 약 4종이 전부 'status_resist'라
+  //    코아굴린 먹고 루시덱스 먹는 순간 앞의 것이 사라진다. 서로 다른 상태이상은 공존해야 한다.
+  applyBuff(itemId, type, value, dur, stat){
     const bs=this.gs.buffs||(this.gs.buffs=[]);
-    const cur=bs.find(b=>b.type===type);
+    const cur=bs.find(b=>b.type===type && (b.stat||null)===(stat||null));
     if(cur){ cur.value=Math.max(this.eng.N(cur.value), value); cur.left=dur; cur.id=itemId; }
-    else bs.push({ id:itemId, type, value, left:dur });
+    else bs.push({ id:itemId, type, value, left:dur, stat:stat||null });
     this.flash(this.tpl('buff_applied',{Name:this.tx(this.eng.byId.item[itemId]||{},'ItemName'), N:dur}));
   }
   // 유지력 = 전투 횟수. 전투가 실제로 끝난 시점에만 −1 —
@@ -2475,7 +2490,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     const ef=this.effectOf(inst);
     if(ef==='heal'){ this.gs.hp=Math.min(this.gs.maxHp,this.gs.hp+v); this.flash([this.t('heal_recover')+' ', h('span',{key:'n',style:{color:'#83B289'}}, '+'+v)]); }
     else if(ef==='stamina'){ this.gs.sta=Math.min(this.staMax,this.gs.sta+v); this.flash([this.t('stamina_recover')+' ', h('span',{key:'n',style:{color:'#C19E6F'}}, '+'+v)]); }
-    else if(this.isBuffEffect(ef)){ this.applyBuff(inst.id, ef, v, Math.max(1,this.eng.N(it.EffectDuration,1))); }
+    else if(this.isBuffEffect(ef)){ this.applyBuff(inst.id, ef, v, Math.max(1,this.eng.N(it.EffectDuration,1)), this.effectStat(it)); }
     const dec=(arr)=>{ const i=arr.findIndex(x=>x.uid===inst.uid); if(i<0) return false; if(arr[i].qty>1) arr[i].qty--; else arr.splice(i,1); return true; };
     dec(this.gs.bag)||dec(this.gs.vault); this.forceUpdate();
   }
@@ -2488,6 +2503,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       case 'stamina': s=this.t('stat_stamina')+' +'+v; break;
       case 'damage_reduce': s=this.t('item_damage_reduce')+' '+v; break;
       case 'attack_speed': s=this.t('stat_atk_speed')+' +'+v+'%'; break;
+      case 'status_resist': s=this.t('item_status_immune')+' '+this.t('status_'+this.effectStat(it)); break;
       default: return '';
     }
     const d=this.eng.N(it.EffectDuration);
@@ -3992,6 +4008,8 @@ void main(){
       // §6-7 버프 소모품 — 값 단위가 EffectType마다 다르다(damage_reduce=플랫 · attack_speed=%).
       else if(it.EffectType==='damage_reduce'){ out.push([this.t('item_damage_reduce'), String(N(it.EffectValue)), BUF]); }
       else if(it.EffectType==='attack_speed'){ out.push([this.t('stat_atk_speed'), '+'+N(it.EffectValue)+'%', BUF]); }
+      // 면역은 '얼마나'가 아니라 '무엇을'이 정보다 — 값 자리에 막는 상태이상 이름을 쓴다.
+      else if(it.EffectType==='status_resist'){ out.push([this.t('item_status_immune'), this.t('status_'+this.effectStat(it)), BUF]); }
       else { const eff={buff:this.t('item_effect_buff'),none:'—'}[it.EffectType]||it.EffectType; if(it.EffectType&&it.EffectType!=='none') out.push([this.t('item_effect'), eff+(it.EffectValue?(' +'+it.EffectValue):'')]); }
       // 유지력 = 남은 전투 수. 즉발(heal·stamina)은 시트에 '-'라 0이 되어 줄이 안 붙는다.
       // 값은 숫자만 — 단위(전투)는 '유지력'이라는 라벨이 이미 말한다. 다른 스탯 행과 같은 읽기 리듬.
