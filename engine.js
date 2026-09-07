@@ -85,6 +85,7 @@ const V3_STRINGS = {
   hide_disa_running:['분해 진행중','Disassembling.'],
   hide_disa_complete:['분해가 완료되었습니다.','Disassembly complete.'],
   hide_disa_empty:['분해 가능한 아이템이 없습니다','No items can be disassembled'],
+  hide_disa_none:['분해해서 나올 것이 없습니다','Nothing can be salvaged from this'],
   hide_reveal_all:['전부 확인','Reveal all'], hide_store_all:['전부 넣기','Store all'],
   // 정비대 · 수리 / 모듈
   hide_rep_section:['수리가능 아이템','Repairable'], hide_rep_confirm:['수리를 진행 하시겠습니까?','Start the repair?'],
@@ -890,6 +891,28 @@ export function restockShopsIfDue(state) {
   state.shopStock = {};
   state.shopRolls = {};          // 진열분 롤(술 도수)도 함께 새로 — 재고가 바뀌면 병도 바뀐 것
   state.shopStockAt = N(state.sorties);
+  applyStockRotation(state);     // 회전재고 그룹은 다시 뽑는다 — 이번 주기에 뭐가 깔리는지가 바뀐다
+  return true;
+}
+
+// 회전재고 — Shop.Notes에 '회전재고:<그룹>' 태그가 붙은 행들은 리셋 주기마다 그룹당 1종만 깔린다
+// (모듈 시그니처 부품 4종이 그렇다: 매번 다 살 수 있으면 모듈이 화폐로 바뀐다).
+// 진열될 1종은 값을 안 써서 Shop.StockMax 폴백으로 살아나고, 나머지는 shopStock에 0을 박아 품절로 만든다.
+// ⚠️ 부팅마다 다시 뽑으면 안 된다 — 앱만 껐다 켜도 진열이 바뀐다. shopRotAt으로 주기당 한 번만.
+const ROT_TAG = /회전재고\s*:\s*([A-Za-z0-9_]+)/;
+export function applyStockRotation(state){
+  const groups = {};
+  for (const r of (DATA.shops || [])){
+    const m = ROT_TAG.exec(String(r.Notes || '')); if (!m) continue;
+    const k = r.ShopID + '|' + m[1];
+    (groups[k] || (groups[k] = [])).push(r);
+  }
+  state.shopStock = state.shopStock || {};
+  for (const k of Object.keys(groups)){
+    const rows = groups[k], win = randInt(0, rows.length - 1);
+    rows.forEach((r, i) => { if (i !== win) state.shopStock[r.ShopID + '|' + r.ItemID] = 0; });
+  }
+  state.shopRotAt = N(state.sorties);
   return true;
 }
 
@@ -993,9 +1016,19 @@ export function drawCards(zoneId, n, bossUp = 0) {
 }
 
 // ---------- loot ----------
-// resolve one loot row -> concrete item ids (그룹이면 LootGroupItem 균등추첨 · MinQty~MaxQty회 복원추출)
+// resolve one loot row -> concrete item ids (그룹이면 LootGroupItem 추첨 · MinQty~MaxQty회 복원추출)
 function isGroupRef(r){ return String(r.ItemID || '').startsWith('group_') || /Group/i.test(String(r.Category || '')); }
 function groupMembers(groupId){ return (DATA.lootGroupItems || []).filter(m => m.GroupID === groupId); }
+// 그룹 추첨은 기본이 균등이지만, 멤버 중 Weight를 가진 것(현재는 Module 탭뿐)은 그 값으로 가중한다.
+// LootGroupItem에는 Weight 열이 없어 멤버 ID로 원본 행을 찾아 읽는다. 전부 무가중이면 균등과 같다.
+function memberWeight(id){ const m = byId.module && byId.module[id]; const w = m ? N(m.Weight, 0) : 0; return w > 0 ? w : 1; }
+function pickMember(members){
+  const ws = members.map(m => memberWeight(m.MemberItemID));
+  let total = 0; for (const w of ws) total += w;
+  let r = Math.random() * total;
+  for (let i = 0; i < members.length; i++){ r -= ws[i]; if (r < 0) return members[i]; }
+  return members[members.length - 1];
+}
 export function rollLoot(monsterId, zoneId) {
   const zone = zoneId ? byId.zone[zoneId] : null;
   const mult = zone ? N(zone.UnappraisedMult, 1) : 1;
@@ -1010,7 +1043,7 @@ export function rollLoot(monsterId, zoneId) {
     if (isGroupRef(r)) {
       const members = groupMembers(r.ItemID);
       if (!members.length) { console.warn('empty loot group', r.ItemID); continue; }
-      for (let i = 0; i < draws; i++) push(members[randInt(0, members.length - 1)].MemberItemID, 1);
+      for (let i = 0; i < draws; i++) push(pickMember(members).MemberItemID, 1);
     } else {
       push(r.ItemID, draws);
     }
@@ -1210,49 +1243,39 @@ export function craftGradeOk(state, grade){ return facilityLevel(state, 'workben
 export function craftBaseRate(bp){ return N(CRAFT_BASE[String((bp && bp.Grade) || 'Common')], 80); }
 export function craftRate(state, bp){ return clamp(craftBaseRate(bp) + craftBonus(state), 0, 100); }
 
-// 재료. 시트 Blueprint.Inputs가 JSON([{id,qty}])이면 그걸 쓰고,
-// ⚠️ 아직 'TBD'인 동안은 정크 풀에서 도면 ID로 결정론적 더미를 만든다(마스터 시트 작성 전 임시).
-export function craftInputs(bp){
-  const raw = String((bp && bp.Inputs) || '').trim();
-  if (raw && raw !== 'TBD' && raw !== '-'){
-    try {
-      const a = JSON.parse(raw);
-      if (Array.isArray(a)) return a.map(x => ({ id: x.id || x.ItemID, qty: Math.max(1, N(x.qty, 1)) })).filter(x => x.id);
-    } catch(_){}
-  }
-  const pool = junkPool();
-  if (!pool.length) return [];
-  const key = String((bp && bp.BlueprintID) || '');
-  let hsh = 0; for (let i = 0; i < key.length; i++) hsh = (hsh * 31 + key.charCodeAt(i)) >>> 0;
-  const out = [], seen = new Set();
-  for (let k = 0; k < 3 && seen.size < pool.length; k++){
-    let idx = (hsh + k * 7) % pool.length;
-    while (seen.has(pool[idx])) idx = (idx + 1) % pool.length;
-    seen.add(pool[idx]);
-    out.push({ id: pool[idx], qty: 1 + ((hsh >>> (k * 3)) % 5) });   // >>> 필수 — >>는 bit31이 서면 음수가 나온다
-  }
-  return out;
+// 시트의 JSON 열(Blueprint.Inputs · DisassembleOutputs · Module.Inputs) 공통 파서.
+// 배열이면 그대로, 문자열이면 파싱. 빈 값·'TBD'·'-'·깨진 JSON은 전부 null — 호출부가 "없음"으로 다룬다.
+function jsonList(raw){
+  if (Array.isArray(raw)) return raw;
+  const t = String(raw == null ? '' : raw).trim();
+  if (!t || t === 'TBD' || t === '-') return null;
+  try { const a = JSON.parse(t); return Array.isArray(a) ? a : null; } catch(_){ return null; }
 }
 
-// 정크 풀 — 더미 재료·분해 산출의 재료가 된다(마스터 시트가 채워지면 둘 다 시트 값으로 바뀐다).
-function junkPool(){ return (DATA.items || []).filter(r => String(r.Category) === 'Junk').map(r => r.ItemID); }
-function hashOf(key){ let h = 0; const s = String(key || ''); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
+// 재료 = 시트 Blueprint.Inputs JSON([{id,qty}]). 전 도면에 실 레시피가 들어와 더미는 제거했다(2026-09-07).
+// 파싱 불가/빈 값이면 []를 준다 — 호출부는 "재료 목록이 비면 제작 불가"로 다룬다(재료 0개로 공짜 제작 방지).
+export function craftInputs(bp){
+  const arr = jsonList(bp && bp.Inputs);
+  if (!arr) return [];
+  return arr.map(x => ({ id: x.id || x.ItemID, qty: Math.max(1, N(x.qty, 1)) })).filter(x => x.id);
+}
+
 
 // ===== 아지트 · 조립대(분해) =====
 // 분해는 실패가 없다(3초 연출이 전부). 산출은 min~max 범위로 보여주고 실행 시 굴린다.
-// ⚠️ 더미 — 분해 산출 테이블이 아직 시트에 없다. 아이템 ID로 결정론적 정크 3종 + 고정 범위.
-const DISA_RANGES = [[1,5],[1,3],[1,1]];
+// 소스 = 각 장비 행의 DisassembleOutputs 열(JSON [{id,min,max}]) — 대체로 그 장비의 수리 정크가 나온다.
+// 열이 없거나 깨졌으면 [] — 호출부는 "분해 산출 없음"으로 다룬다(정크를 지어내지 않는다).
 export function disassembleSpec(inst){
-  const pool = junkPool(); if (!pool.length) return [];
-  const h = hashOf(inst && inst.id);
-  const out = [], seen = new Set();
-  for (let k = 0; k < DISA_RANGES.length && seen.size < pool.length; k++){
-    let idx = (h + k * 11) % pool.length;
-    while (seen.has(pool[idx])) idx = (idx + 1) % pool.length;
-    seen.add(pool[idx]);
-    out.push({ id: pool[idx], min: DISA_RANGES[k][0], max: DISA_RANGES[k][1] });
-  }
-  return out;
+  if (!inst) return [];
+  const tbl = byId[inst.kind];                       // weapon / armor / artifact / bag
+  const src = tbl ? tbl[inst.id] : null;
+  if (!src) return [];
+  const arr = jsonList(src.DisassembleOutputs);
+  if (!arr) return [];
+  return arr.map(x => {
+    const lo = Math.max(0, N(x.min, 0)), hi = Math.max(lo, N(x.max, lo));
+    return { id: x.id || x.ItemID, min: lo, max: hi };
+  }).filter(x => x.id && x.max > 0);
 }
 export function disassembleRoll(spec){ return (spec || []).map(s => ({ id: s.id, qty: randInt(N(s.min,1), N(s.max,1)) })).filter(d => d.qty > 0); }
 
@@ -1261,19 +1284,33 @@ export function disassembleRoll(spec){ return (spec || []).map(s => ({ id: s.id,
 export function repairRate(state){ return N(facilityEffectValue(state, 'repair', 'repair_rate', 90), 90); }
 export function repairRateBase(){ const r = facilityRow('repair', 1); const e = facilityEffects(r).find(x => x && x.key === 'repair_rate'); return e ? N(e.to, 90) : 90; }
 
-// ⚠️ 더미 — 수리 재료·모듈 장착 재료 테이블이 아직 시트에 없다. 정크 풀에서 결정론적으로 뽑는다.
-function dummyMats(key, n){
-  const pool = junkPool(); if (!pool.length) return [];
-  const h = hashOf(key), out = [], seen = new Set();
-  for (let k = 0; k < n && seen.size < pool.length; k++){
-    let idx = (h + k * 13) % pool.length;
-    while (seen.has(pool[idx])) idx = (idx + 1) % pool.length;
-    seen.add(pool[idx]);
-    out.push({ id: pool[idx], qty: 1 + ((h >>> (k * 5)) % 5) });
-  }
+// 수리 재료 — 정비대는 사토가 아니라 정크를 받는다. 두 축(재질 + 유형)을 각각
+// ceil(마모 / repair_durability_per_junk) 개씩, 최소 1개. 분해 산출이 대체로 이 정크라 분해→수리 루프가 돈다.
+//   재질축: 장비 Material  ·  유형축: 무기=속성(날붙이/타격) · 방어구=고정 · 장신구=재질 열이 없어 단독
+const REPAIR_MAT_JUNK = {
+  '금속':'item_welding_rod', '목재':'item_wood_board', '섬유':'item_repair_thread', '합성':'item_patch_resin',
+  Metal:'item_welding_rod', Wood:'item_wood_board', Fabric:'item_repair_thread', Synthetic:'item_patch_resin' };
+const REPAIR_EDGE_ATTR = new Set(['bleed','pierce']);      // 날붙이 — 나머지(stun/rupture/none)는 타격
+export function repairInputs(inst){
+  if (!inst) return [];
+  const worn = Math.max(0, N(inst.maxDur) - N(inst.dur));
+  if (worn <= 0) return [];
+  const qty = Math.max(1, Math.ceil(worn / Math.max(1, N(C.repair_durability_per_junk, 5))));
+  const tbl = byId[inst.kind], src = tbl ? tbl[inst.id] : null;
+  if (!src) return [];
+  if (inst.kind === 'artifact') return [{ id: 'item_fine_parts', qty }];   // 장신구는 정밀 부품 단독
+  const out = [];
+  const mat = REPAIR_MAT_JUNK[String(src.Material || '').trim()];
+  if (mat) out.push({ id: mat, qty });
+  if (inst.kind === 'weapon') out.push({ id: REPAIR_EDGE_ATTR.has(String(src.Attribute || '').trim()) ? 'item_metal_file' : 'item_rivets', qty });
+  else if (inst.kind === 'armor') out.push({ id: 'item_strap_buckle', qty });
   return out;
 }
-export function repairInputs(inst){ return dummyMats('repair:' + ((inst && inst.id) || ''), 3); }
-export function moduleInputs(moduleId){ return dummyMats('module:' + (moduleId || ''), 2); }
+// 모듈 장착 재료 = 시트 Module.Inputs(계열별 전자 정크 2종). 사토는 안 받는다(module_attach_cost=0).
+export function moduleInputs(moduleId){
+  const arr = jsonList(byId.module[moduleId] && byId.module[moduleId].Inputs);
+  if (!arr) return [];
+  return arr.map(x => ({ id: x.id || x.ItemID, qty: Math.max(1, N(x.qty, 1)) })).filter(x => x.id);
+}
 
 export { ATTR_KR, N, C };
