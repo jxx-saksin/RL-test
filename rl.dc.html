@@ -176,7 +176,9 @@ const SFX = {
   card_insert:      'assets/sound/effect/card_insert.mp3',       // 카드가 단말로 빨려 들어가는 순간 (1.34s)
   tap_terminal_done:'assets/sound/effect/tap_terminal_done.mp3', // 삽입이 확정되는 순간 (0.65s)
   open_bag:         'assets/sound/effect/open_bag.mp3',          // 전리품 화면 → 가방으로 전환하는 순간 (1.00s)
-  close_bag:        'assets/sound/effect/close_bag.mp3'           // 가방을 닫는 순간 (0.80s) — 화면 되돌리기 + 아이템 넣고 꺼내기 양방향
+  close_bag:        'assets/sound/effect/close_bag.mp3',          // 가방을 닫는 순간 (0.80s) — 화면 되돌리기 + 아이템 넣고 꺼내기 양방향
+  disk_insert:      'assets/sound/effect/disk-insert.mp3',        // 단말기: 디스크(도면)가 슬롯에 들어가는 순간 (1.03s) — LED 노란 점멸 전
+  disk_load:        'assets/sound/effect/disk-load.mp3'           // 단말기: 인스톨이 도는 소리 (3.50s) — 노란 점멸이 끝나고 초록 브리딩으로 넘어갈 때
 };
 // 자동재생 해제 전용 0.01초 무음 WAV(124B). ⚠️ iOS Safari는 volume 설정을 무시하므로(읽기 전용·항상 1)
 // 진짜 효과음을 volume=0으로 틀면 타이틀 탭에서 그대로 들린다. muted로도 해제가 안 되는 기기가 있어
@@ -246,8 +248,8 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 47;
-const TITLE_DATE = '0907';
+const TITLE_VER = 48;
+const TITLE_DATE = '0908';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -1245,10 +1247,12 @@ class Component extends DCLogic {
   // 배경 4겹 — 바닥 #111315 · 존 아트 cover · 상단 페이드(y89~407, 위로 갈수록 어두움) · 하단 페이드(y407~828).
   // y=407(49.2%)이 가장 선명한 지점. mode 'log'은 screen-battle-log.svg 전용 —
   // 아트가 하단 360px(=43.48%, 텍스트 로그 뒤)에만 깔리고 y577부터 완전히 가려진다.
+  // 아트가 없으면 이미지 없이 단색(#111315)으로 떨어진다.
+  // ⚠️ 예전엔 assets/battle/encounter-banner.webp를 폴백으로 깔았는데, 아트 파이프라인 밖에서 들어온
+  //    쓰면 안 되는 이미지였다(2026-09-08 제거). 존 아트가 없는 도시 2·3에서 드러났었다.
   zoneBg(zoneId,mode,artOverride){
-    const fb='url(assets/battle/encounter-banner.webp)';
-    const art=artOverride? ('url('+artOverride+')')
-      : (zoneId? ('url(assets/art/zones/'+zoneId+'.webp), '+fb) : fb);
+    const art=artOverride? ('url('+artOverride+')') : (zoneId? ('url(assets/art/zones/'+zoneId+'.webp)') : null);
+    if(!art) return h('div',{key:'zonebg'+(mode||'full'),style:{position:'absolute',inset:0,zIndex:0,pointerEvents:'none',background:'#111315'}});
     const st=(mode==='log')
       // 아트 y361~828(467) + 상·하 페이드 2겹. 가장 선명한 지점 y≈594(약 24%), 위아래로 사라진다.
       ? {position:'absolute',left:0,right:0,bottom:0,height:'56.4%',backgroundImage:
@@ -1576,7 +1580,7 @@ class Component extends DCLogic {
     }
     return h('div',{onClick:()=>this.setState({modalZone:null}),style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',display:'flex',alignItems:'flex-end',zIndex:30,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 16px',background:'rgb(24,25,29)',boxShadow:'inset 0 0 0 1px rgb(54,56,60)',borderRadius:8,padding:16,display:'flex',flexDirection:'column',gap:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
-        h('div',{style:{height:104,borderRadius:8,background:'url(assets/art/zones/'+z.ZoneID+'.webp) 50% 35% / cover no-repeat, url(assets/battle/zone-banner.webp) 50% 35% / cover no-repeat'}}),
+        h('div',{style:{height:104,borderRadius:8,background:'url(assets/art/zones/'+z.ZoneID+'.webp) 50% 35% / cover no-repeat, #111315'}}),   // 아트 없는 존은 단색 — 옛 zone-banner 폴백 제거(2026-09-08)
         h('div',{style:{display:'flex',flexDirection:'column',gap:8}},
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}},
             h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:500,color:T.hi}}, this.tx(z,'ZoneName')),
@@ -1875,10 +1879,10 @@ class Component extends DCLogic {
     onPointerMove:(e)=>{ if(this._rvy==null)return; const dy=e.clientY-this._rvy; const el=this._rvc; if(!el)return; el.style.transition='none'; el.style.zIndex='100'; el.style.transform='translate(-50%, calc(-50% + '+dy+'px)) scale(1)'; },
     onPointerCancel:(e)=>{ if(this._rvy==null)return; const el=this._rvc, p=this._rvp; this._rvy=null; this._rvx=null; this._rvp=null;
       if(el){ el.style.transition='transform .3s'; el.style.transform='translate(-50%,-50%) scale(1)'; el.style.opacity='1'; el.style.zIndex='20'; }
-      if(p){ p.style.overflow='hidden'; p.style.zIndex=''; } },
+      if(p){ p.style.overflow='hidden'; p.style.zIndex='1'; } },   // 스테이지 zIndex 정본은 1 — ''로 지우면 auto가 박힌다
     // ⚠️ zIndex 복원은 ''(auto) 금지 — vdom 정본값 '20'으로. 프레임워크가 포커스 노드를 위치기준 재사용하므로
     // ''로 지우면 재사용된 카드가 형제(사이드) 뒤로 떨어져 반투명처럼 보임(전리품 화면과 동종 버그).
-    onPointerUp:(e)=>{ if(this._rvy==null)return; const dy=e.clientY-this._rvy; const dx=this._rvx!=null?e.clientX-this._rvx:0; const el=this._rvc; const p=this._rvp; this._rvy=null; this._rvx=null; this._rvp=null; const restore=()=>{ if(p){ p.style.overflow='hidden'; p.style.zIndex=''; } if(el) el.style.zIndex='20'; };
+    onPointerUp:(e)=>{ if(this._rvy==null)return; const dy=e.clientY-this._rvy; const dx=this._rvx!=null?e.clientX-this._rvx:0; const el=this._rvc; const p=this._rvp; this._rvy=null; this._rvx=null; this._rvp=null; const restore=()=>{ if(p){ p.style.overflow='hidden'; p.style.zIndex='1'; } if(el) el.style.zIndex='20'; };
       // 전리품 화면과 동종 — 가로 스와이프 시 지연 복원 금지(아래 lmCenterHandlers 주석 참조)
       if(Math.abs(dx)>30 && Math.abs(dx)>Math.abs(dy)){ restore(); return; }
       const card=dy>70?this.restCards()[this.combat.restFocus]:null;
@@ -2473,7 +2477,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     const v=this.eng.DATA.config['flee_extract_chance_'+n];
     return (v==null||v==='') ? null : Math.max(0,Math.min(1,this.eng.N(v))); }
   fleePct(){ const p=this.fleeChance(); return Math.round((p==null?0:p)*100); }
-  battleBanner(placeTitle,zoneName,enc){ const zid=this.combat&&this.combat.zoneId; return h('div',{style:{position:'relative',height:118,flex:'0 0 auto',backgroundImage:(zid?'url(assets/art/zones/'+zid+'.webp), ':'')+'url(assets/battle/encounter-banner.webp)',backgroundSize:'cover',backgroundPosition:'center'}},
+  battleBanner(placeTitle,zoneName,enc){ const zid=this.combat&&this.combat.zoneId; return h('div',{style:{position:'relative',height:118,flex:'0 0 auto',background:zid?('url(assets/art/zones/'+zid+'.webp) center / cover'):'#111315'}},
     h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:4}},
       h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, placeTitle),
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.2px',color:'rgb(111,114,118)',lineHeight:'100%'}}, 'ENCOUNTER · '+zoneName+' · '+(this.en()?('Encounter #'+(enc+1)):((enc+1)+'전 조우'))))); }
@@ -3808,16 +3812,23 @@ void main(){
       if(this.lmLocked(lm)>=2){ this.lmReject(this.en()?'Pocket max 2 · unlock one first':'주머니는 2칸까지 · 하나 해제하세요'); return; } entry.locked=true; this.flash(this.en()?'Locked (safe)':'주머니 잠금 (안전)'); }
     this.forceUpdate();
   }
+  // ⚠️ 부모(스테이지)에 명령형 스타일을 쓸 땐 반드시 vdom 정본값으로 되돌린다.
+  //   전리품 스테이지 vdom = {zIndex:3, flex:'0 1 502px', ...} — overflow는 아예 없다(=visible).
+  //   예전엔 여기서 overflow를 'hidden'으로, zIndex를 ''로 되돌렸는데 둘 다 정본이 아니라,
+  //   카드를 한 번만 만져도(탭 포함) 인라인 값이 영구히 박혔다(DC는 vdom 미변경이면 스타일을 다시 안 쓴다):
+  //     overflow:hidden → 502 박스가 552짜리 긴 카드의 상·하단을 잘라냄
+  //     zIndex:''(auto) → 카드가 칩(z2)·힌트 밑으로 내려가 칩이 카드 위에 보임
+  //   (카드 자신의 zIndex '20' 복원과 같은 계열의 실수 — 그땐 부모 쪽이 빠져 있었다.)
   lmCenterHandlers(){ return {
-    // 드래그 중 코버플로우 언클립 + zIndex 상승 → 카드가 최상단에서 UI를 덮음(안 잘림)
-    onPointerDown:(e)=>{ this._lmy=e.clientY; this._lmx=e.clientX; this._lmc=e.currentTarget; const p=e.currentTarget.parentElement; this._lmp=p; if(p){ p.style.overflow='visible'; p.style.zIndex='100'; } e.currentTarget.style.zIndex='100'; },
+    // 드래그 중 zIndex 상승 → 카드가 최상단에서 UI를 덮음. 스테이지는 원래 clip하지 않으므로 언클립은 불필요.
+    onPointerDown:(e)=>{ this._lmy=e.clientY; this._lmx=e.clientX; this._lmc=e.currentTarget; const p=e.currentTarget.parentElement; this._lmp=p; if(p){ p.style.zIndex='100'; } e.currentTarget.style.zIndex='100'; },
     onPointerMove:(e)=>{ if(this._lmy==null)return; const dy=e.clientY-this._lmy; const el=this._lmc; if(!el)return; el.style.transition='none'; el.style.zIndex='100'; el.style.transform='translate(-50%, calc(-50% + '+dy+'px)) scale(1)'; },
     // ⚠️ zIndex 복원은 ''(auto)가 아니라 vdom 정본값 '20'으로 — 프레임워크가 vdom 미변경 시 스타일 갱신을
     // 스킵하므로 ''로 지우면 중앙 카드가 auto로 떨어져 사이드 카드(z 9~10)가 위에 합성됨(반투명처럼 보이는 버그의 진짜 원인)
     onPointerCancel:(e)=>{ if(this._lmy==null)return; const el=this._lmc, p=this._lmp; this._lmy=null; this._lmx=null; this._lmp=null;
       if(el){ el.style.transition='transform .3s'; el.style.transform='translate(-50%,-50%) scale(1)'; el.style.opacity='1'; el.style.zIndex='20'; }
-      if(p){ p.style.overflow='hidden'; p.style.zIndex=''; } },
-    onPointerUp:(e)=>{ if(this._lmy==null)return; const dy=e.clientY-this._lmy; const dx=this._lmx!=null?e.clientX-this._lmx:0; const el=this._lmc; const p=this._lmp; this._lmy=null; this._lmx=null; this._lmp=null; const restore=()=>{ if(p){ p.style.overflow='hidden'; p.style.zIndex=''; } if(el) el.style.zIndex='20'; };
+      if(p){ p.style.zIndex='3'; } },
+    onPointerUp:(e)=>{ if(this._lmy==null)return; const dy=e.clientY-this._lmy; const dx=this._lmx!=null?e.clientX-this._lmx:0; const el=this._lmc; const p=this._lmp; this._lmy=null; this._lmx=null; this._lmp=null; const restore=()=>{ if(p){ p.style.zIndex='3'; } if(el) el.style.zIndex='20'; };
       // ⚠️ 가로 스와이프는 부모 캐러셀이 focus를 바꾼다(카드 핸들러가 버블링상 먼저 실행됨).
       //   여기서 setTimeout으로 지연 복원하면 이미 '사이드'가 된 카드에 중앙값 z20을 덮어써
       //   중앙과 사이드가 둘 다 z20이 되고, opacity .42인 사이드가 위에 합성돼 반투명처럼 보인다.
@@ -5488,6 +5499,7 @@ void main(){
   // CD가 완전히 들어간 뒤에 카운트가 시작된다. 슬라이드(0.5s) 동안은 job이 없어 LED도 아직 빨강이다.
   diskInsertAnim(slot,inst){
     if(this._diskAnimT) return;
+    this.sfx('disk_insert');          // 슬라이드 시작 = 삽입 순간. 아직 job이 없어 LED는 빨강이다.
     this.setState({diskAnim:true});
     this._diskAnimT=setTimeout(()=>{ this._diskAnimT=null; this.setState({diskAnim:false}); this.startDiskInstall(slot,inst); }, 520);
   }
@@ -5502,7 +5514,9 @@ void main(){
     this.consumeInst(inst.uid);   // 디스크는 삽입 시 소모된다(1회 설치 후 영구)
     this.saveGame(); this.forceUpdate();
     // LED 노란 점멸 1초 → 초록 브리딩. hideTick(1초)만 믿으면 전환이 최대 2초까지 늦어진다.
-    setTimeout(()=>{ if(this.state.screen==='diskInsert') this.forceUpdate(); }, 1050);
+    // 인스톨 사운드도 여기서 — 점멸이 끝나고 초록으로 넘어가는 그 지점이 시작점이다.
+    // ⚠️ 화면을 떠났으면 재생하지 않는다(3.5초짜리라 다른 화면까지 따라 나온다).
+    setTimeout(()=>{ if(this.state.screen==='diskInsert'){ this.forceUpdate(); this.sfx('disk_load'); } }, 1050);
   }
   claimDiskInstall(slot){
     const j=this.diskJobs()[slot]; if(!j) return;
