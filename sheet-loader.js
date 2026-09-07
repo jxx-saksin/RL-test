@@ -3,13 +3,24 @@
 // the same structure as the bundled data/game-data.js. CORS-enabled via the
 // gviz endpoint (works for link-shared sheets).
 
+import { DATA as BUNDLE } from './data/game-data.js?v=val2';
+
+// 탭 이름 → shape() 결과 필드. 선택 탭이 실패했을 때 번들 값으로 메꾸는 데 쓴다.
+const TAB_FIELD = { Config:'config', PrimaryStat:'primaryStats', SecondaryStat:'secondaryStats',
+  StatusEffect:'statusEffects', WeaponAttribute:'weaponAttributes', Weapon:'weapons', Armor:'armor',
+  Item:'items', Valuable:'valuables', Monster:'monsters', City:'cities', Zone:'zones', Vendor:'vendors',
+  Shop:'shops', LootTable:'lootTable', Accessory:'artifacts', Talisman:'talismans', Bag:'bags',
+  Affix:'affixes', SpawnTable:'spawnTable', CombatLog:'combatLog', USB:'usb', ColdData:'coldData',
+  NpcDialogue:'npcDialogue', UIString:'ui', Liquor:'liquor', Module:'modules', LootGroup:'lootGroups',
+  LootGroupItem:'lootGroupItems', Tip:'tips', Facility:'facilities', Blueprint:'blueprints' };
+
 export const SHEET_ID = '1d-LNhcuFo1dKO1zzszDNAXXT-zDqffatr1aCe3yB8ls';
 export const TABS = ['Config','PrimaryStat','SecondaryStat','StatusEffect','WeaponAttribute',
   'Weapon','Armor','Item','Valuable','Monster','City','Zone','Vendor','Shop','LootTable','Accessory','Talisman','Bag','Affix','SpawnTable','CombatLog',
   'USB','ColdData','NpcDialogue','UIString',
-  'Liquor','Module','LootGroup','LootGroupItem','Tip'];
+  'Liquor','Module','LootGroup','LootGroupItem','Tip','Facility','Blueprint'];
 // tabs that may not exist yet in older sheets — a failed fetch is non-fatal
-const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString','Liquor','Module','LootGroup','LootGroupItem','Talisman','Bag','Tip','Valuable']);
+const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString','Liquor','Module','LootGroup','LootGroupItem','Talisman','Bag','Tip','Valuable','Facility','Blueprint']);
 
 // --- RFC4180-ish CSV parser (handles quoted commas + newlines) ---
 export function parseCSV(text) {
@@ -38,10 +49,20 @@ export const GIDS = {
   Armor:'540890839', All_IDs:'220464388', LootTable:'290666291'
 };
 
+// ⚠️ 타임아웃 없이 fetch하면 구글이 429로 조여도 응답을 안 줘 부팅이 99%에서 영원히 멈춘다(실기 재현).
+// AbortController로 끊어 예외를 만들고, 호출부의 기존 폴백(캐시 → 번들)이 받게 한다.
+const FETCH_TIMEOUT_MS = 10000;
+async function fetchT(url, opts){
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), FETCH_TIMEOUT_MS);
+  try { return await fetch(url, { ...(opts||{}), signal: ac.signal }); }
+  finally { clearTimeout(t); }
+}
+
 // Discover the name->gid map live (so added/renamed tabs still work); fall back to GIDS.
 export async function fetchGidMap(id = SHEET_ID) {
   try {
-    const r = await fetch(`https://docs.google.com/spreadsheets/d/${id}/htmlview?_=${Date.now()}`, { mode:'cors', cache:'no-store' });
+    const r = await fetchT(`https://docs.google.com/spreadsheets/d/${id}/htmlview?_=${Date.now()}`, { mode:'cors', cache:'no-store' });
     const t = await r.text();
     const map = {};
     for (const m of t.matchAll(/\{name:\s*"([^"]+)",\s*pageUrl:\s*"([^"]+)"/g)) {
@@ -62,18 +83,23 @@ function tabUrl(id, gid) {
 export async function fetchAllTabs(id = SHEET_ID) {
   const gidMap = await fetchGidMap(id);
   const out = {};
+  const skipped = [];
   await Promise.all(TABS.map(async tab => {
     const gid = gidMap[tab];
-    if (gid == null) return;
+    if (gid == null) { skipped.push(tab); return; }
     try {
-      const r = await fetch(tabUrl(id, gid), { mode: 'cors', cache: 'no-store' });
+      const r = await fetchT(tabUrl(id, gid), { mode: 'cors', cache: 'no-store' });
       if (!r.ok) throw new Error(tab + ' HTTP ' + r.status);
       out[tab] = parseCSV(await r.text());
     } catch (e) {
-      if (OPTIONAL_TABS.has(tab)) { console.warn('optional tab skipped:', tab, e); return; }
+      // ⚠️ 선택 탭이라도 '조용히 빈 채로' 두면 안 된다 — UIString 하나가 빠지면
+      //    화면 전체가 키 문자열(hide_disk_close…)로 뜬다(2026-09-07 실제 발생).
+      //    스킵 목록을 넘겨 shape()가 번들 값으로 메꾸게 한다.
+      if (OPTIONAL_TABS.has(tab)) { console.warn('optional tab skipped:', tab, e); skipped.push(tab); return; }
       throw e;
     }
   }));
+  out.__skipped = skipped;
   return out;
 }
 
@@ -95,7 +121,7 @@ const pfx = (arr, key, p) => arr.filter(r => String(r[key] || '').startsWith(p))
 export function shape(rowsByTab) {
   const config = {};
   toObjs(rowsByTab.Config).forEach(r => { if (r.Key) config[r.Key] = r.Value; });
-  return {
+  const shaped = {
     config,
     primaryStats: pfx(toObjs(rowsByTab.PrimaryStat), 'PrimaryStatID', 'stat_'),
     secondaryStats: pfx(toObjs(rowsByTab.SecondaryStat), 'SecondaryStatID', 'sec_'),
@@ -126,7 +152,20 @@ export function shape(rowsByTab) {
     lootGroups: toObjs(rowsByTab.LootGroup || []).filter(r => String(r.GroupID || '').trim()),
     lootGroupItems: toObjs(rowsByTab.LootGroupItem || []).filter(r => String(r.GroupID || '').trim() && String(r.MemberItemID || '').trim()),
     tips: toObjs(rowsByTab.Tip || []).filter(r => String(r.TipID || '').trim() && String(r.Status || '').toLowerCase() !== 'cut'),
+    facilities: toObjs(rowsByTab.Facility || []).filter(r => String(r.FacilityLevelID || '').trim()),
+    blueprints: toObjs(rowsByTab.Blueprint || []).filter(r => String(r.BlueprintID || '').trim()),
   };
+  // 못 받은 탭은 번들 값으로 메꾼다 — 텍스트·전투로그처럼 비면 화면이 깨지는 탭이 있다.
+  const skipped = (rowsByTab && rowsByTab.__skipped) || [];
+  for (const tab of skipped) {
+    const f = TAB_FIELD[tab];
+    if (!f || !BUNDLE[f]) continue;
+    const cur = shaped[f];
+    const empty = Array.isArray(cur) ? !cur.length : !cur || !Object.keys(cur).length;
+    if (empty) shaped[f] = BUNDLE[f];
+  }
+  shaped.__skipped = skipped;
+  return shaped;
 }
 
 // 귀중품(Valuable 탭)은 열 이름이 Item 탭과 다르다(ValuableID/Name_KR/Description_KR).
@@ -139,10 +178,19 @@ export function asItemRow(v) {
     Category: 'Valuable', MaxStack: 1 };
 }
 
+// 도면(Blueprint)을 Item 스키마로 정규화 — 이름·설명·카테고리 조회가 일반 아이템과 똑같이 동작한다.
+// ⚠️ 설치·제작 정보(InstallMinutes·OutputItemID·Inputs)는 여기 담지 않는다. 그건 byId.blueprint가 갖는다.
+export function bpAsItemRow(b) {
+  return { ...b, ItemID: b.BlueprintID, ItemName_KR: b.Name_KR, ItemName_EN: b.Name_EN,
+    Category: 'Blueprint', MaxStack: 1 };
+}
+
 export function buildIndex(DATA) {
   const valuables = (DATA.valuables || []).map(asItemRow);
+  const blueprints = (DATA.blueprints || []).map(bpAsItemRow);
   const byId = {
-    item: Object.fromEntries([...DATA.items, ...valuables].map(x => [x.ItemID, x])),
+    item: Object.fromEntries([...DATA.items, ...valuables, ...blueprints].map(x => [x.ItemID, x])),
+    blueprint: Object.fromEntries((DATA.blueprints || []).map(x => [x.BlueprintID, x])),
     valuable: Object.fromEntries(valuables.map(x => [x.ItemID, x])),
     weapon: Object.fromEntries(DATA.weapons.map(x => [x.WeaponID, x])),
     armor: Object.fromEntries(DATA.armor.map(x => [x.ArmorID, x])),
@@ -158,6 +206,7 @@ export function buildIndex(DATA) {
     liquor: Object.fromEntries((DATA.liquor || []).map(x => [x.LiquorID, x])),
     module: Object.fromEntries((DATA.modules || []).map(x => [x.ModuleID, x])),
     lootGroup: Object.fromEntries((DATA.lootGroups || []).map(x => [x.GroupID, x])),
+    facility: Object.fromEntries((DATA.facilities || []).map(x => [x.FacilityLevelID, x])),
   };
   return { byId };
 }

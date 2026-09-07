@@ -2,7 +2,7 @@
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
 import { DATA as FALLBACK } from './data/game-data.js?v=val2';
-import { buildIndex } from './sheet-loader.js?v=val2';
+import { buildIndex } from './sheet-loader.js?v=val7';
 
 export let DATA = FALLBACK;
 export let byId = buildIndex(FALLBACK).byId;
@@ -67,6 +67,49 @@ export function t(key){
 }
 // v3 built-in fallbacks — used only when the UIString tab lacks the key (sheet wins).
 const V3_STRINGS = {
+  // 조립대 · 제작 (시트 UIString에 같은 키가 들어오면 시트가 이긴다)
+  hide_craft_label:['제작','Craft'], hide_craft_time:['제작시간','Craft time'],
+  hide_craft_try:['제작시도','Attempt'], hide_craft_rate:['성공률','Success rate'],
+  hide_craft_confirm:['제작을 진행 하시겠습니까?','Start crafting?'],
+  hide_craft_ready:['제작을 준비중입니다.','Preparing to craft.'],
+  hide_craft_running:['제작이 진행중입니다.','Crafting in progress.'],
+  hide_craft_complete:['제작이 완료되었습니다.','Crafting complete.'],
+  hide_craft_failed:['제작에 실패해 재료가 소모되었습니다.','Crafting failed. Materials were consumed.'],
+  hide_craft_do:['제작','Craft'], hide_craft_doing:['제작중','Crafting'],
+  hide_craft_done_label:['완성','Done'], hide_craft_fail_label:['실패','Failed'],
+  hide_craft_empty:['설치된 도면이 없다.','No blueprints installed.'],
+  hide_store_put:['보관함에 넣기','Store'],
+  // 조립대 · 분해
+  hide_disa_label:['분해','Disassemble'], hide_disa_section:['분해가능 아이템','Disassemblable'],
+  hide_disa_confirm:['분해 하시겠습니까?','Disassemble this?'],
+  hide_disa_running:['분해 진행중','Disassembling.'],
+  hide_disa_complete:['분해가 완료되었습니다.','Disassembly complete.'],
+  hide_disa_empty:['분해 가능한 아이템이 없습니다','No items can be disassembled'],
+  hide_reveal_all:['전부 확인','Reveal all'], hide_store_all:['전부 넣기','Store all'],
+  // 정비대 · 수리 / 모듈
+  hide_rep_section:['수리가능 아이템','Repairable'], hide_rep_confirm:['수리를 진행 하시겠습니까?','Start the repair?'],
+  hide_rep_rate:['성공률','Success rate'],
+  hide_mod_section:['모듈 장착 아이템','Socketed gear'],
+  hide_mod_label:['모듈','Modules'], hide_mod_attach:['모듈 장착','Install module'], hide_mod_remove:['모듈 해체','Remove module'],
+  hide_mod_pick_slot:['장착 및 해체 슬롯을 선택하세요.','Pick a socket to install or remove.'],
+  hide_mod_pick_module:['장착 하고싶은 모듈을 선택해주세요.','Pick a module to install.'],
+  hide_mod_pull:['위로 올려 장착하기','Swipe up to install'],
+  hide_mod_attach_confirm:['장착 진행 하시겠습니까?','Install this module?'],
+  hide_mod_attach_running:['장착이 진행중입니다.','Installing.'],
+  hide_mod_attach_done:['장착이 완료되었습니다.','Installation complete.'],
+  hide_mod_attach_label:['장착','Install'], hide_mod_attach_doing:['장착중','Installing'],
+  hide_mod_remove_warn:['모듈은 파괴됩니다. 진행 하시겠습니까?','The module will be destroyed. Continue?'],
+  hide_mod_remove_running:['해체가 진행중입니다.','Removing.'],
+  hide_mod_remove_done:['해체가 완료되었습니다.','Removal complete.'],
+  hide_mod_remove_label:['해체','Remove'], hide_mod_remove_doing:['해체중','Removing'],
+  hide_mod_empty:['사용 가능한 아이템이 없습니다','No usable items'],
+  hide_mod_none_gear:['모듈 장착 가능한 아이템이 없습니다','No items can take modules'],
+  hide_rep_empty:['수리 가능한 아이템이 없습니다','No items can be repaired'],
+  module_fits_weapon:['무기에 장착가능하다.','Fits weapons.'], module_fits_armor:['방어구에 장착가능하다.','Fits armor.'],
+  // 부팅 지연 안내 — 시트 응답이 늦을 때 로딩 화면에 뜬다
+  boot_slow:['데이터를 불러오는 중. 연결이 다소 지연되고있습니다.','Loading data. The connection is a little slow.'],
+  boot_retry:['다시 시도','Retry'], boot_offline:['오프라인으로 시작하기','Start offline'],
+  boot_partial:['일부 데이터를 불러오는데 실패했습니다.','Some data failed to load.'],
   appraise_tab:['감정','Appraise'], module_tab:['모듈','Modules'],
   appraise_unappraised:['미감정','Unappraised'],
   // 도주 카드 뒤집기 전 경고. 실패해도 즉시 전투가 아니라 '다음 조우 카드'로 간다(2026-08-26 도망 개편).
@@ -212,6 +255,11 @@ export function startingState() {
     shopStockAt: 0,               // 마지막 재고 리셋 시점의 sorties (restockShopsIfDue)
     shopRolls: {},                // shopId+itemId -> 진열분 고정 롤(술 도수). 재고와 함께 리셋된다
     buffs: [],                    // 소모품 버프(§6-7) — 레이드 안에서만 산다. buffMods() 참조
+    // 아지트(§3.5). lv = 시설별 현재 레벨 · upg = 진행 중인 업그레이드 {fac,to,endAt} 또는 null.
+    // 시설 데이터(Facility 탭)에 다음 레벨 행이 없으면 업그레이드 버튼이 잠긴다 — 데이터가 곧 게이트다.
+    hideout: { built: 0, lv: { storage: 1, repair: 1, workbench: 1, terminal: 1 }, upg: {},   // upg = 시설별 진행 중 업그레이드 맵
+      disk: [], disks: [], decode: [], craft: [], disa: null },   // disk = 도면 설치 · disks = 설치 완료 BlueprintID · decode = 슬롯별 해독 · craft = 슬롯별 제작 작업
+    epoch: N(C.save_epoch, 0),    // 강제 초기화 기준 — 시트 save_epoch가 이보다 크면 세이브를 버린다
   };
 }
 
@@ -377,6 +425,53 @@ export function deriveSecondary(primary) {
 }
 
 // build the full combat profile for the player given state
+// ---------- 아지트 시설 (Facility 탭 · §3.5) ----------
+// 한 행 = 시설 하나의 한 레벨. 다음 레벨 행이 없으면 그 시설은 더 못 올린다 —
+// 즉 **데이터가 곧 잠금장치**다. 코드에 레벨 상한을 박지 않는다.
+export function facilityRow(facId, level){
+  return (DATA.facilities || []).find(r => String(r.FacilityID || '').trim() === facId && N(r.Level) === N(level)) || null;
+}
+function jsonCol(v){ try{ return (v && v !== '-') ? JSON.parse(v) : []; }catch(_){ return []; } }
+export function facilityEffects(row){ return row ? jsonCol(row.Effects) : []; }
+export function facilityCostItems(row){ return row ? jsonCol(row.CostItems) : []; }
+// Unlocks = 이 레벨에서 열리는 기능 스위치(repair·module·craft·disassemble·disk·decode).
+// 수치가 아니라 on/off라 Effects와 분리했다 — 섞으면 업그레이드 화면에 "제작 0 → 1" 같은 줄이 뜬다.
+export function facilityUnlocks(state, facId){
+  const out = new Set();
+  const lv = facilityLevel(state, facId);
+  for (let i = 1; i <= lv; i++){
+    const r = facilityRow(facId, i); if (!r) continue;
+    String(r.Unlocks || '').split(',').map(x => x.trim()).filter(x => x && x !== '-').forEach(x => out.add(x));
+  }
+  return out;
+}
+export function facilityLevel(state, facId){
+  const lv = state && state.hideout && state.hideout.lv ? state.hideout.lv[facId] : 1;
+  return Math.max(1, N(lv, 1));
+}
+// 다음 레벨 행 — 없으면 null(= 업그레이드 잠금)
+export function facilityNext(state, facId){ return facilityRow(facId, facilityLevel(state, facId) + 1); }
+// 현재 레벨에서 유효한 효과값 — 해당 key를 가진 **가장 높은 레벨(≤현재)** 행의 to값.
+// 레벨마다 같은 key를 다시 적으므로(예: decode_slot 1→2→3) 마지막 것이 정답이다.
+export function facilityEffectValue(state, facId, key, fallback){
+  const lv = facilityLevel(state, facId);
+  for (let i = lv; i >= 1; i--){
+    const e = facilityEffects(facilityRow(facId, i)).find(x => x && x.key === key);
+    if (e) return N(e.to, fallback);
+  }
+  return fallback;
+}
+
+// 보관고 용량 = 현재 레벨 행의 capacity 효과 to값. 행이 없으면 폴백.
+export function vaultCap(state){
+  const eff = facilityEffects(facilityRow('storage', facilityLevel(state, 'storage'))).find(e => e && e.key === 'capacity');
+  return eff ? N(eff.to, 40) : N(C.hideout_storage_cap_fallback, 40);
+}
+// 사용 칸 = 금고 배열의 길이. stackAdd가 MaxStack을 넘기면 새 묶음을 만들므로
+// "MaxStack 1묶음 = 1칸"이 배열 길이와 그대로 일치한다 — 따로 세지 않는다.
+export function vaultUsed(state){ return ((state && state.vault) || []).length; }
+export function vaultRoom(state){ return Math.max(0, vaultCap(state) - vaultUsed(state)); }
+
 // ---------- 소모품 버프 (§6-7) ----------
 // state.buffs = [{ id, type, value, left }] · left = 남은 전투 수(유지력).
 // 안전지대에서도 먹을 수 있고(출발 전 준비) 세이브에 그대로 남는다. 비우는 곳은 endSortie 하나 —
@@ -823,15 +918,18 @@ export function repairCostPreview(inst) {
 }
 // each worn point is restored, but with the fail chance it fails:
 // a failed point is not restored and permanently drops maxDur by the loss amount.
-export function repair(state, inst) {
+// opts.free = 사토를 받지 않는다(아지트 정비대 — 재료로 낸다) · opts.fail = 점당 실패율 덮어쓰기
+export function repair(state, inst, opts = {}) {
   const worn = Math.max(0, N(inst.maxDur) - N(inst.dur));
   if (N(inst.maxDur) <= 0) return { ok: false, reason: 'destroyed' };
   if (worn <= 0) return { ok: false, reason: 'full' };
-  const cost = repairCostPreview(inst);
-  if (state.sato < cost) return { ok: false, reason: 'sato', cost };
-  state.sato -= cost;
+  const cost = opts.free ? null : repairCostPreview(inst);
+  if (!opts.free) {
+    if (state.sato < cost) return { ok: false, reason: 'sato', cost };
+    state.sato -= cost;
+  }
   const cfg = repairCfg(inst);
-  const p = cfg.fail;
+  const p = (opts.fail != null) ? clamp(N(opts.fail), 0, 1) : cfg.fail;
   const perLoss = cfg.loss;
   let restored = 0, fails = 0, maxLoss = 0;
   for (let i = 0; i < worn; i++) {
@@ -983,13 +1081,25 @@ const USB_TPL = {
   farewell: ['볼일이 끝났으면 가라.', '다음 매체를 구해 와라.'],
 };
 const STAT_KR_FALLBACK = { stat_str: '힘', stat_dex: '민첩', stat_vit: '체력', stat_will: '의지' };
+// USB 부여 효과 — Grants JSON 열(개수 자유)이 정본. 없으면 옛 GrantStat/GrantValue 한 쌍으로 폴백한다.
+export function usbGrants(u){
+  if (!u) return [];
+  try {
+    const g = u.Grants;
+    if (g && g !== '-') { const a = JSON.parse(g); if (Array.isArray(a)) return a.filter(x => x && x.stat).map(x => ({ stat: x.stat, v: N(x.v, 1) })); }
+  } catch(_) {}
+  return u.GrantStat ? [{ stat: u.GrantStat, v: N(u.GrantValue, 1) }] : [];
+}
+export function statName(id){
+  const sr = DATA.primaryStats.find(r => r.PrimaryStatID === id);
+  return (sr && (tr(sr, 'StatName') || sr.Name_KR || sr.PrimaryStat_KR)) || STAT_KR_FALLBACK[id] || '';
+}
 export function substUsbTokens(s, u){
   s = String(s == null ? '' : s);
   if (!u) return s.replace(/\{USB\}|\{MAT\}|\{STAT\}|\{MIN\}/g, '');
   const mats = parseMaterials(u.RequiredMaterials).map(m => anyName(m.id) + ' ' + m.qty + '개').join(', ');
-  const sr = DATA.primaryStats.find(r => r.PrimaryStatID === u.GrantStat);
-  const statName = (sr && (tr(sr, 'StatName') || sr.Name_KR || sr.PrimaryStat_KR)) || STAT_KR_FALLBACK[u.GrantStat] || '';
-  return s.replace(/\{USB\}/g, tr(u, 'Name') || '').replace(/\{MAT\}/g, mats).replace(/\{STAT\}/g, statName).replace(/\{MIN\}/g, String(N(u.UploadMinutes, 1)));
+  const names = usbGrants(u).map(g => statName(g.stat)).filter(Boolean).join(', ');
+  return s.replace(/\{USB\}/g, tr(u, 'Name') || '').replace(/\{MAT\}/g, mats).replace(/\{STAT\}/g, names).replace(/\{MIN\}/g, String(N(u.UploadMinutes, 1)));
 }
 // 2026-08-18: usbload 대사는 시트(NpcDialogue)에서 전량 삭제됨 — 내장 템플릿만 쓴다.
 // USB 이식은 아지트(하이드) 신설 때 되살릴 예정이라 화면·함수는 남겨둔다.
@@ -1087,5 +1197,83 @@ export function pickColdOpponent(state, cityId){
   const use = fit.length ? fit : pool.slice().sort((a, b) => Math.abs(sum(a) - mySum) - Math.abs(sum(b) - mySum)).slice(0, 2);
   return use[Math.floor(Math.random() * use.length)];
 }
+
+// ===== 아지트 · 조립대(제작) =====
+// 성공률 = 도면 등급 base + 조립대 레벨 보너스(flat) — 확장_시스템_설계_v3 §제작 시스템 상세.
+// 도면 행에는 성공률을 두지 않는다(등급이 곧 성공률).
+const CRAFT_BASE = { Common: 80, Rare: 70, Unique: 55, Special: 45, Boss: 20 };
+const CRAFT_GRADE_LV = { Common: 1, Rare: 1, Unique: 2, Special: 2, Boss: 3 };   // 해금되는 조립대 레벨
+
+export function craftSlots(state){ return Math.max(1, N(facilityEffectValue(state, 'workbench', 'craft_slot', 1), 1)); }
+export function craftBonus(state){ return N(facilityEffectValue(state, 'workbench', 'craft_bonus', 0), 0); }
+export function craftGradeOk(state, grade){ return facilityLevel(state, 'workbench') >= (CRAFT_GRADE_LV[String(grade)] || 1); }
+export function craftBaseRate(bp){ return N(CRAFT_BASE[String((bp && bp.Grade) || 'Common')], 80); }
+export function craftRate(state, bp){ return clamp(craftBaseRate(bp) + craftBonus(state), 0, 100); }
+
+// 재료. 시트 Blueprint.Inputs가 JSON([{id,qty}])이면 그걸 쓰고,
+// ⚠️ 아직 'TBD'인 동안은 정크 풀에서 도면 ID로 결정론적 더미를 만든다(마스터 시트 작성 전 임시).
+export function craftInputs(bp){
+  const raw = String((bp && bp.Inputs) || '').trim();
+  if (raw && raw !== 'TBD' && raw !== '-'){
+    try {
+      const a = JSON.parse(raw);
+      if (Array.isArray(a)) return a.map(x => ({ id: x.id || x.ItemID, qty: Math.max(1, N(x.qty, 1)) })).filter(x => x.id);
+    } catch(_){}
+  }
+  const pool = junkPool();
+  if (!pool.length) return [];
+  const key = String((bp && bp.BlueprintID) || '');
+  let hsh = 0; for (let i = 0; i < key.length; i++) hsh = (hsh * 31 + key.charCodeAt(i)) >>> 0;
+  const out = [], seen = new Set();
+  for (let k = 0; k < 3 && seen.size < pool.length; k++){
+    let idx = (hsh + k * 7) % pool.length;
+    while (seen.has(pool[idx])) idx = (idx + 1) % pool.length;
+    seen.add(pool[idx]);
+    out.push({ id: pool[idx], qty: 1 + ((hsh >>> (k * 3)) % 5) });   // >>> 필수 — >>는 bit31이 서면 음수가 나온다
+  }
+  return out;
+}
+
+// 정크 풀 — 더미 재료·분해 산출의 재료가 된다(마스터 시트가 채워지면 둘 다 시트 값으로 바뀐다).
+function junkPool(){ return (DATA.items || []).filter(r => String(r.Category) === 'Junk').map(r => r.ItemID); }
+function hashOf(key){ let h = 0; const s = String(key || ''); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
+
+// ===== 아지트 · 조립대(분해) =====
+// 분해는 실패가 없다(3초 연출이 전부). 산출은 min~max 범위로 보여주고 실행 시 굴린다.
+// ⚠️ 더미 — 분해 산출 테이블이 아직 시트에 없다. 아이템 ID로 결정론적 정크 3종 + 고정 범위.
+const DISA_RANGES = [[1,5],[1,3],[1,1]];
+export function disassembleSpec(inst){
+  const pool = junkPool(); if (!pool.length) return [];
+  const h = hashOf(inst && inst.id);
+  const out = [], seen = new Set();
+  for (let k = 0; k < DISA_RANGES.length && seen.size < pool.length; k++){
+    let idx = (h + k * 11) % pool.length;
+    while (seen.has(pool[idx])) idx = (idx + 1) % pool.length;
+    seen.add(pool[idx]);
+    out.push({ id: pool[idx], min: DISA_RANGES[k][0], max: DISA_RANGES[k][1] });
+  }
+  return out;
+}
+export function disassembleRoll(spec){ return (spec || []).map(s => ({ id: s.id, qty: randInt(N(s.min,1), N(s.max,1)) })).filter(d => d.qty > 0); }
+
+// ===== 아지트 · 정비대 =====
+// 수리 성공률(점당) = Facility 탭 repair_rate. Lv1이 기준선이고 위 레벨은 그 차이를 보너스로 보여준다.
+export function repairRate(state){ return N(facilityEffectValue(state, 'repair', 'repair_rate', 90), 90); }
+export function repairRateBase(){ const r = facilityRow('repair', 1); const e = facilityEffects(r).find(x => x && x.key === 'repair_rate'); return e ? N(e.to, 90) : 90; }
+
+// ⚠️ 더미 — 수리 재료·모듈 장착 재료 테이블이 아직 시트에 없다. 정크 풀에서 결정론적으로 뽑는다.
+function dummyMats(key, n){
+  const pool = junkPool(); if (!pool.length) return [];
+  const h = hashOf(key), out = [], seen = new Set();
+  for (let k = 0; k < n && seen.size < pool.length; k++){
+    let idx = (h + k * 13) % pool.length;
+    while (seen.has(pool[idx])) idx = (idx + 1) % pool.length;
+    seen.add(pool[idx]);
+    out.push({ id: pool[idx], qty: 1 + ((h >>> (k * 5)) % 5) });
+  }
+  return out;
+}
+export function repairInputs(inst){ return dummyMats('repair:' + ((inst && inst.id) || ''), 3); }
+export function moduleInputs(moduleId){ return dummyMats('module:' + (moduleId || ''), 2); }
 
 export { ATTR_KR, N, C };
