@@ -86,6 +86,8 @@ const V3_STRINGS = {
   hide_disa_complete:['분해가 완료되었습니다.','Disassembly complete.'],
   hide_disa_empty:['분해 가능한 아이템이 없습니다','No items can be disassembled'],
   hide_disa_none:['분해해서 나올 것이 없습니다','Nothing can be salvaged from this'],
+  btn_to_clinic:['보건소로','To the Clinic'],   // 사망 결과 화면 — 귀환 실패는 보건소 치료로 바로 보낸다
+  hide_craft_can:['제작가능','Ready'],   // 조립대 목록 칩 — 재료가 전부 모인 도면 (※ hide_craft_ready = '제작을 준비중입니다' 와 다른 키)
   hide_reveal_all:['전부 확인','Reveal all'], hide_store_all:['전부 넣기','Store all'],
   // 정비대 · 수리 / 모듈
   hide_rep_section:['수리가능 아이템','Repairable'], hide_rep_confirm:['수리를 진행 하시겠습니까?','Start the repair?'],
