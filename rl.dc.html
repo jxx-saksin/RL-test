@@ -4634,8 +4634,14 @@ void main(){
   qCol(st){ return st==='done'?'#85B3C5':(st==='run'?'#83B289':'#C19E6F'); }
   qMap(){ if(!this.gs.quests||typeof this.gs.quests!=='object') this.gs.quests={}; return this.gs.quests; }
   // 리셋 = 주기 인덱스가 바뀌면 기록을 통째로 버린다. 포기(gave)·수령완료(clr)도 여기서 함께 풀린다.
+  // ★단 하나의 예외 — 아직 안 받아간 보상 카드(s:'rw')는 살린다. 분해 결과와 같은 규칙으로,
+  //   금고에 넣을 때까지 남는다. carry 표시를 달아두면 수령하는 순간 기록을 지워서
+  //   그 판의 퀘스트를 새로 받을 수 있게 된다(안 그러면 보상 하나 때문에 한 판을 통째로 날린다).
   qSync(){ const p=this.eng.questPeriod(), m=this.qMap(); let ch=false;
-    for(const k in m){ if(!m[k]||m[k].period!==p){ delete m[k]; ch=true; } }
+    for(const k in m){ const r=m[k];
+      if(r&&r.period===p) continue;
+      if(r&&r.s==='rw'&&Array.isArray(r.rw)&&r.rw.length){ m[k]={period:p,s:'rw',p:[],rw:r.rw,carry:true}; ch=true; continue; }
+      delete m[k]; ch=true; }
     if(ch) this.saveGame();
     return p; }
   qRec(id){ return this.qMap()[id]||null; }
@@ -4956,7 +4962,9 @@ void main(){
     const id=this.state.qRew, insts=this.qRewInsts();
     if(this.vaultSlotsForInsts(insts) > this.vaultRoom()){ this.vaultFullMsg(); return; }
     insts.forEach(inst=>{ if(this.maxStack(inst.id)>1) this.stackAdd(this.gs.vault,inst.id,inst.qty||1,{}); else this.gs.vault.push(inst); });
-    this.qSet(id,{s:'clr', rw:[]});
+    const r=this.qRec(id);
+    if(r&&r.carry){ delete this.qMap()[id]; this.saveGame(); }   // 지난 판에서 넘어온 보상 — 받고 나면 이번 판 퀘스트로 새로 뜬다
+    else this.qSet(id,{s:'clr', rw:[]});
     this.setState({qRew:null,qSel:null,qOpen:[],qFocus:0});
   }
 
