@@ -391,8 +391,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val40');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val8');
+      const eng = await import('./engine.js?v=val41');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val9');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -4716,7 +4716,7 @@ void main(){
   // window.__Q = 진행도 주입·상태 확인용 디버그 핸들(감지 훅이 붙기 전까지 이걸로 검증한다)
   openQuest(){ window.__Q=this; this.qSync(); this.setState({screen:'quest',qTab:'daily',qSel:null,qGive:false,qRew:null,qOpen:[],qFocus:0}); }
   openQuestSheet(id){ const r=this.qRec(id);
-    if(r&&r.s==='rw'){ this.setState({qSel:id,qGive:false,qRew:id,qOpen:[],qFocus:0}); return; }
+    if(r&&r.s==='rw'){ this.setState({qSel:id,qGive:false,qRew:id,qOpen:[],qFocus:0}); this.qRevealAll(); return; }
     this.setState({qSel:id,qGive:false,qRew:null}); }
   closeQuestSheet(){ this.setState({qSel:null,qGive:false}); }
 
@@ -4936,29 +4936,52 @@ void main(){
   qComplete(q){
     if(!this.qConsumeSubmit(q)){ this.flash(this.t('quest_short'), true); return; }
     const rw=this.eng.questReward(q);
-    if(rw.sato) this.gs.sato=this.eng.N(this.gs.sato,0)+rw.sato;
-    if(rw.pass){ const cap=Math.max(1,this.eng.N(this.eng.C.pass_cap,50));
-      this.gs.pass=Math.min(cap, this.eng.N(this.gs.pass,0)+rw.pass); this.savePass(); }
+    // ★보상을 먼저 굴리고 나서 지급한다. LootGroupItem 탭을 못 받아 그룹 풀이 비면
+    //   완료를 막는다 — 안 그러면 퀘스트만 소멸하고 아이템은 0장이 된다.
     const ids=[];
     for(const id in rw.items){ const n=Math.max(1,this.eng.N(rw.items[id],1)); for(let k=0;k<n;k++) ids.push(id); }
     if(rw.group){
       // 그룹 보상 = LootGroupItem 균등 추첨. [min,max]개를 중복 없이 뽑는다(§3.6).
       const pool=(this.eng.DATA.lootGroupItems||[]).filter(m=>m.GroupID===rw.group.id).map(m=>m.MemberItemID).filter(Boolean);
+      if(!pool.length){ this.flash(this.t('quest_rw_fail'), true); return; }
       const lo=Math.min(rw.group.min,rw.group.max), hi=Math.max(rw.group.min,rw.group.max);
       let n=Math.min(pool.length, lo+Math.floor(Math.random()*(hi-lo+1)));
       for(;n>0;n--){ const i=Math.floor(Math.random()*pool.length); ids.push(pool.splice(i,1)[0]); }
     }
+    if(rw.sato) this.gs.sato=this.eng.N(this.gs.sato,0)+rw.sato;
+    if(rw.pass){ const cap=Math.max(1,this.eng.N(this.eng.C.pass_cap,50));
+      this.gs.pass=Math.min(cap, this.eng.N(this.gs.pass,0)+rw.pass); this.savePass(); }
     const insts=ids.map(id=>{ const x=this.eng.mkInstance(id,1); x.qty=1; x.locked=false; return x; });
     this.qSet(q.QuestID,{s:'rw', rw:insts});
     this.setState({qRew:q.QuestID,qOpen:[],qFocus:0});
+    this.qRevealAll();
   }
 
   qRewInsts(){ const r=this.qRec(this.state.qRew); return (r&&Array.isArray(r.rw))?r.rw:[]; }
   qIsOpen(i){ const a=this.state.qOpen; return Array.isArray(a)&&a.indexOf(i)>=0; }
-  qTapCard(i){ if(this.qIsOpen(i)) return; const a=(this.state.qOpen||[]).concat([i]); this.setState({qOpen:a,qFocus:i}); }
-  qRevealAll(){ const n=this.qRewInsts().length; const a=[]; for(let i=0;i<n;i++) a.push(i); this.setState({qOpen:a}); }
+  // 직접 뒤집는 조작은 없다 — 시트가 뜨면 자동으로 하나씩 열린다. 탭은 '건너뛰기'.
+  qTapCard(i){ const n=this.qRewInsts().length;
+    if(this._qrT || (this.state.qOpen||[]).length<n){ this.qRevealSkip(); return; }
+    this.setState({qFocus:i}); }
+  // 전투 귀환(startLootReveal)·분해와 같은 연출 — 첫 장부터 700ms 간격으로 자동 공개
+  qRevealAll(){
+    if(this._qrT) return;
+    const n=this.qRewInsts().length;
+    const step=()=>{
+      if(!this.state.qRew){ this._qrT=null; return; }
+      let next=-1; for(let i=0;i<n;i++){ if(!this.qIsOpen(i)){ next=i; break; } }
+      if(next<0){ this._qrT=null; return; }
+      this.setState({qFocus:next, qOpen:(this.state.qOpen||[]).concat([next])});
+      this._qrT=setTimeout(step, 700);
+    };
+    this._qrT=setTimeout(step, 260);
+  }
+  qRevealSkip(){ if(this._qrT){ clearTimeout(this._qrT); this._qrT=null; }
+    const n=this.qRewInsts().length, a=[]; for(let i=0;i<n;i++) a.push(i);
+    this.setState({qOpen:a}); }
   // 부분 수납 없음 — 한 칸이 모자라면 전량 미회수(분해와 같은 규칙). 닫기로 나가도 보상은 대기 상태로 남는다.
   qStoreAll(){
+    if(this._qrT){ clearTimeout(this._qrT); this._qrT=null; }
     const id=this.state.qRew, insts=this.qRewInsts();
     if(this.vaultSlotsForInsts(insts) > this.vaultRoom()){ this.vaultFullMsg(); return; }
     insts.forEach(inst=>{ if(this.maxStack(inst.id)>1) this.stackAdd(this.gs.vault,inst.id,inst.qty||1,{}); else this.gs.vault.push(inst); });
@@ -4972,7 +4995,6 @@ void main(){
   questRewardSheet(){
     const drops=this.qRewInsts(); if(!drops.length) return null;
     const focus=Math.max(0,Math.min(drops.length-1,this.eng.N(this.state.qFocus,0)));
-    const allOpen=drops.every((_,i)=>this.qIsOpen(i));
     const nav=(d)=>{ const i=Math.max(0,Math.min(drops.length-1,focus+d)); if(i!==focus) this.setState({qFocus:i}); };
     // 가로 스와이프는 '움직이지 않는 부모 스테이지'가 받는다 — 카드가 받으면 캡처가 풀려 pointerup이 유실된다.
     const swipe = drops.length>1 ? {
@@ -5000,8 +5022,8 @@ void main(){
         drops.length>1? cardNav(focus, drops.length, ()=>nav(-1), ()=>nav(1)) : null),
       this.dotRow(drops.length, focus, 'qrdots'),
       h('div',{style:{flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',gap:8}},
-        this.qBtn(allOpen? this.t('hide_store_all') : this.t('hide_reveal_all'),'#EAEBEE', allOpen?()=>this.qStoreAll():()=>this.qRevealAll(),'ra'),
-        this.qBtn(this.t('quest_btn_close'),'#EAEBEE',()=>this.setState({qRew:null,qSel:null}),'cl')));
+        this.qBtn(this.t('hide_store_all'),'#EAEBEE',()=>{ this.qRevealSkip(); this.qStoreAll(); },'ra'),
+        this.qBtn(this.t('quest_btn_close'),'#EAEBEE',()=>{ if(this._qrT){clearTimeout(this._qrT);this._qrT=null;} this.setState({qRew:null,qSel:null}); },'cl')));
   }
 
   // ===== 아지트 (svg/screen-hideout-*.svg · §3.5) =====
@@ -5824,7 +5846,7 @@ void main(){
            : h('div',{key:'rollbar',style:{marginTop:8}}, this.rollBar(job.left))),
       B.note(done?this.t('hide_disa_complete'):this.t('hide_disa_running'), done?'#83B289':B.LO) ];
     const footer = done
-      ? [B.btn(this.en()?'OK':'확인',()=>this.setState({disaRev:true,disaOpen:[],disaFocus:0}),false,'ok')]
+      ? [B.btn(this.en()?'OK':'확인',()=>{ this.setState({disaRev:true,disaOpen:[],disaFocus:0}); this.disaRevealAll(); },false,'ok')]
       : [B.btn(this.t('hide_disa_label'),null,true,'d'), B.btn(this.t('hide_disk_close'),()=>this.openHideFac('workbench'),false,'c')];
     return B.wrap(body,footer);
   }
@@ -5833,26 +5855,32 @@ void main(){
   disaIsOpen(i){ return this.disaOpened().indexOf(i)>=0; }
   // 닫힌 카드를 탭하면 그 카드가 열린다. 이미 열렸으면 초점만 옮긴다.
   disaTapCard(i){
-    if(this.disaIsOpen(i)){ this.setState({disaFocus:i}); return; }
-    this.setState({disaOpen:this.disaOpened().concat([i]), disaFocus:i});
+    // 자동 공개 중이거나 아직 덜 열렸으면 탭은 '건너뛰기'다 — 직접 뒤집는 조작은 없앴다.
+    const n=(this.disaJob()&&this.disaJob().drops||[]).length;
+    if(this._daT || this.disaOpened().length<n){ this.disaRevealSkip(); return; }
+    this.setState({disaFocus:i});
   }
-  // '전부 확인' — 아직 안 열린 것을 순서대로 하나씩 연다(전리품과 같은 연출).
+  // 결과 시트가 뜨면 첫 장부터 자동으로 하나씩 뒤집는다(전투 귀환 startLootReveal과 같은 연출).
   disaRevealAll(){
     if(this._daT) return;
     const n=(this.disaJob()&&this.disaJob().drops||[]).length;
     const step=()=>{
+      if(!this.state.disaRev){ this._daT=null; return; }
       let next=-1; for(let i=0;i<n;i++){ if(!this.disaIsOpen(i)){ next=i; break; } }
       if(next<0){ this._daT=null; return; }
       this.setState({disaFocus:next, disaOpen:this.disaOpened().concat([next])});
       this._daT=setTimeout(step, 700);
     };
-    this._daT=setTimeout(step,0);
+    this._daT=setTimeout(step, 260);
   }
+  disaRevealSkip(){ if(this._daT){ clearTimeout(this._daT); this._daT=null; }
+    const n=(this.disaJob()&&this.disaJob().drops||[]).length, a=[];
+    for(let i=0;i<n;i++) a.push(i);
+    this.setState({disaOpen:a}); }
   disaRevealSheet(job){
     const drops=job.drops||[]; if(!drops.length){ return null; }
     const focus=Math.max(0,Math.min(drops.length-1,this.eng.N(this.state.disaFocus,0)));
-    const allOpen=drops.every((_,i)=>this.disaIsOpen(i));
-    // 좌우 이동은 초점만 옮긴다(카드를 열지 않는다). 여는 건 탭 또는 '전부 확인'.
+    // 좌우 이동은 초점만 옮긴다(카드를 열지 않는다). 공개는 시트가 뜰 때 자동으로 돈다.
     const nav=(d)=>{ const i=Math.max(0,Math.min(drops.length-1,focus+d)); if(i!==focus) this.setState({disaFocus:i}); };
     // ⚠️ 가로 스와이프는 '움직이지 않는 부모 스테이지'가 받는다 — 카드 자신이 받으면 캡처가 풀려 pointerup이 유실된다.
     //    그리고 스와이프 뒤 브라우저가 쏘는 click이 옆 카드의 onClick을 때리므로 _daSwiped로 한 번 삼킨다
@@ -5882,10 +5910,10 @@ void main(){
         drops.length>1? cardNav(focus, drops.length, ()=>nav(-1), ()=>nav(1)) : null),
       this.dotRow(drops.length, focus, 'dadots'),
       h('div',{style:{flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',gap:8}},
-        h('button',{onClick:allOpen?()=>this.disaStoreAll():()=>this.disaRevealAll(),
+        h('button',{onClick:()=>{ this.disaRevealSkip(); this.disaStoreAll(); },
           style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:'pointer'}},
-          allOpen? this.t('hide_store_all') : this.t('hide_reveal_all')),
-        h('button',{onClick:()=>{ this.setState({disaRev:false}); this.openHideFac('workbench'); },
+          this.t('hide_store_all')),
+        h('button',{onClick:()=>{ if(this._daT){clearTimeout(this._daT);this._daT=null;} this.setState({disaRev:false}); this.openHideFac('workbench'); },
           style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.t('hide_disk_close'))));
   }
   // 부분 수납 없음 — 한 칸이 모자라도 전량 미회수. 닫기로 나가도 결과는 분해 상태에 그대로 대기한다.

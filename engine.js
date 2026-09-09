@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val2';
-import { buildIndex } from './sheet-loader.js?v=val8';
+import { DATA as FALLBACK } from './data/game-data.js?v=val3';
+import { buildIndex } from './sheet-loader.js?v=val9';
 
 export let DATA = FALLBACK;
 export let byId = buildIndex(FALLBACK).byId;
@@ -82,6 +82,7 @@ const V3_STRINGS = {
   quest_giveup_ask:['정말 포기하시겠습니까? 진행 내역은 사라집니다.','Abandon this quest? Your progress will be lost.'],
   quest_empty:['받을 수 있는 퀘스트가 없습니다.','No quests available.'],
   quest_short:['제출할 아이템이 모자랍니다.','Not enough items to submit.'],
+  quest_rw_fail:['보상 정보를 불러오지 못했습니다. 잠시 뒤 다시 시도하세요.','Could not load the reward data. Try again shortly.'],
   // 배너형(정찰·연전) 목표 문장 — {a}=존 이름, {n}=진행 카운터('0/2')가 들어갈 자리
   quest_obj_visit:['{a} {n}회 살아서 돌아오기','Extract from {a} {n} times'],
   quest_obj_depth:['회복 아이템 사용 하지않고 {n}회 연속 승리','Win {n} in a row without healing'],
