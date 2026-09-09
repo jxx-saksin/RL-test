@@ -12,15 +12,15 @@ const TAB_FIELD = { Config:'config', PrimaryStat:'primaryStats', SecondaryStat:'
   Shop:'shops', LootTable:'lootTable', Accessory:'artifacts', Talisman:'talismans', Bag:'bags',
   Affix:'affixes', SpawnTable:'spawnTable', CombatLog:'combatLog', USB:'usb', ColdData:'coldData',
   NpcDialogue:'npcDialogue', UIString:'ui', Liquor:'liquor', Module:'modules', LootGroup:'lootGroups',
-  LootGroupItem:'lootGroupItems', Tip:'tips', Facility:'facilities', Blueprint:'blueprints' };
+  LootGroupItem:'lootGroupItems', Tip:'tips', Facility:'facilities', Blueprint:'blueprints', Quest:'quests' };
 
 export const SHEET_ID = '1d-LNhcuFo1dKO1zzszDNAXXT-zDqffatr1aCe3yB8ls';
 export const TABS = ['Config','PrimaryStat','SecondaryStat','StatusEffect','WeaponAttribute',
   'Weapon','Armor','Item','Valuable','Monster','City','Zone','Vendor','Shop','LootTable','Accessory','Talisman','Bag','Affix','SpawnTable','CombatLog',
   'USB','ColdData','NpcDialogue','UIString',
-  'Liquor','Module','LootGroup','LootGroupItem','Tip','Facility','Blueprint'];
+  'Liquor','Module','LootGroup','LootGroupItem','Tip','Facility','Blueprint','Quest'];
 // tabs that may not exist yet in older sheets — a failed fetch is non-fatal
-const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString','Liquor','Module','LootGroup','LootGroupItem','Talisman','Bag','Tip','Valuable','Facility','Blueprint']);
+const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString','Liquor','Module','LootGroup','LootGroupItem','Talisman','Bag','Tip','Valuable','Facility','Blueprint','Quest']);
 
 // --- RFC4180-ish CSV parser (handles quoted commas + newlines) ---
 export function parseCSV(text) {
@@ -154,6 +154,7 @@ export function shape(rowsByTab) {
     tips: toObjs(rowsByTab.Tip || []).filter(r => String(r.TipID || '').trim() && String(r.Status || '').toLowerCase() !== 'cut'),
     facilities: toObjs(rowsByTab.Facility || []).filter(r => String(r.FacilityLevelID || '').trim()),
     blueprints: toObjs(rowsByTab.Blueprint || []).filter(r => String(r.BlueprintID || '').trim()),
+    quests: toObjs(rowsByTab.Quest || []).filter(r => String(r.QuestID || '').trim()),
   };
   // 못 받은 탭은 번들 값으로 메꾼다 — 텍스트·전투로그처럼 비면 화면이 깨지는 탭이 있다.
   const skipped = (rowsByTab && rowsByTab.__skipped) || [];
@@ -207,6 +208,7 @@ export function buildIndex(DATA) {
     module: Object.fromEntries((DATA.modules || []).map(x => [x.ModuleID, x])),
     lootGroup: Object.fromEntries((DATA.lootGroups || []).map(x => [x.GroupID, x])),
     facility: Object.fromEntries((DATA.facilities || []).map(x => [x.FacilityLevelID, x])),
+    quest: Object.fromEntries((DATA.quests || []).map(x => [x.QuestID, x])),
   };
   return { byId };
 }

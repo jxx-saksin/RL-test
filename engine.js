@@ -2,7 +2,7 @@
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
 import { DATA as FALLBACK } from './data/game-data.js?v=val2';
-import { buildIndex } from './sheet-loader.js?v=val7';
+import { buildIndex } from './sheet-loader.js?v=val8';
 
 export let DATA = FALLBACK;
 export let byId = buildIndex(FALLBACK).byId;
@@ -67,6 +67,34 @@ export function t(key){
 }
 // v3 built-in fallbacks — used only when the UIString tab lacks the key (sheet wins).
 const V3_STRINGS = {
+  // 퀘스트 (일일) — 시트 UIString에 같은 키가 들어오면 시트가 이긴다
+  quest_tab_daily:['일일','Daily'], quest_tab_weekly:['주간','Weekly'], quest_tab_story:['스토리','Story'],
+  quest_chip_new:['신규','New'], quest_chip_run:['진행중','Active'], quest_chip_done:['완료','Done'],
+  quest_kicker:['퀘스트','Quest'],
+  quest_kind_submit:['제출','Submit'], quest_kind_kill:['소탕','Cull'], quest_kind_encounter:['조우','Recon'],
+  quest_kind_visit:['정찰','Scout'], quest_kind_use:['사용','Use'], quest_kind_depth:['연전','Gauntlet'],
+  quest_left:['남은시간','Time left'], quest_sec_reward:['보상','Reward'],
+  quest_rw_sato:['사토','Sato'], quest_rw_pass:['프로토콜 패스','Protocol Pass'],
+  quest_rw_item:['아이템','Item'], quest_rw_unknown:['알수없음','Unknown'],
+  quest_btn_accept:['수락하기','Accept'], quest_btn_giveup:['포기하기','Abandon'],
+  quest_btn_complete:['완료하기','Complete'], quest_btn_close:['닫기','Close'], quest_btn_cancel:['취소','Cancel'],
+  quest_btn_back:['뒤로가기','Back'],
+  quest_giveup_ask:['정말 포기하시겠습니까? 진행 내역은 사라집니다.','Abandon this quest? Your progress will be lost.'],
+  quest_empty:['받을 수 있는 퀘스트가 없습니다.','No quests available.'],
+  quest_short:['제출할 아이템이 모자랍니다.','Not enough items to submit.'],
+  // 배너형(정찰·연전) 목표 문장 — {a}=존 이름, {n}=진행 카운터('0/2')가 들어갈 자리
+  quest_obj_visit:['{a} {n}회 살아서 돌아오기','Extract from {a} {n} times'],
+  quest_obj_depth:['회복 아이템 사용 하지않고 {n}회 연속 승리','Win {n} in a row without healing'],
+  // 리스트형 상세의 목표 행 라벨 — 제출·소탕은 이름만 쓰고 조우·사용만 동사를 붙인다(목업)
+  quest_row_encounter:['"{a}" 조우','Find "{a}"'], quest_row_use:['"{a}" 섭취','Consume "{a}"'],
+  // 리스트 행 한 줄 요약 — {n}=목표치
+  quest_sum_submit:['"{a}" {n}개 제출','Submit {n}x "{a}"'],
+  quest_sum_kill:['{a} {n}마리 처치','Kill {n} {a}'],
+  quest_sum_encounter:['"{a}" 조우 {n}회','Find "{a}" {n}x'],
+  quest_sum_visit:['{a}에서 살아서 귀환하기 {n}회','Extract from {a} {n}x'],
+  quest_sum_use:['전투 중 "{a}" {n}회 사용','Use "{a}" {n}x in combat'],
+  quest_sum_depth:['{a}에서 회복 없이 {n}연승','{n} wins in a row in {a}, no healing'],
+  quest_sum_more:['{a} 외 {n}종','{a} +{n} more'],
   // 조립대 · 제작 (시트 UIString에 같은 키가 들어오면 시트가 이긴다)
   hide_craft_label:['제작','Craft'], hide_craft_time:['제작시간','Craft time'],
   hide_craft_try:['제작시도','Attempt'], hide_craft_rate:['성공률','Success rate'],
@@ -1315,6 +1343,50 @@ export function moduleInputs(moduleId){
   const arr = jsonList(byId.module[moduleId] && byId.module[moduleId].Inputs);
   if (!arr) return [];
   return arr.map(x => ({ id: x.id || x.ItemID, qty: Math.max(1, N(x.qty, 1)) })).filter(x => x.id);
+}
+
+// ===== 퀘스트 (Quest 탭 · 일일) =========================================
+// 시트의 Objective/Reward는 JSON 열이다. Objective는 targets 배열이 정본이고,
+// 구형 {target,count} 한 벌짜리도 길이 1 배열로 감싸 받는다(번들 폴백·옛 시트 대비).
+function questJson(raw){
+  const t = String(raw == null ? '' : raw).trim();
+  if (!t || t === 'TBD' || t === '-') return null;
+  try { const o = JSON.parse(t); return (o && typeof o === 'object') ? o : null; } catch(_){ return null; }
+}
+export function questRows(){ return DATA.quests || []; }
+export function questRow(id){ return (DATA.quests || []).find(q => q.QuestID === id) || null; }
+// {kind, targets:[{id|filter, count}], ...조건 플래그}. 목표가 하나도 없으면 null — 호출부가 "표시 안 함"으로 다룬다.
+export function questObjective(q){
+  const o = questJson(q && q.Objective); if (!o || !o.kind) return null;
+  let ts = Array.isArray(o.targets) ? o.targets : null;
+  if (!ts) ts = [{ id: o.target, filter: o.filter, count: o.count }];      // 구형 폴백
+  ts = ts.map(x => ({ id: x.id || null, filter: Array.isArray(x.filter) ? x.filter : null,
+                      count: Math.max(1, N(x.count, 1)) }))
+         .filter(x => x.id || x.filter);
+  if (!ts.length) return null;
+  return { ...o, kind: String(o.kind), targets: ts };
+}
+export function questReward(q){
+  const r = questJson(q && q.Reward) || {};
+  return { sato: N(r.sato, 0), pass: N(r.pass, 0),
+           items: (r.items && typeof r.items === 'object') ? r.items : {},
+           group: (r.group && r.group.id) ? { id: r.group.id, min: Math.max(1, N(r.group.min, 1)), max: Math.max(1, N(r.group.max, 1)) } : null };
+}
+// 리셋 주기 — 오늘 quest_reset_anchor_hour시 정각을 기준점으로 잡고 quest_reset_minutes 간격으로 칸을 나눈다.
+// 30분이면 05:00·05:30·06:00…, 1440분이면 매일 05:00 한 번. 같은 식으로 둘 다 돈다.
+export function questResetMinutes(){ return Math.max(1, N(C.quest_reset_minutes, 1440)); }
+export function questPeriod(now){
+  const t = now == null ? Date.now() : now;
+  const d = new Date(t); const anchor = new Date(d.getFullYear(), d.getMonth(), d.getDate(), N(C.quest_reset_anchor_hour, 5), 0, 0, 0);
+  return Math.floor((t - anchor.getTime()) / (questResetMinutes() * 60000));
+}
+// 다음 리셋까지 남은 ms
+export function questResetLeft(now){
+  const t = now == null ? Date.now() : now;
+  const step = questResetMinutes() * 60000;
+  const d = new Date(t); const anchor = new Date(d.getFullYear(), d.getMonth(), d.getDate(), N(C.quest_reset_anchor_hour, 5), 0, 0, 0).getTime();
+  const passed = t - anchor;
+  return step - ((passed % step) + step) % step;
 }
 
 export { ATTR_KR, N, C };

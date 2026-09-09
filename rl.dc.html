@@ -248,12 +248,16 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 50;
+const TITLE_VER = 51;
 const TITLE_DATE = '0909';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:51, date:'9/Sep', lines:[
+    ['일일 퀘스트 추가 — 상점 메뉴의 [퀘스트]에서 받고, 조건을 채우면 그 상인에게 돌아와 완료한다','Daily quests added — take them from a shop\'s Quest menu, then return to that trader to turn them in'],
+    ['제출 · 소탕 · 조우 · 정찰 · 사용 · 연전 6종. 보상은 사토와 아이템 카드로 받는다','Six kinds: submit, cull, recon, scout, use, and gauntlet. Rewards come as Sato and item cards'],
+    ['주간 · 스토리 퀘스트는 아직 잠겨 있다','Weekly and Story quests are still locked'] ] },
   { ver:49, date:'8/Sep', lines:[
     ['버그 수정: 분해 결과 카드, 전당포 흥정시 카드 스와이프 오류 개선','Fixed card swiping on the disassembly results and pawnshop haggling'],
     ['UI인터페이스 개선 및 패스 충전시 보유 사토 표시','Interface polish, and your Sato now shows when charging a pass'],
@@ -389,8 +393,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val38');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val7');
+      const eng = await import('./engine.js?v=val40');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val8');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -684,6 +688,7 @@ class Component extends DCLogic {
       if(g==='Boss' && this.combat) this.combat.bossUp=0; }
     if(typeof navigator!=='undefined' && navigator.vibrate){ try{ navigator.vibrate(40); }catch(e){} } // 제스처 결합 진동(활성화 확보 + 전투 시작 피드백)
     const mProf = this.combat.mProf;
+    if(!this.combat.pvp) this.qOnEncounter(mProf&&mProf.id);   // 퀘스트: 조우형은 승패와 무관하게 만난 순간 카운트
     // 탈진 판정 = 진입 시점 스태미너 0(이전 전투 누적). 이번 전투 소모는 종료 후(finishCombat)로 이동 —
     // 그래야 7스태미너로 보스(8소모) 돌입해도 이번 전투는 정상, 다음 전투부터 탈진.
     const staZero = this.gs.sta <= 0;
@@ -737,6 +742,7 @@ class Component extends DCLogic {
       this.forceUpdate(); return;
     }
     if(res.winner==='player'){
+      this.qOnKill(c.mProf&&c.mProf.id); this.qOnWin();        // 퀘스트: 소탕 카운트 + 연전 연승 누적
       const loot = this.eng.rollLoot(c.mProf.id, c.zoneId);
       // quest drop: the police keycard is carried by 하람의 파수꾼 (assigned drop, not a global roll)
       if(c.mProf.id==='monster_haram_warden' && !this.hasItem('item_police_keycard') && Math.random()<0.35){ loot.push({id:'item_police_keycard', qty:1}); }
@@ -784,7 +790,8 @@ class Component extends DCLogic {
     return made;
   }
   addToBag(id, qty, opts){ return this.stackAdd(this.gs.bag, id, qty, opts); }
-  extract(){ if(this.combat && !this.combat.satoPaid){ this.gs.sato+=this.eng.N(this.combat.satoGained,0); this.combat.satoPaid=true; } this.setState({ screen:'result' }); this.combat.result='extract'; if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate();
+  extract(){ this.qOnExtract();   // 퀘스트: 정찰 가산 + 연전 연승 확정(생환만 인정)
+    if(this.combat && !this.combat.satoPaid){ this.gs.sato+=this.eng.N(this.combat.satoGained,0); this.combat.satoPaid=true; } this.setState({ screen:'result' }); this.combat.result='extract'; if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate();
     if(this.lootUids().length){ this.combat.resultStage='loot'; if(this._lootRevealTimer)clearTimeout(this._lootRevealTimer); this._lootRevealTimer=setTimeout(()=>this.startLootReveal(), 450); } }
   death(){
     this.gs.hp = 1;   // 사망(몬스터·PvP) 귀환 시 체력 1로 생존
@@ -1457,6 +1464,7 @@ class Component extends DCLogic {
     else if(s==='equipment') body=this.equipment();
     else if(s==='vendor') body=this.vendorScreen();
     else if(s==='vendorMenu') body=this.vendorMenu();
+    else if(s==='quest') body=this.questScreen();
     else if(s==='hideout') body=this.hideoutList();
     else if(s==='hideFac') body=this.hideFacScreen();
     else if(s==='disk') body=this.diskListScreen();
@@ -1472,7 +1480,7 @@ class Component extends DCLogic {
     else if(s==='returnheal') body=this.returnHeal();
     else if(s==='pass') body=this.passScreen();
     else if(s==='tap') body=this.tapScreen();
-    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap' && s!=='hideout' && s!=='hideFac' && s!=='disk' && s!=='diskInsert' && s!=='decode' && s!=='craft' && s!=='disa' && s!=='rsrep' && s!=='rsmod';
+    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap' && s!=='hideout' && s!=='hideFac' && s!=='disk' && s!=='diskInsert' && s!=='decode' && s!=='craft' && s!=='disa' && s!=='rsrep' && s!=='rsmod' && s!=='quest';
     return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null);
   }
 
@@ -2601,7 +2609,10 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     else if(ef==='stamina'){ this.gs.sta=Math.min(this.staMax,this.gs.sta+v); this.flash([this.t('stamina_recover')+' ', h('span',{key:'n',style:{color:'#C19E6F'}}, '+'+v)]); }
     else if(this.isBuffEffect(ef)){ this.applyBuff(inst.id, ef, v, Math.max(1,this.eng.N(it.EffectDuration,1)), this.effectStat(it)); }
     const dec=(arr)=>{ const i=arr.findIndex(x=>x.uid===inst.uid); if(i<0) return false; if(arr[i].qty>1) arr[i].qty--; else arr.splice(i,1); return true; };
-    dec(this.gs.bag)||dec(this.gs.vault); this.forceUpdate();
+    dec(this.gs.bag)||dec(this.gs.vault);
+    this.qOnUse(inst);                                          // 퀘스트: 사용형은 레이드 중에만 카운트
+    if(ef==='heal'||ef==='stamina') this.qOnHeal();              // 연전의 '무힐' 조건 — 회복을 쓰면 연승이 끊긴다
+    this.forceUpdate();
   }
   // 소모품 효과 한 줄 — 값 단위가 EffectType마다 다르므로(플랫 vs %) 여기서 한 번만 분기한다.
   // 유지력이 있는 버프는 "· 유지력 3전투"까지 붙는다.
@@ -4074,8 +4085,11 @@ void main(){
   // 인벤 리스트 수량 칩 — 최대스택≥2 아이템에만(현재수량/최대, 최대치는 MAX). svg screen-list.svg 참고
   // 제작가능 칩 — 치수·폰트는 인벤토리 스택 칩(qtyChip)과 동일, 색만 하우스 그린(#83B289).
   // 정보 칩(인벤토리 수량칩과 같은 치수). col 미지정이면 하우스 그린 — 기존 [제작가능] 호출부가 그대로 돈다.
-  readyChip(label,col){ const c=col||'#83B289'; const rgb=[1,3,5].map(i=>parseInt(c.substr(i,2),16)).join(',');
-    return h('span',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba('+rgb+',0.45)',color:c}}, label); }
+  readyChip(label,col,opt){ const c=col||'#83B289'; const rgb=[1,3,5].map(i=>parseInt(c.substr(i,2),16)).join(',');
+    const o=opt||{};   // 퀘스트 칩은 배경·패딩·테두리 불투명 여부가 다르다(목업 실측: 탭 h20 bg#212327 / 행 h22 bg#0A0B0E)
+    return h('span',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:o.pad||'3px 8px',borderRadius:4,whiteSpace:'nowrap',background:o.bg||'rgba(10,11,14,0.55)',border:'1px solid '+(o.solid?c:'rgba('+rgb+',0.45)'),color:c}}, label); }
+  // 등급칩 — catChip에서 점만 뺀 것(목업 실측: 외곽 h22 · bg #212327 · border #36383C · mono 9.5)
+  gradeChip(txt){ return h('span',{style:{display:'inline-flex',alignItems:'center',flex:'0 0 auto',boxSizing:'border-box',borderRadius:4,background:'rgb(33,35,39)',border:'1px solid rgb(54,56,60)',padding:'5px 8px',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:'rgb(169,171,175)',whiteSpace:'nowrap'}}, txt); }
   qtyChip(inst,ms){ return h('span',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',color:'rgb(169,171,175)'}}, ((inst.qty||1)>=ms?'MAX':(inst.qty||1))+'/'+ms); }
   invRow(inst,seg,catOf){
     const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||(this.eng.byId.bag&&this.eng.byId.bag[inst.id])||{};
@@ -4583,7 +4597,7 @@ void main(){
     const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID);
     if(buyRows.length||svc.includes('Sell')) add('trade', this.en()?'Trade':'거래하기');
     if(svc.includes('Register')||svc.includes('Claim')) add('auction', this.en()?'Online Auction':'온라인 경매장', true);   // 백로그 — 잠금
-    if(svc.includes('Quest')) add('quest', this.t('nav_quest'), true);   // 백로그 — 잠금
+    if(svc.includes('Quest')) add('quest', this.t('nav_quest'));
     add('exit', this.en()?'Leave':'나가기');
     return out;
   }
@@ -4603,12 +4617,378 @@ void main(){
       h('div',{style:{flex:'1 1 auto',minHeight:0}}),
       // 패널 — svg x16.5 y516.5 369x287 r24 · 버튼 333x48 r24 간격 16
       h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',flexDirection:'column',gap:16}},
-        ...items.map(it=>h('button',{key:it.k,disabled:it.locked,
-          onClick:it.locked?null:()=>{ if(it.k==='exit') this.go('safehouse'); else if(it.k==='trade') this.openVendorTab((this.services(v).includes('Buy')||this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID))?'buy':'sell'); else this.openVendorTab(it.k); },
-          style:{height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:it.locked?'#6F7276':'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:it.locked?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
+        ...items.map(it=>{ const qc=(it.k==='quest'&&!it.locked)? this.qVendorChip(v.VendorID) : null;
+          return h('button',{key:it.k,disabled:it.locked,
+          onClick:it.locked?null:()=>{ if(it.k==='exit') this.go('safehouse'); else if(it.k==='quest') this.openQuest(); else if(it.k==='trade') this.openVendorTab((this.services(v).includes('Buy')||this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID))?'buy':'sell'); else this.openVendorTab(it.k); },
+          style:{position:'relative',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:it.locked?'#6F7276':'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:it.locked?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
           it.locked? svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',15,'#6F7276',1.6) : null,
-          h('span',{key:'l'}, it.label)))));
+          h('span',{key:'l'}, it.label),
+          // 칩은 absolute — gap으로 붙이면 가운데 정렬된 라벨이 밀린다(시설 버튼 칩과 같은 규칙)
+          qc? h('span',{key:'chip',style:{position:'absolute',right:16,top:'50%',transform:'translateY(-50%)',display:'flex'}},
+               this.readyChip(this.t('quest_chip_'+qc), this.qCol(qc), {pad:'5px 8px',solid:true})) : null); })));
   }
+  // ===== 퀘스트 (일일) — svg/screen-quest-*.svg =====
+  // 목업 실측(402 프레임 · 승인된 screen-bar-shop.svg로 자를 맞춘 값):
+  //   아트밴드 175 · 탭바 y150~222(위 25는 아트에 겹치는 라운드 여백) · 탭행 h47 3등분 134
+  //   탭 라벨 14 · 탭 칩 외곽 h20(bg #212327) · 리스트 행 h89 = shopRow 그대로 · 행 칩 h22(bg #0A0B0E)
+  //   시트 폭 370(좌우 마진16) 패딩 24/18 하단 24 · 목표·보상 행 h36 13px · 배너 336x40 r16 #1A1B21
+  // 상태색: 신규 #C19E6F · 진행중 #83B289 · 완료 #85B3C5 / 카운터 미달 #AE615C
+  qCol(st){ return st==='done'?'#85B3C5':(st==='run'?'#83B289':'#C19E6F'); }
+  qMap(){ if(!this.gs.quests||typeof this.gs.quests!=='object') this.gs.quests={}; return this.gs.quests; }
+  // 리셋 = 주기 인덱스가 바뀌면 기록을 통째로 버린다. 포기(gave)·수령완료(clr)도 여기서 함께 풀린다.
+  qSync(){ const p=this.eng.questPeriod(), m=this.qMap(); let ch=false;
+    for(const k in m){ if(!m[k]||m[k].period!==p){ delete m[k]; ch=true; } }
+    if(ch) this.saveGame();
+    return p; }
+  qRec(id){ return this.qMap()[id]||null; }
+  qSet(id,patch){ const m=this.qMap();
+    m[id]=Object.assign({period:this.eng.questPeriod(),p:[],s:'run'}, m[id]||{}, patch, {period:this.eng.questPeriod()});
+    this.saveGame(); }
+  qProg(q){ const o=this.eng.questObjective(q); if(!o) return [];
+    // 제출형은 카운터를 저장하지 않는다 — '보유 수량'이 곧 진행도다(구매·보유·파밍 무관 · §3.6).
+    // 그래서 초과 보유(6/3)가 그대로 보이고, 아이템을 쓰면 진행도가 도로 내려간다.
+    if(o.kind==='submit') return o.targets.map(t=>this.qHave(t));
+    const r=this.qRec(q.QuestID), p=(r&&Array.isArray(r.p))?r.p:[];
+    return o.targets.map((t,i)=>Math.max(0,this.eng.N(p[i],0))); }
+  // 목표 하나가 가리키는 대상을 소지품+금고에서 센다. 착용 중인 것은 제외.
+  qMatch(t,inst){ if(t.id) return inst.id===t.id;
+    return !!(t.filter && t.filter.indexOf(String((this.eng.byId.item[inst.id]||{}).Category||''))>=0); }
+  qHave(t){ let n=0;
+    for(const arr of [this.gs.bag,this.gs.vault]) for(const x of arr){
+      if(!this.qMatch(t,x) || this.isEquipped(x.uid)) continue;
+      n+=Math.max(1,this.eng.N(x.qty,1)); }
+    return n; }
+  qAllDone(q){ const o=this.eng.questObjective(q); if(!o) return false;
+    const pr=this.qProg(q); return o.targets.every((t,i)=>pr[i]>=t.count); }
+  // new(미수락) / run(수락·미충족) / done(충족·수령 전, 보상 대기 rw 포함) / hide(포기·수령완료)
+  qState(q){ const r=this.qRec(q.QuestID); if(!r) return 'new';
+    if(r.s==='gave'||r.s==='clr') return 'hide';
+    if(r.s==='rw') return 'done';
+    return this.qAllDone(q)?'done':'run'; }
+  // 정렬 = 완료 > 진행중 > 신규(사용자 규칙). 같은 등급 안에서는 시트 순서를 지킨다.
+  qList(tab){ this.qSync(); const vid=this.state.vendor, ord={done:0,run:1,new:2};
+    return this.eng.questRows()
+      .filter(q=>String(q.Type||'')===tab && (!vid || String(q.GiverVendorID||'')===vid))
+      .map((q,i)=>({q,i,st:this.qState(q)})).filter(x=>x.st!=='hide')
+      .sort((a,b)=>(ord[a.st]-ord[b.st])||(a.i-b.i)); }
+  // 칩 우선순위 — 완료가 하나라도 있으면 완료, 없으면 진행중, 없으면 신규, 그것도 없으면 표시 안 함
+  qPick(list){ let run=false,neu=false;
+    for(const st of list){ if(st==='done') return 'done'; if(st==='run') run=true; else if(st==='new') neu=true; }
+    return run?'run':(neu?'new':null); }
+  qTabChip(tab){ return this.qPick(this.qList(tab).map(x=>x.st)); }
+  qVendorChip(vid){ this.qSync();
+    return this.qPick(this.eng.questRows().filter(q=>String(q.Type||'')==='daily'&&String(q.GiverVendorID||'')===vid)
+      .map(q=>this.qState(q)).filter(st=>st!=='hide')); }
+  // 배너형(대상이 존) vs 리스트형(대상이 아이템·몬스터 — 목표가 2개 이상 생길 수 있어 행으로 나눈다)
+  qIsBanner(kind){ return kind==='visit'||kind==='depth'; }
+  qKindLabel(kind){ return this.t('quest_kind_'+kind); }
+  qCntCol(cur,need){ return cur>=need?'#85B3C5':(cur>0?'#C19E6F':'#AE615C'); }
+  qTName(t){ const e=this.eng;
+    if(t.filter) return t.filter.map(c=>CATKR[c]||c).join('/');
+    const m=e.byId.monster[t.id]; if(m) return e.tr(m,'MonsterName');
+    const z=e.byId.zone[t.id]; if(z) return e.tr(z,'ZoneName');
+    return e.anyName(t.id); }
+  qCatOf(id){ const e=this.eng;
+    if(e.byId.liquor&&e.byId.liquor[id]) return '술';
+    if(e.byId.module&&e.byId.module[id]) return '모듈';
+    if(e.byId.usb&&e.byId.usb[id]) return '데이터';
+    const r=e.byId.item[id]||e.byId.weapon[id]||e.byId.armor[id]||e.byId.artifact[id]||(e.byId.talisman&&e.byId.talisman[id])||(e.byId.bag&&e.byId.bag[id]);
+    return r?(CATKR[r.Category]||r.Category||''):''; }
+  // 목표 행 앞 칩 — 제출·사용은 대상의 카테고리(정크/약품/무기…), 소탕·조우는 몬스터 등급
+  qTChip(kind,t){
+    if(kind==='kill'||kind==='encounter'){ const m=this.eng.byId.monster[t.id];
+      return this.gradeChip(String((m&&m.Grade)||'COMMON').toUpperCase()); }
+    return this.catChip(t.filter? this.qTName(t) : this.qCatOf(t.id), false); }
+  // 목표 행 라벨 — 조우·사용만 동사를 붙인다(목업), 제출·소탕은 이름만
+  qRowLabel(kind,t){ const n=this.qTName(t);
+    return (kind==='encounter'||kind==='use')? this.t('quest_row_'+kind).replace('{a}',n) : n; }
+  // 리스트 행 한 줄 요약 — 목표가 여럿이면 첫 목표 + '외 N종'
+  qSummary(q){ const o=this.eng.questObjective(q); if(!o) return '';
+    const t=o.targets[0];
+    let out=this.t('quest_sum_'+o.kind).replace('{a}',this.qTName(t)).replace('{n}',String(t.count));
+    if(o.targets.length>1) out=this.t('quest_sum_more').replace('{a}',out).replace('{n}',String(o.targets.length-1));
+    return out; }
+
+  // window.__Q = 진행도 주입·상태 확인용 디버그 핸들(감지 훅이 붙기 전까지 이걸로 검증한다)
+  openQuest(){ window.__Q=this; this.qSync(); this.setState({screen:'quest',qTab:'daily',qSel:null,qGive:false,qRew:null,qOpen:[],qFocus:0}); }
+  openQuestSheet(id){ const r=this.qRec(id);
+    if(r&&r.s==='rw'){ this.setState({qSel:id,qGive:false,qRew:id,qOpen:[],qFocus:0}); return; }
+    this.setState({qSel:id,qGive:false,qRew:null}); }
+  closeQuestSheet(){ this.setState({qSel:null,qGive:false}); }
+
+  // 아트 밴드 175(목업) — 상점 메뉴의 516짜리와 달리 리스트 위에만 얇게 깔린다.
+  questArtBg(shopId){ return h('div',{key:'qart',style:{position:'absolute',left:0,right:0,top:0,height:175,zIndex:0,pointerEvents:'none',
+    backgroundImage:'linear-gradient(180deg,rgba(17,19,21,0) 0%,#111315 100%), url(assets/art/shop/'+shopId+'.webp)',
+    backgroundSize:'cover',backgroundPosition:'center'}}); }
+
+  questTabs(tab){
+    const defs=[['daily',false],['weekly',true],['story',true]];   // 이번엔 일일만 개방 — 나머지는 슬롯 잠금과 같은 처리
+    return h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',marginTop:60,paddingTop:25,background:'#18191D',borderRadius:'16px 16px 0 0',display:'flex'}},
+      ...defs.map(([k,lock])=>{ const on=tab===k, st=lock?null:this.qTabChip(k);
+        return h('button',{key:k,disabled:lock,onClick:lock?null:()=>this.setState({qTab:k,qSel:null}),
+          style:{flex:1,height:47,background:'transparent',border:'none',padding:0,display:'flex',alignItems:'center',justifyContent:'center',gap:8,
+            cursor:lock?'default':'pointer',fontFamily:T.sans,fontSize:14,fontWeight:on?500:400,color:lock?'#4B4D52':(on?'#EAEBEE':'#6F7276')}},
+          h('span',{key:'l'}, this.t('quest_tab_'+k)),
+          lock? this.hideLockIcon() : (st? this.readyChip(this.t('quest_chip_'+st), this.qCol(st), {bg:'#212327',solid:true}) : null)); }));
+  }
+
+  questRow(q,st){
+    const o=this.eng.questObjective(q);
+    return this.shopRow({key:q.QuestID, cat:this.qKindLabel(o?o.kind:'submit'),
+      name:this.eng.tr(q,'Name'), desc:this.qSummary(q),
+      right:this.readyChip(this.t('quest_chip_'+st), this.qCol(st), {pad:'5px 8px',solid:true}),
+      onClick:()=>this.openQuestSheet(q.QuestID)});
+  }
+
+  questScreen(){
+    const v=this.eng.byId.vendor[this.state.vendor]||{};
+    const tab=this.state.qTab||'daily';
+    const rows=this.qList(tab);
+    const sel=this.state.qSel? this.eng.questRow(this.state.qSel) : null;
+    return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
+      this.questArtBg(v.ShopID),
+      this.shopHeader(this.shopName(v.ShopID,v), ()=>this.go('vendorMenu')),
+      this.questTabs(tab),
+      h('div',{key:'qlist',style:{position:'relative',zIndex:1,flex:'1 1 auto',minHeight:0,overflowY:'auto',borderTop:'1px solid rgb(54,56,60)'}},
+        rows.length? rows.map(x=>this.questRow(x.q,x.st))
+          : h('div',{style:{padding:'40px 18px',textAlign:'center',fontFamily:T.sans,fontSize:12,color:'#6F7276'}}, this.t('quest_empty'))),
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex'}},
+        h('button',{onClick:()=>this.go('vendorMenu'),style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.t('quest_btn_back'))),
+      (sel&&!this.state.qRew)? (this.state.qGive? this.questGiveSheet(sel) : this.questSheet(sel)) : null,
+      this.state.qRew? this.questRewardSheet() : null);
+  }
+
+  // 하단 시트 공통 껍데기 — 아지트 시트 표준(폭 370 · 패딩 24/18 · r24 · #18191D)
+  qSheetWrap(children){
+    return h('div',{style:{position:'absolute',inset:0,zIndex:34,background:'rgba(3,3,4,0.66)',display:'flex',flexDirection:'column',justifyContent:'flex-end',animation:'rlFade .18s'}},
+      h('div',{style:{margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',border:'1px solid rgb(54,56,60)',display:'flex',flexDirection:'column',maxHeight:'calc(100% - 48px)',overflowY:'auto'}},
+        ...children));
+  }
+  qSecLabel(txt,mt){ return h('div',{style:{marginTop:mt==null?16:mt,fontFamily:T.sans,fontSize:10,color:'#4B4D52'}}, txt); }
+  // 목표·보상 공통 행 — h36 · 13px · 마지막 행만 구분선 없음
+  qLine(left,right,last,key){
+    return h('div',{key:key,style:{height:36,flex:'0 0 auto',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,
+      borderBottom:last?'none':'1px solid rgb(54,56,60)'}}, left, right);
+  }
+  // ⬡! 아이콘 — 목업 실측 15.6×17.2
+  qBangIcon(){ return h('svg',{width:16,height:18,viewBox:'0 0 16 18',fill:'none',style:{flex:'0 0 auto',display:'block'}},
+      h('path',{key:'hex',d:'M8 1.1L14.4 4.8V12.2L8 15.9L1.6 12.2V4.8L8 1.1Z',stroke:'#EAEBEE',strokeWidth:1.2,strokeLinejoin:'round'}),
+      h('path',{key:'bar',d:'M8 5.6V11.0',stroke:'#EAEBEE',strokeWidth:1.2,strokeLinecap:'round'}),
+      h('circle',{key:'dot',cx:8,cy:12.9,r:0.85,fill:'#EAEBEE'})); }
+  // 배너 — 정찰·연전. 문장 안의 {n} 자리에 진행 카운터가 상태색으로 들어간다.
+  qBanner(q){
+    const o=this.eng.questObjective(q), t=o.targets[0], cur=this.qProg(q)[0]||0;
+    const parts=this.t('quest_obj_'+o.kind).replace('{a}',this.qTName(t)).split('{n}');
+    return h('div',{style:{marginTop:16,flex:'0 0 auto',minHeight:40,borderRadius:16,background:'#1A1B21',display:'flex',alignItems:'center',justifyContent:'center',gap:9,padding:'8px 12px',boxSizing:'border-box'}},
+      this.qBangIcon(),
+      h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#EAEBEE'}},
+        parts[0],
+        h('span',{key:'n',style:{fontFamily:T.mono,color:this.qCntCol(cur,t.count)}}, cur+'/'+t.count),
+        parts[1]||''));
+  }
+  qBtn(label,color,onClick,key){ return h('button',{key:key,onClick:onClick,
+    style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:color,fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, label); }
+
+  questSheet(q){
+    const o=this.eng.questObjective(q), st=this.qState(q), pr=this.qProg(q);
+    const rw=this.eng.questReward(q);
+    const left=this.eng.questResetLeft(), total=this.eng.questResetMinutes()*60000;
+    const rwRows=[['sato',this.t('quest_rw_sato'), this.eng.N(rw.sato,0).toLocaleString()+' '+this.t('quest_rw_sato'), '#85B3C5']]
+      .concat(rw.pass? [['pass',this.t('quest_rw_pass'),'+'+rw.pass,'#EAEBEE']] : [])
+      .concat([['item',this.t('quest_rw_item'), this.t('quest_rw_unknown'), '#EAEBEE']]);
+    return this.qSheetWrap([
+      // 헤더 — '퀘스트' 라벨 좌 · 종류칩 우
+      h('div',{key:'hd',style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,minHeight:22}},
+        h('span',{style:{fontFamily:T.sans,fontSize:10,color:'#4B4D52'}}, this.t('quest_kicker')),
+        o? this.catChip(this.qKindLabel(o.kind), false) : null),
+      h('div',{key:'nm',style:{marginTop:6,fontFamily:T.sans,fontSize:16,color:'#EAEBEE'}}, this.eng.tr(q,'Name')),
+      h('div',{key:'ds',style:{marginTop:10,fontFamily:T.sans,fontSize:12,lineHeight:'155%',color:'#6F7276'}}, this.eng.tr(q,'Description')),
+      // 남은시간 — 다음 리셋까지. 게이지는 '경과' 비율을 채운다(목업).
+      h('div',{key:'tl',style:{marginTop:24,display:'flex',alignItems:'center',justifyContent:'space-between'}},
+        h('span',{style:{fontFamily:T.sans,fontSize:10,color:'#6F7276'}}, this.t('quest_left')),
+        h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#A9ABAF'}}, this.hhmmss(left))),
+      h('div',{key:'bar',style:{marginTop:8}}, this.hideBar(Math.max(0,Math.min(100,(1-left/total)*100)))),
+      // 목표 — 리스트형만 섹션으로 편다(배너형은 버튼 위 배너 한 줄)
+      (o&&!this.qIsBanner(o.kind))? this.qSecLabel(this.qKindLabel(o.kind),16) : null,
+      (o&&!this.qIsBanner(o.kind))? h('div',{key:'objs',style:{marginTop:2,display:'flex',flexDirection:'column'}},
+        ...o.targets.map((t,i)=>this.qLine(
+          h('div',{style:{display:'flex',alignItems:'center',gap:12,minWidth:0}}, this.qTChip(o.kind,t),
+            h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#A9ABAF',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}, this.qRowLabel(o.kind,t))),
+          h('span',{style:{fontFamily:T.mono,fontSize:13,color:this.qCntCol(pr[i]||0,t.count),flex:'0 0 auto'}}, (pr[i]||0)+'/'+t.count),
+          i===o.targets.length-1, 'ob'+i))) : null,
+      this.qSecLabel(this.t('quest_sec_reward'),16),
+      h('div',{key:'rws',style:{marginTop:2,display:'flex',flexDirection:'column'}},
+        ...rwRows.map((r,i)=>this.qLine(
+          h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#A9ABAF'}}, r[1]),
+          h('span',{style:{fontFamily:T.sans,fontSize:13,color:r[3]}}, r[2]),
+          i===rwRows.length-1, 'rw'+r[0]))),
+      (o&&this.qIsBanner(o.kind))? this.qBanner(q) : null,
+      h('div',{key:'btns',style:{marginTop:16,display:'flex',gap:8}},
+        st==='done'
+          ? [this.qBtn(this.t('quest_btn_complete'),'#85B3C5',()=>this.qComplete(q),'done')]
+          : [ st==='new'? this.qBtn(this.t('quest_btn_accept'),'#83B289',()=>this.qAccept(q),'acc')
+                        : this.qBtn(this.t('quest_btn_giveup'),'#AE615C',()=>this.setState({qGive:true}),'gv'),
+              this.qBtn(this.t('quest_btn_close'),'#EAEBEE',()=>this.closeQuestSheet(),'cl') ])
+    ]);
+  }
+
+  // 포기 확인 — 다른 정보는 전부 걷어내고 이름·설명만 남긴다(사용자 규칙)
+  questGiveSheet(q){
+    const o=this.eng.questObjective(q);
+    return this.qSheetWrap([
+      h('div',{key:'hd',style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,minHeight:22}},
+        h('span',{style:{fontFamily:T.sans,fontSize:10,color:'#4B4D52'}}, this.t('quest_kicker')),
+        o? this.catChip(this.qKindLabel(o.kind), false) : null),
+      h('div',{key:'nm',style:{marginTop:6,fontFamily:T.sans,fontSize:16,color:'#EAEBEE'}}, this.eng.tr(q,'Name')),
+      h('div',{key:'ds',style:{marginTop:10,fontFamily:T.sans,fontSize:12,lineHeight:'155%',color:'#6F7276'}}, this.eng.tr(q,'Description')),
+      h('div',{key:'warn',style:{marginTop:16,flex:'0 0 auto',minHeight:40,borderRadius:16,background:'#1A1B21',display:'flex',alignItems:'center',justifyContent:'center',gap:9,padding:'8px 12px',boxSizing:'border-box'}},
+        h('svg',{width:16,height:18,viewBox:'0 0 16 18',fill:'none',style:{flex:'0 0 auto',display:'block'}},
+          h('path',{key:'hex',d:'M8 1.1L14.4 4.8V12.2L8 15.9L1.6 12.2V4.8L8 1.1Z',stroke:'#AE615C',strokeWidth:1.2,strokeLinejoin:'round'}),
+          h('path',{key:'bar',d:'M8 5.6V11.0',stroke:'#AE615C',strokeWidth:1.2,strokeLinecap:'round'}),
+          h('circle',{key:'dot',cx:8,cy:12.9,r:0.85,fill:'#AE615C'})),
+        h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#AE615C'}}, this.t('quest_giveup_ask'))),
+      h('div',{key:'btns',style:{marginTop:16,display:'flex',gap:8}},
+        this.qBtn(this.t('quest_btn_giveup'),'#AE615C',()=>this.qGiveup(q),'gv'),
+        this.qBtn(this.t('quest_btn_cancel'),'#EAEBEE',()=>this.setState({qGive:false}),'ca'))
+    ]);
+  }
+
+  // ===== 감지 훅 =====
+  // 수락한(run) 일일 퀘스트만 센다. 카운터는 목표치에서 멈춘다(제출형은 보유 수량이라 여기 안 온다).
+  qInRaid(){ return !!(this.combat && this.combat.zoneId); }
+  qBump(kind, add){
+    const p0=this.eng.questPeriod(); let hit=false;
+    for(const q of this.eng.questRows()){
+      if(String(q.Type||'')!=='daily') continue;
+      const r=this.qRec(q.QuestID); if(!r||r.s!=='run'||r.period!==p0) continue;
+      const o=this.eng.questObjective(q); if(!o||o.kind!==kind) continue;
+      const p=Array.isArray(r.p)?r.p.slice():[]; let ch=false;
+      o.targets.forEach((t,i)=>{ const cur=Math.max(0,this.eng.N(p[i],0));
+        if(cur>=t.count) return;
+        const n=add(t,o); if(!n) return;
+        p[i]=Math.min(t.count,cur+n); ch=true; });
+      if(ch){ r.p=p; hit=true; }
+    }
+    if(hit) this.saveGame();
+    return hit;
+  }
+  qOnEncounter(monsterId){ if(!monsterId) return; this.qBump('encounter',(t)=>t.id===monsterId?1:0); }
+  qOnKill(monsterId){ if(!monsterId) return; this.qBump('kill',(t)=>t.id===monsterId?1:0); }
+  // 사용형 — 레이드 중에만 센다(안전지대 제외 · §3.6 context:"combat"). 귀환 여부는 안 본다.
+  qOnUse(inst){ if(!inst||!this.qInRaid()) return; this.qBump('use',(t)=>this.qMatch(t,inst)?1:0); }
+  // 연전 — 레이드 안에서 무힐로 이어붙인 연승. 회복을 쓰면 그 자리에서 0으로 끊긴다.
+  qOnWin(){ if(this.combat) this.combat.qWins=this.eng.N(this.combat.qWins,0)+1; }
+  qOnHeal(){ if(this.combat) this.combat.qWins=0; }
+  // 생환 — 정찰은 1회 가산, 연전은 이번 레이드 연승을 최고 기록으로 확정한다(실패해도 퀘스트는 유지).
+  qOnExtract(){
+    if(!this.qInRaid()) return;
+    const zone=this.combat.zoneId, wins=this.eng.N(this.combat.qWins,0), p0=this.eng.questPeriod();
+    this.qBump('visit',(t)=>t.id===zone?1:0);
+    let hit=false;
+    for(const q of this.eng.questRows()){
+      if(String(q.Type||'')!=='daily') continue;
+      const r=this.qRec(q.QuestID); if(!r||r.s!=='run'||r.period!==p0) continue;
+      const o=this.eng.questObjective(q); if(!o||o.kind!=='depth') continue;
+      const p=Array.isArray(r.p)?r.p.slice():[]; let ch=false;
+      o.targets.forEach((t,i)=>{ if(t.id!==zone) return;
+        const v=Math.min(t.count, Math.max(this.eng.N(p[i],0), wins));
+        if(v!==this.eng.N(p[i],0)){ p[i]=v; ch=true; } });
+      if(ch){ r.p=p; hit=true; }
+    }
+    if(hit) this.saveGame();
+  }
+
+  qAccept(q){ const o=this.eng.questObjective(q);
+    this.qSet(q.QuestID,{s:'run', p:(o?o.targets:[]).map(()=>0)});
+    this.forceUpdate(); }
+  // 포기하면 다음 리셋까지 돌아오지 않는다(사용자 결정) — 기록을 'gave'로 남겨 목록에서 뺀다.
+  qGiveup(q){ this.qSet(q.QuestID,{s:'gave', p:[]}); this.setState({qSel:null,qGive:false}); }
+
+  // 완료하기 — 사토·패스는 즉시 지급하고 아이템만 카드로 넘긴다(분해 결과와 같은 연출).
+  // 굴린 결과는 기록에 남는다: 닫기로 나가도 보상은 대기 상태로 그대로 있다.
+  // 제출형은 완료하는 순간 실제로 아이템을 소모한다. 모자라면 완료를 막는다.
+  qConsumeSubmit(q){
+    const o=this.eng.questObjective(q);
+    if(!o||o.kind!=='submit'||o.consume===false) return true;
+    for(const t of o.targets) if(this.qHave(t)<t.count) return false;
+    for(const t of o.targets){ let left=t.count;
+      for(const arr of [this.gs.bag,this.gs.vault]){
+        for(let i=arr.length-1;i>=0&&left>0;i--){ const x=arr[i];
+          if(!this.qMatch(t,x)||this.isEquipped(x.uid)) continue;
+          const qy=Math.max(1,this.eng.N(x.qty,1)), take=Math.min(qy,left);
+          if(take>=qy) arr.splice(i,1); else x.qty=qy-take;
+          left-=take; } } }
+    return true;
+  }
+  qComplete(q){
+    if(!this.qConsumeSubmit(q)){ this.flash(this.t('quest_short'), true); return; }
+    const rw=this.eng.questReward(q);
+    if(rw.sato) this.gs.sato=this.eng.N(this.gs.sato,0)+rw.sato;
+    if(rw.pass){ const cap=Math.max(1,this.eng.N(this.eng.C.pass_cap,50));
+      this.gs.pass=Math.min(cap, this.eng.N(this.gs.pass,0)+rw.pass); this.savePass(); }
+    const ids=[];
+    for(const id in rw.items){ const n=Math.max(1,this.eng.N(rw.items[id],1)); for(let k=0;k<n;k++) ids.push(id); }
+    if(rw.group){
+      // 그룹 보상 = LootGroupItem 균등 추첨. [min,max]개를 중복 없이 뽑는다(§3.6).
+      const pool=(this.eng.DATA.lootGroupItems||[]).filter(m=>m.GroupID===rw.group.id).map(m=>m.MemberItemID).filter(Boolean);
+      const lo=Math.min(rw.group.min,rw.group.max), hi=Math.max(rw.group.min,rw.group.max);
+      let n=Math.min(pool.length, lo+Math.floor(Math.random()*(hi-lo+1)));
+      for(;n>0;n--){ const i=Math.floor(Math.random()*pool.length); ids.push(pool.splice(i,1)[0]); }
+    }
+    const insts=ids.map(id=>{ const x=this.eng.mkInstance(id,1); x.qty=1; x.locked=false; return x; });
+    this.qSet(q.QuestID,{s:'rw', rw:insts});
+    this.setState({qRew:q.QuestID,qOpen:[],qFocus:0});
+  }
+
+  qRewInsts(){ const r=this.qRec(this.state.qRew); return (r&&Array.isArray(r.rw))?r.rw:[]; }
+  qIsOpen(i){ const a=this.state.qOpen; return Array.isArray(a)&&a.indexOf(i)>=0; }
+  qTapCard(i){ if(this.qIsOpen(i)) return; const a=(this.state.qOpen||[]).concat([i]); this.setState({qOpen:a,qFocus:i}); }
+  qRevealAll(){ const n=this.qRewInsts().length; const a=[]; for(let i=0;i<n;i++) a.push(i); this.setState({qOpen:a}); }
+  // 부분 수납 없음 — 한 칸이 모자라면 전량 미회수(분해와 같은 규칙). 닫기로 나가도 보상은 대기 상태로 남는다.
+  qStoreAll(){
+    const id=this.state.qRew, insts=this.qRewInsts();
+    if(this.vaultSlotsForInsts(insts) > this.vaultRoom()){ this.vaultFullMsg(); return; }
+    insts.forEach(inst=>{ if(this.maxStack(inst.id)>1) this.stackAdd(this.gs.vault,inst.id,inst.qty||1,{}); else this.gs.vault.push(inst); });
+    this.qSet(id,{s:'clr', rw:[]});
+    this.setState({qRew:null,qSel:null,qOpen:[],qFocus:0});
+  }
+
+  // 보상 카드 리빌 — 분해 결과(disaRevealSheet)와 같은 구조·같은 카드 규격(342×460)
+  questRewardSheet(){
+    const drops=this.qRewInsts(); if(!drops.length) return null;
+    const focus=Math.max(0,Math.min(drops.length-1,this.eng.N(this.state.qFocus,0)));
+    const allOpen=drops.every((_,i)=>this.qIsOpen(i));
+    const nav=(d)=>{ const i=Math.max(0,Math.min(drops.length-1,focus+d)); if(i!==focus) this.setState({qFocus:i}); };
+    // 가로 스와이프는 '움직이지 않는 부모 스테이지'가 받는다 — 카드가 받으면 캡처가 풀려 pointerup이 유실된다.
+    const swipe = drops.length>1 ? {
+      onPointerDown:(e)=>{ this._qSX=e.clientX; this._qSY=e.clientY; this._qSwiped=false; },
+      onPointerUp:(e)=>{ if(this._qSX==null) return; const dx=e.clientX-this._qSX, dy=e.clientY-this._qSY;
+        this._qSX=null; this._qSY=null;
+        if(Math.abs(dx)>30 && Math.abs(dx)>Math.abs(dy)){ this._qSwiped=true; nav(dx<0?1:-1); } },
+      onPointerCancel:()=>{ this._qSX=null; this._qSY=null; },
+    } : {};
+    return h('div',{style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',zIndex:34,display:'flex',flexDirection:'column',animation:'rlFade .18s'}},
+      h('div',Object.assign({style:{flex:1,minHeight:0,position:'relative',touchAction:'none'}},swipe),
+        ...drops.map((inst,i)=>{ const off=i-focus, abs=Math.abs(off), open=this.qIsOpen(i);
+          const Hh=open?this.lootCardH(inst):442;
+          return h('div',{key:inst.uid||('qr'+i),onClick:()=>{ if(this._qSwiped){ this._qSwiped=false; return; } this.qTapCard(i); },
+            style:{position:'absolute',left:'50%',top:'50%',width:342,height:Hh,
+              transform:'translate(calc(-50% + '+(off*250)+'px), -50%) scale('+(off?0.9:1)+')',
+              filter:off?'brightness(0.9)':'none',
+              transition:'transform .4s cubic-bezier(.16,1,.3,1)',zIndex:off?10-abs:20,perspective:'1200px',cursor:'pointer'}},
+            h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:open?'rotateY(180deg)':'none'}},
+              h('div',{key:'bk',style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',borderRadius:8,background:T.s2,
+                backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
+              h('div',{key:'fr',style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',
+                visibility:open?'visible':'hidden',transition:'visibility 0s linear .275s',borderRadius:8,overflow:'hidden'}},
+                open? this.lootCardBig(inst,true) : null))); }),
+        drops.length>1? cardNav(focus, drops.length, ()=>nav(-1), ()=>nav(1)) : null),
+      this.dotRow(drops.length, focus, 'qrdots'),
+      h('div',{style:{flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',gap:8}},
+        this.qBtn(allOpen? this.t('hide_store_all') : this.t('hide_reveal_all'),'#EAEBEE', allOpen?()=>this.qStoreAll():()=>this.qRevealAll(),'ra'),
+        this.qBtn(this.t('quest_btn_close'),'#EAEBEE',()=>this.setState({qRew:null,qSel:null}),'cl')));
+  }
+
   // ===== 아지트 (svg/screen-hideout-*.svg · §3.5) =====
   // 카드 규격은 목업에서 직접 잰 값이다(402 프레임 기준, 눈대중 아님):
   //   카드 370 r8 #36383C · 좌인셋 18 · 이름 top12 · 배지 top7.5/우인셋16 h26(Lv 51 · UPGRADE 73)
@@ -6238,7 +6618,7 @@ void main(){
   shopRow(o){ return h('div',{key:o.key,onClick:o.disabled?null:o.onClick,style:{display:'flex',flexDirection:'column',gap:8,padding:'16px 18px',borderBottom:'1px solid rgb(54,56,60)',cursor:o.disabled?'default':'pointer',opacity:(o.disabled||o.dim)?0.5:1}},
       h('div',{style:{display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8}},
         this.catChip(o.cat,!!o.on),
-        h('div',{style:{display:'flex',flexDirection:'row',gap:4,alignItems:'center',flexShrink:0}}, o.priceLabel!=null?this.shopPill(o.priceLabel,o.priceColor):null, o.countLabel!=null?this.shopPill(o.countLabel,'rgb(169,171,175)'):null)),
+        h('div',{style:{display:'flex',flexDirection:'row',gap:4,alignItems:'center',flexShrink:0}}, o.priceLabel!=null?this.shopPill(o.priceLabel,o.priceColor):null, o.countLabel!=null?this.shopPill(o.countLabel,'rgb(169,171,175)'):null, o.right||null)),
       h('div',{style:{display:'flex',flexDirection:'column',gap:4}},
         h('div',{style:{fontFamily:T.sans,fontSize:14,color:'rgb(234,235,238)'}}, o.name),
         o.desc?h('div',{style:{fontFamily:T.sans,fontSize:12,color:'rgb(111,114,118)',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}, o.desc):null)); }
