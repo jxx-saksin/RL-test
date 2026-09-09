@@ -255,9 +255,7 @@ const TITLE_DATE = '0909';
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
   { ver:51, date:'9/Sep', lines:[
-    ['일일 퀘스트 추가 — 상점 메뉴의 [퀘스트]에서 받고, 조건을 채우면 그 상인에게 돌아와 완료한다','Daily quests added — take them from a shop\'s Quest menu, then return to that trader to turn them in'],
-    ['제출 · 소탕 · 조우 · 정찰 · 사용 · 연전 6종. 보상은 사토와 아이템 카드로 받는다','Six kinds: submit, cull, recon, scout, use, and gauntlet. Rewards come as Sato and item cards'],
-    ['주간 · 스토리 퀘스트는 아직 잠겨 있다','Weekly and Story quests are still locked'] ] },
+    ['일일 퀘스트 기능 업데이트(제출, 소탕, 조우, 정찰, 사용, 연전)','Daily quests added (submit, cull, recon, scout, use, gauntlet)'] ] },
   { ver:49, date:'8/Sep', lines:[
     ['버그 수정: 분해 결과 카드, 전당포 흥정시 카드 스와이프 오류 개선','Fixed card swiping on the disassembly results and pawnshop haggling'],
     ['UI인터페이스 개선 및 패스 충전시 보유 사토 표시','Interface polish, and your Sato now shows when charging a pass'],
@@ -612,7 +610,7 @@ class Component extends DCLogic {
   }
   moveToBag(uid){ const i=this.gs.vault.findIndex(x=>x.uid===uid); if(i>=0){ const [it]=this.gs.vault.splice(i,1); this.gs.bag.push(it); } }
   rest(){ const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=full.maxHp; this.gs.sta=this.staMax; this.saveGame(); }
-  go(screen){ if(this._t){clearInterval(this._t); this._t=null;} if(this._ut){clearInterval(this._ut); this._ut=null;} this._lastScroll=0; this._titleLock=false; clearTimeout(this._titleLockT); if(screen==='settings') this.requestGyroPerm(); this.setState({ screen, modalZone:null, sel:null, titleHidden:false }); if(screen==='safehouse') this.saveGame(); }
+  go(screen){ if(this._t){clearInterval(this._t); this._t=null;} if(this._ut){clearInterval(this._ut); this._ut=null;} if(this._qT){clearInterval(this._qT); this._qT=null;} this._lastScroll=0; this._titleLock=false; clearTimeout(this._titleLockT); if(screen==='settings') this.requestGyroPerm(); this.setState({ screen, modalZone:null, sel:null, titleHidden:false }); if(screen==='safehouse') this.saveGame(); }
   // 위치는 flash 시점(DOM이 안정된 상태)에 재둔다 — 렌더 중에 재면 시트가 아직 높이 0이라 빗나간다.
   flash(msg,warn){ this._toastAnc=this.toastAnchor(); clearTimeout(this._ft); clearTimeout(this._ftOut);
     this.setState({toast:msg,toastOut:false,toastWarn:!!warn});
@@ -4740,7 +4738,16 @@ void main(){
       onClick:()=>this.openQuestSheet(q.QuestID)});
   }
 
+  // 남은시간을 1초마다 갱신한다. 화면을 벗어나면 스스로 멈춘다(hideTick과 같은 형).
+  qTick(){
+    if(this._qT) return;
+    this._qT=setInterval(()=>{
+      if(this.state.screen!=='quest'){ clearInterval(this._qT); this._qT=null; return; }
+      this.forceUpdate();
+    },1000);
+  }
   questScreen(){
+    this.qTick();
     const v=this.eng.byId.vendor[this.state.vendor]||{};
     const tab=this.state.qTab||'daily';
     const rows=this.qList(tab);
@@ -4900,7 +4907,7 @@ void main(){
 
   qAccept(q){ const o=this.eng.questObjective(q);
     this.qSet(q.QuestID,{s:'run', p:(o?o.targets:[]).map(()=>0)});
-    this.forceUpdate(); }
+    this.closeQuestSheet(); }   // 수락하면 시트를 닫고 리스트로 돌아간다
   // 포기하면 다음 리셋까지 돌아오지 않는다(사용자 결정) — 기록을 'gave'로 남겨 목록에서 뺀다.
   qGiveup(q){ this.qSet(q.QuestID,{s:'gave', p:[]}); this.setState({qSel:null,qGive:false}); }
 
