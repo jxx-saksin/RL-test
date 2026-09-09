@@ -248,8 +248,8 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 49;
-const TITLE_DATE = '0908';
+const TITLE_VER = 50;
+const TITLE_DATE = '0909';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -389,7 +389,7 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val37');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const eng = await import('./engine.js?v=val38');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val7');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -1986,7 +1986,7 @@ class Component extends DCLogic {
       h('div',{onPointerDown:(e)=>{this._rsx=e.clientX;this._rmoved=false;},onPointerMove:(e)=>{if(this._rsx!=null&&Math.abs(e.clientX-this._rsx)>8)this._rmoved=true;},onPointerUp:(e)=>{if(this._rsx==null)return;const dx=e.clientX-this._rsx;this._rsx=null;if(Math.abs(dx)>30){ if(dx<0)this.restNav(1); else this.restNav(-1);} },style:{position:'relative',zIndex:1,flex:'0 1 502px',minHeight:0,overflow:'hidden'}},
         list.length? list.map((card,i)=>{ const off=i-c.restFocus, abs=Math.abs(off), isC=off===0; const x=off*250, s=isC?1:0.9, o=1;
             const handlers=isC?this.restCenterHandlers():{onClick:()=>{ if(!this._rmoved){c.restFocus=i;this.forceUpdate();} }};
-            return h('div',Object.assign({key:card.uid+'#'+i,'data-rscard':isC?'focus':null},handlers,{style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(482px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'grab':'pointer',touchAction:'none'}}), this.lootCardBig(card)); })
+            return h('div',Object.assign({key:card.uid+'#'+i,'data-rscard':isC?'focus':null},handlers,{style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(482px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,filter:isC?'none':'brightness(0.9)',zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'grab':'pointer',touchAction:'none'}}), this.lootCardBig(card)); })
           : this.cardEmptyBand(this.en()?'No food or medicine to use.':'사용할 음식이나 의약품이 없습니다.')),
       // 힌트 (위로 올려 사용)
       h('div',{style:{position:'relative',zIndex:1,flex:'1 1 auto',minHeight:0}}, list.length? h('div',{style:{height:'100%',padding:'6px 16px 16px',boxSizing:'border-box',display:'flex',flexDirection:'column',justifyContent:'center'}},
@@ -2430,7 +2430,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
         c.cards.map((id,i)=>{ const off=i-c.cardFocus, abs=Math.abs(off); const isCenter=off===0; const x=off*250, s=isCenter?1:0.9; let o=1; if(flipped&&!isCenter) o=0; const rot=(flipped&&isCenter)?180:0; const settled=this.flipSettled(c,'enc'+i,flipped&&isCenter); const flat=settled||!(flipped&&isCenter);   // 3D는 센터 플립 순간에만 — 그 외 평면(레이어 승격·z-index 무시 방지)
               const cbm=(id&&id.type==='monster')?this.eng.byId.monster[id.id]:null; const isBossBack=!!(cbm&&String(cbm.Grade||'').toLowerCase()==='boss');
               return h('div',{key:i,onClick:()=>{ if(this._moved||flipped) return; isCenter?this.flipCenter():this.focusCard(i); },
-                style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(473px, 100%)',transform:'translate(calc(-50% + '+x+'px), calc(-50% - 16px)) scale('+s+')',opacity:isCenter?1:o,zIndex:isCenter?20:10-abs,transition:isCenter?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:(flipped&&!isCenter)?'none':'auto'}},
+                style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(473px, 100%)',transform:'translate(calc(-50% + '+x+'px), calc(-50% - 16px)) scale('+s+')',opacity:isCenter?1:o,filter:isCenter?'none':'brightness(0.9)',zIndex:isCenter?20:10-abs,transition:isCenter?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:(flipped&&!isCenter)?'none':'auto'}},
                 h('div',{style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
                   (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/monster_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/monster_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}},
                     isBossBack? h('div',{style:{position:'absolute',inset:0,pointerEvents:'none',borderRadius:8,animation:'rlBossTell 5.5s ease-in-out infinite'}}):null),
@@ -2528,7 +2528,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       this.battleHeader(head.kicker, head.title, this.bossChip()),
       h('div',{onPointerDown:(e)=>{this._fx=e.clientX;this._fmoved=false;},onPointerMove:(e)=>{if(this._fx!=null&&Math.abs(e.clientX-this._fx)>8)this._fmoved=true;},onPointerUp:(e)=>{if(this._fx==null)return;const dx=e.clientX-this._fx;this._fx=null;if(c.fleeFlipped)return;if(Math.abs(dx)>30){ if(dx<0)c.fleeFocus=Math.min(2,(c.fleeFocus||0)+1); else c.fleeFocus=Math.max(0,(c.fleeFocus||0)-1); this.forceUpdate(); }},style:{flex:1,position:'relative',overflow:'hidden'}},
         [0,1,2].map(i=>{ const off=i-(c.fleeFocus==null?1:c.fleeFocus), abs=Math.abs(off), isC=off===0; const x=off*250; let o=1; if(flipped&&!isC)o=0; const rot=(flipped&&isC)?180:0; const settled=this.flipSettled(c,'flee'+i,flipped&&isC); const flat=settled||!(flipped&&isC);
-          return h('div',{key:i,onClick:()=>{ if(this._fmoved||flipped)return; isC?this.flipFlee():(c.fleeFocus=i,this.forceUpdate()); },style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(442px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+(isC?1:0.9)+')',opacity:isC?1:o,zIndex:isC?20:10-abs,transition:isC?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:(flipped&&!isC)?'none':'auto'}},
+          return h('div',{key:i,onClick:()=>{ if(this._fmoved||flipped)return; isC?this.flipFlee():(c.fleeFocus=i,this.forceUpdate()); },style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(442px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+(isC?1:0.9)+')',opacity:isC?1:o,filter:isC?'none':'brightness(0.9)',zIndex:isC?20:10-abs,transition:isC?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:(flipped&&!isC)?'none':'auto'}},
             h('div',{style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
               (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s'}}, this.cardFace()),
               (isC&&!(flat&&!flipped))? h('div',{style:flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden'}}, flipped?this.fleeFront():null):null)); }),
@@ -2860,7 +2860,7 @@ void main(){
       h('div',{ref:(el)=>{ if(el&&el.clientHeight&&el.clientHeight!==this._pvpStageH){ this._pvpStageH=el.clientHeight; this.forceUpdate(); } },onPointerDown:(e)=>{this._px=e.clientX;this._pmoved=false;},onPointerMove:(e)=>{if(this._px!=null&&Math.abs(e.clientX-this._px)>8)this._pmoved=true;},onPointerUp:(e)=>{if(this._px==null)return;const dx=e.clientX-this._px;this._px=null;if(pc.picked!=null)return;if(Math.abs(dx)>30){ if(dx<0)this.focusPvp(focus+1); else this.focusPvp(focus-1); }},style:{zIndex:1,flex:win?'0 1 502px':'1 1 auto',minHeight:0,position:'relative',overflow:'hidden'}},
         Array.from({length:pc.n}).map((_,i)=>{ const off=i-focus, abs=Math.abs(off); const isCenter=off===0; const ch=(done&&i===pc.picked)?this.pvpCardHeight():474; const fit=Math.min(1,(this._pvpStageH?this._pvpStageH-16:ch)/ch); const x=off*250*fit, s=(isCenter?1:0.9)*fit; let o=1; const flippedThis=done&&i===pc.picked; if(done&&!flippedThis) o=0; const rot=flippedThis?180:0; const settled=this.flipSettled(c,'pvp'+i,flippedThis); const flat=settled||!flippedThis;
             return h('div',{key:i,onClick:()=>{ if(this._pmoved||pc.picked!=null) return; isCenter?this.flipPvp():this.focusPvp(i); },
-              style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:isCenter?1:o,zIndex:isCenter?20:10-abs,transition:isCenter?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:pc.picked!=null?'default':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:(done&&!flippedThis)?'none':'auto'}},
+              style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:isCenter?1:o,filter:isCenter?'none':'brightness(0.9)',zIndex:isCenter?20:10-abs,transition:isCenter?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:pc.picked!=null?'default':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:(done&&!flippedThis)?'none':'auto'}},
               h('div',{style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
                 (flat&&flippedThis)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/pvp_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flippedThis?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/pvp_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
                 (flat&&!flippedThis)?null:h('div',{style:flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flippedThis?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden'}}, flippedThis?this.pvpResultCardFace(i):null))); }),
@@ -3526,7 +3526,7 @@ void main(){
           const fit=Math.min(1,(this._lootStageH?this._lootStageH-16:ch)/ch);
           const s=(isCenter?1:0.9)*fit;
           return h('div',{key:uid,onClick:()=>{ if(this._lmoved) return; if(!isCenter){ this.lootFocus(i); return; } },
-            style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+(x*fit)+'px), -50%) scale('+s+')',opacity:isCenter?1:o,zIndex:isCenter?20:10-abs,transition:isCenter?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:abs>1?'none':'auto'}},
+            style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+(x*fit)+'px), -50%) scale('+s+')',opacity:isCenter?1:o,filter:isCenter?'none':'brightness(0.9)',zIndex:isCenter?20:10-abs,transition:isCenter?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:abs>1?'none':'auto'}},
             h('div',{style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
               (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
               (flat&&!flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden'}}, flipped?this.lootCardBig(inst,true):null))); })),
@@ -3906,7 +3906,7 @@ void main(){
           const flipped=!isField||(lm.opened&&lm.opened.has(inst.uid)); const ch=flipped?this.lootCardH(inst):482;
           const settled=this.flipSettled(lm,'lm'+inst.uid,flipped); const flat=settled||!(flipped&&isC);
           const handlers=isC?this.lmCenterHandlers():{onClick:()=>{ if(!this._lmoved)this.lmSetFocus(i); }};
-          return h('div',Object.assign({key:inst.uid,'data-lmcard':isC?'focus':null},handlers,{style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+sc+')',opacity:isC?1:o,zIndex:isC?20:10-abs,transition:isC?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'grab':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'})}}),
+          return h('div',Object.assign({key:inst.uid,'data-lmcard':isC?'focus':null},handlers,{style:{position:'absolute',left:'50%',top:'50%',width:342,height:ch,transform:'translate(calc(-50% + '+x+'px), -50%) scale('+sc+')',opacity:isC?1:o,filter:isC?'none':'brightness(0.9)',zIndex:isC?20:10-abs,transition:isC?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'grab':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'})}}),
             h('div',{style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+(flipped?180:0)+'deg)'}},
               (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
               (flat&&!flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden',boxShadow:lk?('0 0 0 2px '+blue):'none'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden',boxShadow:lk?('0 0 0 2px '+blue):'none'}}, flipped?this.lootCardBig(inst,true):null))); })
@@ -4073,7 +4073,9 @@ void main(){
   itemLabel(inst){ const base=this.eng.anyName(inst.id); if(!inst||!inst.affixes||!inst.affixes.length) return base; const pre=inst.affixes.find(a=>a.type==='prefix'); const suf=inst.affixes.find(a=>a.type==='suffix'); return (pre?this.eng.affixName(pre)+' ':'')+(suf?this.eng.affixName(suf)+' ':'')+base; }
   // 인벤 리스트 수량 칩 — 최대스택≥2 아이템에만(현재수량/최대, 최대치는 MAX). svg screen-list.svg 참고
   // 제작가능 칩 — 치수·폰트는 인벤토리 스택 칩(qtyChip)과 동일, 색만 하우스 그린(#83B289).
-  readyChip(label){ return h('span',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(131,178,137,0.45)',color:'#83B289'}}, label); }
+  // 정보 칩(인벤토리 수량칩과 같은 치수). col 미지정이면 하우스 그린 — 기존 [제작가능] 호출부가 그대로 돈다.
+  readyChip(label,col){ const c=col||'#83B289'; const rgb=[1,3,5].map(i=>parseInt(c.substr(i,2),16)).join(',');
+    return h('span',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba('+rgb+',0.45)',color:c}}, label); }
   qtyChip(inst,ms){ return h('span',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',color:'rgb(169,171,175)'}}, ((inst.qty||1)>=ms?'MAX':(inst.qty||1))+'/'+ms); }
   invRow(inst,seg,catOf){
     const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||(this.eng.byId.bag&&this.eng.byId.bag[inst.id])||{};
@@ -4631,6 +4633,19 @@ void main(){
     return h('div',{key:key,style:{position:'relative',width:w||'100%',height:6,flex:'0 0 auto',background:'#2B2E32',borderRadius:1,overflow:'hidden'}},
       p>0? h('div',{style:{width:p+'%',height:'100%',background:col||(p>=100?'#83B289':'#A5ACB2')}}) : null);
   }
+  // 3초 롤 바(제작·분해) — 도망 바와 동종. CSS transition 한 번으로 끝내므로 리렌더가 필요 없다.
+  // 재진입하면 항상 0%부터 다시 달린다(사용자 확정). 단 duration은 '남은 시간'이라 끝나는 시점은 정확하다.
+  // ⚠️ fill의 vdom style은 상수다 — DC가 다시 쓰지 않아야 명령형 트랜지션이 3초를 버틴다.
+  //    대신 롤이 끝나면 호출부가 key를 갈아(rollbar↔bar) 노드를 교체해 스타일 눌어붙음을 끊는다.
+  rollBar(leftMs,col){
+    const L=Math.max(0,leftMs);
+    return h('div',{style:{position:'relative',width:'100%',height:6,flex:'0 0 auto',background:'#2B2E32',borderRadius:1,overflow:'hidden'}},
+      h('div',{ref:el=>{ if(!el||el._rb) return; el._rb=1;
+          el.style.transition='none'; el.style.width='0%';
+          void el.offsetWidth;                       // 리플로우 강제 — rAF와 달리 탭이 숨어도 동작한다
+          el.style.transition='width '+L+'ms linear'; el.style.width='100%'; },
+        style:{height:'100%',width:'100%',background:col||'#A5ACB2'}}));
+  }
   hideLockIcon(){ return h('svg',{width:13,height:13,viewBox:'0 0 21.5 21.5',fill:'#4B4D52',style:{display:'block'}},
     h('path',{fillRule:'evenodd',d:'M 4 8.053 L 4 6.75 C 4 3.022 7.022 0 10.75 0 C 14.478 0 17.5 3.022 17.5 6.75 L 17.5 8.053 C 17.727 8.069 17.941 8.089 18.142 8.117 C 19.042 8.238 19.8 8.496 20.402 9.098 C 21.004 9.7 21.262 10.458 21.383 11.358 C 21.5 12.225 21.5 13.328 21.5 14.695 L 21.5 14.805 C 21.5 16.172 21.5 17.275 21.383 18.142 C 21.262 19.042 21.004 19.8 20.402 20.402 C 19.8 21.004 19.042 21.262 18.142 21.383 C 17.275 21.5 16.172 21.5 14.805 21.5 L 6.695 21.5 C 5.328 21.5 4.225 21.5 3.358 21.383 C 2.458 21.262 1.7 21.004 1.098 20.402 C 0.496 19.8 0.238 19.042 0.117 18.142 C 0 17.275 0 16.172 0 14.805 L 0 14.695 C 0 13.328 0 12.225 0.117 11.358 C 0.238 10.458 0.496 9.7 1.098 9.098 C 1.7 8.496 2.458 8.238 3.358 8.117 C 3.559 8.089 3.773 8.069 4 8.053 Z M 5.5 6.75 C 5.5 3.851 7.851 1.5 10.75 1.5 C 13.649 1.5 16 3.851 16 6.75 L 16 8.003 C 15.626 8 15.228 8 14.805 8 L 6.695 8 C 6.272 8 5.874 8 5.5 8.003 L 5.5 6.75 Z M 2.159 10.159 C 2.436 9.882 2.824 9.702 3.558 9.603 C 4.313 9.502 5.315 9.5 6.75 9.5 L 14.75 9.5 C 16.185 9.5 17.187 9.502 17.942 9.603 C 18.676 9.702 19.064 9.882 19.341 10.159 C 19.618 10.436 19.798 10.824 19.897 11.558 C 19.998 12.313 20 13.315 20 14.75 C 20 16.185 19.998 17.187 19.897 17.942 C 19.798 18.676 19.618 19.064 19.341 19.341 C 19.064 19.618 18.676 19.798 17.942 19.897 C 17.187 19.998 16.185 20 14.75 20 L 6.75 20 C 5.315 20 4.313 19.998 3.558 19.897 C 2.824 19.798 2.436 19.618 2.159 19.341 C 1.882 19.064 1.702 18.676 1.603 17.942 C 1.502 17.187 1.5 16.185 1.5 14.75 C 1.5 13.315 1.502 12.313 1.603 11.558 C 1.702 10.824 1.882 10.436 2.159 10.159 Z'})); }
   // 슬롯 행 — 3칸 고정으로 그리고 레벨만큼만 연다(업그레이드를 가정한 UI · 사용자 결정).
@@ -4689,6 +4704,19 @@ void main(){
         h('div',{style:{flex:1}}),
         body));
   }
+  // 시설 버튼 상태 칩 — 완료가 하나라도 있으면 'done'(수령하러 들어가야 함), 없고 돌아가는 게 있으면 'run', 아니면 null.
+  // ⚠️ 슬롯 수는 시설 레벨이 아니라 Facility.Effects에서 온다(디스크는 1/1/2).
+  facJobChip(k){
+    let n=0, get=null;
+    if(k==='disk'){ n=this.diskSlots(); get=(i)=>{ const j=this.diskJob(i); return j? (j.done?'done':'run') : null; }; }
+    else if(k==='decode'){ n=this.decodeSlots(); get=(i)=>{ const j=this.decodeJob(i); return j? (j.done?'done':'run') : null; }; }
+    else if(k==='craft'){ n=this.craftSlotsN(); get=(i)=>{ const j=this.craftJob(i); if(!j) return null;
+      return (j.phase==='done'||j.phase==='fail')?'done':'run'; }; }   // 실패도 슬롯을 물고 있어 치워야 한다
+    else return null;
+    let run=false;
+    for(let i=0;i<n;i++){ const v=get(i); if(v==='done') return 'done'; if(v==='run') run=true; }
+    return run?'run':null;
+  }
   hideoutList(){
     this.hideTick();
     return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
@@ -4735,11 +4763,15 @@ void main(){
       this.shopHeaderChips(this.hideFacName(facId), ()=>this.go('hideout')),
       h('div',{style:{flex:'1 1 auto',minHeight:0}}),
       h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',flexDirection:'column',gap:16}},
-        ...items.map(it=>h('button',{key:it.k,disabled:it.locked,
-          onClick:it.locked?null:()=>{ if(it.k==='exit') this.go('hideout'); else this.hideAction(facId,it.k); },
-          style:{height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:it.locked?'#6F7276':(it.running?'#83B289':'#EAEBEE'),fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:it.locked?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
-          it.locked? this.hideLockIcon() : null,
-          h('span',{key:'l'}, it.label)))));
+        ...items.map(it=>{ const st=it.locked? null : this.facJobChip(it.k);
+          return h('button',{key:it.k,disabled:it.locked,
+            onClick:it.locked?null:()=>{ if(it.k==='exit') this.go('hideout'); else this.hideAction(facId,it.k); },
+            style:{position:'relative',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:it.locked?'#6F7276':(it.running?'#83B289':'#EAEBEE'),fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:it.locked?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
+            it.locked? this.hideLockIcon() : null,
+            h('span',{key:'l'}, it.label),
+            // 칩은 absolute — 라벨의 가운데 정렬을 밀지 않는다.
+            st? h('span',{key:'chip',style:{position:'absolute',right:16,top:'50%',transform:'translateY(-50%)',display:'flex'}},
+                 this.readyChip(this.t(st==='done'?'hide_chip_done':'hide_chip_run'), st==='done'?'#7CA5BB':'#83B289')) : null); })));
   }
   // 시설 화면 헤더 = shopHeader와 같되 통화 칩만 아지트용으로 바꾼다.
   shopHeaderChips(title,onBack){
@@ -4995,7 +5027,7 @@ void main(){
             {onDragStart:(e)=>e.preventDefault(),
              style:{position:'absolute',left:'50%',top:'50%',width:342,
               transform:CARD_TF(off), transition:'transform .4s cubic-bezier(.16,1,.3,1)',
-              zIndex:isC?20:10-abs, touchAction:'none', userSelect:'none', WebkitUserSelect:'none', cursor:isC?'grab':'pointer', willChange:'transform'}}),
+              filter:isC?'none':'brightness(0.9)',zIndex:isC?20:10-abs, touchAction:'none', userSelect:'none', WebkitUserSelect:'none', cursor:isC?'grab':'pointer', willChange:'transform'}}),
             this.lootCardBig({...m,qty:1},'fit')); }) : [this.cardEmptyBand(this.t('hide_mod_empty'))]),
         cur? h('div',{key:'hint',style:{position:'absolute',left:0,right:0,bottom:8,zIndex:6,display:'flex',flexDirection:'column',alignItems:'center',gap:6,pointerEvents:'none'}},
           h('svg',{width:20,height:12,viewBox:'0 0 20 12',fill:'none',stroke:'#EAEBEE',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round',style:{animation:'rlBounceUp 1.6s ease-in-out infinite'}}, h('path',{d:'M2 10L10 2L18 10'})),
@@ -5133,16 +5165,16 @@ void main(){
       h('div',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',fontWeight:500,color:T.hi,marginTop:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.eng.anyName(bp.OutputItemID)),
       h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,marginTop:7,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.tx(src,'Description')||''));
   }
-  // roll 단계는 3초짜리라 1초 틱으로는 바가 뚝뚝 끊긴다 — 굴리는 동안만 80ms로 돈다.
-  craftRolling(){ const n=this.craftSlotsN(); for(let i=0;i<n;i++){ const j=this.craftJob(i); if(j&&j.phase==='roll') return true; } return false; }
+  // 굴리는 중인 첫 잡. 바 애니메이션은 rollBar(CSS)가 혼자 담당하므로 여기선 '끝나는 시점'만 알면 된다.
+  craftRolling(){ const n=this.craftSlotsN(); for(let i=0;i<n;i++){ const j=this.craftJob(i); if(j&&j.phase==='roll') return j; } return null; }
   craftRollTick(){
-    // ⚠️ 렌더에서 부르므로 '굴리는 중이 아니면 만들지 않는다' — 안 그러면 매 렌더마다 새 인터벌이 생긴다.
-    if(!this.craftRolling()){ if(this._crT){ clearInterval(this._crT); this._crT=null; } return; }
+    // ⚠️ 렌더에서 부르므로 '굴리는 중이 아니면 만들지 않는다' — 안 그러면 매 렌더마다 새 타이머가 생긴다.
+    const j=this.craftRolling();
+    if(!j){ if(this._crT){ clearTimeout(this._crT); this._crT=null; } return; }
     if(this._crT) return;
-    this._crT=setInterval(()=>{
-      if(!this.craftRolling()){ clearInterval(this._crT); this._crT=null; }
-      this.forceUpdate();
-    },80);
+    // 옛날엔 80ms 인터벌로 바를 손수 그렸다(3초에 37단계 = 계단). 지금은 끝날 때 한 번만 갱신한다.
+    // +60ms = Date.now()가 rollAt을 확실히 넘긴 뒤 판정하기 위한 여유.
+    this._crT=setTimeout(()=>{ this._crT=null; this.forceUpdate(); }, Math.max(0,j.left)+60);
   }
   craftScreen(){
     this.hideTick(); this.craftRollTick();
@@ -5248,7 +5280,9 @@ void main(){
     const label=(ph==='roll'||ph==='fail')? this.t('hide_craft_try') : this.t('hide_craft_time');
     const body=[ B.kicker(this.t('hide_craft_label')), B.name(this.eng.anyName(job.bp.OutputItemID)),
       B.lbl(label,right,'lb'),
-      h('div',{key:'bar',style:{marginTop:8}}, this.hideBar(job.pct,null,null,ph==='fail'?'#C4675D':null)) ];
+      (ph==='roll'
+        ? h('div',{key:'rollbar',style:{marginTop:8}}, this.rollBar(job.left))
+        : h('div',{key:'bar',style:{marginTop:8}}, this.hideBar(job.pct,null,null,ph==='fail'?'#C4675D':null))) ];
     let footer;
     if(ph==='fail'){ body.push(B.note(this.t('hide_craft_failed'),'#C4675D',true));
       footer=[B.btn(this.t('hide_craft_doing'),null,true,'d'), B.btn(this.t('hide_disk_close'),()=>this.clearCraft(job.i),false,'c')]; }
@@ -5308,14 +5342,10 @@ void main(){
       pct: roll? Math.max(0,Math.min(100,(1-(R-now)/RM)*100)) : 100, left:Math.max(0,R-now) };
   }
   disaRollTick(){
-    const j0=this.disaJob();
-    if(!j0||j0.phase!=='roll'){ if(this._daRT){ clearInterval(this._daRT); this._daRT=null; } return; }
+    const j=this.disaJob();
+    if(!j||j.phase!=='roll'){ if(this._daRT){ clearTimeout(this._daRT); this._daRT=null; } return; }
     if(this._daRT) return;
-    this._daRT=setInterval(()=>{
-      const j=this.disaJob();
-      if(!j||j.phase!=='roll'){ clearInterval(this._daRT); this._daRT=null; }
-      this.forceUpdate();
-    },80);
+    this._daRT=setTimeout(()=>{ this._daRT=null; this.forceUpdate(); }, Math.max(0,j.left)+60);   // 제작과 같은 규칙
   }
   disaRow(inst){
     const e=this.eng.byId;
@@ -5395,7 +5425,8 @@ void main(){
                       : h('span',{style:{fontFamily:T.mono,fontSize:10,color:B.MID}}, String(Math.max(1,Math.ceil(job.left/1000))));
     const body=[ B.kicker(this.t('hide_disa_label')), B.name(job.name||this.eng.anyName(job.id)),
       B.lbl(this.t('hide_disa_label'),right,'lb'),
-      h('div',{key:'bar',style:{marginTop:8}}, this.hideBar(job.pct)),
+      (done? h('div',{key:'bar',style:{marginTop:8}}, this.hideBar(job.pct))
+           : h('div',{key:'rollbar',style:{marginTop:8}}, this.rollBar(job.left))),
       B.note(done?this.t('hide_disa_complete'):this.t('hide_disa_running'), done?'#83B289':B.LO) ];
     const footer = done
       ? [B.btn(this.en()?'OK':'확인',()=>this.setState({disaRev:true,disaOpen:[],disaFocus:0}),false,'ok')]
@@ -6055,16 +6086,19 @@ void main(){
         (phase==='list'||phase==='front')?swipe:null),
         // 카드 슬롯 — talk 단계에선 카드 대신 대사(목업 y436 = 슬롯의 66% 지점)
         h('div',{key:'slot',style:{position:'relative',width:342,height:'min('+cardH+'px, 100%)',flex:'0 0 auto',display:'flex',alignItems:'center',justifyContent:'center'}},
-          // 이웃 카드 — 목록 단계에서만. 흥정 연출(들어올리기·뒤집기) 중에 옆 카드가 남으면 지저분하다.
-          // cardEl보다 먼저 그려 아래에 깔린다(둘 다 positioned라 DOM 순서가 곧 겹침 순서).
-          ...((phase==='list'&&list.length>1)? list.map((x,i)=>{ const off=i-focus;
-            if(off===0||Math.abs(off)>1) return null;
-            return h('div',{key:'hgside'+x.uid,onClick:()=>{ if(this._hgSwiped){ this._hgSwiped=false; return; } this.hgFocus(i); },
+          // 목록 단계 = 캐러셀(전리품·감정·PvP와 동종). 카드를 전부 absolute로 깔고 off로 밀어,
+          // 키를 uid로만 잡아 포커스가 바뀌어도 노드가 유지되게 한다 — 키에 phase/focus가 섞이면
+          // 노드가 교체되어 transition이 통째로 날아가고 '이미지만 즉시 갈림'이 된다.
+          // |off|>=2는 투명하게 대기시켜 바깥에서 미끄러져 들어오고, |off|>2는 렌더하지 않는다.
+          ...((phase==='list')? list.map((x,i)=>{ const off=i-focus, abs=Math.abs(off), isC=off===0; const x0=off*250, o=abs>1?0:1;
+            return h('div',{key:'hgc'+x.uid,onClick:isC?null:()=>{ if(this._hgSwiped){ this._hgSwiped=false; return; } this.hgFocus(i); },
               style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min('+this.lootCardH(x)+'px, 100%)',
-                transform:'translate(calc(-50% + '+(off*250)+'px), -50%) scale(0.9)',filter:'brightness(0.9)',
-                transition:'transform .4s cubic-bezier(.16,1,.3,1)',zIndex:0,cursor:'pointer'}},
+                transform:'translate(calc(-50% + '+x0+'px), -50%) scale('+(isC?1:0.9)+')',
+                filter:isC?'none':'brightness(0.9)',opacity:isC?1:o,
+                transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',
+                zIndex:isC?20:10-abs,cursor:isC?'default':'pointer',pointerEvents:abs>1?'none':'auto'}},
               this.lootCardBig(x,true)); }) : []),
-          cardEl,
+          (phase!=='list')? cardEl : null,
           (phase==='list'&&list.length>1)? cardNav(focus, list.length, ()=>this.hgFocus(focus-1), ()=>this.hgFocus(focus+1)) : null,
           phase==='talk'? h('div',{key:'talk',style:{position:'absolute',left:0,right:0,top:'66%'}}, this.npcLineBlock(this.hgVendorName(), g.line||'', false)) : null),
         // 힌트/대사 자리는 단계와 무관하게 항상 같은 높이를 차지한다 —
