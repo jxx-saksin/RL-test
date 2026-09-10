@@ -3,7 +3,7 @@
 // the same structure as the bundled data/game-data.js. CORS-enabled via the
 // gviz endpoint (works for link-shared sheets).
 
-import { DATA as BUNDLE } from './data/game-data.js?v=val4';
+import { DATA as BUNDLE } from './data/game-data.js?v=val5';
 
 // 탭 이름 → shape() 결과 필드. 선택 탭이 실패했을 때 번들 값으로 메꾸는 데 쓴다.
 const TAB_FIELD = { Config:'config', PrimaryStat:'primaryStats', SecondaryStat:'secondaryStats',

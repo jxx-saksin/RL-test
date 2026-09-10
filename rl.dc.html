@@ -162,6 +162,9 @@ const HAGGLE_TPL = {
        ['여기까지야. 팔든지 들고 가든지.','This is it. Sell it or take it home.'],
        ['세 번 봤으면 됐지.','Three looks is enough.']],
 };
+// 몬스터 등급 색 — 카드 리빌(monsterFront)과 퀘스트 목표 칩이 같은 표를 쓴다.
+const GRADECOL = { common:'rgb(234,235,238)', rare:'#83B289', unique:'#7CA5BB', special:'#B27EAD', boss:'#D6BB79' };
+const gradeColOf = (g) => GRADECOL[String(g||'').toLowerCase()] || GRADECOL.common;
 const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Valuable:'귀중품', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소', Blueprint:'디스크' };
 // 몬스터 아트 보유 목록 — 레이드 로딩 배경 랜덤 픽 판정용(assets/art/monsters/*.webp). 아트 추가 시 갱신.
 const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','monster_bloated_toad','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_pale_lynx','monster_rogue_emergency','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_spore_gardener','monster_wandering_sentry','monster_abandoned_chihuahua',
@@ -288,12 +291,14 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 54;
+const TITLE_VER = 55;
 const TITLE_DATE = '0910';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:55, date:'10/Sep', lines:[
+    ['모든 재료 및 몬스터 정보카드에 힌트가 제공됨','Materials and monsters now show an info card hint'] ] },
   { ver:52, date:'9/Sep', lines:[
     ['일일 퀘스트 기능 업데이트(제출, 소탕, 조우, 정찰, 사용, 연전)','Daily quests added (submit, cull, recon, scout, use, gauntlet)'] ] },
   { ver:49, date:'8/Sep', lines:[
@@ -431,8 +436,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val42');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val10');
+      const eng = await import('./engine.js?v=val43');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val11');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -1564,7 +1569,7 @@ class Component extends DCLogic {
     else if(s==='pass') body=this.passScreen();
     else if(s==='tap') body=this.tapScreen();
     const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap' && s!=='hideout' && s!=='hideFac' && s!=='disk' && s!=='diskInsert' && s!=='decode' && s!=='craft' && s!=='disa' && s!=='rsrep' && s!=='rsmod' && s!=='quest';
-    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null);
+    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null);
   }
 
   // ---- safehouse ----
@@ -2359,7 +2364,6 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     const artUrl='assets/art/monsters/'+m.id+'.webp';
     const artP=fixed?{height:190,flexShrink:0}:{flex:'1 1 auto',minHeight:60};
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', MID='rgb(169,171,175)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', HPC='rgb(196,103,93)';
-    const GRADECOL={common:HI, rare:'#83B289', unique:'#7CA5BB', special:'#B27EAD', boss:'#D6BB79'};
     const gk=String(m.grade||'').toLowerCase();
     const gcol=GRADECOL[gk]||HI;
     // 등급 리빌: 비네트 강도(등급색에 알파를 굽고 opacity 0→1 페이드) · 캐러셀(!fixed)에서만
@@ -4187,7 +4191,13 @@ void main(){
     const o=opt||{};   // 퀘스트 칩은 배경·패딩·테두리 불투명 여부가 다르다(목업 실측: 탭 h20 bg#212327 / 행 h22 bg#0A0B0E)
     return h('span',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:o.pad||'3px 8px',borderRadius:4,whiteSpace:'nowrap',textTransform:'uppercase',background:o.bg||'rgba(10,11,14,0.55)',border:'1px solid '+(o.solid?c:'rgba('+rgb+',0.45)'),color:c}}, label); }
   // 등급칩 — catChip에서 점만 뺀 것(목업 실측: 외곽 h22 · bg #212327 · border #36383C · mono 9.5)
-  gradeChip(txt){ return h('span',{style:{display:'inline-flex',alignItems:'center',flex:'0 0 auto',boxSizing:'border-box',borderRadius:4,background:'rgb(33,35,39)',border:'1px solid rgb(54,56,60)',padding:'5px 8px',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:'rgb(169,171,175)',whiteSpace:'nowrap',textTransform:'uppercase'}}, txt); }
+  // col을 주면 글자·테두리가 그 색이 된다(몬스터 등급칩). 안 주면 기존 중립 회색 그대로.
+  gradeChip(txt,col){
+    const rgba=(c,a)=>{ const m=String(c).match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+      if(m) return 'rgba('+m[1]+','+m[2]+','+m[3]+','+a+')';
+      const v=parseInt(String(c).replace('#',''),16);
+      return 'rgba('+((v>>16)&255)+','+((v>>8)&255)+','+(v&255)+','+a+')'; };
+    return h('span',{style:{display:'inline-flex',alignItems:'center',flex:'0 0 auto',boxSizing:'border-box',borderRadius:4,background:'rgb(33,35,39)',border:'1px solid '+(col?rgba(col,0.45):'rgb(54,56,60)'),padding:'5px 8px',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:col||'rgb(169,171,175)',whiteSpace:'nowrap',textTransform:'uppercase'}}, txt); }
   qtyChip(inst,ms){ return h('span',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',color:'rgb(169,171,175)'}}, ((inst.qty||1)>=ms?'MAX':(inst.qty||1))+'/'+ms); }
   invRow(inst,seg,catOf){
     const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||(this.eng.byId.bag&&this.eng.byId.bag[inst.id])||{};
@@ -4666,7 +4676,7 @@ void main(){
             h('div',{className:'rcv-fill',ref:el=>this._repFill=el,style:{width:(inst.maxDur>0?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100)):0)+'%',background:'#a5acb2'}}),
             h('div',{className:'rcv-shim'}))),
         hide? h('div',{style:{marginTop:16}},
-          ...mats.map((m,i)=>this.frow(m.label, h('span',{style:{color:m.ok?'#EAEBEE':'#CCA26E'}}, m.have+'/'+m.need), '#EAEBEE', i>0)),
+          ...mats.map((m,i)=>this.frow(this.matName(m.id, m.label, {fontFamily:T.sans,fontSize:13,color:'#A9ABAF'}), h('span',{style:{color:m.ok?'#EAEBEE':'#CCA26E'}}, m.have+'/'+m.need), '#EAEBEE', i>0)),
           h('div',{style:{height:13,marginTop:16,display:'flex',alignItems:'center',fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:'#4B4D52'}}, this.t('hide_upg_effect')),
           this.frow(this.t('hide_rep_rate'), h('span',null, rbase+'%', h('span',{style:{color:(rate-rbase)>0?'#83B289':'#4B4D52'}}, '(+'+(rate-rbase)+'%)')), '#EAEBEE', false))
         : h('div',{style:{marginTop:16}},
@@ -4832,7 +4842,8 @@ void main(){
   // 목표 행 앞 칩 — 제출·사용은 대상의 카테고리(정크/약품/무기…), 소탕·조우는 몬스터 등급
   qTChip(kind,t){
     if(kind==='kill'||kind==='encounter'){ const m=this.eng.byId.monster[t.id];
-      return this.gradeChip(String((m&&m.Grade)||'COMMON').toUpperCase()); }
+      const g=String((m&&m.Grade)||'COMMON');
+      return this.gradeChip(g.toUpperCase(), gradeColOf(g)); }
     return this.catChip((t.filter||t.effect)? this.qTName(t) : this.qCatOf(t.id), false); }
   // 목표 행 라벨 — 조우·사용만 동사를 붙인다(목업), 제출·소탕은 이름만
   qRowLabel(kind,t,o){ const n=this.qTName(t);
@@ -4847,7 +4858,7 @@ void main(){
     return out; }
 
   // window.__Q = 진행도 주입·상태 확인용 디버그 핸들(감지 훅이 붙기 전까지 이걸로 검증한다)
-  openQuest(){ window.__Q=this; this.qSync(); this.setState({screen:'quest',qTab:'daily',qSel:null,qGive:false,qRew:null,qOpen:[],qFocus:0}); }
+  openQuest(){ window.__Q=this; this.qSync(); this.setState({screen:'quest',qTab:'daily',qSel:null,qGive:false,qRew:null,qOpen:[],qFocus:0,cardPop:null}); }
   openQuestSheet(id){ const r=this.qRec(id);
     if(r&&r.s==='rw'){ this.setState({qSel:id,qGive:false,qRew:id,qOpen:[],qFocus:0});
       this.sfxDealIn((r.rw||[]).length); this.qRevealAll(); return; }
@@ -4960,7 +4971,9 @@ void main(){
       (o&&!this.qIsBanner(o.kind))? h('div',{key:'objs',style:{marginTop:2,display:'flex',flexDirection:'column'}},
         ...o.targets.map((t,i)=>this.qLine(
           h('div',{style:{display:'flex',alignItems:'center',gap:12,minWidth:0}}, this.qTChip(o.kind,t),
-            h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#A9ABAF',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}, this.qRowLabel(o.kind,t,o))),
+            // 대상 이름을 탭하면 카드가 뜬다 — 소탕·조우=몬스터 / 제출=아이템. 볼 게 없으면 그냥 텍스트.
+            this.popName(this.qRowLabel(o.kind,t,o), this.qCardOf(o.kind,t),
+              {fontFamily:T.sans,fontSize:13,color:'#A9ABAF',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'})),
           h('span',{style:{fontFamily:T.mono,fontSize:13,color:this.qCntCol(pr[i]||0,t.count),flex:'0 0 auto'}}, (pr[i]||0)+'/'+t.count),
           i===o.targets.length-1, 'ob'+i))) : null,
       this.qSecLabel(this.t('quest_sec_reward'),16),
@@ -5050,6 +5063,51 @@ void main(){
     if(hit) this.saveGame();
   }
 
+  // 탭하면 카드가 뜨는 이름 — 끝에 ⓘ(svg/ic_popup_info.png 14x14 · #36383C)를 붙여 누를 수 있음을 알린다.
+  // cd = {t:'m'|'i', id} · null이면 그냥 텍스트(아이콘도 안 붙는다).
+  popName(label,cd,style){
+    if(!cd) return h('span',{style:style}, label);
+    return h('span',{onClick:(ev)=>{ev.stopPropagation(); this.setState({cardPop:cd});},
+      style:{...style,display:'inline-flex',alignItems:'center',gap:5,minWidth:0,cursor:'pointer'}},
+      h('span',{key:'t',style:{overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}, label),
+      h('img',{key:'i',src:'assets/art/ui/ic_popup_info.webp',width:14,height:14,alt:'',
+        style:{flexShrink:0,display:'block'}}));
+  }
+  // 재료 행용 — 아이템 실존이면 카드가 붙는다.
+  matName(id,label,style){
+    const e=this.eng.byId;
+    const hit=id&&(e.item[id]||e.weapon[id]||e.armor[id]||e.artifact[id]||(e.talisman&&e.talisman[id])||(e.bag&&e.bag[id])||(e.liquor&&e.liquor[id])||(e.usb&&e.usb[id])||(e.module&&e.module[id]));
+    return this.popName(label, hit?{t:'i',id:id}:null, style);
+  }
+  // 목표를 탭하면 볼 수 있는 카드가 있나 — 소탕·조우=몬스터 / 제출=아이템. 없으면 null(그냥 텍스트로 둔다).
+  qCardOf(kind,t){
+    if(!t||!t.id) return null;
+    if(kind==='kill'||kind==='encounter') return this.eng.byId.monster[t.id]?{t:'m',id:t.id}:null;
+    // ⚠️ anyName은 못 찾아도 id를 그대로 돌려준다 — 실존 판정에 쓰면 안 된다. byId를 직접 본다.
+    if(kind==='submit'){ const e=this.eng.byId;
+      const hit=e.item[t.id]||e.weapon[t.id]||e.armor[t.id]||e.artifact[t.id]||(e.talisman&&e.talisman[t.id])||(e.bag&&e.bag[t.id])||(e.liquor&&e.liquor[t.id])||(e.usb&&e.usb[t.id])||(e.module&&e.module[t.id]);
+      return hit?{t:'i',id:t.id}:null; }
+    return null;
+  }
+  // 공용 카드 미리보기 팝업 — {t:'m'|'i', id}. 퀘스트 목표·제작 재료가 함께 쓴다.
+  // ★combatSheet·itemSheet와 달리 **카드를 눌러도 닫힌다**(사용자 규칙) — 그래서 카드 쪽에 stopPropagation을 두지 않는다.
+  // 카드 자체는 전투·전리품에서 쓰는 것을 그대로 재사용한다(별도 카드를 만들지 않는다).
+  cardPopSheet(){
+    const c=this.state.cardPop; if(!c) return null;
+    let card=null;
+    if(c.t==='m'){ const md=this.eng.byId.monster[c.id]; if(!md) return null;
+      card=this.monsterFront(this.eng.monsterProfile(md), true); }
+    else {
+      // ⚠️ mkInstance는 부를 때마다 접사·내구도를 새로 굴린다 → id별로 캐시해야 다시 열어도 같은 카드가 나온다.
+      if(!this._cardPopInst || this._cardPopInst.id!==c.id){
+        const x=this.eng.mkInstance(c.id,1); x.qty=1; x.locked=false; this._cardPopInst=x; }
+      card=this.lootCardBig(this._cardPopInst,'fit');
+    }
+    if(!card) return null;
+    const close=()=>this.setState({cardPop:null});
+    return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.82)',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',zIndex:36,animation:'rlFade .18s',cursor:'pointer'}},
+      h('div',{style:{maxHeight:'100%',overflowY:'auto',animation:'rlIn .22s cubic-bezier(.2,.8,.2,1)'}}, card));
+  }
   qAccept(q){ const o=this.eng.questObjective(q);
     this.qSet(q.QuestID,{s:'run', p:(o?o.targets:[]).map(()=>0)});
     this.closeQuestSheet(); }   // 수락하면 시트를 닫고 리스트로 돌아간다
@@ -5348,7 +5406,7 @@ void main(){
     const next=this.eng.facilityNext(this.gs,facId); if(!next) return null;
     const mats=this.eng.facilityCostItems(next).map(m=>{
       const have=this.ownedQty(m.id), need=this.eng.N(m.qty,0);
-      return { label:this.itemName(m.id), have, need, ok:have>=need }; });
+      return { id:m.id, label:this.itemName(m.id), have, need, ok:have>=need }; });
     const sato=this.eng.N(next.CostSato,0);
     if(sato>0) mats.unshift({ label:this.t('currency_sato'), have:this.gs.sato, need:sato, ok:this.gs.sato>=sato, sato:true });
     // ⚠️ key를 반드시 남길 것 — 렌더가 e.key로 라벨을 찾는다(예전엔 label만 넘겨 전부 '슬롯확장'이 됐다).
@@ -5410,7 +5468,7 @@ void main(){
     body.push(h('div',{key:'bar',style:{marginTop:8}}, running? this.hideBar(upg.pct) : this.hideBar(100,null,null,'#A5ACB2')));
     if(!running && info){
       info.mats.forEach((m,i)=>{
-        body.push(row(m.label, [ h('span',{key:'a',style:{color:m.ok?'#85B3C5':'#AE615C'}}, m.have.toLocaleString()),
+        body.push(row(this.matName(m.id, m.label, {fontFamily:T.sans,fontSize:13,color:MID}), [ h('span',{key:'a',style:{color:m.ok?'#85B3C5':'#AE615C'}}, m.have.toLocaleString()),
                                  h('span',{key:'b',style:{color:m.ok?HI:'#AE615C'}}, '/'+m.need.toLocaleString()) ], 'm'+i, i===0?22:0));
         if(i<info.mats.length-1) body.push(sep());
       });
@@ -5618,7 +5676,7 @@ void main(){
         h('div',{key:'sk'}, this.mdSocketRow(inst,i,{preview:mid,badge:'#CCA26E',glyph:'!'})),
         h('div',{key:'mats',style:{marginTop:14}}, ...mats.map((m,k)=>
           h('div',{key:'m'+k,style:{height:36,display:'flex',alignItems:'center',justifyContent:'space-between',borderTop:k?('1px solid '+B.LN):'none'}},
-            h('span',{style:{fontFamily:T.sans,fontSize:13,color:B.MID}}, m.label),
+            this.matName(m.id, m.label, {fontFamily:T.sans,fontSize:13,color:B.MID}),
             h('span',{style:{fontFamily:T.mono,fontSize:13,color:B.HI}}, h('span',{style:{color:m.ok?B.HI:'#CCA26E'}}, String(m.have)), '/'+m.need)))),
         ok? B.note(this.t('hide_mod_attach_confirm'),B.LO) : B.note(this.t('hide_upg_lack'),'#CCA26E',true));
       footer=[ B.btn(this.t('hide_mod_attach_label'), ok?()=>this.mdDoAttach(inst,i,mid):null, !ok, 'go'),
@@ -5798,7 +5856,7 @@ void main(){
       h('div',{key:'bar',style:{marginTop:8}}, this.hideBar(100,null,null,'#A5ACB2')),
       h('div',{key:'mats',style:{marginTop:16}}, ...mats.map((m,i)=>
         h('div',{key:'m'+i,style:{height:36,display:'flex',alignItems:'center',justifyContent:'space-between',borderTop:i?('1px solid '+B.LN):'none'}},
-          h('span',{style:{fontFamily:T.sans,fontSize:13,color:B.MID}}, m.label),
+          this.matName(m.id, m.label, {fontFamily:T.sans,fontSize:13,color:B.MID}),
           h('span',{style:{fontFamily:T.mono,fontSize:13,color:B.HI}},
             h('span',{style:{color:m.ok?B.HI:'#CCA26E'}}, String(m.have)), '/'+m.need)))),
       h('div',{key:'ek',style:{height:13,marginTop:16,display:'flex',alignItems:'center',fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:B.MUT}}, this.t('hide_upg_effect')),
