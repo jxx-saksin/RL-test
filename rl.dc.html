@@ -172,18 +172,59 @@ const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','mo
 // items/(52장·7.6MB)와 타이틀 영상은 일부러 뺐다. 몬스터 아트는 레이드 로딩 3초가 따로 커버한다.
 // 효과음 — 이 프로토타입 최초의 사운드. 파일은 sound/effect/(원본) → assets/sound/effect/(배포본).
 // ⚠️ 모바일은 사용자 제스처 안에서 한 번 재생해야 이후 재생이 풀린다 → sfxUnlock()을 타이틀 첫 탭에서 부른다.
+// ===== 효과음 — Web Audio (원본 명세: sound/battle/combat_sfx_spec.md · sound/card/card_dealing_sfx_spec.md)
+// ⚠️ new Audio()에서 갈아탄 이유 4가지: ① 레이어를 같은 순간에 못 겹침 ② 피치를 못 흔듦
+//    ③ iOS가 volume을 무시 ④ 타이머로 시작한 재생이 막힘(기기에서 disk_load만 안 들리던 원인).
+// 파일은 전부 AAC 모노 128k(.m4a) — 원본 mp3 마스터는 프로젝트 루트 sound/ 에 남아 있다.
 const SFX = {
-  card_insert:      'assets/sound/effect/card_insert.mp3',       // 카드가 단말로 빨려 들어가는 순간 (1.34s)
-  tap_terminal_done:'assets/sound/effect/tap_terminal_done.mp3', // 삽입이 확정되는 순간 (0.65s)
-  open_bag:         'assets/sound/effect/open_bag.mp3',          // 전리품 화면 → 가방으로 전환하는 순간 (1.00s)
-  close_bag:        'assets/sound/effect/close_bag.mp3',          // 가방을 닫는 순간 (0.80s) — 화면 되돌리기 + 아이템 넣고 꺼내기 양방향
-  disk_insert:      'assets/sound/effect/disk-insert.mp3',        // 단말기: 디스크(도면)가 슬롯에 들어가는 순간 (1.03s) — LED 노란 점멸 전
-  disk_load:        'assets/sound/effect/disk-load.mp3'           // 단말기: 인스톨이 도는 소리 (3.50s) — 노란 점멸이 끝나고 초록 브리딩으로 넘어갈 때
+  // ── effect · 단발 ──
+  card_insert:      'assets/sound/effect/card_insert.m4a',        // 카드가 단말로 빨려 들어가는 순간 (1.32s)
+  tap_terminal_done:'assets/sound/effect/tap_terminal_done.m4a',  // 삽입이 확정되는 순간 (0.62s)
+  open_bag:         'assets/sound/effect/open_bag.m4a',           // 전리품 → 가방 전환 (1.03s)
+  close_bag:        'assets/sound/effect/close_bag.m4a',          // 가방 닫기 (0.84s) — 양방향
+  disk_insert:      'assets/sound/effect/disk-insert.m4a',        // 단말기: 디스크가 슬롯에 들어감 (1.03s)
+  disk_load:        'assets/sound/effect/disk-load.m4a',          // 단말기: 인스톨이 도는 소리 (3.50s)
+  battle_victory:   'assets/sound/effect/battle-victory.m4a',     // 전투 승리 (2.04s)
+  battle_defeat:    'assets/sound/effect/battle-defeat.m4a',      // 전투 패배 (3.02s)
+  // ── card ──
+  card_flip1:       'assets/sound/card/card-flip.m4a',            // 카드 한 장이 뒤집히는 순간 — 3종 랜덤·연속 방지
+  card_flip2:       'assets/sound/card/card-flip2.m4a',
+  card_flip3:       'assets/sound/card/card-flip3.m4a',
+  card_swipe1:      'assets/sound/card/card-swipe.m4a',           // 좌우로 카드를 넘기는 순간 — 3종 랜덤·연속 방지
+  card_swipe2:      'assets/sound/card/card-swipe2.m4a',
+  card_swipe3:      'assets/sound/card/card-swipe3.m4a',
+  card_deal1:       'assets/sound/card/card-deal001.m4a',         // 딜링 — 한 번에 딜링 전체를 덮는다(1.30s)
+  card_deal2:       'assets/sound/card/card-deal002.m4a',         // 〃 (1.70s) · 2종 랜덤·연속 방지
+  // ── shop 진입음 ──
+  shop_clinic:      'assets/sound/shop/clinic.m4a',
+  shop_canteen:     'assets/sound/shop/canteen.m4a',
+  shop_hardware:    'assets/sound/shop/hardware.m4a',
+  shop_pawnshop:    'assets/sound/shop/pawnshop.m4a',
+  shop_bar:         'assets/sound/shop/bar.m4a',
+  shop_blackmarket: 'assets/sound/shop/blackmarket.m4a',
+  shop_kiosk:       'assets/sound/shop/kiosk.m4a'
 };
-// 자동재생 해제 전용 0.01초 무음 WAV(124B). ⚠️ iOS Safari는 volume 설정을 무시하므로(읽기 전용·항상 1)
-// 진짜 효과음을 volume=0으로 틀면 타이틀 탭에서 그대로 들린다. muted로도 해제가 안 되는 기기가 있어
-// '무음 파일을 소리내서' 재생하는 게 유일하게 안전한 방법이다.
-const SFX_SILENT = 'data:audio/wav;base64,UklGRnQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
+// 파일별 기본 게인 — 원본 음량이 제각각이라 코드에서 맞춘다(원본 파일은 안 건드린다).
+// 측정 기준 = '체감 음량'(상위 10% 구간 RMS). 피크는 짧은 타격 하나로도 1.0을 쳐서 기준이 못 된다.
+// 손대기 전 편차: 상점 24.8dB · effect 19.7dB · card 16.4dB. 목표치는 그룹의 성격을 남겨 셋으로 나눴다
+// (카드=미세 피드백 0.030 < UI·상점 0.050 < 승패 재즐 0.070). 한 값만 고치면 그 소리만 움직인다.
+// 보정 후 최대 피크 0.61(card_insert)로 클리핑 여지 없음.
+// 여기 없는 파일은 1.0(원본 그대로). 호출부에서 준 gain과는 곱해진다.
+const SFX_GAIN = {
+  // 카드(미세 피드백) 목표 0.030
+  card_deal1:5.98, card_deal2:2.74, card_flip1:1.55, card_flip2:1.02, card_flip3:0.91,
+  card_swipe1:1.00, card_swipe2:0.97, card_swipe3:1.05,
+  // UI 효과음 목표 0.050
+  card_insert:1.33, tap_terminal_done:0.42, open_bag:0.19, close_bag:0.39, disk_insert:1.14, disk_load:0.68,
+  // 승패 재즐은 조금 더 존재감 있게 0.070
+  battle_victory:0.19, battle_defeat:0.23,
+  // 상점 진입음 목표 0.050
+  shop_canteen:0.18, shop_blackmarket:0.23, shop_hardware:0.35, shop_clinic:0.52,
+  shop_kiosk:0.80, shop_bar:1.48, shop_pawnshop:3.18
+};
+// VendorID → SFX 키. 시트에 없는 벤더가 생겨도 조용히 무음이 된다.
+const SHOP_SFX = { vendor_clinic:'shop_clinic', vendor_canteen:'shop_canteen', vendor_hardware:'shop_hardware',
+  vendor_pawnshop:'shop_pawnshop', vendor_tavern:'shop_bar', vendor_blackmarket:'shop_blackmarket', vendor_auction:'shop_kiosk' };
 const PRELOAD = [
   // 1순위 — 부팅 끝나면 바로 보이는 프로토콜 지구
   ['assets/art/cities/city_01.webp',
@@ -196,8 +237,7 @@ const PRELOAD = [
    'assets/art/card_back/monster_back.webp','assets/art/card_back/item_back.webp',
    'assets/art/card_back/flee_back.webp','assets/art/card_back/pvp_back.webp'],
   // 3순위 — 태그/패스 화면(무겁고 진입이 늦다)
-  ['assets/art/ui/tap_terminal.webp','assets/art/cards/protocol_pass_full.webp?v=2',
-   SFX.card_insert, SFX.tap_terminal_done]
+  ['assets/art/ui/tap_terminal.webp','assets/art/cards/protocol_pass_full.webp?v=2']
 ];
 // 부팅 로딩 패럴랙스 세트 — 부팅할 때마다 랜덤 1개. 패럴랙스(2레이어+자이로)는 부팅 전용이고,
 // 레이드 로딩은 항상 단일 레이어 켄번즈(해당 존 스폰 몬스터 아트)를 쓴다.
@@ -248,8 +288,8 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 52;
-const TITLE_DATE = '0909';
+const TITLE_VER = 53;
+const TITLE_DATE = '0910';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -669,6 +709,7 @@ class Component extends DCLogic {
       return { type:'monster', id };
     });
     Object.assign(this.combat, { cards, picked:null, mProf:null, pvp:null, pvpCards:null, phase:'cards', res:null, revealed:0, loot:[], ups:[], cardFocus:Math.floor(n/2), flipped:false });
+    this.sfxDeal(cards.length);   // 딜링 — 카드 1장당 1회, 간격 랜덤
     if(this._t){ clearInterval(this._t); this._t=null; }
     this.forceUpdate();
   }
@@ -735,7 +776,7 @@ class Component extends DCLogic {
         c.ups = this.eng.applyGrowth(this.gs, res.triggers);
         const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; c.prof.maxHp=full.maxHp;
         this.setupPvpReward(); c.phase='pvpWin';
-      } else if(res.winner==='monster'){ c.satoGained=0; this.setupPvpFlee(); c.phase='pvpLose'; }  // PvP 패배 = 이번 레이드 사토 몰수(사망과 동일)
+      } else if(res.winner==='monster'){ c.satoGained=0; this.setupPvpFlee(); c.phase='pvpLose'; this.sfx('battle_defeat'); }  // PvP 패배 = 이번 레이드 사토 몰수(사망과 동일)
       else { c.phase='timeout'; }
       this.forceUpdate(); return;
     }
@@ -773,9 +814,9 @@ class Component extends DCLogic {
         // 사전소지품(주머니/가방)을 드랍 화면에 함께 표시 — gs.bag의 미착용 아이템을 lm.bag으로 이동(중복 방지), 커밋 시 되돌림.
         const lm={view:'field',focus:0,fromCombat:true,field:c.lootDraw.slice(),bag:[]}; const keep=[];
         for(const it of this.gs.bag){ if(this.isEquipped(it.uid)){ keep.push(it); continue; } it.locked=(it.loc==='pocket'); it.pre=true; lm.bag.push(it); }
-        this.gs.bag=keep; this.state.lm=lm; this.setState({screen:'lootmanage'}); return;
+        this.gs.bag=keep; this.state.lm=lm; this.sfxDealIn(this.lmCards(lm).length); this.setState({screen:'lootmanage'}); return;
       }
-    } else if(res.winner==='monster'){ c.phase='dead'; }
+    } else if(res.winner==='monster'){ c.phase='dead'; this.sfx('battle_defeat'); }
     else { c.phase='timeout'; }
     this.forceUpdate();
   }
@@ -906,8 +947,11 @@ class Component extends DCLogic {
       else { this.usb={stage:'intro',row:null,line:this.eng.usbLine('intro',null)}; }
     }
     // 상점 진입 = 메뉴 화면(screen-clinic-menu.svg). 서비스 탭은 메뉴에서 고른 뒤 'vendor'로 간다.
+    this.sfx(SHOP_SFX[id]);   // 상점별 진입음(없는 벤더면 조용히 무음)
     this.setState({screen:'vendorMenu',vendor:id,vtab:first,sel:null,repairSel:null,repairMode:null,modalZone:null,apr:null,mod:null}); }
-  openVendorTab(tab){ this._healDone=false; this._feedDone=false; this.setState({screen:'vendor',vtab:tab,sel:null,repairSel:null,repairMode:null,apr:null,mod:null,hg:(tab==='haggle'?{phase:'list',focus:0}:null)}); }
+  openVendorTab(tab){ this._healDone=false; this._feedDone=false;
+    if(tab==='haggle') this.sfxDealIn(this.valuablesOwned().length);
+    this.setState({screen:'vendor',vtab:tab,sel:null,repairSel:null,repairMode:null,apr:null,mod:null,hg:(tab==='haggle'?{phase:'list',focus:0}:null)}); }
   // ---------- shop ----------
   buy(shopId, row, qty){
     qty=Math.max(1, qty||1);
@@ -983,19 +1027,60 @@ class Component extends DCLogic {
       if(fillEl) fillEl.style.width=v+'%'; if(numEl) numEl.textContent=v;
       if(p<1||hold){ requestAnimationFrame(tick); } else if(onDone){ onDone(); } };
     requestAnimationFrame(tick); }
-  // ---- 효과음 ----
-  // 같은 소리가 겹칠 수 있어 매번 새 Audio를 쓴다(재생 중 재호출 시 앞소리가 끊기지 않게).
-  // 실패는 조용히 삼킨다 — 소리가 안 나는 것보다 예외로 화면이 멈추는 게 나쁘다.
-  sfx(name){ const src=SFX[name]; if(!src||this._sfxOff) return;
-    try{ const a=new Audio(src); a.volume=0.85; const p=a.play(); if(p&&p.catch) p.catch(()=>{}); }catch(_){ } }
-  // iOS/안드로이드 자동재생 해제 — 반드시 사용자 제스처 안에서. 무음 1회 재생으로 오디오를 깨운다.
-  sfxUnlock(){ if(this._sfxReady) return; this._sfxReady=true;
-    // 진짜 효과음이 아니라 무음 파일을 재생한다 — iOS에서 타이틀 탭에 카드소리가 나던 원인(2026-08-17)
-    try{ const a=new Audio(SFX_SILENT); const p=a.play();
-      if(p&&p.then) p.then(()=>{ a.pause(); a.currentTime=0; }).catch(()=>{});
-      // 실제 mp3는 소리 없이 받아만 둔다(첫 재생 끊김 방지)
-      Object.values(SFX).forEach(src=>{ try{ const w=new Audio(); w.preload='auto'; w.src=src; }catch(_){ } });
+  // ---- 효과음 (Web Audio) ----
+  // AudioContext는 첫 제스처에서 만든다 — 그 전에 만들면 suspended로 태어나 resume 타이밍을 놓친다.
+  audioCtx(){ if(this._ac!==undefined) return this._ac;
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC){ this._ac=null; return null; }
+    try{ this._ac=new AC();
+      this._acGain=this._ac.createGain(); this._acGain.gain.value=0.85; this._acGain.connect(this._ac.destination);
+    }catch(_){ this._ac=null; }
+    return this._ac; }
+  // 전 사운드를 미리 디코드해 버퍼로 들고 있는다 — 타격 순간에 디코드가 끼면 소리가 씹힌다.
+  // 실패한 개별 파일은 조용히 빠진다(그 레이어만 생략되고 나머지는 정상 재생).
+  sfxLoad(){ const ctx=this.audioCtx(); if(!ctx||this._sfxBufs) return;
+    this._sfxBufs={};
+    Object.keys(SFX).forEach(k=>{ fetch(SFX[k]).then(r=>r.arrayBuffer())
+      .then(a=>new Promise((ok,no)=>ctx.decodeAudioData(a,ok,no)))
+      .then(b=>{ this._sfxBufs[k]=b; }).catch(()=>{}); }); }
+  // 레이어 한 장. opt = {pitch(±비율), gain, delay(초)}. 버퍼가 없으면(미제작 재질·로딩 중) 조용히 스킵.
+  sfxLayer(name,opt){ const o=opt||{};
+    const ctx=this._ac, buf=this._sfxBufs&&this._sfxBufs[name];
+    if(!ctx||!buf||this._sfxOff) return;
+    try{ const src=ctx.createBufferSource(); src.buffer=buf;
+      const pv=o.pitch==null?0.02:o.pitch;
+      // rate = 톤 기준값(전투음은 1보다 낮게), pitch = 그 위에 얹는 반복감 제거용 랜덤
+      src.playbackRate.value=(o.rate==null?1:o.rate)*(1+(Math.random()*2-1)*pv);
+      const g=ctx.createGain(); g.gain.value=(o.gain==null?1:o.gain)*(SFX_GAIN[name]||1);   // 호출부 게인 × 파일 보정
+      src.connect(g).connect(this._acGain);
+      src.start(ctx.currentTime+(o.delay||0));
     }catch(_){ } }
+  // 기존 호출부가 그대로 도는 진입점 — 이름 하나 = 단발 재생.
+  sfx(name){ this.sfxLayer(name); }
+  // 카드 딜링 — 음원 자체가 딜링 시퀀스 전체(1.3~1.7초)를 담고 있어 **장당이 아니라 1회만** 재생한다.
+  // 장당 반복하면 겹쳐서 뭉개진다(2026-09-10 실청 판정). 2종 중 직전과 다른 것 + 피치 ±5%.
+  sfxDeal(count){
+    if(Math.max(0,this.eng.N(count,0))<=0) return;
+    let k; do{ k=1+Math.floor(Math.random()*2); }while(k===this._dealLast);
+    this._dealLast=k;
+    this.sfxLayer('card_deal'+k,{pitch:0.05}); }
+  // 카드 좌우 이동 — 포커스가 실제로 바뀐 경우에만 운다(끝에서 더 밀 때는 조용).
+  // 연달아 넘길 때 같은 소리가 반복되지 않게 3종 중 직전과 다른 것을 고른다(플립과 같은 규칙).
+  sfxSwipe(){ let k; do{ k=1+Math.floor(Math.random()*3); }while(k===this._swipeLast);
+    this._swipeLast=k; this.sfxLayer('card_swipe'+k,{pitch:0.05}); }
+  // 카드 뒤집기 — 3종 중 직전과 다른 것. 순차 공개처럼 연달아 울릴 때 같은 소리가 반복되지 않게.
+  sfxFlip(){ let k; do{ k=1+Math.floor(Math.random()*3); }while(k===this._flipLast);
+    this._flipLast=k; this.sfxLayer('card_flip'+k,{pitch:0.05}); }
+  // 카드가 2장 이상 깔리는 화면/시트에 들어설 때 1회. 1장이면 딜링이 아니다.
+  sfxDealIn(n){ if(this.eng.N(n,0)>=2) this.sfxDeal(n); }
+  // 자동재생 해제 — 반드시 사용자 제스처 안에서. ctx.resume() 한 번이면 이후 타이머 재생도 통과한다.
+  sfxUnlock(){ if(this._sfxReady) return; this._sfxReady=true;
+    const ctx=this.audioCtx(); if(!ctx) return;
+    try{ if(ctx.state==='suspended' && ctx.resume) ctx.resume(); }catch(_){ }
+    // iOS는 제스처 안에서 '실제로' 한 번 재생해야 풀린다 — 1샘플 무음 버퍼면 충분하다.
+    try{ const b=ctx.createBuffer(1,1,22050); const s0=ctx.createBufferSource();
+      s0.buffer=b; s0.connect(ctx.destination); s0.start(0); }catch(_){ }
+    this.sfxLoad(); }
   // ---- 아트 프리로드 (PRELOAD) ----
   // 순위별로 순차 실행. 한 순위가 끝나면 유휴 시간에 다음 순위로 넘어가 부팅 아트와 대역폭을 다투지 않게 한다.
   preloadArt(){
@@ -1843,9 +1928,10 @@ class Component extends DCLogic {
       // 저체력 경보 — 적색 Aurora(상단). 30%↓부터, 20·10%로 amplitude·투명도 강해짐
       hw?h('canvas',{key:'hpwarn',ref:el=>this.mountHpWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:5,mixBlendMode:'plus-lighter',opacity:hw.op,transition:'opacity .6s ease-out'}}):null,
       (fx&&fx.crit)?h('div',{key:'vig'+fx.seq,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,boxShadow:'inset 0 0 80px 24px rgba(200,44,40,.6)',animation:'rlVignette .4s ease-out'}}):null,
+      // 사망 = 상단 적색 그라데이션만. (구 death-overlay.webp는 우리 아트가 아니라 삭제 — 2026-09-10)
+      // 색은 적색이 아니라 하우스 니어블랙(#0A0B0E)이다 — 구 #3E0018은 H337° 마젠타라 팔레트에 없던 색이었다.
       dead?h('div',{style:{position:'absolute',top:0,left:0,right:0,height:'65%',pointerEvents:'none',zIndex:5}},
-        h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, #3E0018 0%, rgba(62,0,24,0.5) 40%, rgba(17,19,21,0) 70%)'}}),
-        h('div',{style:{position:'absolute',inset:0,opacity:0.3,backgroundImage:'url(assets/battle/death-overlay.webp)',backgroundSize:'cover',backgroundPosition:'center top'}})):null,
+        h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, #0A0B0E 0%, rgba(10,11,14,0.5) 40%, rgba(17,19,21,0) 70%)'}})):null,
       // 배경 = 존 아트가 하단 360px(로그 뒤)에만 (screen-battle-log.svg)
       this.zoneBg(c.zoneId,'log'),
       this.battleHeader(head.kicker, head.title, this.bossChip()),
@@ -1869,7 +1955,7 @@ class Component extends DCLogic {
     const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
     if(c.phase==='pvpWin'||c.phase==='pvpLose') return this.pvpControls();
     const g=this.gs;
-    const toRest=()=>{ this.combat.restReturn=this.combat.phase; this.combat.phase='rest'; this.combat.restFocus=null; this.forceUpdate(); };
+    const toRest=()=>{ this.sfxDealIn(this.restCards().length); this.combat.restReturn=this.combat.phase; this.combat.phase='rest'; this.combat.restFocus=null; this.forceUpdate(); };
     const sbtn=(label,onClick,accent)=>h('button',{onClick,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#1E2025',color:accent||'rgb(234,235,238)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}},label);
     const bars=h('div',{style:{display:'flex',gap:5}},
       h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_hp'),Math.round(g.hp),Math.round(g.maxHp),Math.max(0,Math.min(100,g.hp/g.maxHp*100)),'rgb(174,97,92)')),
@@ -1893,7 +1979,7 @@ class Component extends DCLogic {
   }
   // 휴식하기: 회복 아이템을 낱장 코버플로우로, 위로 올려 사용(보건소식 게이지 차오름), 하단은 완료 1개.
   restCards(){ return this.consumables().flatMap(inst=>Array.from({length:inst.qty||1},()=>Object.assign({},inst,{qty:1}))); }
-  restNav(d){ const c=this.combat, n=this.restCards().length; c.restFocus=Math.max(0,Math.min(n-1,(c.restFocus||0)+d)); this.forceUpdate(); }
+  restNav(d){ const c=this.combat, n=this.restCards().length; const v=Math.max(0,Math.min(n-1,(c.restFocus||0)+d)); if(v!==(c.restFocus||0)) this.sfxSwipe(); c.restFocus=v; this.forceUpdate(); }
   restCenterHandlers(){ return {
     // 드래그 중엔 코버플로우 컨테이너 언클립 + zIndex 상승 → 카드가 최상단에서 모든 UI를 덮음
     onPointerDown:(e)=>{ this._rvy=e.clientY; this._rvx=e.clientX; this._rvc=e.currentTarget; const p=e.currentTarget.parentElement; this._rvp=p; if(p){ p.style.overflow='visible'; p.style.zIndex='100'; } e.currentTarget.style.zIndex='100'; },
@@ -2007,11 +2093,11 @@ class Component extends DCLogic {
           h('button',{onClick:backToDone,style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'rgb(234,235,238)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, list.length?(this.en()?'Done':'완료'):(this.en()?'Continue':'계속 진행')))));
   }
   // ---- monster card draw (S3 · 전투 진입) ----
-  focusCard(i){ if(this.combat.flipped) return; this.combat.cardFocus=i; this.forceUpdate(); }
+  focusCard(i){ if(this.combat.flipped) return; if(i!==this.combat.cardFocus) this.sfxSwipe(); this.combat.cardFocus=i; this.forceUpdate(); }
   flipCenter(){ const c=this.combat; if(c.flipped) return; const card=c.cards[c.cardFocus]; if(!card) return;
     if(card.type==='user'){ c.pvp=card.bot; c.mProf=this.eng.coldProfile(card.bot); }
     else { const m=this.eng.byId.monster[card.id]; if(!m) return; c.pvp=null; c.mProf=this.eng.monsterProfile(m); }
-    c.picked=c.cardFocus; c.flipped=true; this.forceUpdate(); }
+    c.picked=c.cardFocus; c.flipped=true; this.sfxFlip(); this.forceUpdate(); }
   // 보스 카드 내부 이펙트 — LightTunnel (raw WebGL2 포팅). 노드 detach 시 정지+컨텍스트 회수.
   // config: speed0.03·outward·pulseSpeed8·pulseLen0.81·pulseBlend1·pulseWidth3·cable20·thick0.4·rim0.12·wav0.03·sway0.8
   //         size1·fadeNear1.05·fadeFar3.4·glow1.75·bright1.55·opacity0.1·grain0.05 · cable#D89B00·pulse#E64B34·tunnel#3a0e0a·tunOp0.9 · blend lighten
@@ -2504,8 +2590,13 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.2px',color:'rgb(111,114,118)',lineHeight:'100%'}}, 'ENCOUNTER · '+zoneName+' · '+(this.en()?('Encounter #'+(enc+1)):((enc+1)+'전 조우'))))); }
   cardFace(){ return h('div',{style:{width:342,height:'min(442px, 100%)',borderRadius:8,background:T.s2,backgroundImage:'url(assets/art/card_back/flee_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}); }
   placeTitleFor(c){ const zObj=this.eng.byId.zone[c.zoneId]; const zoneName=zObj?this.tx(zObj,'ZoneName'):''; const cityObj=zObj&&this.eng.byId.city?this.eng.byId.city[zObj.CityID]:null; return {zoneName, placeTitle:(cityObj?(this.tx(cityObj,'CityName')||'')+' · ':'')+zoneName}; }
-  attemptFlee(){ ['flee-Success','flee-Failed'].forEach(n=>{ const im=new Image(); im.src='assets/art/scenes/'+n+'.webp'; }); Object.assign(this.combat,{phase:'fleeCards', fleeFocus:1, fleeFlipped:false, fleeSuccess:null}); if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate(); }
-  flipFlee(){ const c=this.combat; if(c.fleeFlipped) return; const p=this.fleeChance(); c.fleeSuccess=Math.random()<(p==null?1:p); c.fleeFlipped=true; this.forceUpdate();
+  attemptFlee(){ ['flee-Success','flee-Failed'].forEach(n=>{ const im=new Image(); im.src='assets/art/scenes/'+n+'.webp'; }); this.sfxDealIn(3); Object.assign(this.combat,{phase:'fleeCards', fleeFocus:1, fleeFlipped:false, fleeSuccess:null}); if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate(); }
+  flipFlee(){ const c=this.combat; if(c.fleeFlipped) return; const p=this.fleeChance(); c.fleeSuccess=Math.random()<(p==null?1:p); c.fleeFlipped=true;
+    this.sfxFlip();
+    // 도망 실패 = 사망과 같은 무게 — 패배음을 얹는다. 0.25초 늦춰 뒤집는 소리가 먼저 떨어지게 한다
+    // (카드가 3초간 서 있으므로 3.02초짜리가 잘린 채 끝나지 않는다).
+    if(!c.fleeSuccess) this.sfxLayer('battle_defeat',{delay:0.25});
+    this.forceUpdate();
     if(this._ct) clearTimeout(this._ct);
     // 실패 = 다음 조우 강제. 옛 카드 화면 도망은 '이미 뽑아둔 몬스터'와 즉시 붙었지만(enterCombat),
     // 지금은 전투 사이에서 시도하므로 몬스터가 아직 없다 → 카드 드로우로 간다.
@@ -2532,7 +2623,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       this.zoneBg(c.zoneId),
       this.battleHeader(head.kicker, head.title, this.bossChip()),
-      h('div',{onPointerDown:(e)=>{this._fx=e.clientX;this._fmoved=false;},onPointerMove:(e)=>{if(this._fx!=null&&Math.abs(e.clientX-this._fx)>8)this._fmoved=true;},onPointerUp:(e)=>{if(this._fx==null)return;const dx=e.clientX-this._fx;this._fx=null;if(c.fleeFlipped)return;if(Math.abs(dx)>30){ if(dx<0)c.fleeFocus=Math.min(2,(c.fleeFocus||0)+1); else c.fleeFocus=Math.max(0,(c.fleeFocus||0)-1); this.forceUpdate(); }},style:{flex:1,position:'relative',overflow:'hidden'}},
+      h('div',{onPointerDown:(e)=>{this._fx=e.clientX;this._fmoved=false;},onPointerMove:(e)=>{if(this._fx!=null&&Math.abs(e.clientX-this._fx)>8)this._fmoved=true;},onPointerUp:(e)=>{if(this._fx==null)return;const dx=e.clientX-this._fx;this._fx=null;if(c.fleeFlipped)return;if(Math.abs(dx)>30){ const p0=c.fleeFocus||0; if(dx<0)c.fleeFocus=Math.min(2,p0+1); else c.fleeFocus=Math.max(0,p0-1); if(c.fleeFocus!==p0) this.sfxSwipe(); this.forceUpdate(); }},style:{flex:1,position:'relative',overflow:'hidden'}},
         [0,1,2].map(i=>{ const off=i-(c.fleeFocus==null?1:c.fleeFocus), abs=Math.abs(off), isC=off===0; const x=off*250; let o=1; if(flipped&&!isC)o=0; const rot=(flipped&&isC)?180:0; const settled=this.flipSettled(c,'flee'+i,flipped&&isC); const flat=settled||!(flipped&&isC);
           return h('div',{key:i,onClick:()=>{ if(this._fmoved||flipped)return; isC?this.flipFlee():(c.fleeFocus=i,this.forceUpdate()); },style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(442px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+(isC?1:0.9)+')',opacity:isC?1:o,filter:isC?'none':'brightness(0.9)',zIndex:isC?20:10-abs,transition:isC?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:(flipped&&!isC)?'none':'auto'}},
             h('div',{style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
@@ -2673,6 +2764,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
   setupPvpReward(){
     const c=this.combat;
     const n=3;   // PvP 승리 드로우 = 무조건 3장. 전리품 획득은 뒤집을 때 pvp_win_reward_rate로 판정(pickPvpCard)
+    this.sfxDealIn(n);
     c.pvpCards={ kind:'win', n, hit:-1, prize:null, picked:null, got:null, lost:null }; c.pvpFocus=Math.floor(n/2);
   }
   // 패배 → 도주 카드 round(1/pvp_flee_fail_rate)장 중 1장 실패 (내 착용템 1개 영구 소실)
@@ -2681,6 +2773,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     const eqUids=['weapon','head','body','artifact1','artifact2'].map(s=>this.gs.equip[s]).filter(Boolean);
     const nCards=Math.max(1,Math.round(1/this.eng.N(this.eng.DATA.config.pvp_flee_fail_rate,0.33)));
     const lossUid=eqUids.length?eqUids[Math.floor(Math.random()*eqUids.length)]:null;
+    this.sfxDealIn(nCards);
     c.pvpCards={ kind:'flee', n:nCards, hit:lossUid?Math.floor(Math.random()*nCards):-1, lossUid, picked:null, got:null, lost:null }; c.pvpFocus=Math.floor(nCards/2);
   }
   pickPvpCard(i){
@@ -2719,7 +2812,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     const lm={view:'field',focus:0,fromCombat:true,field:[clone],bag:[],opened:new Set([clone.uid])};
     const keep=[];
     for(const it of this.gs.bag){ if(this.isEquipped(it.uid)){ keep.push(it); continue; } it.locked=(it.loc==='pocket'); it.pre=true; lm.bag.push(it); }
-    this.gs.bag=keep; this.state.lm=lm; this.setState({screen:'lootmanage'});
+    this.gs.bag=keep; this.state.lm=lm; this.sfxDealIn(this.lmCards(lm).length); this.setState({screen:'lootmanage'});
   }
   pvpCardRow(){
     const c=this.combat, pc=c.pvpCards;
@@ -2738,8 +2831,8 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       }));
   }
   // ---- PvP 결과: 몬스터 조우 카드와 동일한 3장 캐러셀 플립 ----
-  focusPvp(i){ const pc=this.combat.pvpCards; if(!pc||pc.picked!=null) return; this.combat.pvpFocus=Math.max(0,Math.min(pc.n-1,i)); this.forceUpdate(); }
-  flipPvp(){ const c=this.combat, pc=c.pvpCards; if(!pc||pc.picked!=null) return; const f=c.pvpFocus!=null?c.pvpFocus:Math.floor(pc.n/2); this.pickPvpCard(f); }
+  focusPvp(i){ const pc=this.combat.pvpCards; if(!pc||pc.picked!=null) return; const v=Math.max(0,Math.min(pc.n-1,i)); if(v!==this.combat.pvpFocus) this.sfxSwipe(); this.combat.pvpFocus=v; this.forceUpdate(); }
+  flipPvp(){ const c=this.combat, pc=c.pvpCards; if(!pc||pc.picked!=null) return; this.sfxFlip(); const f=c.pvpFocus!=null?c.pvpFocus:Math.floor(pc.n/2); this.pickPvpCard(f); }
   pvpResultCard(i){
     const pc=this.combat.pvpCards, win=pc.kind==='win';
     let label,sub,col;
@@ -3154,7 +3247,9 @@ void main(){
   hgMaxLine(uid){ if(!this._hgMaxL||this._hgMaxL.uid!==uid) this._hgMaxL={uid,line:this.hgLine('max')}; return this._hgMaxL.line; }
   hgVendorName(){ const v=this.eng.byId.vendor['vendor_pawnshop']; return (v&&this.tx(v,'VendorName'))||'마르타 콜'; }
   hgSel(){ const g=this.state.hg||{}; const list=this.valuablesOwned(); return list[Math.min(g.focus||0, Math.max(0,list.length-1))]||null; }
-  hgFocus(i){ const list=this.valuablesOwned(); const g=this.state.hg||{}; this.setState({hg:Object.assign({},g,{focus:Math.max(0,Math.min(list.length-1,i))})}); }
+  hgFocus(i){ const list=this.valuablesOwned(); const g=this.state.hg||{}; const v=Math.max(0,Math.min(list.length-1,i));
+    if(v!==this.eng.N(g.focus,0)) this.sfxSwipe();
+    this.setState({hg:Object.assign({},g,{focus:v})}); }
   // 위로 올려 흥정 — 카드 리프트 → 대사 → 뒷면 하강
   hgStart(){
     const g=this.state.hg||{}; const inst=this.hgSel();
@@ -3168,7 +3263,7 @@ void main(){
       this.setState({hg:Object.assign({},this.state.hg,{phase:'talk',line:this.hgLine(stage)})});
       this._hgT=setTimeout(()=>{
         const r=this.hgRoll(inst); inst.haggle=(inst.haggle||0)+1;
-        this.setState({hg:Object.assign({},this.state.hg,{phase:'back',pend:r})});
+        this.sfxFlip(); this.setState({hg:Object.assign({},this.state.hg,{phase:'back',pend:r})});
       }, 1400);
     }, 450);
   }
@@ -3176,7 +3271,7 @@ void main(){
     const g=this.state.hg||{}; if(g.phase!=='back') return;
     const inst=this.hgSel(), r=g.pend; if(!inst||!r) return;
     inst.value=r.from; inst.valueUp=(r.to>=r.from);
-    this.setState({hg:Object.assign({},g,{phase:'front'})});
+    this.sfxFlip(); this.setState({hg:Object.assign({},g,{phase:'front'})});
     clearTimeout(this._hgAnimT);
     this._hgAnimT=setTimeout(()=>this.hgAnimate(inst,r), 330);   // 앞면이 드러난 뒤 카운트업
   }
@@ -3551,17 +3646,18 @@ void main(){
   aggLoot(list){ const m={}; for(const l of list){ m[l.id]=(m[l.id]||0)+l.qty; } return Object.entries(m).map(([id,qty])=>({id,qty})); }
   // 전투 후 전리품 개봉 — 몬스터 조우 카드와 동일한 중앙 캐러셀 · 탭하면 플립 (§5 공용 카드)
   lootUids(){ const c=this.combat; const raw=(c.runLootInsts&&c.runLootInsts.length?c.runLootInsts:c.lootInsts)||[]; const seen=new Set(); return raw.filter(u=>{ if(seen.has(u))return false; if(!this.eng.instById(this.gs,u))return false; seen.add(u); return true; }); }
-  lootFocus(i){ const c=this.combat; c.lootFocusIdx=Math.max(0,Math.min(this.lootUids().length-1,i)); this.forceUpdate(); }
-  lootFlipAll(){ const c=this.combat; c.lootOpen=new Set(this.lootUids().map((_,i)=>i)); this.forceUpdate(); }
-  lootFlipOne(i){ const c=this.combat; if(!c.lootOpen) c.lootOpen=new Set(); c.lootOpen.add(i); this.forceUpdate(); }
+  lootFocus(i){ const c=this.combat; const v=Math.max(0,Math.min(this.lootUids().length-1,i)); if(v!==(c.lootFocusIdx||0)) this.sfxSwipe(); c.lootFocusIdx=v; this.forceUpdate(); }
+  lootFlipAll(){ const c=this.combat; c.lootOpen=new Set(this.lootUids().map((_,i)=>i)); this.sfxFlip(); this.forceUpdate(); }
+  lootFlipOne(i){ const c=this.combat; if(!c.lootOpen) c.lootOpen=new Set(); c.lootOpen.add(i); this.sfxFlip(); this.forceUpdate(); }
   // 귀환 결과: 첫 장부터 자동 순차 플립 (이미 드랍 때 본 카드 재확인 연출)
   startLootReveal(){ const c=this.combat; if(!c) return; const n=this.lootUids().length; if(!n) return;
+    this.sfxDealIn(n);
     c.lootOpen=new Set(); c.lootFocusIdx=0; this._lootRevealing=true;
     const step=(i)=>{ if(!this.combat||this.combat!==c||c.resultStage==='growth'){ this._lootRevealing=false; return; }
-      c.lootFocusIdx=i; c.lootOpen.add(i); this.forceUpdate();
+      c.lootFocusIdx=i; c.lootOpen.add(i); this.sfxFlip(); this.forceUpdate();
       if(i+1<n){ this._lootRevealTimer=setTimeout(()=>step(i+1), 760); } else { this._lootRevealing=false; this._lootRevealTimer=null; this.forceUpdate(); } };
     step(0); }
-  skipLootReveal(){ if(this._lootRevealTimer){ clearTimeout(this._lootRevealTimer); this._lootRevealTimer=null; } this._lootRevealing=false; const c=this.combat; if(c) c.lootOpen=new Set(this.lootUids().map((_,i)=>i)); this.forceUpdate(); }
+  skipLootReveal(){ if(this._lootRevealTimer){ clearTimeout(this._lootRevealTimer); this._lootRevealTimer=null; } this._lootRevealing=false; const c=this.combat; if(c){ const n=this.lootUids().length; if(!c.lootOpen||c.lootOpen.size<n) this.sfxFlip(); c.lootOpen=new Set(this.lootUids().map((_,i)=>i)); } this.forceUpdate(); }
   // 아이템 카드 높이 (fig 스펙) — 소켓 있는 장비만 길어짐
   lootCardH(inst){
     const isGear=inst.kind==='weapon'||inst.kind==='armor';
@@ -3788,7 +3884,7 @@ void main(){
   lmCards(lm){ return lm.view==='field'?lm.field:lm.bag; }
   lmLocked(lm){ return lm.bag.filter(x=>x.locked).length; }
   lmBagCap(){ return this.eng.equippedBagCapacity? this.eng.equippedBagCapacity(this.gs) : 10; }
-  lmFocus(d){ const lm=this.state.lm; const n=this.lmCards(lm).length; lm.focus=Math.max(0,Math.min(n-1,(lm.focus||0)+d)); this.forceUpdate(); }
+  lmFocus(d){ const lm=this.state.lm; const n=this.lmCards(lm).length; const v=Math.max(0,Math.min(n-1,(lm.focus||0)+d)); if(v!==(lm.focus||0)) this.sfxSwipe(); lm.focus=v; this.forceUpdate(); }
   lmSetFocus(i){ this.state.lm.focus=i; this.forceUpdate(); }
   lmFix(){ const lm=this.state.lm; const n=this.lmCards(lm).length; if(lm.focus>=n) lm.focus=Math.max(0,n-1); }
   lmCanStash(inst){ const lm=this.state.lm; if(!lm||!inst) return false; const ms=this.maxStack(inst.id);
@@ -3873,7 +3969,7 @@ void main(){
         setTimeout(restore,320);
       } }
   }; }
-  lmTapFlip(){ const lm=this.state.lm; if(!lm||lm.view!=='field') return; const inst=lm.field[Math.max(0,Math.min(lm.focus||0,lm.field.length-1))]; if(!inst) return; if(!lm.opened) lm.opened=new Set(); if(!lm.opened.has(inst.uid)){ lm.opened.add(inst.uid); this.forceUpdate(); } }
+  lmTapFlip(){ const lm=this.state.lm; if(!lm||lm.view!=='field') return; const inst=lm.field[Math.max(0,Math.min(lm.focus||0,lm.field.length-1))]; if(!inst) return; if(!lm.opened) lm.opened=new Set(); if(!lm.opened.has(inst.uid)){ lm.opened.add(inst.uid); this.sfxFlip(); this.forceUpdate(); } }
   lmChevron(dir){ const anim=dir==='down'?'rlBounceDn':'rlBounceUp';
     return h('div',{style:{display:'flex',justifyContent:'center',animation:anim+' 1.4s ease-in-out infinite'}},
       h('svg',{width:22,height:15,viewBox:'0 0 22 15',fill:'none',stroke:T.lo,strokeWidth:1.6,strokeLinecap:'round',strokeLinejoin:'round',style:{transform:dir==='up'?'rotate(180deg)':'none'}},
@@ -4716,7 +4812,8 @@ void main(){
   // window.__Q = 진행도 주입·상태 확인용 디버그 핸들(감지 훅이 붙기 전까지 이걸로 검증한다)
   openQuest(){ window.__Q=this; this.qSync(); this.setState({screen:'quest',qTab:'daily',qSel:null,qGive:false,qRew:null,qOpen:[],qFocus:0}); }
   openQuestSheet(id){ const r=this.qRec(id);
-    if(r&&r.s==='rw'){ this.setState({qSel:id,qGive:false,qRew:id,qOpen:[],qFocus:0}); this.qRevealAll(); return; }
+    if(r&&r.s==='rw'){ this.setState({qSel:id,qGive:false,qRew:id,qOpen:[],qFocus:0});
+      this.sfxDealIn((r.rw||[]).length); this.qRevealAll(); return; }
     this.setState({qSel:id,qGive:false,qRew:null}); }
   closeQuestSheet(){ this.setState({qSel:null,qGive:false}); }
 
@@ -4954,7 +5051,7 @@ void main(){
     const insts=ids.map(id=>{ const x=this.eng.mkInstance(id,1); x.qty=1; x.locked=false; return x; });
     this.qSet(q.QuestID,{s:'rw', rw:insts});
     this.setState({qRew:q.QuestID,qOpen:[],qFocus:0});
-    this.qRevealAll();
+    this.sfxDealIn(insts.length); this.qRevealAll();
   }
 
   qRewInsts(){ const r=this.qRec(this.state.qRew); return (r&&Array.isArray(r.rw))?r.rw:[]; }
@@ -4972,12 +5069,14 @@ void main(){
       let next=-1; for(let i=0;i<n;i++){ if(!this.qIsOpen(i)){ next=i; break; } }
       if(next<0){ this._qrT=null; return; }
       this.setState({qFocus:next, qOpen:(this.state.qOpen||[]).concat([next])});
+      this.sfxFlip();
       this._qrT=setTimeout(step, 700);
     };
     this._qrT=setTimeout(step, 260);
   }
   qRevealSkip(){ if(this._qrT){ clearTimeout(this._qrT); this._qrT=null; }
     const n=this.qRewInsts().length, a=[]; for(let i=0;i<n;i++) a.push(i);
+    if((this.state.qOpen||[]).length<n) this.sfxFlip();   // 건너뛰기는 한 번만
     this.setState({qOpen:a}); }
   // 부분 수납 없음 — 한 칸이 모자라면 전량 미회수(분해와 같은 규칙). 닫기로 나가도 보상은 대기 상태로 남는다.
   qStoreAll(){
@@ -4995,7 +5094,7 @@ void main(){
   questRewardSheet(){
     const drops=this.qRewInsts(); if(!drops.length) return null;
     const focus=Math.max(0,Math.min(drops.length-1,this.eng.N(this.state.qFocus,0)));
-    const nav=(d)=>{ const i=Math.max(0,Math.min(drops.length-1,focus+d)); if(i!==focus) this.setState({qFocus:i}); };
+    const nav=(d)=>{ const i=Math.max(0,Math.min(drops.length-1,focus+d)); if(i!==focus){ this.sfxSwipe(); this.setState({qFocus:i}); } };
     // 가로 스와이프는 '움직이지 않는 부모 스테이지'가 받는다 — 카드가 받으면 캡처가 풀려 pointerup이 유실된다.
     const swipe = drops.length>1 ? {
       onPointerDown:(e)=>{ this._qSX=e.clientX; this._qSY=e.clientY; this._qSwiped=false; },
@@ -5388,7 +5487,7 @@ void main(){
       h('div',{key:'sk'},
         ...inst.sockets.map((sk,i)=> this.mdSocketRow(inst,i,{
           badge: sk? '#CCA26E' : '#7CA5BB', glyph: sk? '−' : '+',
-          onTap: sk? ()=>this.setState({mdSheet:'remove',mdSlot:i}) : ()=>this.setState({mdSheet:'pick',mdSlot:i,mdIdx:0}) }))),
+          onTap: sk? ()=>this.setState({mdSheet:'remove',mdSlot:i}) : ()=>{ this.sfxDealIn(this.rsModOwned(inst.kind).length); this.setState({mdSheet:'pick',mdSlot:i,mdIdx:0}); } }))),
       B.note(this.t('hide_mod_pick_slot'),B.LO) ];
     return h('div',{style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',zIndex:32,display:'flex',flexDirection:'column',animation:'rlFade .18s'}},
       B.wrap(body,[B.btn(this.t('hide_disk_close'),()=>this.setState({mdSheet:null}),false,'c')]));
@@ -5400,7 +5499,7 @@ void main(){
     const mods=this.rsModOwned(inst.kind);
     const idx=Math.max(0,Math.min(mods.length-1,this.eng.N(this.state.mdIdx,0)));
     const cur=mods[idx];
-    const nav=(d)=>this.setState({mdIdx:Math.max(0,Math.min(mods.length-1,idx+d))});
+    const nav=(d)=>{ const v=Math.max(0,Math.min(mods.length-1,idx+d)); if(v!==idx) this.sfxSwipe(); this.setState({mdIdx:v}); };
     const pick=()=>this.setState({mdSheet:'attach',mdModule:cur.uid});
     // ⚠️ 구조 = 전리품 캐러셀(lootManage)과 동일하게 간다.
     //   가로 스와이프는 **움직이지 않는 스테이지(부모)** 가 받고, 카드는 세로(위로 올려 장착)만 맡는다.
@@ -5846,7 +5945,8 @@ void main(){
            : h('div',{key:'rollbar',style:{marginTop:8}}, this.rollBar(job.left))),
       B.note(done?this.t('hide_disa_complete'):this.t('hide_disa_running'), done?'#83B289':B.LO) ];
     const footer = done
-      ? [B.btn(this.en()?'OK':'확인',()=>{ this.setState({disaRev:true,disaOpen:[],disaFocus:0}); this.disaRevealAll(); },false,'ok')]
+      ? [B.btn(this.en()?'OK':'확인',()=>{ this.setState({disaRev:true,disaOpen:[],disaFocus:0});
+          this.sfxDealIn(((this.disaJob()||{}).drops||[]).length); this.disaRevealAll(); },false,'ok')]
       : [B.btn(this.t('hide_disa_label'),null,true,'d'), B.btn(this.t('hide_disk_close'),()=>this.openHideFac('workbench'),false,'c')];
     return B.wrap(body,footer);
   }
@@ -5869,6 +5969,7 @@ void main(){
       let next=-1; for(let i=0;i<n;i++){ if(!this.disaIsOpen(i)){ next=i; break; } }
       if(next<0){ this._daT=null; return; }
       this.setState({disaFocus:next, disaOpen:this.disaOpened().concat([next])});
+      this.sfxFlip();
       this._daT=setTimeout(step, 700);
     };
     this._daT=setTimeout(step, 260);
@@ -5876,12 +5977,13 @@ void main(){
   disaRevealSkip(){ if(this._daT){ clearTimeout(this._daT); this._daT=null; }
     const n=(this.disaJob()&&this.disaJob().drops||[]).length, a=[];
     for(let i=0;i<n;i++) a.push(i);
+    if(this.disaOpened().length<n) this.sfxFlip();   // 건너뛰기는 한 번만
     this.setState({disaOpen:a}); }
   disaRevealSheet(job){
     const drops=job.drops||[]; if(!drops.length){ return null; }
     const focus=Math.max(0,Math.min(drops.length-1,this.eng.N(this.state.disaFocus,0)));
     // 좌우 이동은 초점만 옮긴다(카드를 열지 않는다). 공개는 시트가 뜰 때 자동으로 돈다.
-    const nav=(d)=>{ const i=Math.max(0,Math.min(drops.length-1,focus+d)); if(i!==focus) this.setState({disaFocus:i}); };
+    const nav=(d)=>{ const i=Math.max(0,Math.min(drops.length-1,focus+d)); if(i!==focus){ this.sfxSwipe(); this.setState({disaFocus:i}); } };
     // ⚠️ 가로 스와이프는 '움직이지 않는 부모 스테이지'가 받는다 — 카드 자신이 받으면 캡처가 풀려 pointerup이 유실된다.
     //    그리고 스와이프 뒤 브라우저가 쏘는 click이 옆 카드의 onClick을 때리므로 _daSwiped로 한 번 삼킨다
     //    (플래그는 pointerdown에서 리셋 — 클릭이 엉뚱한 데 떨어지면 남아서 다음 정상 탭까지 먹는다).
@@ -5991,11 +6093,13 @@ void main(){
   openDiskList(){ const slot=this.diskFreeSlot(); this.setState({screen:'disk', diskSlot:slot}); this.diskLoadSfx(slot); }
   openDiskInsert(uid,slot){
     const list=this.diskPickable(); const i=Math.max(0,list.findIndex(x=>x.uid===uid));
+    this.sfxDealIn(list.length);
     this._diskIdx=i; this.setState({screen:'diskInsert', diskSlot:this.eng.N(slot,0)});
   }
   diskPickable(){ const done=this.diskInstalled(); return this.disksOwned().filter(i=>done.indexOf(i.id)<0); }
   diskNav(d){ const n=this.diskPickable().length; if(!n) return;
-    this._diskIdx=Math.max(0,Math.min(n-1,(this._diskIdx||0)+d)); this.forceUpdate(); }
+    const v=Math.max(0,Math.min(n-1,(this._diskIdx||0)+d)); if(v!==(this._diskIdx||0)) this.sfxSwipe();
+    this._diskIdx=v; this.forceUpdate(); }
   // CD가 완전히 들어간 뒤에 카운트가 시작된다. 슬라이드(0.5s) 동안은 job이 없어 LED도 아직 빨강이다.
   diskInsertAnim(slot,inst){
     if(this._diskAnimT) return;
