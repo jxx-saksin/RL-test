@@ -291,7 +291,7 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 55;
+const TITLE_VER = 56;
 const TITLE_DATE = '0910';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -2358,7 +2358,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     if(pct>10) return {amp:1.15,op:0.55};
     return {amp:1.60,op:0.85};
   }
-  monsterFront(m,fixed){
+  monsterFront(m,fixed,fxOn){
     const md=this.eng.byId.monster[m.id]||{};
     const isBoss=String(m.grade||'').toLowerCase()==='boss';
     const artUrl='assets/art/monsters/'+m.id+'.webp';
@@ -2369,7 +2369,8 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     // 등급 리빌: 비네트 강도(등급색에 알파를 굽고 opacity 0→1 페이드) · 캐러셀(!fixed)에서만
     const VIGA={rare:0.16, unique:0.3, special:0.3};
     const rgba=(hex,a)=>{const v=parseInt(String(hex).replace('#',''),16);return 'rgba('+((v>>16)&255)+','+((v>>8)&255)+','+(v&255)+','+a+')';};
-    const fx=!fixed && gk!=='common';
+    // fixed는 '레이아웃 고정'만 뜻한다 — 이펙트는 fxOn으로 따로 켠다(정보카드·전투 상세 팝업).
+    const fx=(fxOn===true || !fixed) && gk!=='common';
     const isSpecial=gk==='special';
     const attrCol=AT(m.attribute)?((ATTR[m.attribute]&&ATTR[m.attribute].c)||'rgb(124,165,187)'):HI;
     const stats=[
@@ -2389,8 +2390,8 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:vc||HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
     const desc=md.Description?this.tx(md,'Description'):(this.tx(md,'Flavor')||'');
     return h('div',{style:{position:'relative',width:342,height:fixed?'auto':'min(473px, 100%)',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
-      (isBoss&&!fixed)? h('canvas',{key:'tunnel',ref:el=>this.mountTunnel(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:5,pointerEvents:'none',mixBlendMode:'screen'}}):null,
-      (gk==='unique'&&!fixed)? h('canvas',{key:'beams',ref:el=>this.mountBeams(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:5,pointerEvents:'none',mixBlendMode:'screen'}}):null,
+      (isBoss&&fx)? h('canvas',{key:'tunnel',ref:el=>this.mountTunnel(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:5,pointerEvents:'none',mixBlendMode:'screen'}}):null,
+      (gk==='unique'&&fx)? h('canvas',{key:'beams',ref:el=>this.mountBeams(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:5,pointerEvents:'none',mixBlendMode:'screen'}}):null,
       // 등급 비네트(카드 전체) — 보스는 카드 비네트 제거(붉은 글로우는 화면 전체 테두리로 이동), 그 외는 등급색
       (fx&&!isBoss)? h('div',{key:'gvig',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,borderRadius:8,
         boxShadow:'inset 0 0 30px 7px '+rgba(gcol,VIGA[gk]||0.16),
@@ -2403,7 +2404,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       h('div',{style:{position:'relative',...artP,alignSelf:'stretch',background:ART}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
         h('img',{src:artUrl,onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}),
-        (isSpecial&&!fixed)? h('canvas',{key:'burst',ref:el=>this.mountBurst(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:2,pointerEvents:'none',mixBlendMode:'lighten'}}):null,
+        (isSpecial&&fx)? h('canvas',{key:'burst',ref:el=>this.mountBurst(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:2,pointerEvents:'none',mixBlendMode:'lighten'}}):null,
         h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,zIndex:3,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         h('div',{style:{position:'absolute',right:17,top:12,zIndex:4,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid '+(gcol===HI?'rgba(222,222,222,0.18)':gcol),display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'4px 8px',animation:fx?'rlLvlPop .5s cubic-bezier(.2,.8,.2,1)':'none'}},
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',marginRight:'-1.33px',color:gcol,whiteSpace:'nowrap'}}, String(m.grade||'UNIQUE').toUpperCase())),
@@ -2482,7 +2483,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     const rows = isM
       ? [[this.t('stat_atk'),Math.round(prof.minAtk)+'–'+Math.round(prof.maxAtk)],[this.t('stat_def'),String(Math.round(prof.defense))],[this.t('stat_atk_speed'),prof.atkSpeed.toFixed(2)],[this.t('stat_crit_resist'),Math.round(prof.critResist)],[this.t('stat_status_resist'),Math.round(prof.statusResist)],[this.t('stat_potency'),Math.round(prof.potency)],[this.t('item_material_type'), md.Material&&md.Material!=='-'?md.Material:'—'],[this.t('combat_time_limit'), prof.timeLimit+'s']]
       : [[this.t('stat_atk'),Math.round(prof.minAtk)+'–'+Math.round(prof.maxAtk)],[this.t('stat_def'),String(Math.round(prof.defense))],[this.t('stat_atk_speed'),prof.atkSpeed.toFixed(2)],[this.t('stat_accuracy'),Math.round(prof.accuracy)+'%'],[this.t('stat_evasion'),Math.round(prof.evasion)+'%'],[this.t('stat_crit_chance'),Math.round(prof.critChance)+'%'],[this.t('stat_crit_resist'),Math.round(prof.critResist)+'%'],[this.t('stat_status_resist'),Math.round(prof.statusResist)+'%']];
-    const card = isM? (c.pvp? this.userFront(prof) : this.monsterFront(prof,true)) : this.playerFront(prof,true);
+    const card = isM? (c.pvp? this.userFront(prof) : this.monsterFront(prof,true,true)) : this.playerFront(prof,true);
     return h('div',{onClick:()=>this.setState({combatSheet:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',zIndex:34,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{maxHeight:'90%',overflowY:'auto',animation:'rlIn .22s cubic-bezier(.2,.8,.2,1)'}}, card));
   }
@@ -4048,10 +4049,8 @@ void main(){
       this.screenTitle('INVENTORY','nav_inventory',this.storageChips()),   // 소지품에선 PASS 대신 보관고 잔량을 본다
       // 2버튼 바 — svg/header-2button.svg. 헤더에 바로 붙고 하단 모서리만 r16, 높이 47.
       // (구 안내문구 "레이드에 소지하는 아이템 슬롯"은 삭제 — SVG 기준)
-      h('div',{style:{display:'flex',flex:'0 0 auto',height:47}},
-        ...[['bag',this.t('nav_belongings'),'0 0 0 16px'],['vault',this.t('nav_vault'),'0 0 16px 0']].map(([k,l,br])=>
-          h('button',{key:k,onClick:()=>this.setState({seg:k}),
-            style:{flex:1,height:47,background:'#18191D',border:'none',borderRadius:br,color:seg===k?'#EAEBEE':'#6F7276',fontFamily:T.sans,fontSize:14,fontWeight:seg===k?500:400,cursor:'pointer',padding:0}}, l))),
+      this.segBar([{k:'bag',label:this.t('nav_belongings')},{k:'vault',label:this.t('nav_vault')}],
+        seg, k=>this.setState({seg:k})),
       // 소지품=슬롯 3섹션(belongings) · 금고=필터칩+리스트(기존)
       seg==='bag'? this.belongings(catOf) : h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
         h('div',{style:{display:'flex',gap:6,padding:'12px 18px',overflowX:'auto',flex:'0 0 auto'}},
@@ -4871,14 +4870,16 @@ void main(){
     backgroundSize:'cover',backgroundPosition:'center'}}); }
 
   questTabs(tab){
+    // ★구매/판매·소지품/금고와 같은 물건이다 — 새로 그리지 않고 segBar를 쓴다(사용자 지적 2026-09-10).
+    //   목업 실측(screen-quest-list.svg): 패널 y175~222(h47), 하단 r16
+    //   M0 175H134V222H16C7.16 222 0 214.84 0 206V175Z / M268 175H402V206C402 214.84 394.84 222 386 222H268V175Z
     const defs=[['daily',false],['weekly',true],['story',true]];   // 이번엔 일일만 개방 — 나머지는 슬롯 잠금과 같은 처리
-    return h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',marginTop:60,paddingTop:25,background:'#18191D',borderRadius:'16px 16px 0 0',display:'flex'}},
-      ...defs.map(([k,lock])=>{ const on=tab===k, st=lock?null:this.qTabChip(k);
-        return h('button',{key:k,disabled:lock,onClick:lock?null:()=>this.setState({qTab:k,qSel:null}),
-          style:{flex:1,height:47,background:'transparent',border:'none',padding:0,display:'flex',alignItems:'center',justifyContent:'center',gap:8,
-            cursor:lock?'default':'pointer',fontFamily:T.sans,fontSize:14,fontWeight:on?500:400,color:lock?'#4B4D52':(on?'#EAEBEE':'#6F7276')}},
-          h('span',{key:'l'}, this.t('quest_tab_'+k)),
-          lock? this.hideLockIcon() : (st? this.readyChip(this.t('quest_chip_'+st), this.qCol(st), {bg:'#212327',solid:true}) : null)); }));
+    return this.segBar(defs.map(([k,lock])=>{
+      const st=lock?null:this.qTabChip(k);
+      return {k:k, label:this.t('quest_tab_'+k), lock:lock,
+        tail: lock? this.hideLockIcon()
+                  : (st? this.readyChip(this.t('quest_chip_'+st), this.qCol(st), {bg:'#212327',solid:true}) : null)};
+    }), tab, k=>this.setState({qTab:k,qSel:null}), {over:true});
   }
 
   questRow(q,st){
@@ -4906,8 +4907,11 @@ void main(){
     return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
       this.questArtBg(v.ShopID),
       this.shopHeader(this.shopName(v.ShopID,v), ()=>this.go('vendorMenu')),
+      h('div',{key:'qgap',style:{flex:'0 0 auto',height:85}}),   // 헤더(90)+85 = 아트 바닥 175 — 상점 구매/판매와 같은 방식
       this.questTabs(tab),
-      h('div',{key:'qlist',style:{position:'relative',zIndex:1,flex:'1 1 auto',minHeight:0,overflowY:'auto',borderTop:'1px solid rgb(54,56,60)'}},
+      // ★marginTop 10 — 목업의 첫 구분선은 y232다(탭 패널 하단 222 + 10). 붙여 그리면
+      //   방금 살린 하단 r16을 선이 가로질러 잘라먹는다.
+      h('div',{key:'qlist',style:{position:'relative',zIndex:1,flex:'1 1 auto',minHeight:0,marginTop:10,overflowY:'auto',borderTop:'1px solid rgb(54,56,60)'}},
         rows.length? rows.map(x=>this.questRow(x.q,x.st))
           : h('div',{style:{padding:'40px 18px',textAlign:'center',fontFamily:T.sans,fontSize:12,color:'#6F7276'}}, this.t('quest_empty'))),
       h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex'}},
@@ -5096,7 +5100,7 @@ void main(){
     const c=this.state.cardPop; if(!c) return null;
     let card=null;
     if(c.t==='m'){ const md=this.eng.byId.monster[c.id]; if(!md) return null;
-      card=this.monsterFront(this.eng.monsterProfile(md), true); }
+      card=this.monsterFront(this.eng.monsterProfile(md), true, true); }
     else {
       // ⚠️ mkInstance는 부를 때마다 접사·내구도를 새로 굴린다 → id별로 캐시해야 다시 열어도 같은 카드가 나온다.
       if(!this._cardPopInst || this._cardPopInst.id!==c.id){
@@ -6748,11 +6752,10 @@ void main(){
         backgroundSize:'cover',backgroundPosition:'center'}}),
       this.shopHeader(this.shopName(v.ShopID,v), ()=>this.setState({screen:'vendorMenu'})),
       h('div',{style:{flex:'0 0 auto',height:85}}),   // 헤더(90) + 85 = 아트 바닥 175
-      // 구매/판매 = 인벤토리 소지품/금고와 같은 2버튼 바. svg y175~222(h47), 하단 모서리만 r16
-      // 라벨 14/weight500·47px 전부 인벤토리 바와 동일 — 목업 4개 상점(보건소·급식소·철물점·주점) 실측 일치
-      segs.length>1? h('div',{style:{position:'relative',zIndex:1,display:'flex',flex:'0 0 auto',height:47}},
-        ...segs.map(([k,l],i)=>h('button',{key:k,onClick:()=>this.setState({vtab:k,sel:null}),
-          style:{flex:1,height:47,background:'#18191D',border:'none',borderRadius:i===0?'0 0 0 16px':'0 0 16px 0',color:tab===k?'#EAEBEE':'#6F7276',fontFamily:T.sans,fontSize:14,fontWeight:tab===k?500:400,cursor:'pointer',padding:0}}, l))) : null,
+      // 구매/판매 = 인벤토리 소지품/금고와 같은 2버튼 바(segBar). svg y175~222(h47), 하단 모서리만 r16
+      // 목업 4개 상점(보건소·급식소·철물점·주점) 실측 일치
+      segs.length>1? this.segBar(segs.map(([k,l])=>({k:k,label:l})), tab,
+        k=>this.setState({vtab:k,sel:null}), {over:true}) : null,
       h('div',{style:{position:'relative',zIndex:1,flex:1,minHeight:0,display:'flex',flexDirection:'column'}}, tab==='buy'?this.vendorBuy(v):this.vendorSell(v)),
       // 하단 박스 — svg x16.5 y708.5 369x95 · 버튼 333x48
       h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D'}},
@@ -6862,6 +6865,30 @@ void main(){
         h('button',{onClick:()=>this.go('safehouse'),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#eaebee',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'Exit':'나가기')));
   }
   shopPill(txt,color){ return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'5px 8px',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:color,whiteSpace:'nowrap',textTransform:'uppercase'}}, txt); }
+  // ===== 공통 탭 바 =====
+  // 인벤토리(소지품/금고) · 상점(구매/판매) · 퀘스트(일일/주간/스토리)가 전부 이걸 쓴다.
+  // 목업 실측(header-2button.svg · screen-quest-list.svg): 컨테이너 h47 배경 없음 /
+  // 배경과 라운드는 **버튼마다** — 양끝만 하단 r16(0 0 0 16px · 0 0 16px 0), 가운데는 없음.
+  // 라벨 sans14 **weight 400 고정**(선택돼도 굵어지지 않는다) · on #EAEBEE / off #6F7276 / lock #4B4D52.
+  // items = [{k,label,tail?,lock?}] — tail(칩·자물쇠)이 있는 버튼만 flex+gap8이 붙고,
+  // 라벨뿐인 인벤토리·상점 버튼은 예전 렌더와 완전히 같다.
+  // opt.over = 아트 위에 얹히는 화면(상점·퀘스트)에서 position/zIndex를 준다.
+  segBar(items,active,onPick,opt){
+    const o=opt||{}, n=items.length;
+    return h('div',{style:Object.assign({display:'flex',flex:'0 0 auto',height:47}, o.over?{position:'relative',zIndex:1}:{})},
+      ...items.map((it,i)=>{
+        const on=it.k===active, dis=!!it.lock;
+        const br=(n===1)?'0 0 16px 16px':(i===0?'0 0 0 16px':(i===n-1?'0 0 16px 0':'0'));
+        const st={flex:1,height:47,background:'#18191D',border:'none',borderRadius:br,
+          color:dis?'#4B4D52':(on?'#EAEBEE':'#6F7276'),fontFamily:T.sans,fontSize:14,fontWeight:400,
+          cursor:dis?'default':'pointer',padding:0};
+        if(it.tail) Object.assign(st,{display:'flex',alignItems:'center',justifyContent:'center',gap:8});
+        const pr={key:it.k,disabled:dis,onClick:dis?null:()=>onPick(it.k),style:st};
+        return it.tail
+          ? h('button',pr, h('span',{key:'l'}, it.label), h('span',{key:'t',style:{display:'flex'}}, it.tail))
+          : h('button',pr, it.label);
+      }));
+  }
   shopRow(o){ return h('div',{key:o.key,onClick:o.disabled?null:o.onClick,style:{display:'flex',flexDirection:'column',gap:8,padding:'16px 18px',borderBottom:'1px solid rgb(54,56,60)',cursor:o.disabled?'default':'pointer',opacity:(o.disabled||o.dim)?0.5:1}},
       h('div',{style:{display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8}},
         this.catChip(o.cat,!!o.on),
