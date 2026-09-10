@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val3';
-import { buildIndex } from './sheet-loader.js?v=val9';
+import { DATA as FALLBACK } from './data/game-data.js?v=val4';
+import { buildIndex } from './sheet-loader.js?v=val10';
 
 export let DATA = FALLBACK;
 export let byId = buildIndex(FALLBACK).byId;
@@ -88,6 +88,11 @@ const V3_STRINGS = {
   quest_obj_depth:['회복 아이템 사용 하지않고 {n}회 연속 승리','Win {n} in a row without healing'],
   // 리스트형 상세의 목표 행 라벨 — 제출·소탕은 이름만 쓰고 조우·사용만 동사를 붙인다(목업)
   quest_row_encounter:['"{a}" 조우','Find "{a}"'], quest_row_use:['"{a}" 섭취','Consume "{a}"'],
+  // effect 축 목표의 표시 이름 — EffectType 값을 그대로 키로 쓴다(quest_eff_<EffectType>)
+  quest_eff_stamina:['스태미너 회복','Stamina Recovery'], quest_eff_heal:['생명력 회복','HP Recovery'],
+  // context:'rest' 전용 변형 — 전투 중 '휴식하기' 화면에서 쓴 것만 인정하는 목표
+  quest_row_use_rest:['휴식 중 "{a}"','"{a}" while resting'],
+  quest_sum_use_rest:['전투 중 휴식에서 "{a}" {n}회','Recover "{a}" {n}x while resting mid-raid'],
   // 리스트 행 한 줄 요약 — {n}=목표치
   quest_sum_submit:['"{a}" {n}개 제출','Submit {n}x "{a}"'],
   quest_sum_kill:['{a} {n}마리 처치','Kill {n} {a}'],
@@ -1361,9 +1366,11 @@ export function questObjective(q){
   const o = questJson(q && q.Objective); if (!o || !o.kind) return null;
   let ts = Array.isArray(o.targets) ? o.targets : null;
   if (!ts) ts = [{ id: o.target, filter: o.filter, count: o.count }];      // 구형 폴백
+  // 대상 지정 축 3종 — id(단일 ID) / filter(Category 목록) / effect(EffectType). 셋 중 하나만 있으면 유효.
   ts = ts.map(x => ({ id: x.id || null, filter: Array.isArray(x.filter) ? x.filter : null,
+                      effect: x.effect ? String(x.effect).trim() : null,
                       count: Math.max(1, N(x.count, 1)) }))
-         .filter(x => x.id || x.filter);
+         .filter(x => x.id || x.filter || x.effect);
   if (!ts.length) return null;
   return { ...o, kind: String(o.kind), targets: ts };
 }
@@ -1382,6 +1389,67 @@ export function questPeriod(now){
   return Math.floor((t - anchor.getTime()) / (questResetMinutes() * 60000));
 }
 // 다음 리셋까지 남은 ms
+// ===== 일일 퀘스트 로테이션 (셔플 백) =====
+// 덱을 섞어 위에서부터 뽑고, 다 쓰면 다음 사이클 시드로 다시 섞는다.
+// 재등장 간격이 '덱 크기 ÷ 하루 뽑는 수'로 정확히 떨어진다(일반 20장·3장 → 약 7일 / 고난도 7장·1장 → 7일).
+// 주기 인덱스(questPeriod)를 시드로 쓰므로 시트에도 세이브에도 아무것도 남기지 않는다 — 같은 날은 항상 같은 결과.
+function qHash(str){
+  let h = 2166136261 >>> 0; const t = String(str);
+  for (let i = 0; i < t.length; i++){ h ^= t.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return h >>> 0;
+}
+function qShuffle(list, seed){                       // xorshift32 + Fisher-Yates (시드 고정 = 결정론적)
+  const a = list.slice(); let s = (seed >>> 0) || 1;
+  const rnd = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+  for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(rnd() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+// 누적 인덱스 = period*perDay + k. 사이클이 넘어가면 그 사이클 시드로 다시 섞는다(하루 안에서 경계를 넘어도 안전).
+// take = 실제로 뽑아볼 장수. 사이클 경계를 넘는 날은 이미 나온 카드가 다시 나올 수 있어서,
+// 여유분을 더 뽑아두고 호출부에서 중복을 걷어낸 뒤 앞에서 perDay장을 취한다.
+// (여유분을 안 두면 그날 한 상인만 2장이 되어 노출 수가 틀어진다.)
+function qBag(list, key, period, perDay, take){
+  const n = list.length; if (!n || perDay <= 0) return [];
+  const want = Math.max(perDay, take || perDay);
+  const out = [], cache = {};
+  for (let k = 0; k < want; k++){
+    const g = period * perDay + k, cyc = Math.floor(g / n), pos = ((g % n) + n) % n;
+    if (!cache[cyc]) cache[cyc] = qShuffle(list, qHash(key + '|' + cyc));
+    out.push(cache[cyc][pos]);
+  }
+  return out;
+}
+export function questTier(q){
+  return String((q && q.Tier) || '').trim().toLowerCase() === 'hard' ? 'hard' : 'normal';
+}
+export function questPerVendor(){ return Math.max(1, N(C.quest_daily_per_vendor, 3)); }
+// 오늘의 편성 — 고난도는 **전역 덱에서 하루 1장**이고, 그 퀘스트의 GiverVendorID가 곧 오늘의 상인이다.
+// 일반은 상인별 덱에서 perDay장. 고난도가 붙은 상인은 마지막 한 칸을 고난도에 내준다(하루 노출 수는 그대로).
+export function questDaily(period){
+  const p = period == null ? questPeriod() : period;
+  const rows = (DATA.quests || []).filter(q => String(q.Type || '') === 'daily');
+  const per = questPerVendor();
+  const hard = qBag(rows.filter(q => questTier(q) === 'hard'), 'hard', p, 1)[0] || null;
+  const hv = hard ? String(hard.GiverVendorID || '') : '';
+  const byVendor = {};
+  for (const vid of [...new Set(rows.map(q => String(q.GiverVendorID || '')))]){
+    const pool = rows.filter(q => String(q.GiverVendorID || '') === vid && questTier(q) === 'normal');
+    const seen = new Set();
+    // 여유분까지 뽑아 중복을 걷어내고 앞에서 per장. 풀이 per보다 작으면 있는 만큼만 나온다(콘텐츠 부족 구간 대비).
+    let picked = qBag(pool, 'v:' + vid, p, per, Math.min(pool.length, per * 2)).filter(q => {
+      if (!q || seen.has(q.QuestID)) return false; seen.add(q.QuestID); return true; }).slice(0, per);
+    if (vid === hv){ picked = picked.slice(0, Math.max(0, per - 1)); picked.push(hard); }
+    byVendor[vid] = picked;
+  }
+  if (hv && !byVendor[hv]) byVendor[hv] = [hard];
+  return { period: p, hard, byVendor };
+}
+export function questTodayIds(period){
+  const d = questDaily(period), s = new Set();
+  for (const vid in d.byVendor) for (const q of d.byVendor[vid]) if (q) s.add(q.QuestID);
+  return s;
+}
+
 export function questResetLeft(now){
   const t = now == null ? Date.now() : now;
   const step = questResetMinutes() * 60000;
