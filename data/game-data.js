@@ -1142,7 +1142,20 @@ export const DATA = {
     {"StringID": "quest_eff_heal", "Text_KR": "생명력 회복", "Text_EN": "HP Recovery", "Category": "quest", "UIRole": "label", "Status": "Planning", "Notes": "effect축 목표 표시명 · 현재 미사용(예비)", "LastUpdated": 46275},
     {"StringID": "quest_row_use_rest", "Text_KR": "휴식 중 \"{a}\"", "Text_EN": "\"{a}\" while resting", "Category": "quest", "UIRole": "label", "Status": "Planning", "Notes": "context:rest 전용 목표행 · {a}=대상 이름", "LastUpdated": 46275},
     {"StringID": "quest_sum_use_rest", "Text_KR": "전투 중 휴식에서 \"{a}\" {n}회", "Text_EN": "Recover \"{a}\" {n}x while resting mid-raid", "Category": "quest", "UIRole": "label", "Status": "Planning", "Notes": "context:rest 전용 요약 · {a}=대상 · {n}=목표치", "LastUpdated": 46275},
-    {"StringID": "quest_rw_fail", "Text_KR": "보상을 준비하지 못했다. 잠시 후 다시 시도하자.", "Text_EN": "The reward could not be prepared. Try again shortly.", "Category": "quest", "UIRole": "message", "Status": "Planning", "Notes": "보상 그룹 풀이 비었을 때", "LastUpdated": 46275}
+    {"StringID": "quest_rw_fail", "Text_KR": "보상을 준비하지 못했다. 잠시 후 다시 시도하자.", "Text_EN": "The reward could not be prepared. Try again shortly.", "Category": "quest", "UIRole": "message", "Status": "Planning", "Notes": "보상 그룹 풀이 비었을 때", "LastUpdated": 46275},
+    {"StringID": "heal_pull_use", "Text_KR": "사용하기", "Text_EN": "Pull down to use", "Category": "heal", "UIRole": "hint", "Status": "Planning", "Notes": "휴식 회복 카드 제스처", "LastUpdated": 46276},
+    {"StringID": "loot_tap_reveal", "Text_KR": "탭하여 확인", "Text_EN": "Tap to reveal", "Category": "loot", "UIRole": "hint", "Status": "Planning", "Notes": "미개봉 전리품 카드 · loot_tap_flip과 별개(힌트 자리 축약형)", "LastUpdated": 46276},
+    {"StringID": "loot_pull_stash", "Text_KR": "소지품에 넣기", "Text_EN": "Pull down to stash", "Category": "loot", "UIRole": "hint", "Status": "Planning", "Notes": "전리품 → 소지품", "LastUpdated": 46276},
+    {"StringID": "loot_pull_remove", "Text_KR": "꺼내기", "Text_EN": "Pull up to remove", "Category": "loot", "UIRole": "hint", "Status": "Planning", "Notes": "소지품 → 전리품", "LastUpdated": 46276},
+    {"StringID": "vault_tidy_pull", "Text_KR": "아래로 당겨 물건정리", "Text_EN": "Pull down to tidy", "Category": "belongings", "UIRole": "hint", "Status": "Planning", "Notes": "금고 당겨서 정리", "LastUpdated": 46276},
+    {"StringID": "vault_tidy_release", "Text_KR": "물건정리", "Text_EN": "Release to tidy", "Category": "belongings", "UIRole": "hint", "Status": "Planning", "Notes": "금고 당겨서 정리 · 임계 도달", "LastUpdated": 46276},
+    {"StringID": "item_swipe_close", "Text_KR": "위로 올려 닫기", "Text_EN": "Swipe up to close", "Category": "item", "UIRole": "hint", "Status": "Planning", "Notes": "카드 상세 팝업 닫기", "LastUpdated": 46276},
+    {"StringID": "card_tap_reveal", "Text_KR": "확인하기", "Text_EN": "Reveal", "Category": "common", "UIRole": "hint", "Status": "Planning", "Notes": "카드 뒷면 뒤집기 · 전리품과 흥정 공용", "LastUpdated": 46276},
+    {"StringID": "shop_haggle_start", "Text_KR": "흥정 하기", "Text_EN": "Swipe up to haggle", "Category": "shop", "UIRole": "hint", "Status": "Planning", "Notes": "전당포 흥정 1회차", "LastUpdated": 46276},
+    {"StringID": "shop_haggle_again", "Text_KR": "다시 흥정하기", "Text_EN": "Swipe up to haggle again", "Category": "shop", "UIRole": "hint", "Status": "Planning", "Notes": "전당포 흥정 2회차 이후", "LastUpdated": 46276},
+    {"StringID": "boot_tap_start", "Text_KR": "화면을 탭하여 시작", "Text_EN": "TAP TO START", "Category": "system", "UIRole": "hint", "Status": "Planning", "Notes": "부팅 스플래시 · 프로그레스 대신 표시", "LastUpdated": 46276},
+    {"StringID": "title_tap_start", "Text_KR": "TAP TO START...", "Text_EN": "TAP TO START...", "Category": "system", "UIRole": "hint", "Status": "Planning", "Notes": "메인 타이틀 로고 옆 · 디자인상 KR도 영문 고정(mono)", "LastUpdated": 46276},
+    {"StringID": "boot_tip_label", "Text_KR": "TIP", "Text_EN": "TIP", "Category": "system", "UIRole": "kicker", "Status": "Planning", "Notes": "로딩 팁 라벨 · 영문 고정", "LastUpdated": 46276}
   ],
   "usb": [
     {"USBID": "usb_gutter_roach", "Name_KR": "거대 바퀴 데이터", "Name_EN": "Gutter Roach", "MonsterID": "monster_gutter_roach", "Grants": "[{\"stat\":\"stat_will\",\"v\":1}]", "UploadMinutes": 5, "Description": "극한에서도 살아남는 끈질긴 생존의 본능.", "Description_EN": "The relentless survival instinct that endures any extreme.", "SellPrice": 5000, "Status": "Planning", "Notes": "-", "LastUpdated": 46228},

@@ -1,7 +1,7 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val6';
+import { DATA as FALLBACK } from './data/game-data.js?v=val7';
 import { buildIndex } from './sheet-loader.js?v=val11';
 
 export let DATA = FALLBACK;
@@ -223,6 +223,20 @@ const V3_STRINGS = {
   heal_recover:['생명력 회복','HP recovered'],
   stamina_recover:['스태미너 회복','Stamina recovered'],
   equip_unequip_btn:['해제','Unequip'],
+  // 제스처·부팅 힌트 (UIString Category=heal/loot/belongings/item/common/shop/system, UIRole=hint — 시트가 이긴다)
+  heal_pull_use:['사용하기','Pull down to use'],
+  loot_tap_reveal:['탭하여 확인','Tap to reveal'],
+  loot_pull_stash:['소지품에 넣기','Pull down to stash'],
+  loot_pull_remove:['꺼내기','Pull up to remove'],
+  vault_tidy_pull:['아래로 당겨 물건정리','Pull down to tidy'],
+  vault_tidy_release:['물건정리','Release to tidy'],
+  item_swipe_close:['위로 올려 닫기','Swipe up to close'],
+  card_tap_reveal:['확인하기','Reveal'],
+  shop_haggle_start:['흥정 하기','Swipe up to haggle'],
+  shop_haggle_again:['다시 흥정하기','Swipe up to haggle again'],
+  boot_tap_start:['화면을 탭하여 시작','TAP TO START'],
+  title_tap_start:['TAP TO START...','TAP TO START...'],
+  boot_tip_label:['TIP','TIP'],
 };
 export function invalidateUi(){ _uiById = null; _uiByKr = null; }
 

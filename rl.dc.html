@@ -300,7 +300,7 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 59;
+const TITLE_VER = 60;
 const TITLE_DATE = '0911';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -406,6 +406,13 @@ const PATCH_NOTES = [
     ['홈 화면에 추가할 때 쓰는 아이콘 교체됨.','Replaced the home screen shortcut icon.'] ] }
 ];
 // 로딩 화면 팁 — 시트 Tip 탭 미로드/폴백용(로컬 번들 등). 시트에 값 있으면 그쪽 우선.
+// engine.js 로드 전 첫 프레임용 폴백 — 이때는 this.eng가 없어 UIString을 못 읽는다.
+// (타이틀·스플래시에만 필요. 시트/V3_STRINGS가 들어오면 그쪽이 이긴다.)
+const BOOT_T = {
+  boot_tap_start:['화면을 탭하여 시작','TAP TO START'],
+  title_tap_start:['TAP TO START...','TAP TO START...'],
+  boot_tip_label:['TIP','TIP'],
+};
 const TIP_FALLBACK = [
   ['죽으면 가방과 그 안의 전리품을 모두 잃는다. 주머니 2칸과 착용 장비만 살아남는다.','On death you lose your bag and all its loot — only your 2 pocket slots and equipped gear survive.'],
   ['어떤 징표는 체력이 낮을 때만 발동한다. 위기의 순간을 노려보자.','Some Tokens trigger only at low HP — save them for a pinch.'],
@@ -449,8 +456,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val44');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val12');
+      const eng = await import('./engine.js?v=val45');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val13');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -953,7 +960,7 @@ class Component extends DCLogic {
   }
   services(v){ const list=String((v&&(v.Services_EN||v.Services))||'').split(',').map(s=>s.trim()).filter(Boolean); if(v&&String(v.ShopType||'')==='DataTech'&&!list.includes('Module')) list.push('Module'); if(v&&v.ShopID==='shop_canteen'&&!list.includes('Feed')&&!list.includes('Distribute')) list.push('Feed'); return list; }
   tx(row,base){ return this.eng?this.eng.tr(row,base):''; }
-  t(k){ return this.eng?this.eng.t(k):k; }
+  t(k){ if(this.eng) return this.eng.t(k); const f=BOOT_T[k]; return f?(this.en()?f[1]:f[0]):k; }
   en(){ return !!this.eng && this.eng.LANG==='en'; }
   isPvpZone(z){ if(!z) return false; const v=String(z.IsPvP==null?'':z.IsPvP).trim().toLowerCase(); return v==='1'||v==='true'||v==='y'||v==='yes'; }
   setLang(l){ this.lang=l; this.eng.setLang(l); try{localStorage.setItem('rl_lang',l);}catch(_){} this.forceUpdate(); }
@@ -1191,10 +1198,10 @@ class Component extends DCLogic {
       h('div',{style:{position:'absolute',left:0,right:0,bottom:0,height:342,background:'linear-gradient(180deg, rgba(24,25,29,0) 0%, #18191D 100%)',pointerEvents:'none'}}),
       // 팁 블록 (중앙 정렬) — TIP 라벨 / 본문
       h('div',{style:{position:'absolute',left:0,right:0,bottom:52,padding:'0 24px',display:'flex',flexDirection:'column',alignItems:'center',gap:9,textAlign:'center'}},
-        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.6px',color:'#83B289'}}, 'TIP'),
+        h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.6px',color:'#83B289'}}, this.t('boot_tip_label')),
         opts.tip? h('div',{style:{fontFamily:T.sans,fontSize:12,lineHeight:1.55,color:'#EDEDED'}}, opts.tip):null),
       // 탭 시작 안내(스플래시) — 프로그레스 대신
-      opts.tapStart? h('div',{style:{position:'absolute',left:0,right:0,bottom:16,textAlign:'center',fontFamily:T.mono,fontSize:11,letterSpacing:'1.4px',color:'#EDEDED',animation:'rlFade 1.4s ease-in-out infinite alternate'}}, this.en()?'TAP TO START':'화면을 탭하여 시작'):null,
+      opts.tapStart? h('div',{style:{position:'absolute',left:0,right:0,bottom:16,textAlign:'center',fontFamily:T.mono,fontSize:11,letterSpacing:'1.4px',color:'#EDEDED',animation:'rlFade 1.4s ease-in-out infinite alternate'}}, this.t('boot_tap_start')):null,
       // 00% — 프로그레스 바로 위, 중앙
       opts.tapStart? null : h('div',{style:{position:'absolute',left:0,right:0,bottom:13,textAlign:'center',fontFamily:T.mono,fontSize:11,color:'#A9ABAF'}},
         h('span',{ref:opts.numRef}, '0'), '%'),
@@ -1239,7 +1246,7 @@ class Component extends DCLogic {
           ...TITLE_LOGO.map((d,i)=>h('path',{key:i,d:d,fill:BLUE}))),
         // TAP TO START... — 흰 글자, 천천히 숨쉬기. SVG 잉크 x16.3 / cap-top y369.5
         h('div',{key:'tap',ref:el=>{ this._splTap=el; },
-          style:{position:'absolute',left:16,top:365.5,fontFamily:T.mono,fontSize:12,fontWeight:400,letterSpacing:'1.5px',color:'#EAEBEE',whiteSpace:'nowrap',zIndex:3,animation:'rlBreath 3.4s ease-in-out infinite'}}, 'TAP TO START...'),
+          style:{position:'absolute',left:16,top:365.5,fontFamily:T.mono,fontSize:12,fontWeight:400,letterSpacing:'1.5px',color:'#EAEBEE',whiteSpace:'nowrap',zIndex:3,animation:'rlBreath 3.4s ease-in-out infinite'}}, this.t('title_tap_start')),
         // 버전 — 우측 상단. SVG 잉크 우측 끝 x401.5 / cap-top y27.9. 배포마다 숫자+월일.
         h('div',{key:'ver',ref:el=>{ this._splVer=el; },
           style:{position:'absolute',right:14.5,top:24.5,fontFamily:T.mono,fontSize:12,fontWeight:400,letterSpacing:'1.5px',color:'#BCBCBC',whiteSpace:'nowrap',zIndex:3}}, verTxt))));
@@ -2116,7 +2123,7 @@ class Component extends DCLogic {
       // 힌트 (위로 올려 사용)
       h('div',{style:{position:'relative',zIndex:1,flex:'1 1 auto',minHeight:0}}, list.length? h('div',{style:{height:'100%',padding:'6px 16px 16px',boxSizing:'border-box',display:'flex',flexDirection:'column',justifyContent:'center'}},
         this.lmChevron('down'),
-        h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, this.en()?'Pull down to use':'아래로 내려 사용하기')) : null),
+        h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, this.t('heal_pull_use'))) : null),
       // 하단 패널: 게이지 + 완료 — svg x17 y683~804 (h121)
       h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 17px 24px'}},
         h('div',{style:{background:'rgb(24,25,29)',borderRadius:24,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:16,display:'flex',flexDirection:'column',gap:16}},
@@ -4059,7 +4066,7 @@ void main(){
       // 셰브론 + 힌트 (카드 아래) — 남은 공간을 차지하고 세로 중앙
       (function(needFlip){ return h('div',{style:{position:'relative',zIndex:1,flex:'1 1 auto',minHeight:0,padding:'6px 16px 4px',display:'flex',flexDirection:'column',justifyContent:'center'}},
         needFlip? this.lmTapIcon() : this.lmChevron(isField?'down':'up'),
-        h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, needFlip?(this.en()?'Tap to reveal':'탭하여 확인'):(isField?(this.en()?'Pull down to stash':'아래로 당겨 소지품에 넣기'):(this.en()?'Pull up to remove':'위로 올려 꺼내기')))); }).call(this, isField&&cards[focus]&&!(lm.opened&&lm.opened.has(cards[focus].uid))),
+        h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, needFlip?(this.t('loot_tap_reveal')):(isField?(this.t('loot_pull_stash')):(this.t('loot_pull_remove'))))); }).call(this, isField&&cards[focus]&&!(lm.opened&&lm.opened.has(cards[focus].uid))),
       // footer — svg x16 y722~804 (h82 r24) · 버튼 y739 h48 gap8
       // zIndex 4 = 카드(3)보다 위 — 카드가 아무리 길어져도 [가방]·[완료] 버튼은 가려지면 안 된다.
       h('div',{style:{position:'relative',zIndex:4,flex:'0 0 auto',margin:'0 16px 24px',padding:17,borderRadius:24,background:T.s1,border:'1px solid '+T.line,display:'flex',gap:8,boxShadow:'0 8px 28px rgba(0,0,0,.45)'}},
@@ -4092,25 +4099,43 @@ void main(){
     return freed;
   }
   // 당겨서 정리 — 스크롤 최상단에서만 받는다. 리스트를 고무줄로 내려 위에 힌트를 드러낸다.
-  // ★transform·transition은 명령형으로 쓰되 손을 뗄 때 정본으로 되돌린다(눌어붙음 방지).
+  // ★모바일은 pointer 이벤트만으로 못 잡는다 — 브라우저가 제스처를 스크롤로 채가며 pointercancel을
+  //   쏘기 때문(증상: 1초 넘게 눌러 '텍스트 선택'이 걸려야만 당겨졌다). 터치는 non-passive로 직접
+  //   바인딩해 preventDefault로 가져오고, pointer 핸들러는 데스크톱 마우스 전용으로만 남긴다.
+  //   저항 0.62 · 발동 48px · 힌트는 40px에서 이미 최대 불투명도.
+  vtStart(y){ const sc=this._vtScroll; this._vt=(sc && sc.scrollTop<=0)?{y0:y,d:0}:null; return !!this._vt; }
+  vtDrag(y){ const vt=this._vt; if(!vt) return false;
+    const sc=this._vtScroll;
+    if(sc && sc.scrollTop>0){ this._vt=null; this.vtReset(); return false; }
+    const dy=y-vt.y0;
+    if(dy<=0){ vt.d=0; this.vtPaint(0); return false; }
+    vt.d=Math.min(dy*0.62, 90); this.vtPaint(vt.d); return true; }
+  vtPaint(d){ const sc=this._vtScroll, hint=this._vtHint, hot=d>=48;
+    if(sc){ sc.style.transition='none'; sc.style.transform= d>0?('translateY('+d+'px)'):'none'; }
+    if(hint){ hint.style.transition='none'; hint.style.opacity=String(Math.min(1, d/40)); }
+    if(this._vtT1) this._vtT1.style.opacity= hot?'0':'1';
+    if(this._vtT2) this._vtT2.style.opacity= hot?'1':'0';
+    if(this._vtChev) this._vtChev.style.transform= hot?'rotate(180deg)':'none'; }
+  // ★복원값은 '부모의 vdom 정본'까지 — 안 그러면 명령형 값이 눌어붙는다.
+  vtReset(){ const sc=this._vtScroll, hint=this._vtHint;
+    if(sc){ sc.style.transition='transform .28s cubic-bezier(.16,1,.3,1)'; sc.style.transform='none'; }
+    if(hint){ hint.style.transition='opacity .28s'; hint.style.opacity='0'; }
+    if(this._vtT1) this._vtT1.style.opacity='1';
+    if(this._vtT2) this._vtT2.style.opacity='0';
+    if(this._vtChev) this._vtChev.style.transform='none'; }
+  vtEnd(){ const vt=this._vt; this._vt=null; if(!vt) return; this.vtReset(); if(vt.d>=48) this.vaultTidy(); }
+  // 터치 경로 — ref에서 한 번만 건다(노드 재사용 시 중복 방지).
+  vtBind(el){ this._vtScroll=el; if(!el || el.__vtB) return; el.__vtB=1;
+    el.addEventListener('touchstart',(e)=>{ if(e.touches.length!==1){ this._vt=null; return; } this.vtStart(e.touches[0].clientY); },{passive:true});
+    el.addEventListener('touchmove',(e)=>{ if(!this._vt||!e.touches.length) return;
+      if(this.vtDrag(e.touches[0].clientY) && e.cancelable) e.preventDefault(); },{passive:false});
+    el.addEventListener('touchend',()=>this.vtEnd(),{passive:true});
+    el.addEventListener('touchcancel',()=>{ this._vt=null; this.vtReset(); },{passive:true}); }
   vtHandlers(){ return {
-    onPointerDown:(e)=>{ const sc=this._vtScroll; this._vt = (sc && sc.scrollTop<=0) ? {y0:e.clientY,d:0} : null; },
-    onPointerMove:(e)=>{ if(!this._vt) return; const sc=this._vtScroll, hint=this._vtHint;
-      if(sc && sc.scrollTop>0){ this._vt=null; if(sc){sc.style.transition='transform .2s';sc.style.transform='none';} if(hint) hint.style.opacity='0'; return; }
-      const dy=e.clientY-this._vt.y0; if(dy<=0){ this._vt.d=0; if(sc){sc.style.transform='none';} if(hint) hint.style.opacity='0'; return; }
-      const d=Math.min(dy*0.5, 90); this._vt.d=d;
-      if(sc){ sc.style.transition='none'; sc.style.transform='translateY('+d+'px)'; }
-      if(hint){ hint.style.opacity=String(Math.min(1, d/56)); } },
-    onPointerUp:(e)=>{ const vt=this._vt; this._vt=null; if(!vt) return;
-      const sc=this._vtScroll, hint=this._vtHint;
-      if(sc){ sc.style.transition='transform .28s cubic-bezier(.16,1,.3,1)'; sc.style.transform='none'; }
-      if(hint){ hint.style.transition='opacity .28s'; hint.style.opacity='0';
-        setTimeout(()=>{ if(this._vtHint) this._vtHint.style.transition=''; },300); }
-      if(vt.d>=56) this.vaultTidy(); },
-    onPointerCancel:()=>{ const vt=this._vt; this._vt=null; if(!vt) return;
-      const sc=this._vtScroll, hint=this._vtHint;
-      if(sc){ sc.style.transition='transform .28s cubic-bezier(.16,1,.3,1)'; sc.style.transform='none'; }
-      if(hint) hint.style.opacity='0'; }
+    onPointerDown:(e)=>{ if(e.pointerType==='touch') return; this.vtStart(e.clientY); },
+    onPointerMove:(e)=>{ if(e.pointerType==='touch'||!this._vt) return; this.vtDrag(e.clientY); },
+    onPointerUp:(e)=>{ if(e.pointerType==='touch') return; this.vtEnd(); },
+    onPointerCancel:(e)=>{ if(e&&e.pointerType==='touch') return; this._vt=null; this.vtReset(); }
   }; }
   // ---- inventory ----
   inventory(){
@@ -4130,14 +4155,17 @@ void main(){
         h('div',{style:{display:'flex',gap:6,padding:'12px 18px',overflowX:'auto',flex:'0 0 auto'}},
           ...cats.map(([id,lk])=>h('button',{key:id,onClick:()=>this.setState({filter:id}),style:{flex:'0 0 auto',background:filter===id?'rgb(43,46,50)':'transparent',border:'1px solid '+(filter===id?'rgb(74,77,83)':'rgb(54,56,60)'),color:filter===id?'rgb(234,235,238)':'rgb(111,114,118)',fontFamily:T.mono,fontSize:11,padding:'5px 11px',borderRadius:999,cursor:'pointer',whiteSpace:'nowrap'}},this.t(lk)))),
         // 당겨서 정리 — 클리퍼(overflow:hidden) 안에서 리스트만 내려가고 그 위로 힌트가 드러난다.
-        h('div',Object.assign({style:{flex:1,position:'relative',overflow:'hidden'}}, this.vtHandlers()),
+        h('div',Object.assign({style:{flex:1,position:'relative',overflow:'hidden',overscrollBehavior:'contain',userSelect:'none',WebkitUserSelect:'none',WebkitTouchCallout:'none'}}, this.vtHandlers()),
           h('div',{key:'vthint',ref:el=>{this._vtHint=el;},style:{position:'absolute',left:0,right:0,top:0,height:90,
             display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:0,
             opacity:0,pointerEvents:'none'}},
-            this.lmChevron('down'),
-            h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}},
-              this.en()?'Pull down to tidy':'아래로 당겨 물건정리')),
-          h('div',{key:'vtlist',ref:el=>{this._vtScroll=el;},style:{position:'absolute',inset:0,overflowY:'auto',paddingBottom:100,willChange:'transform'}},
+            h('div',{key:'chev',ref:el=>{this._vtChev=el;},style:{transition:'transform .18s ease'}}, this.lmChevron('down')),
+            h('div',{key:'tw',style:{position:'relative',alignSelf:'stretch',height:16,marginTop:12}},
+              h('div',{key:'t1',ref:el=>{this._vtT1=el;},style:{position:'absolute',left:0,right:0,top:0,textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,opacity:1,transition:'opacity .15s'}},
+                this.t('vault_tidy_pull')),
+              h('div',{key:'t2',ref:el=>{this._vtT2=el;},style:{position:'absolute',left:0,right:0,top:0,textAlign:'center',fontFamily:T.sans,fontSize:11,color:'#EAEBEE',opacity:0,transition:'opacity .15s'}},
+                this.t('vault_tidy_release')))),
+          h('div',{key:'vtlist',ref:el=>{this.vtBind(el);},style:{position:'absolute',inset:0,overflowY:'auto',overscrollBehavior:'contain',paddingBottom:100,willChange:'transform',userSelect:'none',WebkitUserSelect:'none',WebkitTouchCallout:'none'}},
             rows.length? rows.map(inst=>this.invRow(inst,seg,catOf)) : h('div',{style:{padding:'30px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, this.t('common_empty')))))
     );
   }
@@ -4444,7 +4472,7 @@ void main(){
       // 위로 올려 닫기 힌트 — 액션 박스에서 16px 위(위 화살표 바운스 + 텍스트). absolute라 카드 중앙정렬에 영향 없음.
       h('div',{style:{position:'absolute',left:0,right:0,bottom:16,padding:'0 16px',pointerEvents:'none'}},
         this.lmChevron('up'),
-        h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, this.en()?'Swipe up to close':'위로 올려 닫기'))),
+        h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}}, this.t('item_swipe_close')))),
       // 하단 액션 박스 (아이템 카테고리별 버튼 구성)
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
         isConsum?h('div',{style:{display:'flex',gap:5,marginBottom:16}}, h('div',{style:{flex:1}},this.fbar(this.t('stat_hp'),this.gs.hp,this.gs.maxHp,'#ae615c')), h('div',{style:{flex:1}},this.fbar(this.t('stat_stamina'),this.gs.sta,this.staMax,'#c19e6f'))):null,
@@ -6760,7 +6788,7 @@ void main(){
           h('div',{key:'in',style:Object.assign({position:'relative',width:'100%',height:'100%'}, flat?null:{transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:flipped?'rotateY(180deg)':'none'})},
             (flat&&flipped)?null:h('div',{key:'b',style:flat?BACK:Object.assign({},BACK,hide3d,{transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible'})}),
             (flat&&!flipped)?null:h('div',{key:'f',style:flat?FRONT:Object.assign({},FRONT,hide3d,{transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden'})}, flipped?this.lootCardBig(item,true):null))),
-        flipped?null:this.cardHint('flip', this.en()?'Reveal':'확인하기')),
+        flipped?null:this.cardHint('flip', this.t('card_tap_reveal'))),
       h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D'}},
         h('button',{onClick:()=>this.aprDone(),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_confirm'))));
   }
@@ -6827,9 +6855,9 @@ void main(){
 
     // 힌트 자리(카드 아래 47px) — 단계별로 힌트 / 대사 / 빈칸
     let under=null;
-    if(phase==='back') under=this.cardHint('flip', this.en()?'Reveal':'확인하기', false);
-    else if(phase==='list'&&inst.value==null) under=this.cardHint('up', this.en()?'Swipe up to haggle':'위로 올려 흥정 하기', false);
-    else if(phase==='front'&&!done) under=this.cardHint('up', this.en()?'Swipe up to haggle again':'위로 올려 다시 흥정하기', false);
+    if(phase==='back') under=this.cardHint('flip', this.t('card_tap_reveal'), false);
+    else if(phase==='list'&&inst.value==null) under=this.cardHint('up', this.t('shop_haggle_start'), false);
+    else if(phase==='front'&&!done) under=this.cardHint('up', this.t('shop_haggle_again'), false);
     else if(phase==='front'&&done) under=this.npcLineBlock(this.hgVendorName(), this.hgMaxLine(inst.uid), false);
 
     return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
