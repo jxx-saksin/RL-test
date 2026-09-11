@@ -1,7 +1,7 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val5';
+import { DATA as FALLBACK } from './data/game-data.js?v=val6';
 import { buildIndex } from './sheet-loader.js?v=val11';
 
 export let DATA = FALLBACK;

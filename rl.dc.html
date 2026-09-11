@@ -291,12 +291,14 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 56;
-const TITLE_DATE = '0910';
+const TITLE_VER = 57;
+const TITLE_DATE = '0911';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:57, date:'11/Sep', lines:[
+    ['상점, 아지트 리스트 화면 인터페이스 개선','Reworked the shop and hideout list screens'] ] },
   { ver:55, date:'10/Sep', lines:[
     ['모든 재료 및 몬스터 정보카드에 힌트가 제공됨','Materials and monsters now show an info card hint'] ] },
   { ver:52, date:'9/Sep', lines:[
@@ -436,8 +438,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val43');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val11');
+      const eng = await import('./engine.js?v=val44');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val12');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -1596,8 +1598,9 @@ class Component extends DCLogic {
             this.icAlert('hex',20,'#A9ABAF'),
             h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#A9ABAF'}}, this.en()?'No access':'접근 금지')),
           // 하단 띠 (svg y257~297)
-          h('div',{style:{position:'absolute',left:0,right:0,top:151,height:40,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 17px'}},
+          h('div',{style:{position:'absolute',left:0,right:0,top:151,height:40,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 15px 0 17px'}},
             h('span',{style:{fontFamily:T.sans,fontSize:16,fontWeight:500,color:this.hideoutOpen()?'#EAEBEE':'#6F7276'}}, this.t('hide_title')),
+            this.hideoutOpen()? this.hideJobIcons() : null,
             this.hideoutOpen()? null : h('span',{style:{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.22)',fontFamily:T.mono,fontSize:10.5,letterSpacing:'1px',color:'#6F7276',whiteSpace:'nowrap'}}, this.en()?'SOON':'준비중'))),
         // 상점 행 7개 — 370x61 r8, 간격 8
         ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Feed')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Module')||svc.includes('Sell')||svc.includes('Haggle')||svc.includes('Register')||svc.includes('Claim'); const act=()=>this.openVendor(v.VendorID);
@@ -1605,12 +1608,13 @@ class Component extends DCLogic {
               style:{position:'relative',flexShrink:0,height:63,boxSizing:'border-box',textAlign:'left',border:'1px solid #36383C',borderRadius:8,padding:0,cursor:open?'pointer':'default',overflow:'hidden',background:T.s3}},
               h('div',{style:{position:'absolute',inset:0,backgroundImage:'url(assets/art/shop/'+v.ShopID+'.webp)',backgroundSize:'cover',backgroundPosition:'center'}}),
               h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(17,19,21,0.20) 0%, rgba(17,19,21,0.94) 100%)'}}),
-              h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px 0 17px'}},
+              // ★우측 여백 16 = 보더 1 + 패딩 15. 좌측은 17(목업 텍스트 x33.6 = 16+1+17)로 비대칭이 맞다.
+              h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 15px 0 17px'}},
                 h('span',{style:{fontFamily:T.sans,fontSize:16,fontWeight:500,color:open?'#EAEBEE':'#6F7276',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.shopName(v.ShopID,v)),
-                // 우측 슬롯 — 옛 서비스 칩(치료/수리/급식/감정…)을 걷어내고 퀘스트 배지를 놓는다.
-                // 받을 퀘스트가 없으면 아무것도 안 뜬다(키오스크는 퀘스트 서비스가 없어 항상 빈다).
+                // 우측 슬롯 — 신규/진행중/완료 칩 3종(개수 포함). 목업 screen-shop-list-v2.svg.
+                // ★Quest 서비스가 없는 상점(온라인 키오스크)은 통째로 숨긴다 — 0/0/0 회색 칩 3개는 거짓 정보다(사용자 결정).
                 open
-                  ? this.questBadge(this.qVendorIcon(v.VendorID))
+                  ? (svc.includes('Quest')? this.questCountChips(v.VendorID) : null)
                   : h('div',{style:{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:24,boxSizing:'border-box',padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.22)',color:T.faint,fontFamily:T.mono,fontSize:10}}, svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',12,T.faint,1.6), this.t('common_locked'))));
           }),
         // 하단 여백 스페이서 — gap 8이 앞에 붙으므로 163 + 8 = 171
@@ -4801,23 +4805,26 @@ void main(){
     for(const st of list){ if(st==='done') return 'done'; if(st==='run') run=true; else if(st==='new') neu=true; }
     return run?'run':(neu?'new':null); }
   qTabChip(tab){ return this.qPick(this.qList(tab).map(x=>x.st)); }
-  // ★상점 리스트 전용 우선순위 — 완료 > **신규** > 진행중.
-  // ⚠️ 퀘스트 화면(qPick)은 완료 > **진행중** > 신규 그대로다. 둘이 다른 건 의도다:
-  //    일부러 안 받아둔 신규가 쌓였을 때 리스트에서 진행중이 가려지지 않게 하려는 것(사용자 결정 2026-09-10).
-  qPickShop(list){ let run=false,neu=false;
-    for(const st of list){ if(st==='done') return 'done'; if(st==='new') neu=true; else if(st==='run') run=true; }
-    return neu?'new':(run?'run':null); }
-  qVendorIcon(vid){ this.qSync();
-    return this.qPickShop(this.eng.questRows().filter(q=>String(q.Type||'')==='daily'&&String(q.GiverVendorID||'')===vid&&this.qInToday(q))
-      .map(q=>this.qState(q)).filter(st=>st!=='hide')); }
-  // 퀘스트 배지 — svg/ic_quest_01~03.svg 원본 그대로(26x26 원 + 기호). 01 신규=초록 ! / 02 완료=황금 ? / 03 진행중=회색 ?
-  // 상태가 없으면 null — 아무것도 안 뜬다(사용자 규칙).
-  questBadge(st){
-    const C={done:'#CCA26E', new:'#83B289', run:'#757575'}[st]; if(!C) return null;
-    return h('svg',{width:26,height:26,viewBox:'0 0 26 26',fill:'none',style:{flexShrink:0,display:'block'}},
-      h('circle',{key:'bg',cx:13,cy:13,r:13,fill:C}),
-      h('path',{key:'sym',fillRule:'evenodd',clipRule:'evenodd',fill:'#212327',
-        d: st==='new' ? 'M25 13C25 6.37258 19.6274 1 13 1C6.37258 1 1 6.37258 1 13C1 19.6274 6.37258 25 13 25C19.6274 25 25 19.6274 25 13ZM13 6.1C13.4971 6.1 13.9 6.50294 13.9 7V14.2C13.9 14.6971 13.4971 15.1 13 15.1C12.5029 15.1 12.1 14.6971 12.1 14.2V7C12.1 6.50294 12.5029 6.1 13 6.1ZM13 19C13.6627 19 14.2 18.4627 14.2 17.8C14.2 17.1373 13.6627 16.6 13 16.6C12.3373 16.6 11.8 17.1373 11.8 17.8C11.8 18.4627 12.3373 19 13 19Z' : 'M25 13C25 19.6274 19.6274 25 13 25C6.37258 25 1 19.6274 1 13C1 6.37258 6.37258 1 13 1C19.6274 1 25 6.37258 25 13ZM13 7.9C12.2544 7.9 11.65 8.50442 11.65 9.25C11.65 9.74706 11.2471 10.15 10.75 10.15C10.2529 10.15 9.85 9.74706 9.85 9.25C9.85 7.5103 11.2603 6.1 13 6.1C14.7397 6.1 16.15 7.5103 16.15 9.25C16.15 10.103 15.8098 10.8784 15.2595 11.4448C15.1488 11.5587 15.0432 11.6642 14.9425 11.7649C14.6835 12.0237 14.4566 12.2504 14.2575 12.5062C13.9946 12.8439 13.9 13.0921 13.9 13.3V14.2C13.9 14.6971 13.4971 15.1 13 15.1C12.5029 15.1 12.1 14.6971 12.1 14.2V13.3C12.1 12.5138 12.466 11.8773 12.837 11.4006C13.1115 11.048 13.4565 10.7036 13.7365 10.4242C13.821 10.3399 13.8995 10.2615 13.9685 10.1905C14.2055 9.94652 14.35 9.61605 14.35 9.25C14.35 8.50442 13.7456 7.9 13 7.9ZM13 19C13.6627 19 14.2 18.4627 14.2 17.8C14.2 17.1373 13.6627 16.6 13 16.6C12.3373 16.6 11.8 17.1373 11.8 17.8C11.8 18.4627 12.3373 19 13 19Z'}));
+  // ★상점 리스트 퀘스트 칩 3종 — 목업 `screen-shop-list-v2.svg` 실측.
+  // 배지 1개(우선순위로 하나만) → **신규/진행중/완료를 개수와 함께 항상 나란히** 보여주는 방식으로 바뀌었다(A0.0057).
+  // 그래서 리스트 전용 우선순위(qPickShop)는 필요가 없어져 삭제했다 — 퀘스트 화면의 qPick은 그대로 쓴다.
+  // 칩 실측: h20 · r4 · bg #0A0B0E · border 1px = 상태색 · mono 9.5(글리프 bbox 8.6 ÷ 0.907) · gap 4
+  //          폭 신규 47 / 진행중 56 / 완료 47 — padding '4px 9px'로 자연폭이 48/57/48이 되어 ±1로 맞는다.
+  // ★0이면 색을 죽인다(#757575). 칸은 그대로 남아서 "없다"는 것 자체가 정보가 된다.
+  qVendorCounts(vid){ this.qSync();
+    const c={new:0,run:0,done:0};
+    for(const q of this.eng.questRows()){
+      if(String(q.Type||'')!=='daily' || String(q.GiverVendorID||'')!==vid || !this.qInToday(q)) continue;
+      const st=this.qState(q); if(st!=='hide' && c[st]!=null) c[st]++;
+    }
+    return c;
+  }
+  questCountChips(vid){
+    const c=this.qVendorCounts(vid);
+    return h('div',{style:{flexShrink:0,display:'flex',alignItems:'center',gap:4}},
+      ...[['new','quest_chip_new'],['run','quest_chip_run'],['done','quest_chip_done']].map(([k,lk])=>
+        h('span',{key:k,style:{display:'flex'}},
+          this.readyChip(this.t(lk)+' '+c[k], c[k]>0?this.qCol(k):'#757575', {bg:'#0A0B0E',pad:'4px 9px',solid:true}))));
   }
   qVendorChip(vid){ this.qSync();
     return this.qPick(this.eng.questRows().filter(q=>String(q.Type||'')==='daily'&&String(q.GiverVendorID||'')===vid&&this.qInToday(q))
@@ -4909,9 +4916,10 @@ void main(){
       this.shopHeader(this.shopName(v.ShopID,v), ()=>this.go('vendorMenu')),
       h('div',{key:'qgap',style:{flex:'0 0 auto',height:85}}),   // 헤더(90)+85 = 아트 바닥 175 — 상점 구매/판매와 같은 방식
       this.questTabs(tab),
-      // ★marginTop 10 — 목업의 첫 구분선은 y232다(탭 패널 하단 222 + 10). 붙여 그리면
-      //   방금 살린 하단 r16을 선이 가로질러 잘라먹는다.
-      h('div',{key:'qlist',style:{position:'relative',zIndex:1,flex:'1 1 auto',minHeight:0,marginTop:10,overflowY:'auto',borderTop:'1px solid rgb(54,56,60)'}},
+      // ★탭 바로 아래에 **선 없이** 바로 붙는다 — 거래 화면(vendorBuy/vendorSell)과 같은 규약(사용자 결정 2026-09-11).
+      //   목업엔 첫 행(232~321) 위에 1px top border가 그려져 있지만, 앱 전체는 행마다 **border-bottom**을 쓰므로
+      //   첫 행 위에는 선이 생기지 않는다. 여기에 borderTop을 달면 탭 패널의 하단 r16을 선이 가로질러 잘라먹기도 했다.
+      h('div',{key:'qlist',style:{position:'relative',zIndex:1,flex:'1 1 auto',minHeight:0,overflowY:'auto'}},
         rows.length? rows.map(x=>this.questRow(x.q,x.st))
           : h('div',{style:{padding:'40px 18px',textAlign:'center',fontFamily:T.sans,fontSize:12,color:'#6F7276'}}, this.t('quest_empty'))),
       h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex'}},
@@ -4932,11 +4940,13 @@ void main(){
     return h('div',{key:key,style:{height:36,flex:'0 0 auto',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,
       borderBottom:last?'none':'1px solid rgb(54,56,60)'}}, left, right);
   }
-  // ⬡! 아이콘 — 목업 실측 15.6×17.2
-  qBangIcon(){ return h('svg',{width:16,height:18,viewBox:'0 0 16 18',fill:'none',style:{flex:'0 0 auto',display:'block'}},
-      h('path',{key:'hex',d:'M8 1.1L14.4 4.8V12.2L8 15.9L1.6 12.2V4.8L8 1.1Z',stroke:'#EAEBEE',strokeWidth:1.2,strokeLinejoin:'round'}),
-      h('path',{key:'bar',d:'M8 5.6V11.0',stroke:'#EAEBEE',strokeWidth:1.2,strokeLinecap:'round'}),
-      h('circle',{key:'dot',cx:8,cy:12.9,r:0.85,fill:'#EAEBEE'})); }
+  // ⬡! 아이콘 — 목업 `screen-quest-depth.svg` 실측 15.6×17.2, 원점 (60,686.199)을 0,0으로 옮긴 패스 그대로.
+  // ⚠️ 예전엔 치수만 재고 모양을 눈대중으로 근사해 **각진 육각형 + stroke**로 그렸었다(사용자 지적 2026-09-11).
+  //    실물은 **모서리가 둥근 육각형**이고 stroke가 아니라 evenodd 링(fill)이다 — <path>의 C 곡선을 읽을 것.
+  qBangIcon(){ return h('svg',{width:15.6,height:17.2,viewBox:'0 0 15.6 17.2',fill:'none',style:{flex:'0 0 auto',display:'block'}},
+      h('path',{key:'hex',fillRule:'evenodd',clipRule:'evenodd',fill:'#EAEBEE',d:'M7.8 0C7.2363 0 6.7215 0.155 6.1589 0.417C5.6145 0.669 4.9843 1.043 4.1957 1.51L3.5932 1.866C2.8043 2.334 2.1742 2.707 1.6886 3.064C1.1865 3.433 0.8014 3.811 0.5227 4.306C0.2444 4.8 0.1187 5.329 0.0584 5.956C0 6.565 0 7.309 0 8.245V8.955C0 9.891 0 10.636 0.0584 11.244C0.1187 11.871 0.2444 12.4 0.5227 12.895C0.8014 13.39 1.1865 13.768 1.6886 14.137C2.1742 14.494 2.8043 14.867 3.5932 15.334L4.1957 15.691C4.9843 16.158 5.6145 16.531 6.1589 16.784C6.7215 17.045 7.2363 17.2 7.8 17.2C8.3637 17.2 8.8785 17.045 9.4411 16.784C9.9855 16.531 10.6157 16.158 11.4043 15.691L12.0068 15.334C12.7957 14.867 13.4258 14.494 13.9114 14.137C14.4135 13.768 14.7986 13.39 15.0773 12.895C15.3556 12.4 15.4813 11.871 15.5416 11.244C15.6 10.636 15.6 9.891 15.6 8.955V8.245C15.6 7.309 15.6 6.565 15.5416 5.956C15.4813 5.329 15.3556 4.8 15.0773 4.306C14.7986 3.811 14.4135 3.433 13.9114 3.064C13.4258 2.707 12.7957 2.334 12.0068 1.866L11.4043 1.51C10.6157 1.043 9.9855 0.669 9.4411 0.417C8.8785 0.155 8.3637 0 7.8 0ZM4.7802 2.558C5.6019 2.072 6.1808 1.73 6.6645 1.505C7.1362 1.286 7.4726 1.2 7.8 1.2C8.1274 1.2 8.4638 1.286 8.9355 1.505C9.4192 1.73 9.9981 2.072 10.8198 2.558L11.3687 2.883C12.1903 3.37 12.7688 3.713 13.2006 4.031C13.6214 4.34 13.8648 4.598 14.0316 4.895C14.1988 5.192 14.296 5.539 14.3471 6.071C14.3994 6.615 14.4 7.303 14.4 8.275V8.925C14.4 9.898 14.3994 10.585 14.3471 11.129C14.296 11.661 14.1988 12.009 14.0316 12.306C13.8648 12.602 13.6214 12.86 13.2006 13.17C12.7688 13.487 12.1903 13.831 11.3687 14.317L10.8198 14.642C9.9981 15.129 9.4192 15.471 8.9355 15.696C8.4638 15.915 8.1274 16 7.8 16C7.4726 16 7.1362 15.915 6.6645 15.696C6.1808 15.471 5.6019 15.129 4.7802 14.642L4.2313 14.317C3.4097 13.831 2.8313 13.487 2.3994 13.17C1.9786 12.86 1.7352 12.602 1.5684 12.306C1.4012 12.009 1.304 11.661 1.2529 11.129C1.2006 10.585 1.2 9.898 1.2 8.925V8.275C1.2 7.303 1.2006 6.615 1.2529 6.071C1.304 5.539 1.4012 5.192 1.5684 4.895C1.7352 4.598 1.9786 4.34 2.3994 4.031C2.8313 3.713 3.4097 3.37 4.2313 2.883L4.7802 2.558Z'}),
+      h('path',{key:'bar',fill:'#EAEBEE',d:'M7.8 4C8.1314 4 8.4 4.269 8.4 4.6V9.4C8.4 9.732 8.1314 10 7.8 10C7.4686 10 7.2 9.732 7.2 9.4V4.6C7.2 4.269 7.4686 4 7.8 4Z'}),
+      h('path',{key:'dot',fill:'#EAEBEE',d:'M8.6 11.8C8.6 12.242 8.2418 12.6 7.8 12.6C7.3582 12.6 7 12.242 7 11.8C7 11.358 7.3582 11 7.8 11C8.2418 11 8.6 11.358 8.6 11.8Z'})); }
   // 배너 — 정찰·연전. 문장 안의 {n} 자리에 진행 카운터가 상태색으로 들어간다.
   qBanner(q){
     const o=this.eng.questObjective(q), t=o.targets[0], cur=this.qProg(q)[0]||0;
@@ -5336,6 +5346,35 @@ void main(){
     let run=false;
     for(let i=0;i<n;i++){ const v=get(i); if(v==='done') return 'done'; if(v==='run') run=true; }
     return run?'run':null;
+  }
+  // ===== 아지트 카드 잡 아이콘 3종 (A0.0057 · 목업 screen-shop-list-v2.svg) =====
+  // 제작 / 디스크 / 해독이 각각 대기·진행·완료 중 무엇인지 **색 하나로만** 알린다.
+  // 회색 #757575 대기 · 초록 #83B289 진행 · 파랑 #85B3C5 완료.
+  // ★상태 판정은 facJobChip(k)을 그대로 쓴다 — 그 함수가 이미 슬롯을 훑어 '완료 > 진행 > null'을
+  //   돌려주므로(디스크 2슬롯·제작 3슬롯처럼 여러 개여도) 사용자 규칙과 정확히 같다. null = 대기.
+  // 박스 실측: 32×22 r4 · bg #0A0B0E · border 1px · 아이콘 12×12 중앙 · gap 4 · 우측 끝 x369(카드 우여백 17)
+  HIDE_JOB_ICON(kind,C){
+    const P={
+      craft:[
+      h('path',{key:'p0',fill:C,d:'M3.364 1.563C4.406 0.521 4.927 0 5.574 0C6.222 0 6.743 0.521 7.785 1.563L10.437 4.215C11.479 5.257 12 5.778 12 6.426C12 7.073 11.479 7.594 10.437 8.636C9.395 9.678 8.874 10.199 8.227 10.199C7.579 10.199 7.058 9.678 6.016 8.636L3.364 5.984C2.322 4.942 1.801 4.421 1.801 3.773C1.801 3.126 2.322 2.605 3.364 1.563Z'}),
+      h('path',{key:'p1',fill:C,d:'M3.172 7.066L0.496 9.742C0.29 9.948 0.187 10.05 0.126 10.157C-0.042 10.448 -0.042 10.805 0.126 11.095C0.187 11.202 0.29 11.305 0.496 11.51C0.701 11.716 0.804 11.819 0.911 11.881C1.201 12.048 1.559 12.048 1.849 11.881C1.956 11.819 2.058 11.716 2.264 11.51L4.94 8.834L3.172 7.066Z'}),
+      h('path',{key:'p2',fill:C,d:'M3.809 6.429L3.811 6.427L5.579 8.195L5.577 8.198L3.809 6.429Z'}),
+      h('path',{key:'p3',fill:C,d:'M10.606 3.112C10.759 2.827 10.754 2.482 10.591 2.2C10.53 2.093 10.427 1.99 10.221 1.785C10.016 1.579 9.913 1.476 9.806 1.415C9.525 1.252 9.18 1.247 8.894 1.4L10.606 3.112Z'})],
+      disk:[
+      h('path',{key:'p0',fillRule:'evenodd',clipRule:'evenodd',fill:C,d:'M0 6C0 2.686 2.686 0 6 0C9.314 0 12 2.686 12 6C12 9.314 9.314 12 6 12C2.686 12 0 9.314 0 6ZM5.55 1.8C5.55 1.551 5.751 1.35 6 1.35C8.568 1.35 10.65 3.432 10.65 6C10.65 8.568 8.568 10.65 6 10.65C3.432 10.65 1.35 8.568 1.35 6C1.35 5.751 1.551 5.55 1.8 5.55C2.049 5.55 2.25 5.751 2.25 6C2.25 8.071 3.929 9.75 6 9.75C8.071 9.75 9.75 8.071 9.75 6C9.75 3.929 8.071 2.25 6 2.25C5.751 2.25 5.55 2.049 5.55 1.8ZM6 3.15C5.751 3.15 5.55 3.351 5.55 3.6C5.55 3.849 5.751 4.05 6 4.05C7.077 4.05 7.95 4.923 7.95 6C7.95 7.077 7.077 7.95 6 7.95C5.751 7.95 5.55 8.151 5.55 8.4C5.55 8.649 5.751 8.85 6 8.85C7.574 8.85 8.85 7.574 8.85 6C8.85 4.426 7.574 3.15 6 3.15Z'})],
+      decode:[
+      h('path',{key:'p0',fillRule:'evenodd',clipRule:'evenodd',fill:C,d:'M1.953 4.524L2.413 4.064C3.715 2.762 4.366 2.111 5.175 2.111C5.296 2.111 5.413 2.125 5.53 2.154C6.193 2.32 6.829 2.956 7.936 4.063L7.936 4.064L7.937 4.064C8.885 5.012 9.488 5.615 9.745 6.185C9.841 6.398 9.889 6.606 9.889 6.825C9.889 7.634 9.238 8.285 7.936 9.587L7.476 10.047C6.174 11.349 5.523 12 4.714 12C3.906 12 3.255 11.349 1.953 10.047C0.651 8.745 0 8.094 0 7.286C0 6.477 0.651 5.826 1.953 4.524ZM1.635 6.967C1.81 6.792 2.095 6.792 2.271 6.967L5.033 9.729C5.209 9.905 5.209 10.19 5.033 10.365C4.857 10.541 4.572 10.541 4.396 10.365L1.635 7.604C1.459 7.428 1.459 7.143 1.635 6.967Z'}),
+      h('path',{key:'p1',fillRule:'evenodd',clipRule:'evenodd',fill:C,d:'M10.698 1.302C11.566 2.17 12 2.604 12 3.143C12 3.682 11.566 4.116 10.698 4.984L10.317 5.366C10.254 5.27 10.187 5.176 10.117 5.083C9.754 4.608 9.23 4.084 8.615 3.47L8.53 3.385C7.916 2.77 7.392 2.246 6.917 1.884C6.824 1.813 6.73 1.746 6.634 1.683L7.016 1.302C7.884 0.434 8.318 0 8.857 0C9.396 0 9.83 0.434 10.698 1.302ZM10.573 2.7C10.748 2.876 10.748 3.161 10.573 3.336L10.148 3.761C9.973 3.936 9.688 3.936 9.512 3.761C9.336 3.585 9.336 3.3 9.512 3.124L9.936 2.7C10.112 2.524 10.397 2.524 10.573 2.7ZM9.3 1.427C9.476 1.603 9.476 1.888 9.3 2.064L8.876 2.488C8.7 2.664 8.415 2.664 8.239 2.488C8.064 2.312 8.064 2.027 8.239 1.851L8.664 1.427C8.839 1.251 9.124 1.251 9.3 1.427Z'})]}[kind]||[];
+    return h('svg',{width:12,height:12,viewBox:'0 0 12 12',fill:'none',style:{display:'block'}}, ...P);
+  }
+  hideJobIcons(){
+    const COL={done:'#85B3C5', run:'#83B289'};
+    return h('div',{style:{flexShrink:0,display:'flex',alignItems:'center',gap:4}},
+      ...['craft','disk','decode'].map(k=>{
+        const C=COL[this.facJobChip(k)] || '#757575';
+        return h('div',{key:k,style:{width:32,height:22,boxSizing:'border-box',borderRadius:4,background:'#0A0B0E',
+          border:'1px solid '+C,display:'flex',alignItems:'center',justifyContent:'center'}}, this.HIDE_JOB_ICON(k,C));
+      }));
   }
   hideoutList(){
     this.hideTick();
