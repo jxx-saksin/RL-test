@@ -196,6 +196,7 @@ const SFX = {
   disk_load:        'assets/sound/effect/disk-load.m4a',          // 단말기: 인스톨이 도는 소리 (3.50s)
   battle_victory:   'assets/sound/effect/battle-victory.m4a',     // 전투 승리 (2.04s)
   battle_defeat:    'assets/sound/effect/battle-defeat.m4a',      // 전투 패배 (3.02s)
+  quest_accept:     'assets/sound/effect/quest-accept.m4a',       // 퀘스트 수락 확정 (1.00s)
   // ── card ──
   card_flip1:       'assets/sound/card/card-flip.m4a',            // 카드 한 장이 뒤집히는 순간 — 3종 랜덤·연속 방지
   card_flip2:       'assets/sound/card/card-flip2.m4a',
@@ -226,6 +227,7 @@ const SFX_GAIN = {
   card_swipe1:1.00, card_swipe2:0.97, card_swipe3:1.05,
   // UI 효과음 목표 0.050
   card_insert:1.33, tap_terminal_done:0.42, open_bag:0.19, close_bag:0.39, disk_insert:1.14, disk_load:0.68,
+  quest_accept:2.10,
   // 승패 재즐은 조금 더 존재감 있게 0.070
   battle_victory:0.19, battle_defeat:0.23,
   // 상점 진입음 목표 0.050
@@ -298,12 +300,14 @@ const TITLE_LOGO=[
 'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
 'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 58;
+const TITLE_VER = 59;
 const TITLE_DATE = '0911';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:59, date:'11/Sep', lines:[
+    ['금고 물건정리 기능 추가 및 효과음, 카드 연출 개선','Vault tidy-up, a new sound, and smoother card swipes'] ] },
   { ver:57, date:'11/Sep', lines:[
     ['상점, 아지트 리스트 화면 인터페이스 개선','Reworked the shop and hideout list screens'] ] },
   { ver:55, date:'10/Sep', lines:[
@@ -2001,13 +2005,22 @@ class Component extends DCLogic {
     onPointerDown:(e)=>{ this._rvy=e.clientY; this._rvx=e.clientX; this._rvc=e.currentTarget; const p=e.currentTarget.parentElement; this._rvp=p; if(p){ p.style.overflow='visible'; p.style.zIndex='100'; } e.currentTarget.style.zIndex='100'; },
     onPointerMove:(e)=>{ if(this._rvy==null)return; const dy=e.clientY-this._rvy; const el=this._rvc; if(!el)return; el.style.transition='none'; el.style.zIndex='100'; el.style.transform='translate(-50%, calc(-50% + '+dy+'px)) scale(1)'; },
     onPointerCancel:(e)=>{ if(this._rvy==null)return; const el=this._rvc, p=this._rvp; this._rvy=null; this._rvx=null; this._rvp=null;
-      if(el){ el.style.transition='transform .3s'; el.style.transform='translate(-50%,-50%) scale(1)'; el.style.opacity='1'; el.style.zIndex='20'; }
+      if(el){ el.style.transition='transform .4s cubic-bezier(.16,1,.3,1),opacity .3s'; el.style.transform='translate(-50%,-50%) scale(1)'; el.style.opacity='1'; el.style.zIndex='20'; }
       if(p){ p.style.overflow='hidden'; p.style.zIndex='1'; } },   // 스테이지 zIndex 정본은 1 — ''로 지우면 auto가 박힌다
     // ⚠️ zIndex 복원은 ''(auto) 금지 — vdom 정본값 '20'으로. 프레임워크가 포커스 노드를 위치기준 재사용하므로
     // ''로 지우면 재사용된 카드가 형제(사이드) 뒤로 떨어져 반투명처럼 보임(전리품 화면과 동종 버그).
     onPointerUp:(e)=>{ if(this._rvy==null)return; const dy=e.clientY-this._rvy; const dx=this._rvx!=null?e.clientX-this._rvx:0; const el=this._rvc; const p=this._rvp; this._rvy=null; this._rvx=null; this._rvp=null; const restore=()=>{ if(p){ p.style.overflow='hidden'; p.style.zIndex='1'; } if(el) el.style.zIndex='20'; };
+      // ★가로 스와이프 탈출 — onPointerMove가 걸어둔 transition:'none'과 드래그 transform을 여기서 되돌린다.
+      //   vdom의 transition 문자열은 렌더마다 같아서 프레임워크가 다시 써주지 않는다(명령형 스타일 눌어붙음).
+      //   그대로 두면 뒤이어 restNav가 바꾼 transform이 duration 0s로 적용돼 카드가 슬라이드하지 않고
+      //   250px를 순간이동한다 — "이미지만 갈리는" 느낌의 진범(2026-09-11 계측으로 확인).
+      const unstick=()=>{ if(!el) return;
+        el.style.transition='none';
+        el.style.transform='translate(-50%, -50%) scale(1)';   // 드래그 잔여를 먼저 확정
+        void el.offsetWidth;                                    // 리플로우 강제 — 없으면 아래 복원과 합쳐져 무효
+        el.style.transition='transform .4s cubic-bezier(.16,1,.3,1),opacity .3s'; };
       // 전리품 화면과 동종 — 가로 스와이프 시 지연 복원 금지(아래 lmCenterHandlers 주석 참조)
-      if(Math.abs(dx)>30 && Math.abs(dx)>Math.abs(dy)){ restore(); return; }
+      if(Math.abs(dx)>30 && Math.abs(dx)>Math.abs(dy)){ unstick(); restore(); return; }
       const card=dy>70?this.restCards()[this.combat.restFocus]:null;
       const ef=card?this.effectOf(card):null;
       // 버프는 채울 게이지가 없어 '가득참' 판정이 없다 — 소지하고 있으면 언제나 쓸 수 있다.
@@ -3966,14 +3979,20 @@ void main(){
     // ⚠️ zIndex 복원은 ''(auto)가 아니라 vdom 정본값 '20'으로 — 프레임워크가 vdom 미변경 시 스타일 갱신을
     // 스킵하므로 ''로 지우면 중앙 카드가 auto로 떨어져 사이드 카드(z 9~10)가 위에 합성됨(반투명처럼 보이는 버그의 진짜 원인)
     onPointerCancel:(e)=>{ if(this._lmy==null)return; const el=this._lmc, p=this._lmp; this._lmy=null; this._lmx=null; this._lmp=null;
-      if(el){ el.style.transition='transform .3s'; el.style.transform='translate(-50%,-50%) scale(1)'; el.style.opacity='1'; el.style.zIndex='20'; }
+      if(el){ el.style.transition='transform .4s cubic-bezier(.16,1,.3,1),opacity .3s'; el.style.transform='translate(-50%,-50%) scale(1)'; el.style.opacity='1'; el.style.zIndex='20'; }
       if(p){ p.style.zIndex='3'; } },
     onPointerUp:(e)=>{ if(this._lmy==null)return; const dy=e.clientY-this._lmy; const dx=this._lmx!=null?e.clientX-this._lmx:0; const el=this._lmc; const p=this._lmp; this._lmy=null; this._lmx=null; this._lmp=null; const restore=()=>{ if(p){ p.style.zIndex='3'; } if(el) el.style.zIndex='20'; };
       // ⚠️ 가로 스와이프는 부모 캐러셀이 focus를 바꾼다(카드 핸들러가 버블링상 먼저 실행됨).
       //   여기서 setTimeout으로 지연 복원하면 이미 '사이드'가 된 카드에 중앙값 z20을 덮어써
       //   중앙과 사이드가 둘 다 z20이 되고, opacity .42인 사이드가 위에 합성돼 반투명처럼 보인다.
       //   이 시점엔 아직 이 카드가 중앙이므로 '즉시' 복원해야 뒤따르는 리렌더가 정상값(z9)을 덮어쓴다.
-      if(Math.abs(dx)>30 && Math.abs(dx)>Math.abs(dy)){ restore(); return; }
+      // ★휴식 화면과 동종 — transition:'none'이 눌어붙어 가로 스와이프가 애니 없이 튄다. 정본으로 되돌린다.
+      const unstick=()=>{ if(!el) return;
+        el.style.transition='none';
+        el.style.transform='translate(-50%, -50%) scale(1)';
+        void el.offsetWidth;
+        el.style.transition='transform .4s cubic-bezier(.16,1,.3,1),opacity .3s'; };
+      if(Math.abs(dx)>30 && Math.abs(dx)>Math.abs(dy)){ unstick(); restore(); return; }
       const lm=this.state.lm, isField=lm.view==='field'; const arr=isField?lm.field:lm.bag; const fc=arr[Math.max(0,Math.min(lm.focus||0,arr.length-1))];
       // 유효 동작(위=가방뷰 꺼내기 / 아래=필드 개봉된 카드 넣기)일 때만 날려보냄
       let fly=false; if(Math.abs(dy)>70&&fc){ fly = dy<0 ? !isField : (isField && !!(lm.opened&&lm.opened.has(fc.uid)) && this.lmCanStash(fc)); }
@@ -4049,6 +4068,50 @@ void main(){
         h('button',{onClick:()=>{ if(lm.fromCombat){ this.commitLootDraw(); } else { lm.field=this.lmSample().field; lm.view='field'; lm.focus=0; this.flash(this.en()?'Next fight — new loot':'다음 전투 — 새 전리품'); this.forceUpdate(); } },style:{flex:1,height:48,borderRadius:999,border:'none',background:'#212227',color:T.hi,fontFamily:T.sans,fontSize:13,fontWeight:400,cursor:'pointer'}}, lm.fromCombat?(this.en()?'Done':'완료'):(this.en()?'Proceed':'진행하기'))));
   }
 
+  // ===== 금고 물건정리 — 같은 id의 낱개 묶음을 MaxStack까지 합친다 =====
+  // 칸 = 묶음 하나(vaultUsed = vault.length)라, 1/5 + 2/5가 두 칸을 먹는다. 이걸 3/5 한 칸으로 만든다.
+  // ★maxStack(id)는 byId.item만 본다 → 술·모듈·USB·장비는 전부 1이 되어 자동으로 빠진다.
+  //   (술은 묶음마다 proof가 달라 합치면 안 되는데, 이 한 줄 덕에 따로 막을 필요가 없다)
+  //   병합 대상 인스턴스는 {uid,id,kind,qty}뿐이라 잃을 정보가 없다. stackAdd도 같은 규칙으로 합친다.
+  // 필터와 무관하게 **금고 전체**를 정리한다 — 보관 칸을 비우는 게 목적이다(사용자 결정 2026-09-11).
+  vaultTidy(){
+    const v=this.gs.vault, before=v.length;
+    const byId={};
+    for(const inst of v){ if(this.maxStack(inst.id)<=1) continue; (byId[inst.id]=byId[inst.id]||[]).push(inst); }
+    for(const id in byId){
+      const list=byId[id], m=this.maxStack(id);
+      let left=list.reduce((n,x)=>n+Math.max(1,this.eng.N(x.qty,1)),0);
+      for(const inst of list){ const take=Math.min(m,left); inst.qty=take; left-=take; }   // 앞 묶음부터 채움
+    }
+    this.gs.vault=v.filter(x=> this.maxStack(x.id)<=1 || this.eng.N(x.qty,1)>0 );          // 빈 묶음 제거
+    const freed=before-this.gs.vault.length;
+    if(freed>0){ this.sfx('close_bag'); this.saveGame();
+      this.flash(this.en()? (freed+' slot'+(freed>1?'s':'')+' freed') : (freed+'칸 정리됨')); }
+    else this.flash(this.en()?'Nothing to tidy':'정리할 것이 없습니다');
+    this.forceUpdate();
+    return freed;
+  }
+  // 당겨서 정리 — 스크롤 최상단에서만 받는다. 리스트를 고무줄로 내려 위에 힌트를 드러낸다.
+  // ★transform·transition은 명령형으로 쓰되 손을 뗄 때 정본으로 되돌린다(눌어붙음 방지).
+  vtHandlers(){ return {
+    onPointerDown:(e)=>{ const sc=this._vtScroll; this._vt = (sc && sc.scrollTop<=0) ? {y0:e.clientY,d:0} : null; },
+    onPointerMove:(e)=>{ if(!this._vt) return; const sc=this._vtScroll, hint=this._vtHint;
+      if(sc && sc.scrollTop>0){ this._vt=null; if(sc){sc.style.transition='transform .2s';sc.style.transform='none';} if(hint) hint.style.opacity='0'; return; }
+      const dy=e.clientY-this._vt.y0; if(dy<=0){ this._vt.d=0; if(sc){sc.style.transform='none';} if(hint) hint.style.opacity='0'; return; }
+      const d=Math.min(dy*0.5, 90); this._vt.d=d;
+      if(sc){ sc.style.transition='none'; sc.style.transform='translateY('+d+'px)'; }
+      if(hint){ hint.style.opacity=String(Math.min(1, d/56)); } },
+    onPointerUp:(e)=>{ const vt=this._vt; this._vt=null; if(!vt) return;
+      const sc=this._vtScroll, hint=this._vtHint;
+      if(sc){ sc.style.transition='transform .28s cubic-bezier(.16,1,.3,1)'; sc.style.transform='none'; }
+      if(hint){ hint.style.transition='opacity .28s'; hint.style.opacity='0';
+        setTimeout(()=>{ if(this._vtHint) this._vtHint.style.transition=''; },300); }
+      if(vt.d>=56) this.vaultTidy(); },
+    onPointerCancel:()=>{ const vt=this._vt; this._vt=null; if(!vt) return;
+      const sc=this._vtScroll, hint=this._vtHint;
+      if(sc){ sc.style.transition='transform .28s cubic-bezier(.16,1,.3,1)'; sc.style.transform='none'; }
+      if(hint) hint.style.opacity='0'; }
+  }; }
   // ---- inventory ----
   inventory(){
     const seg=this.state.seg, filter=this.state.filter;
@@ -4066,8 +4129,16 @@ void main(){
       seg==='bag'? this.belongings(catOf) : h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
         h('div',{style:{display:'flex',gap:6,padding:'12px 18px',overflowX:'auto',flex:'0 0 auto'}},
           ...cats.map(([id,lk])=>h('button',{key:id,onClick:()=>this.setState({filter:id}),style:{flex:'0 0 auto',background:filter===id?'rgb(43,46,50)':'transparent',border:'1px solid '+(filter===id?'rgb(74,77,83)':'rgb(54,56,60)'),color:filter===id?'rgb(234,235,238)':'rgb(111,114,118)',fontFamily:T.mono,fontSize:11,padding:'5px 11px',borderRadius:999,cursor:'pointer',whiteSpace:'nowrap'}},this.t(lk)))),
-        h('div',{style:{flex:1,overflowY:'auto',paddingBottom:100}},
-          rows.length? rows.map(inst=>this.invRow(inst,seg,catOf)) : h('div',{style:{padding:'30px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, this.t('common_empty'))))
+        // 당겨서 정리 — 클리퍼(overflow:hidden) 안에서 리스트만 내려가고 그 위로 힌트가 드러난다.
+        h('div',Object.assign({style:{flex:1,position:'relative',overflow:'hidden'}}, this.vtHandlers()),
+          h('div',{key:'vthint',ref:el=>{this._vtHint=el;},style:{position:'absolute',left:0,right:0,top:0,height:90,
+            display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:0,
+            opacity:0,pointerEvents:'none'}},
+            this.lmChevron('down'),
+            h('div',{style:{textAlign:'center',fontFamily:T.sans,fontSize:11,color:T.mid,paddingTop:12}},
+              this.en()?'Pull down to tidy':'아래로 당겨 물건정리')),
+          h('div',{key:'vtlist',ref:el=>{this._vtScroll=el;},style:{position:'absolute',inset:0,overflowY:'auto',paddingBottom:100,willChange:'transform'}},
+            rows.length? rows.map(inst=>this.invRow(inst,seg,catOf)) : h('div',{style:{padding:'30px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, this.t('common_empty')))))
     );
   }
   // ===== 소지품 슬롯 뷰(주머니/배낭/장비) — 승인 프로토(inv_slot_proto) 이식. 데이터=gs.bag의 inst.loc('pocket'|'bag') =====
@@ -5130,6 +5201,7 @@ void main(){
       h('div',{style:{maxHeight:'100%',overflowY:'auto',animation:'rlIn .22s cubic-bezier(.2,.8,.2,1)'}}, card));
   }
   qAccept(q){ const o=this.eng.questObjective(q);
+    this.sfx('quest_accept');   // 버튼 클릭 핸들러 안 — 제스처 안에서 동기 재생이라 기기에서도 막히지 않는다
     this.qSet(q.QuestID,{s:'run', p:(o?o.targets:[]).map(()=>0)});
     this.closeQuestSheet(); }   // 수락하면 시트를 닫고 리스트로 돌아간다
   // 포기하면 다음 리셋까지 돌아오지 않는다(사용자 결정) — 기록을 'gave'로 남겨 목록에서 뺀다.
