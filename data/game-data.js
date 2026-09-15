@@ -1153,8 +1153,8 @@ export const DATA = {
     {"StringID": "card_tap_reveal", "Text_KR": "확인하기", "Text_EN": "Reveal", "Category": "common", "UIRole": "hint", "Status": "Planning", "Notes": "카드 뒷면 뒤집기 · 전리품과 흥정 공용", "LastUpdated": 46276},
     {"StringID": "shop_haggle_start", "Text_KR": "흥정 하기", "Text_EN": "Swipe up to haggle", "Category": "shop", "UIRole": "hint", "Status": "Planning", "Notes": "전당포 흥정 1회차", "LastUpdated": 46276},
     {"StringID": "shop_haggle_again", "Text_KR": "다시 흥정하기", "Text_EN": "Swipe up to haggle again", "Category": "shop", "UIRole": "hint", "Status": "Planning", "Notes": "전당포 흥정 2회차 이후", "LastUpdated": 46276},
-    {"StringID": "boot_tap_start", "Text_KR": "화면을 탭하여 시작", "Text_EN": "TAP TO START", "Category": "system", "UIRole": "hint", "Status": "Planning", "Notes": "부팅 스플래시 · 프로그레스 대신 표시", "LastUpdated": 46276},
-    {"StringID": "title_tap_start", "Text_KR": "TAP TO START...", "Text_EN": "TAP TO START...", "Category": "system", "UIRole": "hint", "Status": "Planning", "Notes": "메인 타이틀 로고 옆 · 디자인상 KR도 영문 고정(mono)", "LastUpdated": 46276},
+    {"StringID": "boot_tap_start", "Text_KR": "화면을 드래그 하여 시작", "Text_EN": "DRAG TO START", "Category": "system", "UIRole": "hint", "Status": "Planning", "Notes": "부팅 스플래시 · 프로그레스 대신 표시", "LastUpdated": 46276},
+    {"StringID": "title_tap_start", "Text_KR": "DRAG TO START", "Text_EN": "DRAG TO START", "Category": "system", "UIRole": "hint", "Status": "Planning", "Notes": "메인 타이틀 로고 옆 · 디자인상 KR도 영문 고정(mono)", "LastUpdated": 46276},
     {"StringID": "boot_tip_label", "Text_KR": "TIP", "Text_EN": "TIP", "Category": "system", "UIRole": "kicker", "Status": "Planning", "Notes": "로딩 팁 라벨 · 영문 고정", "LastUpdated": 46276}
   ],
   "usb": [
@@ -1417,19 +1417,20 @@ export const DATA = {
     {"Category": "USB", "MemberName_KR": "터널 부랑자 데이터", "GroupID": "group_qr_data_1", "MemberName_EN": "Tunnel Drifter Data", "MemberItemID": "usb_tunnel_drifter", "GroupName_KR": "데이터 일괄", "Status": "TBD", "Notes": "-", "LastUpdated": 46274}
   ],
   "tips": [
-    {"TipID": "tip_001", "Text_KR": "죽으면 가방과 그 안의 전리품을 모두 잃고, 착용장비와 주머니만 유지된다.", "Text_EN": "TBD", "Category": "survival", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
+    {"TipID": "tip_001", "Text_KR": "죽으면 가방과 그 안의 전리품을 모두 잃으며, 착용장비와 주머니만 유지된다.", "Text_EN": "TBD", "Category": "survival", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
     {"TipID": "tip_002", "Text_KR": "어떤 징표는 체력이 낮을 때만 발동한다. 위기의 순간을 노려보자.", "Text_EN": "TBD", "Category": "combat", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
-    {"TipID": "tip_003", "Text_KR": "미감정 아이템은 감정소에서 감정받아 옵션을 확인할 수 있다.", "Text_EN": "TBD", "Category": "economy", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
+    {"TipID": "tip_003", "Text_KR": "미감정 아이템은 주점에 술을 주고 감정 받아 새로운 옵션을 확인해보자.", "Text_EN": "TBD", "Category": "economy", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
     {"TipID": "tip_004", "Text_KR": "수리는 확률에 따라 실패하게되면 최대 내구도가 영구히 줄어든다.", "Text_EN": "TBD", "Category": "economy", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
-    {"TipID": "tip_005", "Text_KR": "피시방에서 아이템에 모듈을 끼우면 능력치를 강화할 수 있다.", "Text_EN": "TBD", "Category": "combat", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
+    {"TipID": "tip_005", "Text_KR": "아지트의 정비대에서 아이템 모듈을 장착해 업그레이드 할 수 있다.", "Text_EN": "TBD", "Category": "combat", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
     {"TipID": "tip_006", "Text_KR": "PvP지역에서 승리, 패배에따라 적 아이템을 획득하거나 아이템을 잃을 수 있다.", "Text_EN": "TBD", "Category": "combat", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
     {"TipID": "tip_007", "Text_KR": "주머니속 카드는 사망시에도 지킬 수 있다. 중요한 아이템을 주머니에 보관하자.", "Text_EN": "TBD", "Category": "survival", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
     {"TipID": "tip_008", "Text_KR": "가방을 착용하면 배낭 칸이 늘어 더 많은 전리품을 들고 귀환할 수 있다.", "Text_EN": "TBD", "Category": "survival", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
     {"TipID": "tip_009", "Text_KR": "사토는 아이템 판매와 전투 처치로 모으며, 몬스터 등급에따라 금액이 달라진다.", "Text_EN": "TBD", "Category": "economy", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
     {"TipID": "tip_010", "Text_KR": "몬스터 마다 소모 스태미너가 다르고, 스태미너 모두 소모시 탈진상태가된다.", "Text_EN": "TBD", "Category": "system", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
     {"TipID": "tip_011", "Text_KR": "전투가 지속될 수 록 해당 지역 보스 출현 확률이 증가한다.", "Text_EN": "TBD", "Category": "system", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
-    {"TipID": "tip_012", "Text_KR": "모든 몬스터는 고유의 데이터를 드랍한다. 피시방에 가져가서 해독해보자.", "Text_EN": "TBD", "Category": "system", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
-    {"TipID": "tip_013", "Text_KR": "인벤토리에서 아이템을 밀어서 다른 칸으로 이동 시킬 수 있다.", "Text_EN": "TBD", "Category": "system", "Status": "Planning", "Notes": "-", "LastUpdated": 46247}
+    {"TipID": "tip_012", "Text_KR": "모든 몬스터는 고유의 데이터를 드랍한다. 아지트의 단말기에서 해독해보자.", "Text_EN": "TBD", "Category": "system", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
+    {"TipID": "tip_013", "Text_KR": "인벤토리에서 아이템을 밀어서 다른 칸으로 이동 시킬 수 있다.", "Text_EN": "TBD", "Category": "system", "Status": "Planning", "Notes": "-", "LastUpdated": 46247},
+    {"TipID": "tip_014", "Text_KR": "사망한 몬스터의 카드를 눌러보자, 못챙긴 전리품을 다시 획득 할 수 있다.", "Text_EN": "TBD", "Category": "system", "Status": "Planning", "Notes": "-", "LastUpdated": 46280}
   ],
   "facilities": [
     {"FacilityLevelID": "fac_storage_1", "FacilityID": "storage", "Name_KR": "보관함", "Name_EN": "Storage", "Level": 1, "UpgradeMinutes": "-", "CostSato": 0, "CostItems": "-", "Effects": "[{\"key\":\"capacity\",\"from\":0,\"to\":40}]", "Unlocks": "-", "Status": "Planning", "Notes": "시작 레벨", "LastUpdated": 46272},

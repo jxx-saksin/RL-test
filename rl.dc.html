@@ -174,8 +174,13 @@ const GRADECOL = { common:'rgb(234,235,238)', rare:'#83B289', unique:'#7CA5BB', 
 const gradeColOf = (g) => GRADECOL[String(g||'').toLowerCase()] || GRADECOL.common;
 const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Valuable:'귀중품', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소', Blueprint:'디스크' };
 // 몬스터 아트 보유 목록 — 레이드 로딩 배경 랜덤 픽 판정용(assets/art/monsters/*.webp). 아트 추가 시 갱신.
+// 존 배경 아트 경로. ★같은 파일명으로 **교체된** 아트는 여기에 ?v=를 적어 브라우저 캐시를 끊는다
+// (배포 시 index V만 올리면 html/js만 갱신되고 이미지는 옛 것이 남는다 — 2026-09-15 mall·houses 교체).
+const ZONE_ART_V = { city_01_mall:'?v=2', city_01_houses:'?v=2' };
+const zoneArt = (id) => 'assets/art/zones/'+id+'.webp'+(ZONE_ART_V[id]||'');
 const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','monster_bloated_toad','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_pale_lynx','monster_rogue_emergency','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_spore_gardener','monster_wandering_sentry','monster_abandoned_chihuahua',
-  'monster_gravid_queen','monster_last_deputy','monster_lingering_manager','monster_tower_sentinel']);
+  'monster_gravid_queen','monster_last_deputy','monster_lingering_manager','monster_tower_sentinel',
+  'monster_fare_gate','monster_foreman_unit','monster_track_sweeper','monster_tunnel_drifter']);
 // 부팅 로딩(4초) 동안 미리 받아둘 아트 — 텍스트보다 이미지가 늦게 뜨는 걸 줄인다.
 // 순위별로 순차 로드하고, 1순위(부팅 직후 프로토콜 지구)는 부팅이 끝나기 전까지 기다린다.
 // ⚠️ 실제로 파일이 있는 것만 적을 것 — 없는 경로를 넣으면 404 요청만 낭비된다(MONSTER_ART와 같은 규약).
@@ -244,8 +249,8 @@ const PRELOAD = [
    'assets/art/shop/shop_pawnshop.webp','assets/art/shop/shop_tavern.webp','assets/art/shop/shop_blackmarket.webp',
    'assets/art/shop/shop_auction.webp'],
   // 2순위 — 레이드 존 목록 · 카드 뒷면
-  ['assets/art/zones/city_01_mall.webp','assets/art/zones/city_01_houses.webp','assets/art/zones/city_01_tower.webp',
-   'assets/art/zones/city_01_police.webp','assets/art/zones/city_01_greenhouse.webp',
+  [zoneArt('city_01_mall'),zoneArt('city_01_houses'),'assets/art/zones/city_01_tower.webp',
+   'assets/art/zones/city_01_police.webp','assets/art/zones/city_01_greenhouse.webp','assets/art/zones/city_01_depot.webp',
    'assets/art/card_back/monster_back.webp','assets/art/card_back/item_back.webp',
    'assets/art/card_back/flee_back.webp','assets/art/card_back/pvp_back.webp'],
   // 3순위 — 태그/패스 화면(무겁고 진입이 늦다)
@@ -285,27 +290,34 @@ const BOOT_LOGO=[
 // mp4 13.1MB -> 1.8MB. <img> 한 장이라 자동재생 정책·preload·play() 처리가 통째로 필요 없다.
 // 메인 타이틀 로고 'THE PROTOCOL PASS' — screen-main-title-v2.svg 의 아웃라인 패스 13개.
 // 벡터 그대로 인라인한다(어느 배율에서도 선명 · 5KB · 이미지 요청 0건). 좌표계 = SVG 원본 420x856.
+// 타이틀 로고 'THE PROTOCOL PASS' — screen-main-title-v3.svg 13패스.
+// 잉크 박스 x40.00–294.08 / y112.00–291.44 (v2는 x16–404/y69–343 — 좌표가 다르니 섞지 말 것).
+// 타이틀 하단 셰브론(∨∨) — 목업 좌표계 그대로라 viewBox '206.5 739 15.5 10.67'로 잘라 쓴다.
+const CHEVRON_DN='M206.681 739.243C206.95 738.951 207.424 738.917 207.738 739.167L214.25 744.345L220.762 739.167C221.076 738.917 221.55 738.951 221.819 739.243C222.089 739.535 222.053 739.974 221.738 740.224L214.738 745.789C214.457 746.012 214.043 746.012 213.762 745.789L206.762 740.224C206.447 739.974 206.411 739.535 206.681 739.243ZM206.681 742.953C206.95 742.661 207.424 742.628 207.738 742.878L214.25 748.055L220.762 742.878C221.076 742.628 221.55 742.661 221.819 742.953C222.089 743.245 222.053 743.684 221.738 743.934L214.738 749.499C214.457 749.723 214.043 749.723 213.762 749.499L206.762 743.934C206.447 743.684 206.411 743.245 206.681 742.953Z';
 const TITLE_LOGO=[
-'M16 251.664V169.652C16 165.829 19.1522 162.705 23.0087 162.705H53.8686C57.7252 162.705 60.8773 165.829 60.8773 169.652V201.345C60.8773 205.168 57.7252 208.292 53.8686 208.292H32.9206L30.0175 202.742V244.71C30.0175 248.533 26.8653 251.657 23.0087 251.657H16V251.664ZM46.8598 179.187C46.7389 177.748 45.5292 176.641 44.0421 176.641H24.4176L30.0175 179.476V194.399H46.8598V179.187Z',
-'M95.8784 251.664V225.027L79.036 208.376V244.717C79.036 248.54 75.8839 251.664 72.0273 251.664H65.0186V162.705H102.887C106.744 162.705 109.896 165.829 109.896 169.652V201.345C109.896 205.168 106.744 208.292 102.887 208.292H98.7815L109.896 219.35V244.71C109.896 248.533 106.744 251.657 102.887 251.657H95.8784V251.664ZM95.8784 179.187C95.7574 177.748 94.5478 176.641 93.0607 176.641H73.4433L79.0432 179.476V194.399H95.8855V179.187H95.8784Z',
-'M121.046 251.664C117.189 251.664 114.037 248.54 114.037 244.717V169.652C114.037 165.872 117.189 162.705 121.046 162.705H151.906C155.762 162.705 158.914 165.872 158.914 169.652V244.717C158.914 248.54 155.762 251.664 151.906 251.664H121.046ZM144.897 176.641H130.879C129.343 176.641 128.062 177.875 128.062 179.398V234.893L122.462 237.771H144.897V176.641Z',
-'M178.482 251.664V179.236C178.482 177.917 177.408 176.81 176.034 176.647H163.056V162.712H207.933V176.647H186.907L192.507 179.483V251.664H178.489H178.482Z',
-'M219.083 251.664C215.226 251.664 212.074 248.54 212.074 244.717V169.652C212.074 165.872 215.226 162.705 219.083 162.705H249.943C253.799 162.705 256.952 165.872 256.952 169.652V244.717C256.952 248.54 253.799 251.664 249.943 251.664H219.083ZM242.927 176.641H228.909C227.373 176.641 226.092 177.875 226.092 179.398V234.893L220.492 237.771H242.927V176.641Z',
-'M268.102 251.664C264.245 251.664 261.093 248.54 261.093 244.717V169.652C261.093 165.872 264.245 162.705 268.102 162.705H305.97V176.641H269.51L275.11 179.476V235.013C275.11 236.537 276.398 237.771 277.928 237.771H305.963V251.664H268.094H268.102Z',
-'M329.188 251.664C318.693 251.664 310.111 243.194 310.111 232.799V181.619C310.111 171.217 318.7 162.712 329.188 162.712H335.948C346.4 162.712 354.982 171.224 354.982 181.619V232.799C354.982 243.201 346.393 251.664 335.948 251.664H329.188ZM340.964 235.013V179.518L346.564 176.64H324.129V234.893L318.529 237.771H338.146C339.683 237.771 340.964 236.536 340.964 235.013Z',
-'M366.131 251.664C362.275 251.664 359.123 248.54 359.123 244.717V162.705H366.131C369.988 162.705 373.14 165.872 373.14 169.652V234.886L367.54 237.764H404V251.657H366.131V251.664Z',
-'M16 343V260.988C16 257.165 19.1522 254.041 23.0087 254.041H53.8686C57.7252 254.041 60.8773 257.165 60.8773 260.988V292.681C60.8773 296.504 57.7252 299.628 53.8686 299.628H32.9206L30.0175 294.078V336.046C30.0175 339.869 26.8653 342.993 23.0087 342.993H16V343ZM46.8598 270.53C46.7389 269.091 45.5292 267.984 44.0421 267.984H24.4176L30.0175 270.819V285.742H46.8598V270.53Z',
-'M95.8786 343V302.428C95.8786 300.904 94.5907 299.635 93.0609 299.635H73.4435L79.0434 302.512V336.053C79.0434 339.876 75.8912 343 72.0346 343H65.0259V260.988C65.0259 257.208 68.178 254.041 72.0346 254.041H102.894C106.751 254.041 109.903 257.208 109.903 260.988V336.053C109.903 339.876 106.751 343 102.894 343H95.8857H95.8786ZM95.8786 282.984V267.977H81.8611C80.3242 267.977 79.0434 269.211 79.0434 270.734V285.742H93.0609C94.5978 285.742 95.8786 284.507 95.8786 282.984Z',
-'M121.046 343C117.189 343 114.037 339.876 114.037 336.053V309.663H125.28C126.817 309.663 128.062 310.897 128.062 312.456V326.349C128.062 327.872 129.35 329.107 130.879 329.107H150.376L144.904 326.314V299.635H121.053C117.196 299.635 114.044 296.51 114.044 292.688V260.994C114.044 257.214 117.196 254.048 121.053 254.048H151.913C155.769 254.048 158.922 257.214 158.922 260.994V277.398H144.904V270.536C144.783 269.098 143.573 267.99 142.086 267.99H122.469L128.069 270.826V282.991C128.069 284.472 129.314 285.706 130.808 285.748H151.92C155.777 285.748 158.929 288.873 158.929 292.695V336.067C158.929 339.89 155.777 343.014 151.92 343.014H121.06L121.046 343Z',
-'M170.064 343C166.208 343 163.056 339.876 163.056 336.053V309.663H174.298C175.835 309.663 177.08 310.897 177.08 312.456V326.349C177.08 327.872 178.368 329.107 179.898 329.107H199.394L193.923 326.314V299.635H170.072C166.215 299.635 163.063 296.51 163.063 292.688V260.994C163.063 257.214 166.215 254.048 170.072 254.048H200.931C204.788 254.048 207.94 257.214 207.94 260.994V277.398H193.923V270.536C193.802 269.098 192.592 267.99 191.105 267.99H171.488L177.087 270.826V282.991C177.087 284.472 178.333 285.706 179.827 285.748H200.938C204.795 285.748 207.947 288.873 207.947 292.695V336.067C207.947 339.89 204.795 343.014 200.938 343.014H170.079L170.064 343Z',
-'M31.1487 69L16.9248 125.243V157.867H144.69L158.907 101.624V69H31.1487ZM68.014 90.5663H52.2674L56.4584 92.689V146.739H45.9631V92.5057C45.9631 91.5183 45.159 90.6861 44.1344 90.5663H34.4147V80.1357H68.014V90.5663ZM104.723 141.534C104.723 144.397 102.36 146.739 99.4715 146.739H94.2203V114.269H77.4206L81.6116 116.427V141.541C81.6116 144.404 79.2493 146.746 76.3604 146.746H71.1092V80.1357H81.6045V103.867H94.2132V80.1357H104.708V141.541L104.723 141.534ZM141.424 90.5663H120.434C119.281 90.5663 118.32 91.4901 118.32 92.6256V103.86H136.173V114.262H114.122L118.313 116.42V136.336H141.417V146.739H107.818V85.3334C107.818 82.4983 110.18 80.1287 113.069 80.1287H141.424V90.5592V90.5663Z'];
+'M40 231.616V177.91C40 175.407 42.0642 173.361 44.5897 173.361H64.7982C67.3237 173.361 69.3879 175.407 69.3879 177.91V198.665C69.3879 201.168 67.3237 203.214 64.7982 203.214H51.0805L49.1793 199.579V227.062C49.1793 229.566 47.1152 231.611 44.5897 231.611H40V231.616ZM60.2085 184.154C60.1293 183.212 59.3372 182.487 58.3634 182.487H45.5123L49.1793 184.344V194.116H60.2085V184.154Z',
+'M92.3082 231.616V214.173L81.279 203.269V227.067C81.279 229.57 79.2148 231.616 76.6893 231.616H72.0996V173.361H96.8978C99.4233 173.361 101.488 175.407 101.488 177.91V198.665C101.488 201.168 99.4233 203.214 96.8978 203.214H94.2093L101.488 210.455V227.062C101.488 229.566 99.4233 231.611 96.8978 231.611H92.3082V231.616ZM92.3082 184.154C92.2289 183.212 91.4368 182.487 90.463 182.487H77.6165L81.2836 184.344V194.116H92.3128V184.154H92.3082Z',
+'M108.79 231.616C106.264 231.616 104.2 229.57 104.2 227.067V177.91C104.2 175.435 106.264 173.361 108.79 173.361H128.998C131.524 173.361 133.588 175.435 133.588 177.91V227.067C133.588 229.57 131.524 231.616 128.998 231.616H108.79ZM124.409 182.487H115.229C114.223 182.487 113.384 183.295 113.384 184.293V220.634L109.717 222.518H124.409V182.487Z',
+'M146.402 231.616V184.187C146.402 183.323 145.698 182.598 144.799 182.492H136.3V173.366H165.688V182.492H151.919L155.586 184.348V231.616H146.406H146.402Z',
+'M172.989 231.616C170.464 231.616 168.399 229.57 168.399 227.067V177.91C168.399 175.435 170.464 173.361 172.989 173.361H193.198C195.723 173.361 197.787 175.435 197.787 177.91V227.067C197.787 229.57 195.723 231.616 193.198 231.616H172.989ZM188.603 182.487H179.424C178.417 182.487 177.579 183.295 177.579 184.293V220.634L173.912 222.518H188.603V182.487Z',
+'M205.088 231.616C202.563 231.616 200.499 229.57 200.499 227.067V177.91C200.499 175.435 202.563 173.361 205.088 173.361H229.886V182.487H206.011L209.678 184.344V220.712C209.678 221.71 210.521 222.518 211.523 222.518H229.882V231.616H205.084H205.088Z',
+'M245.09 231.616C238.218 231.616 232.598 226.07 232.598 219.263V185.748C232.598 178.936 238.222 173.366 245.09 173.366H249.517C256.362 173.366 261.981 178.94 261.981 185.748V219.263C261.981 226.074 256.357 231.616 249.517 231.616H245.09ZM252.802 220.713V184.372L256.469 182.487H241.777V220.634L238.11 222.518H250.957C251.963 222.518 252.802 221.71 252.802 220.713Z',
+'M269.283 231.616C266.758 231.616 264.693 229.57 264.693 227.067V173.361H269.283C271.809 173.361 273.873 175.435 273.873 177.91V220.629L270.206 222.513H294.081V231.611H269.283V231.616Z',
+'M40 291.431V237.725C40 235.222 42.0642 233.176 44.5897 233.176H64.7982C67.3237 233.176 69.3879 235.222 69.3879 237.725V258.479C69.3879 260.982 67.3237 263.028 64.7982 263.028H51.0805L49.1793 259.394V286.877C49.1793 289.38 47.1152 291.426 44.5897 291.426H40V291.431ZM60.2085 243.973C60.1293 243.031 59.3372 242.306 58.3634 242.306H45.5123L49.1793 244.163V253.935H60.2085V243.973Z',
+'M92.3089 291.431V264.862C92.3089 263.864 91.4655 263.033 90.4637 263.033H77.6172L81.2843 264.917V286.882C81.2843 289.385 79.2201 291.431 76.6947 291.431H72.105V237.725C72.105 235.249 74.1692 233.176 76.6947 233.176H96.9032C99.4287 233.176 101.493 235.249 101.493 237.725V286.882C101.493 289.385 99.4287 291.431 96.9032 291.431H92.3135H92.3089ZM92.3089 252.129V242.301H83.1295C82.123 242.301 81.2843 243.11 81.2843 244.107V253.935H90.4637C91.4701 253.935 92.3089 253.127 92.3089 252.129Z',
+'M108.79 291.43C106.264 291.43 104.2 289.384 104.2 286.881V269.599H111.562C112.569 269.599 113.384 270.407 113.384 271.428V280.526C113.384 281.524 114.228 282.332 115.229 282.332H127.997L124.413 280.503V263.032H108.795C106.269 263.032 104.205 260.986 104.205 258.483V237.729C104.205 235.253 106.269 233.18 108.795 233.18H129.003C131.529 233.18 133.593 235.253 133.593 237.729V248.471H124.413V243.977C124.334 243.035 123.542 242.31 122.568 242.31H109.722L113.389 244.167V252.133C113.389 253.103 114.204 253.911 115.183 253.939H129.008C131.533 253.939 133.597 255.985 133.597 258.488V286.89C133.597 289.393 131.533 291.439 129.008 291.439H108.799L108.79 291.43Z',
+'M140.889 291.43C138.364 291.43 136.3 289.384 136.3 286.881V269.599H143.662C144.668 269.599 145.484 270.407 145.484 271.428V280.526C145.484 281.524 146.327 282.332 147.329 282.332H160.096L156.513 280.503V263.032H140.894C138.369 263.032 136.304 260.986 136.304 258.483V237.729C136.304 235.253 138.369 233.18 140.894 233.18H161.103C163.628 233.18 165.692 235.253 165.692 237.729V248.471H156.513V243.977C156.434 243.035 155.642 242.31 154.668 242.31H141.821L145.488 244.167V252.133C145.488 253.103 146.304 253.911 147.282 253.939H161.107C163.633 253.939 165.697 255.985 165.697 258.488V286.89C165.697 289.393 163.633 291.439 161.107 291.439H140.899L140.889 291.43Z',
+'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 60;
-const TITLE_DATE = '0911';
+const TITLE_VER = 61;
+const TITLE_DATE = '0915';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
 const PATCH_NOTES = [
+  { ver:61, date:'15/Sep', lines:[
+    ['몬스터 사망시 전리품 재획득 가능 인터페이스추가.','You can reopen the loot screen after a kill'],
+    ['일부 누락된 아트웍 업데이트.','Added artwork that was still missing'] ] },
   { ver:59, date:'11/Sep', lines:[
     ['금고 물건정리 기능 추가 및 효과음, 카드 연출 개선','Vault tidy-up, a new sound, and smoother card swipes'] ] },
   { ver:57, date:'11/Sep', lines:[
@@ -409,8 +421,8 @@ const PATCH_NOTES = [
 // engine.js 로드 전 첫 프레임용 폴백 — 이때는 this.eng가 없어 UIString을 못 읽는다.
 // (타이틀·스플래시에만 필요. 시트/V3_STRINGS가 들어오면 그쪽이 이긴다.)
 const BOOT_T = {
-  boot_tap_start:['화면을 탭하여 시작','TAP TO START'],
-  title_tap_start:['TAP TO START...','TAP TO START...'],
+  boot_tap_start:['화면을 탭하여 시작','DRAG TO START'],
+  title_tap_start:['DRAG TO START','DRAG TO START'],
   boot_tip_label:['TIP','TIP'],
 };
 const TIP_FALLBACK = [
@@ -456,8 +468,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val45');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val13');
+      const eng = await import('./engine.js?v=val47');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val14');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -721,6 +733,7 @@ class Component extends DCLogic {
     if(over.length) setTimeout(()=>this.flash(this.en()?(over.join(' & ')+' over slot limit'):(over.join('·')+' 제한 갯수 초과')),120);
   }
   drawCards(){
+    if(this.combat) this.combat.lootLeft=null;   // 그 자리를 떠난다 — 두고 온 전리품은 여기서 소멸
     const n = this.eng.N(this.eng.DATA.config.combat_card_count, 3);
     const zone = this.eng.byId.zone[this.combat.zoneId];
     const isPvp = this.isPvpZone(zone);
@@ -1222,34 +1235,49 @@ class Component extends DCLogic {
   // 좌표계 = SVG 원본 420x856. 420폭 스테이지를 프레임 폭에 맞춰 균일 스케일(상단 앵커).
   // 아트만 스테이지 밖에서 위치를 잡는다 — 프레임이 설계 비율보다 길쭉하면 바닥에 붙여
   // 아래 빈 띠를 없애고, 짧으면 설계 위치(y=206.8)를 유지해 로고와의 겹침을 지킨다.
+  // 콜드 스타트 = 메인 타이틀 (screen-main-title-v3.svg 재현).
+  // v2와 다른 점: 흰 판·블루 배경·켄번즈가 전부 빠지고, 단색 #1B1B1B 위에 두꺼비 아트가 아래에서 올라온다.
+  // 좌표계 = SVG 원본 420x856. 420폭 스테이지를 프레임 폭에 맞춰 균일 스케일(상단 앵커).
   splashScreen(){
     if(this.state && this.state.err) return this.phone(h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:T.lo,fontFamily:T.mono,fontSize:13}}, (this.eng?this.t('frag_error'):'오류:')+' '+this.state.err));
     const verTxt = 'ver A0.'+String(TITLE_VER).padStart(4,'0')+' ('+TITLE_DATE+')';
-    const BLUE='#002F75';
-    const ART={w:581.0, h:702.5, y:206.8};   // pattern matrix 역산: 880x1064 를 581x702.5 로, y -0.24 보정
-    return this.phone(h('div',{onClick:()=>{ this.sfxUnlock(); this._startBoot(); },
-      style:{flex:1,position:'relative',overflow:'hidden',background:BLUE,cursor:'pointer'}},
-      // 눈먼 광신도 — 로고 위에 겹친다(알파 PNG). 스케일·위치는 프레임 실측으로 잡는다.
-      h('img',{key:'zealot', src:'assets/art/loading/title/title_zealot.webp',
-        ref:el=>{ if(!el) return; const f=el.parentElement; if(!f) return;
-          const s=f.clientWidth/420, fh=f.clientHeight/s;      // 스테이지 좌표계로 환산한 프레임 높이
-          el.style.width=(ART.w*s).toFixed(1)+'px'; el.style.height=(ART.h*s).toFixed(1)+'px';
-          el.style.top=(Math.max(ART.y, fh-ART.h)*s).toFixed(1)+'px'; },
-        style:{position:'absolute',left:0,top:ART.y,width:ART.w,height:ART.h,zIndex:2,pointerEvents:'none',
-          transformOrigin:'50% 100%',willChange:'transform',animation:'rlTitleZoom 22s ease-in-out infinite alternate'}}),
-      h('div',{ref:el=>{ if(el){ const pw=el.parentElement&&el.parentElement.clientWidth; if(pw) el.style.transform='scale('+(pw/420)+')'; } },
-        style:{position:'absolute',left:0,top:0,width:420,height:856,transformOrigin:'0 0',pointerEvents:'none'}},
-        // 상단 흰 판 — y 0..352
-        h('div',{style:{position:'absolute',left:0,top:0,width:420,height:352,background:'#fff'}}),
-        // 로고 'THE PROTOCOL PASS' — 벡터 13패스, 잉크 박스 x16..404 / y69..343
+    const BG='#1B1B1B';
+    // ★탭과 드래그를 **둘 다** 받는다. 드래그를 유도하는 건 iOS에서 한 번 스크롤해야 주소창이 접히고
+    //   전체화면이 되기 때문이다(문구가 DRAG TO START인 이유). 시작은 _bootStarted 가드로 1회만.
+    const go=()=>{ this.sfxUnlock(); this._startBoot(); };
+    const drag={ onPointerDown:(e)=>{ this._spY=e.clientY; },
+      onPointerMove:(e)=>{ if(this._spY==null) return; if(e.clientY-this._spY>24){ this._spY=null; go(); } },
+      onPointerUp:()=>{ this._spY=null; }, onPointerCancel:()=>{ this._spY=null; } };
+    // ★스테이지를 둘로 나눠 **위는 천장, 아래는 바닥**에 앵커한다.
+    //   한 덩어리로 상단 앵커만 하면 목업 비율(420:856=1:2.04)보다 세로로 긴 기기(19.5:9=1:2.17)에서
+    //   아트가 바닥에 못 닿아 아래에 빈 배경이 남는다. 폭 스케일은 양쪽 같다.
+    const fit=(anchor)=>(el)=>{ if(!el) return; const f=el.parentElement; if(!f) return;
+      el.style.transform='scale('+(f.clientWidth/420)+')'; el.style.transformOrigin=anchor; };
+    const LAYER={position:'absolute',left:0,width:420,height:856,pointerEvents:'none'};
+    return this.phone(h('div',Object.assign({onClick:go,
+      style:{flex:1,position:'relative',overflow:'hidden',background:BG,cursor:'pointer',touchAction:'none'}}, drag),
+      // ── 바닥 앵커: 두꺼비 · 그라데이션 · CTA
+      h('div',{key:'bot',ref:fit('0 100%'),style:Object.assign({bottom:0},LAYER)},
+        // 두꺼비 — y345부터 420x558. 원본 880x1168과 같은 비율이라 늘어나지 않는다. 애니메이션 없음.
+        h('img',{key:'toad',src:'assets/art/loading/title/title_toad.webp',
+          style:{position:'absolute',left:0,top:345,width:420,height:558,display:'block'}}),
+        // 배경색으로 녹이는 그라데이션 2벌 — 아트 위쪽(345~495)과 아래쪽(639~856)
+        h('div',{key:'gtop',style:{position:'absolute',left:0,top:345,width:420,height:150,background:'linear-gradient(180deg, '+BG+' 0%, rgba(27,27,27,0) 100%)'}}),
+        h('div',{key:'gbot',style:{position:'absolute',left:0,top:639,width:420,height:217,background:'linear-gradient(180deg, rgba(27,27,27,0) 0%, '+BG+' 100%)'}}),
+        // 하단 CTA — 셰브론(아래로 통통) + 문구. 목업은 중심이 x214.3이지만 4px 치우친 오차라 정중앙에 맞춘다.
+        h('div',{key:'cta',style:{position:'absolute',left:0,right:0,top:739,display:'flex',flexDirection:'column',alignItems:'center'}},
+          h('svg',{width:15.5,height:10.67,viewBox:'206.5 739 15.5 10.67',fill:'none',style:{display:'block',animation:'rlBounceDn 1.4s ease-in-out infinite'}},
+            h('path',{fillRule:'evenodd',clipRule:'evenodd',fill:'#A9ABAF',d:CHEVRON_DN})),
+          h('div',{key:'tap',ref:el=>{ this._splTap=el; },
+            style:{marginTop:18.9,fontFamily:T.mono,fontSize:12,fontWeight:400,letterSpacing:'1.5px',color:'#EAEBEE',whiteSpace:'nowrap',textIndent:'1.5px'}}, this.t('title_tap_start')))),
+      // ── 천장 앵커: 로고 · 버전
+      h('div',{key:'top',ref:fit('0 0'),style:Object.assign({top:0},LAYER)},
+        // 로고 — 흰색 13패스. 잉크 x40.00–294.08 / y112.00–291.44
         h('svg',{width:420,height:856,viewBox:'0 0 420 856',fill:'none',style:{position:'absolute',left:0,top:0}},
-          ...TITLE_LOGO.map((d,i)=>h('path',{key:i,d:d,fill:BLUE}))),
-        // TAP TO START... — 흰 글자, 천천히 숨쉬기. SVG 잉크 x16.3 / cap-top y369.5
-        h('div',{key:'tap',ref:el=>{ this._splTap=el; },
-          style:{position:'absolute',left:16,top:365.5,fontFamily:T.mono,fontSize:12,fontWeight:400,letterSpacing:'1.5px',color:'#EAEBEE',whiteSpace:'nowrap',zIndex:3,animation:'rlBreath 3.4s ease-in-out infinite'}}, this.t('title_tap_start')),
-        // 버전 — 우측 상단. SVG 잉크 우측 끝 x401.5 / cap-top y27.9. 배포마다 숫자+월일.
+          ...TITLE_LOGO.map((d,i)=>h('path',{key:i,d:d,fill:'#fff'}))),
+        // 버전 — 로고 'THE'와 같은 줄 우측. SVG 잉크 우측 끝 x384.55 / 상단 y115.88
         h('div',{key:'ver',ref:el=>{ this._splVer=el; },
-          style:{position:'absolute',right:14.5,top:24.5,fontFamily:T.mono,fontSize:12,fontWeight:400,letterSpacing:'1.5px',color:'#BCBCBC',whiteSpace:'nowrap',zIndex:3}}, verTxt))));
+          style:{position:'absolute',right:35.5,top:114,fontFamily:T.mono,fontSize:12,fontWeight:400,letterSpacing:'1.5px',color:'#BCBCBC',whiteSpace:'nowrap'}}, verTxt))));
   }
   // 부팅 로딩(탭 후) — 게이지 4초 + 데이터 로드. ready 전 표시.
   loading(){
@@ -1381,7 +1409,7 @@ class Component extends DCLogic {
   // ⚠️ 예전엔 assets/battle/encounter-banner.webp를 폴백으로 깔았는데, 아트 파이프라인 밖에서 들어온
   //    쓰면 안 되는 이미지였다(2026-09-08 제거). 존 아트가 없는 도시 2·3에서 드러났었다.
   zoneBg(zoneId,mode,artOverride){
-    const art=artOverride? ('url('+artOverride+')') : (zoneId? ('url(assets/art/zones/'+zoneId+'.webp)') : null);
+    const art=artOverride? ('url('+artOverride+')') : (zoneId? ('url('+zoneArt(zoneId)+')') : null);
     if(!art) return h('div',{key:'zonebg'+(mode||'full'),style:{position:'absolute',inset:0,zIndex:0,pointerEvents:'none',background:'#111315'}});
     const st=(mode==='log')
       // 아트 y361~828(467) + 상·하 페이드 2겹. 가장 선명한 지점 y≈594(약 24%), 위아래로 사라진다.
@@ -1713,7 +1741,7 @@ class Component extends DCLogic {
     }
     return h('div',{onClick:()=>this.setState({modalZone:null}),style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',display:'flex',alignItems:'flex-end',zIndex:30,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 24px',background:'#18191D',borderRadius:24,padding:'24px 18px',display:'flex',flexDirection:'column',gap:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
-        h('div',{style:{height:104,borderRadius:8,background:'url(assets/art/zones/'+z.ZoneID+'.webp) 50% 35% / cover no-repeat, #111315'}}),   // 아트 없는 존은 단색 — 옛 zone-banner 폴백 제거(2026-09-08)
+        h('div',{style:{height:104,borderRadius:8,background:'url('+zoneArt(z.ZoneID)+') 50% 35% / cover no-repeat, #111315'}}),   // 아트 없는 존은 단색 — 옛 zone-banner 폴백 제거(2026-09-08)
         h('div',{style:{display:'flex',flexDirection:'column',gap:8}},
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}},
             h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:500,color:T.hi}}, this.tx(z,'ZoneName')),
@@ -2515,8 +2543,19 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       ? [[this.t('stat_atk'),Math.round(prof.minAtk)+'–'+Math.round(prof.maxAtk)],[this.t('stat_def'),String(Math.round(prof.defense))],[this.t('stat_atk_speed'),prof.atkSpeed.toFixed(2)],[this.t('stat_crit_resist'),Math.round(prof.critResist)],[this.t('stat_status_resist'),Math.round(prof.statusResist)],[this.t('stat_potency'),Math.round(prof.potency)],[this.t('item_material_type'), md.Material&&md.Material!=='-'?md.Material:'—'],[this.t('combat_time_limit'), prof.timeLimit+'s']]
       : [[this.t('stat_atk'),Math.round(prof.minAtk)+'–'+Math.round(prof.maxAtk)],[this.t('stat_def'),String(Math.round(prof.defense))],[this.t('stat_atk_speed'),prof.atkSpeed.toFixed(2)],[this.t('stat_accuracy'),Math.round(prof.accuracy)+'%'],[this.t('stat_evasion'),Math.round(prof.evasion)+'%'],[this.t('stat_crit_chance'),Math.round(prof.critChance)+'%'],[this.t('stat_crit_resist'),Math.round(prof.critResist)+'%'],[this.t('stat_status_resist'),Math.round(prof.statusResist)+'%']];
     const card = isM? (c.pvp? this.userFront(prof) : this.monsterFront(prof,true,true)) : this.playerFront(prof,true);
-    return h('div',{onClick:()=>this.setState({combatSheet:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',zIndex:34,animation:'rlFade .18s'}},
-      h('div',{onClick:e=>e.stopPropagation(),style:{maxHeight:'90%',overflowY:'auto',animation:'rlIn .22s cubic-bezier(.2,.8,.2,1)'}}, card));
+    // 두고 온 전리품 되찾기 — 몬스터 카드에만. 전투 중에는 보이되 **비활성**(기능의 존재를 알린다).
+    // 버튼은 카드에 붙이지 않고 **하단 박스 표준**을 그대로 쓴다(전리품 리빌 화면과 같은 규격).
+    const lootOn=(c.phase==='won' && (c.lootLeft||[]).length>0);
+    return h('div',{onClick:()=>this.setState({combatSheet:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:34,animation:'rlFade .18s'}},
+      h('div',{style:{flex:'1 1 auto',minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px'}},
+        h('div',{onClick:e=>e.stopPropagation(),style:{maxHeight:'100%',overflowY:'auto',animation:'rlIn .22s cubic-bezier(.2,.8,.2,1)'}}, card)),
+      isM? h('div',{key:'lootbox',style:{flex:'0 0 auto',padding:'0 16px 26px'}},
+        h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
+          h('button',{disabled:!lootOn,onClick:lootOn?()=>this.reopenLootDraw():null,
+            style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',
+              background:'#212227',color:lootOn?'#EAEBEE':'#4B4D52',fontFamily:T.sans,fontSize:12,fontWeight:400,
+              cursor:lootOn?'pointer':'default'}},
+            this.t('loot_reopen')))) : null);
   }
   cardControls(){
     const g=this.gs;
@@ -2624,7 +2663,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     const v=this.eng.DATA.config['flee_extract_chance_'+n];
     return (v==null||v==='') ? null : Math.max(0,Math.min(1,this.eng.N(v))); }
   fleePct(){ const p=this.fleeChance(); return Math.round((p==null?0:p)*100); }
-  battleBanner(placeTitle,zoneName,enc){ const zid=this.combat&&this.combat.zoneId; return h('div',{style:{position:'relative',height:118,flex:'0 0 auto',background:zid?('url(assets/art/zones/'+zid+'.webp) center / cover'):'#111315'}},
+  battleBanner(placeTitle,zoneName,enc){ const zid=this.combat&&this.combat.zoneId; return h('div',{style:{position:'relative',height:118,flex:'0 0 auto',background:zid?('url('+zoneArt(zid)+') center / cover'):'#111315'}},
     h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180.32deg, rgba(24,25,29,0) 0.93%, rgb(17,19,21) 99.07%)',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:8,gap:4}},
       h('div',{style:{fontFamily:T.sans,fontSize:20,fontWeight:400,color:'rgb(234,235,238)',letterSpacing:'-0.2px',lineHeight:'100%'}}, placeTitle),
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'1.2px',color:'rgb(111,114,118)',lineHeight:'100%'}}, 'ENCOUNTER · '+zoneName+' · '+(this.en()?('Encounter #'+(enc+1)):((enc+1)+'전 조우'))))); }
@@ -3919,8 +3958,18 @@ void main(){
   commitLootDraw(){ const lm=this.state.lm, c=this.combat; if(!lm) return;
     (lm.bag||[]).forEach(entry=>{ const wasPre=entry.pre; entry.loc = entry.locked?'pocket':'bag'; delete entry.locked; delete entry.pre; this.gs.bag.push(entry); if(!wasPre && c){ (c.runLootInsts||(c.runLootInsts=[])).push(entry.uid); } });
     const kept=(lm.bag||[]).length, left=(lm.field||[]).length;
+    // ★두고 가는 것을 버리지 않고 보관한다 — 그 자리를 떠나기 전(다음 조우)까지는
+    //   몬스터 상세 카드의 [전리품 보기]로 되돌아올 수 있다. drawCards()에서 비운다.
+    if(c) c.lootLeft=(lm.field||[]).slice();
     this.saveGame(); this.setState({screen:'combat'});
     this.flash(this.en()?('Stashed '+kept+(left?' · left '+left:'')):(kept+'개 담음'+(left?(' · '+left+'개 두고 옴'):''))); }
+  // 두고 온 전리품으로 되돌아가기. 최초 진입(전투 승리)과 **같은 방식**으로 lm을 짓는다 —
+  // 기존 소지품은 다시 pre:true로 lm.bag에 실리므로 재커밋해도 중복 지급되지 않는다.
+  reopenLootDraw(){ const c=this.combat; if(!c || !(c.lootLeft||[]).length) return;
+    const lm={view:'field',focus:0,fromCombat:true,field:c.lootLeft.slice(),bag:[]}; const keep=[];
+    for(const it of this.gs.bag){ if(this.isEquipped(it.uid)){ keep.push(it); continue; } it.locked=(it.loc==='pocket'); it.pre=true; lm.bag.push(it); }
+    this.gs.bag=keep; this.state.lm=lm; this.sfxDealIn(this.lmCards(lm).length);
+    this.setState({screen:'lootmanage', combatSheet:null}); }
   lmCards(lm){ return lm.view==='field'?lm.field:lm.bag; }
   lmLocked(lm){ return lm.bag.filter(x=>x.locked).length; }
   lmBagCap(){ return this.eng.equippedBagCapacity? this.eng.equippedBagCapacity(this.gs) : 10; }

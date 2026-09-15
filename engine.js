@@ -1,7 +1,7 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val7';
+import { DATA as FALLBACK } from './data/game-data.js?v=val8';
 import { buildIndex } from './sheet-loader.js?v=val11';
 
 export let DATA = FALLBACK;
@@ -234,9 +234,10 @@ const V3_STRINGS = {
   card_tap_reveal:['확인하기','Reveal'],
   shop_haggle_start:['흥정 하기','Swipe up to haggle'],
   shop_haggle_again:['다시 흥정하기','Swipe up to haggle again'],
-  boot_tap_start:['화면을 탭하여 시작','TAP TO START'],
-  title_tap_start:['TAP TO START...','TAP TO START...'],
+  boot_tap_start:['화면을 탭하여 시작','DRAG TO START'],
+  title_tap_start:['DRAG TO START','DRAG TO START'],
   boot_tip_label:['TIP','TIP'],
+  loot_reopen:['전리품 보기','View loot'],
 };
 export function invalidateUi(){ _uiById = null; _uiByKr = null; }
 
