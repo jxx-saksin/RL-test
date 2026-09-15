@@ -309,7 +309,7 @@ const TITLE_LOGO=[
 'M140.889 291.43C138.364 291.43 136.3 289.384 136.3 286.881V269.599H143.662C144.668 269.599 145.484 270.407 145.484 271.428V280.526C145.484 281.524 146.327 282.332 147.329 282.332H160.096L156.513 280.503V263.032H140.894C138.369 263.032 136.304 260.986 136.304 258.483V237.729C136.304 235.253 138.369 233.18 140.894 233.18H161.103C163.628 233.18 165.692 235.253 165.692 237.729V248.471H156.513V243.977C156.434 243.035 155.642 242.31 154.668 242.31H141.821L145.488 244.167V252.133C145.488 253.103 146.304 253.911 147.282 253.939H161.107C163.633 253.939 165.697 255.985 165.697 258.488V286.89C165.697 289.393 163.633 291.439 161.107 291.439H140.899L140.889 291.43Z',
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 61;
+const TITLE_VER = 62;
 const TITLE_DATE = '0915';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -3991,20 +3991,31 @@ void main(){
     if(lm.view==='field'){ if(dir!=='down') return; const i=Math.max(0,Math.min(lm.focus||0,lm.field.length-1)); const inst=lm.field[i]; if(!inst) return;
       if(!lm.opened||!lm.opened.has(inst.uid)){ this.lmReject(this.en()?'Flip to reveal first':'카드를 뒤집어 확인부터'); return; }
       const ms=this.maxStack(inst.id);
-      // 가방(미잠금) 우선 → 가득/미착용이면 주머니(잠금·2칸)로 자동 폴백. 스택은 각각 병합.
+      // ★빈칸보다 **같은 스택을 먼저** 찾는다(가방→주머니). 주머니에서 꺼낸 것이 빈 가방칸을
+      //   새로 먹어 슬롯이 하나 더 나가던 버그(2026-09-15). 스택 병합은 칸을 늘리지 않는다.
       const bagTgt=ms>1?lm.bag.find(x=>x.id===inst.id&&!x.locked&&(x.qty||1)<ms):null;
       const pkTgt=ms>1?lm.bag.find(x=>x.id===inst.id&&x.locked&&(x.qty||1)<ms):null;
       const bagRoom=lm.bag.filter(x=>!x.locked).length<this.lmBagCap();
       const pkRoom=this.lmLocked(lm)<2 && this.canPocket(inst);   // 가방은 주머니 폴백 금지
       if(bagTgt){ lm.field.splice(i,1); bagTgt.qty=(bagTgt.qty||1)+1; this.flash(this.en()?'To bag':'가방에 넣음'); }
-      else if(bagRoom){ lm.field.splice(i,1); inst.qty=1; inst.locked=false; lm.bag.push(inst); this.flash(this.en()?'To bag':'가방에 넣음'); }
       else if(pkTgt){ lm.field.splice(i,1); pkTgt.qty=(pkTgt.qty||1)+1; this.flash(this.en()?'To pocket (safe)':'주머니에 넣음 (안전)'); }
+      else if(bagRoom){ lm.field.splice(i,1); inst.qty=1; inst.locked=false; lm.bag.push(inst); this.flash(this.en()?'To bag':'가방에 넣음'); }
       else if(pkRoom){ lm.field.splice(i,1); inst.qty=1; inst.locked=true; lm.bag.push(inst); this.flash(this.en()?'To pocket (safe)':'주머니에 넣음 (안전)'); }
       else { this.lmReject(this.canPocket(inst) ? (this.en()?'Bag & pocket full':'가방·주머니 가득 참') : this.noPocketMsg()); return; } }
     else { if(dir!=='up') return; const i=Math.max(0,Math.min(lm.focus||0,lm.bag.length-1)); const entry=lm.bag[i]; if(!entry) return;
       if(!lm.opened) lm.opened=new Set();
-      if((entry.qty||1)>1){ entry.qty--; const one=this.eng.mkInstance(entry.id,1); one.qty=1; one.locked=false; lm.field.push(one); lm.opened.add(one.uid); }
-      else { lm.bag.splice(i,1); entry.locked=false; entry.qty=1; lm.field.push(entry); lm.opened.add(entry.uid); }
+      if((entry.qty||1)>1){
+        // ★스택에서 한 장 꺼낼 때 mkInstance로 **새로 굴리면 안 된다** — 접사·내구도·성장태그·도수·
+        //   unappraisedMult·rareZone이 전부 재추첨돼 "다른 게 꺼내진다"(2026-09-15). 원본을 복제하고
+        //   uid만 새로 발급한다(같은 uid면 field·bag에 중복이 생겨 카드 key가 충돌한다).
+        entry.qty--;
+        const one=Object.assign({}, entry, {uid:this.eng.nextUid(), qty:1, locked:false});
+        lm.field.push(one); lm.opened.add(one.uid); this._lmPulled=one.uid;
+      }
+      else { lm.bag.splice(i,1); entry.locked=false; entry.qty=1; lm.field.push(entry); lm.opened.add(entry.uid); this._lmPulled=entry.uid;
+        // ★슬롯이 사라졌으면 focus를 한 칸 앞으로 — 그대로 두면 밀려온 다음 카드가 곧바로 선택돼
+        //   연달아 올릴 때 엉뚱한 것이 꺼내진다.
+        lm.focus=Math.max(0, i-1); }
       this.flash(this.en()?'Pulled out':'전리품으로 꺼냄'); }
     // 넣기(down)·꺼내기(up) 양방향 모두 close_bag. 실패 경로(lmReject·조기 return)는 여기 못 오므로 성공 시에만 울린다.
     this.sfx('close_bag');
@@ -4120,7 +4131,10 @@ void main(){
       // zIndex 4 = 카드(3)보다 위 — 카드가 아무리 길어져도 [가방]·[완료] 버튼은 가려지면 안 된다.
       h('div',{style:{position:'relative',zIndex:4,flex:'0 0 auto',margin:'0 16px 24px',padding:17,borderRadius:24,background:T.s1,border:'1px solid '+T.line,display:'flex',gap:8,boxShadow:'0 8px 28px rgba(0,0,0,.45)'}},
         // 전리품 → 가방은 open_bag, 가방 → 전리품은 close_bag. 화면 전환 방향에 따라 갈린다.
-        h('button',{onClick:()=>{ this.sfx(isField?'open_bag':'close_bag'); lm.view=isField?'bag':'field'; lm.focus=0; this.forceUpdate(); },style:{flex:1,height:48,borderRadius:999,border:'none',background:'#212227',color:T.mid,fontFamily:T.sans,fontSize:13,cursor:'pointer'}}, isField?(this.en()?'Bag':'가방'):(this.en()?'Loot':'전리품')),
+        h('button',{onClick:()=>{ this.sfx(isField?'open_bag':'close_bag'); lm.view=isField?'bag':'field';
+          // 전리품 탭으로 넘어갈 땐 **방금 꺼낸 카드**를 보여준다(맨 뒤에 붙어 안 보이던 것).
+          const pi=(!isField&&this._lmPulled)? lm.field.findIndex(x=>x.uid===this._lmPulled) : -1;
+          lm.focus=pi>=0?pi:0; this._lmPulled=null; this.forceUpdate(); },style:{flex:1,height:48,borderRadius:999,border:'none',background:'#212227',color:T.mid,fontFamily:T.sans,fontSize:13,cursor:'pointer'}}, isField?(this.en()?'Bag':'가방'):(this.en()?'Loot':'전리품')),
         h('button',{onClick:()=>{ if(lm.fromCombat){ this.commitLootDraw(); } else { lm.field=this.lmSample().field; lm.view='field'; lm.focus=0; this.flash(this.en()?'Next fight — new loot':'다음 전투 — 새 전리품'); this.forceUpdate(); } },style:{flex:1,height:48,borderRadius:999,border:'none',background:'#212227',color:T.hi,fontFamily:T.sans,fontSize:13,fontWeight:400,cursor:'pointer'}}, lm.fromCombat?(this.en()?'Done':'완료'):(this.en()?'Proceed':'진행하기'))));
   }
 
