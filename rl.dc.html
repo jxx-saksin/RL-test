@@ -323,11 +323,35 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 66;
+const TITLE_VER = 67;
 const TITLE_DATE = '0917';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
+// ---------- 튜토리얼 팝업 (B층) ----------
+// 화면 첫 진입 시 뜨는 안내 팝업. 아트 = svg/guide-*.svg에서 뽑은 스크린샷(assets/art/tutorial/).
+// ★새 팝업은 TUTO에 항목만 추가하고 트리거 한 줄(tutoOpen)만 부르면 된다 — 렌더·이력·버튼은 전부 공통.
+//   pages 이미지 = assets/art/tutorial/<키>-<n>.webp (712x992 = 356x496의 2배)
+//   [확인] = TUTO_SNOOZE_H 시간 뒤 다시 뜸 / [다시표시안함] = 별도 지시 전까지 영구
+//   ⚠️ 여러 장짜리는 **첫 장에서 두 버튼이 비활성** — 한 장이라도 넘겨야 닫을 수 있다.
+//   문구의 \n = 줄바꿈. EN이 ''이면 KR로 폴백(번역 들어오면 채운다).
+const TUTO_SNOOZE_H = 48;
+const TUTO = {
+  inv_move1: { t:[
+    ['소지품속 아이템의 핸들부분을 드래그 해서 옮겨보세요.',''],
+    ['주머니에서 가방으로, 가방에서 주머니로 옮길 수 있습니다.',''],
+    ['주머니에 있는 아이템은 귀환에 실패, 사망해도 사라지지 않아요.',''] ] },
+  inv_move2: { t:[
+    ['보관함에 있는 아이템을 밀어 소지품으로 보내세요.\n소지품, 가방 에서도 아이템을 밀어서 꺼낼 수 있어요.',''] ] },
+  inv_compare1: { t:[
+    ['보관함, 소지품에서 장비 아이템을 눌러보세요.',''],
+    ['현재 착용중인 장비의 정보를 비교해 볼 수 있습니다.\n착용 중인 장비가 있을때만 확인가능합니다.',''] ] },
+  inv_merge1: { t:[
+    ['보관함을 아래로 당기면 흩어진 아이템을 하나로 합칠 수 있어요.',''] ] },
+};
+// '아이템 합치기'가 요구하는 귀환 성공 횟수(사망·도망 제외 — gs.extracts).
+const TUTO_MERGE_AFTER = 5;
+
 const PATCH_NOTES = [
   { ver:61, date:'15/Sep', lines:[
     ['몬스터 사망시 전리품 재획득 가능 인터페이스추가.','You can reopen the loot screen after a kill'],
@@ -638,7 +662,7 @@ class Component extends DCLogic {
       toVault.forEach(x=>{ delete x.loc; gs.vault.push(x); }); }
     const uids=new Set(gs.bag.concat(gs.vault).map(x=>x.uid));
     ['weapon','head','body','artifact1','artifact2','bag'].forEach(s=>{ if(gs.equip[s]&&!uids.has(gs.equip[s])) gs.equip[s]=null; });
-    gs.shopStock=gs.shopStock||{}; gs.shopRolls=gs.shopRolls||{}; gs.sato=eng.N(gs.sato,0); gs.sorties=eng.N(gs.sorties,0);
+    gs.shopStock=gs.shopStock||{}; gs.shopRolls=gs.shopRolls||{}; gs.sato=eng.N(gs.sato,0); gs.sorties=eng.N(gs.sorties,0); gs.extracts=eng.N(gs.extracts,0); gs.tuto=gs.tuto||{};
     // 버프는 안전지대에서 먹은 것도 살린다(레이드 출발 전 준비). 비우는 곳은 endSortie 하나뿐 —
     // 귀환하면 유지력이 남았든 말든 사라진다. saveObj가 gs를 통째로 담으므로 저장은 이미 되고 있었고,
     // 여기서 지우고 있어서 앱을 껐다 켜면 없어졌다(2026-08-31).
@@ -883,7 +907,11 @@ class Component extends DCLogic {
   }
   addToBag(id, qty, opts){ return this.stackAdd(this.gs.bag, id, qty, opts); }
   extract(){ this.qOnExtract();   // 퀘스트: 정찰 가산 + 연전 연승 확정(생환만 인정)
-    if(this.combat && !this.combat.satoPaid){ this.gs.sato+=this.eng.N(this.combat.satoGained,0); this.combat.satoPaid=true; } this.setState({ screen:'result' }); this.combat.result='extract'; if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate();
+    if(this.combat && !this.combat.satoPaid){ this.gs.sato+=this.eng.N(this.combat.satoGained,0); this.combat.satoPaid=true;
+      // ★귀환 성공 전용 카운터. gs.sorties는 사망·도망도 세므로 쓸 수 없다(engine.js endSortie 주석).
+      //   ⚠️ fleeSuccess는 도망 **실패** 때도 false로 남는다 — !fleeSuccess로 재면 도망 실패 후
+      //      끝까지 싸워 정상 귀환한 판까지 빠진다. 반드시 ===true 로만 제외할 것.
+      if(this.combat.fleeSuccess!==true) this.gs.extracts=this.eng.N(this.gs.extracts,0)+1; } this.setState({ screen:'result' }); this.combat.result='extract'; if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate();
     if(this.lootUids().length){ this.combat.resultStage='loot'; if(this._lootRevealTimer)clearTimeout(this._lootRevealTimer); this._lootRevealTimer=setTimeout(()=>this.startLootReveal(), 450); } }
   death(){
     this.gs.hp = 1;   // 사망(몬스터·PvP) 귀환 시 체력 1로 생존
@@ -1675,7 +1703,7 @@ class Component extends DCLogic {
     else if(s==='pass') body=this.passScreen();
     else if(s==='tap') body=this.tapScreen();
     const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap' && s!=='hideout' && s!=='hideFac' && s!=='disk' && s!=='diskInsert' && s!=='decode' && s!=='craft' && s!=='disa' && s!=='rsrep' && s!=='rsmod' && s!=='quest';
-    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null);
+    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null, this.state.tuto?this.tutoOverlay():null);
   }
 
   // ---- safehouse ----
@@ -4259,8 +4287,70 @@ void main(){
     onPointerCancel:(e)=>{ if(e&&e.pointerType==='touch') return; this._vt=null; this.vtReset(); }
   }; }
   // ---- inventory ----
+  // ---------- 튜토리얼 팝업 (B층) ----------
+  // 표시 이력은 **세이브 안**(gs.tuto)에 팝업별로 둔다 — 세이브를 초기화하면 튜토리얼도 다시 뜬다.
+  // 업데이트 공지(rl_notice_seen)와 달리 별도 localStorage 키를 쓰지 않는 이유가 이것이다.
+  tutoSeen(k){ const r=(this.gs.tuto||{})[k]; if(!r) return false;
+    if(r.m==='never') return true;
+    return (Date.now()-this.eng.N(r.at,0)) < TUTO_SNOOZE_H*3600000; }
+  tutoMark(k,mode){ this.gs.tuto=this.gs.tuto||{};
+    this.gs.tuto[k] = (mode==='never') ? {m:'never'} : {m:'snooze',at:Date.now()};
+    this.saveGame(); }
+  // 이미 다른 팝업이 떠 있으면 비켜준다 — 한 화면에 둘이 겹치지 않게.
+  tutoOpen(k){ if(!TUTO[k] || this.state.tuto || this.tutoSeen(k)) return false;
+    this.setState({tuto:{k:k,i:0}}); return true; }
+  tutoClose(mode){ const t=this.state.tuto; if(!t) return;
+    this.tutoMark(t.k, mode); this.setState({tuto:null}); }
+  // 인벤토리 진입/탭 전환 때 걸리는 팝업을 고른다. 렌더 도중 setState를 피하려 다음 틱으로 미룬다.
+  // 보관함은 후보가 둘 — 아직 안 본 '아이템 이동 #2'가 먼저고, 그게 끝났으면 '아이템 합치기'.
+  tutoTick(seg){
+    if(this._tutoSeg===seg) return; this._tutoSeg=seg;
+    setTimeout(()=>{
+      if(this.state.screen!=='inventory' || this.state.seg!==seg) return;
+      if(seg==='bag'){ this.tutoOpen('inv_move1'); return; }
+      if(this.tutoOpen('inv_move2')) return;
+      if(this.eng.N(this.gs.extracts,0) >= TUTO_MERGE_AFTER) this.tutoOpen('inv_merge1');
+    }, 0);
+  }
+  tutoOverlay(){
+    const t=this.state.tuto, def=t&&TUTO[t.k]; if(!def) return null;
+    const pages=def.t, n=pages.length, i=Math.min(t.i, n-1);
+    const line=pages[i], txt=(this.en()&&line[1])?line[1]:line[0];
+    const canClose = (n===1) || (i>0);        // ★여러 장은 한 장이라도 넘겨야 닫을 수 있다
+    const go=(d)=>{ const ni=Math.max(0,Math.min(n-1,i+d)); if(ni!==i) this.setState({tuto:{k:t.k,i:ni}}); };
+    const btn=(label,on,mode)=>h('button',{key:mode,disabled:!on,
+      onClick:on?()=>this.tutoClose(mode):null,
+      style:{width:164,height:47,boxSizing:'border-box',borderRadius:23.5,background:'transparent',
+        border:'1px solid '+(on?'#36383C':'#26282B'), color:on?(mode==='never'?'#A9ABAF':'#EAEBEE'):'#3A3D41',
+        fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:on?'pointer':'default',padding:0}}, label);
+    return h('div',{key:'tuto',
+      onPointerDown:(e)=>{ this._tuX=e.clientX; },
+      onPointerUp:(e)=>{ if(this._tuX==null) return; const dx=e.clientX-this._tuX; this._tuX=null;
+        if(Math.abs(dx)>40) go(dx<0?1:-1); else if(n>1) go(1); },
+      style:{position:'absolute',inset:0,zIndex:80,background:'#030404',
+        display:'flex',flexDirection:'column',alignItems:'center',touchAction:'none',
+        userSelect:'none',WebkitUserSelect:'none',animation:'rlFade .18s'}},
+      // 스크린샷 — 목업 356x496 @ y80. 프레임이 좁아도 넘치지 않게 폭 기준 + 비율 고정.
+      h('div',{key:'shot',style:{flex:'0 0 auto',marginTop:80,width:'calc(100% - 46px)',maxWidth:356,
+        aspectRatio:'356 / 496',backgroundImage:'url(assets/art/tutorial/'+t.k+'-'+(i+1)+'.webp)',
+        backgroundSize:'cover',backgroundPosition:'center'}}),
+      // 페이지 인디케이터 — 12x2 대시, 간격 8. **활성은 길이가 아니라 색만 다르다.**
+      n>1? h('div',{key:'dots',style:{flex:'0 0 auto',display:'flex',gap:8,marginTop:16}},
+        ...pages.map((_,d)=>h('div',{key:d,style:{width:12,height:2,borderRadius:1,
+          background:d===i?'#A9ABAF':'#2B2E32'}}))) : null,
+      h('div',{key:'chip',style:{flex:'0 0 auto',marginTop:n>1?23:25,width:75,height:22,
+        border:'1px solid '+T.line2,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',
+        fontFamily:T.mono,fontSize:10,letterSpacing:'.08em',color:T.mid}}, 'TUTORIAL'),
+      h('div',{key:'txt',style:{flex:'0 0 auto',marginTop:15,padding:'0 20px',textAlign:'center',
+        fontFamily:T.sans,fontSize:12,lineHeight:'20px',color:T.mid,whiteSpace:'pre-line'}}, txt),
+      h('div',{key:'sp',style:{flex:'1 1 auto',minHeight:0}}),
+      h('div',{key:'btns',style:{flex:'0 0 auto',display:'flex',gap:9,paddingBottom:24.5}},
+        btn(this.en()?'Don\u2019t show again':'다시표시안함', canClose, 'never'),
+        btn(this.en()?'OK':'확인', canClose, 'snooze')));
+  }
   inventory(){
     const seg=this.state.seg, filter=this.state.filter;
+    this.tutoTick(seg);   // 튜토리얼 팝업 — 탭이 바뀐 첫 렌더에서만 걸린다(다음 틱 실행)
     const list=(seg==='vault'?this.gs.vault:this.gs.bag);
     const cats=[['전체','common_all'],['무기','item_weapon'],['갑옷','item_armor_body'],['가방','item_bag'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['징표','item_talisman'],['술','item_liquor'],['모듈','item_module'],['데이터','item_data'],['귀중품','item_quest']];
     const catOf=(inst)=>{ if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]) return '술'; if(this.eng.byId.module&&this.eng.byId.module[inst.id]) return '모듈'; if(this.eng.byId.usb&&this.eng.byId.usb[inst.id]) return '데이터'; const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||(this.eng.byId.bag&&this.eng.byId.bag[inst.id]); if(!s) return ''; return CATKR[s.Category]||s.Category; };
@@ -4578,6 +4668,9 @@ void main(){
   }; }
   itemSheet(){
     const inst=this.eng.instById(this.gs,this.state.sel); if(!inst){ return null; }
+    // 튜토리얼 — 장비 카드를 처음 열었을 때(착용 장비 유무와 무관). 인벤토리 안에서만.
+    if(this.state.screen==='inventory' && /^(weapon|armor|artifact|talisman|bag)$/.test(inst.kind)
+       && !this._tutoCmp){ this._tutoCmp=1; setTimeout(()=>this.tutoOpen('inv_compare1'),0); }
     const usbRow=this.eng.byId.usb?this.eng.byId.usb[inst.id]:null;
     const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||(this.eng.byId.bag&&this.eng.byId.bag[inst.id])||(usbRow?{Category:'USB',Description:usbRow.Description}:{});
     const name=this.itemLabel(inst);
