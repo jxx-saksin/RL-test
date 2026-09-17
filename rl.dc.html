@@ -63,6 +63,14 @@
   @keyframes rlNumShake{0%,100%{transform:translateX(0)}14%{transform:translateX(-4px)}30%{transform:translateX(4px)}46%{transform:translateX(-3px)}62%{transform:translateX(3px)}78%{transform:translateX(-2px)}}
   @keyframes rlBorderFlash{0%{opacity:0}10%{opacity:1}52%{opacity:1}100%{opacity:0}}
   @keyframes rlBounceDn{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+  /* ★타이틀 전용 — 손가락으로 아래로 끌어내릴 수 있게 만든다.
+     iOS Safari 하단 툴바는 **실제 문서 스크롤**로만 접히고(내부 div 스크롤로는 안 된다),
+     타이틀은 touch-action:none + 문서높이=뷰포트라 손가락에 아무 반응이 없었다.
+     위쪽에 160px 여유를 만들어 두고 시작 위치를 그 아래(scrollY=160)에 두면
+     **아래로만** 당겨진다 — 당기는 동안 scrollY가 160→0으로 줄며 진짜 스크롤이 발생한다.
+     overscroll-behavior:contain은 0까지 당긴 뒤 더 당겼을 때의 '당겨서 새로고침'을 막는다. */
+  body.rl-splash-pull{overscroll-behavior-y:contain;background:#1B1B1B;}
+  body.rl-splash-pull .rl-wrap{min-height:calc(100dvh + 160px);padding-top:160px;background:#1B1B1B;}
   @keyframes rlSplNudge{0%,100%{transform:translateY(0);filter:none}30%{transform:translateY(7px);filter:brightness(1.8)}60%{transform:translateY(0);filter:brightness(1.8)}}
   @keyframes rlBounceUp{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
   /* 디스크 삽입 직후 2초 — 드라이브 LED 급속 점멸 */
@@ -310,8 +318,9 @@ const TITLE_LOGO=[
 'M140.889 291.43C138.364 291.43 136.3 289.384 136.3 286.881V269.599H143.662C144.668 269.599 145.484 270.407 145.484 271.428V280.526C145.484 281.524 146.327 282.332 147.329 282.332H160.096L156.513 280.503V263.032H140.894C138.369 263.032 136.304 260.986 136.304 258.483V237.729C136.304 235.253 138.369 233.18 140.894 233.18H161.103C163.628 233.18 165.692 235.253 165.692 237.729V248.471H156.513V243.977C156.434 243.035 155.642 242.31 154.668 242.31H141.821L145.488 244.167V252.133C145.488 253.103 146.304 253.911 147.282 253.939H161.107C163.633 253.939 165.697 255.985 165.697 258.488V286.89C165.697 289.393 163.633 291.439 161.107 291.439H140.899L140.889 291.43Z',
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
-const TITLE_VER = 63;
-const TITLE_DATE = '0915';
+const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
+const TITLE_VER = 64;
+const TITLE_DATE = '0917';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -482,6 +491,7 @@ class Component extends DCLogic {
   // 스플래시 탭 → iOS 자이로 권한 요청(제스처) + 부팅 로딩 진입(게이지 4초 + 로드 완료 대기)
   async _startBoot(){
     if(this._bootStarted) return; this._bootStarted=true;
+    this.splPullOff();   // 타이틀 당기기 스테이지 원복(여백 제거 + 스크롤 0)
     await this.requestGyroPerm();   // 권한 팝업 응답까지 대기 → 게이지·타이머가 팝업 닫힌 후 동시에 시작(0% 멈춤 방지)
     this._bootLoadStarted=false;    // 이중 안전 — 어떤 경로로든 가드가 미리 소비됐어도 진짜 로딩에서 게이지 재시작
     this.setState({ splash:false });
@@ -1238,34 +1248,62 @@ class Component extends DCLogic {
   // 아래 빈 띠를 없애고, 짧으면 설계 위치(y=206.8)를 유지해 로고와의 겹침을 지킨다.
   // 콜드 스타트 = 메인 타이틀 (screen-main-title-v3.svg 재현).
   // v2와 다른 점: 흰 판·블루 배경·켄번즈가 전부 빠지고, 단색 #1B1B1B 위에 두꺼비 아트가 아래에서 올라온다.
+  // ---------- 타이틀 "아래로 당기기" 스테이지 ----------
+  // iOS Safari 하단 툴바는 **실제 문서 스크롤**로만 접힌다. 위쪽 160px 여유를 만들고 시작 위치를
+  // 그 아래(scrollY=SPL_PULL)에 두면 **아래로만** 당겨진다 — 당기는 동안 scrollY가 줄어든다.
+  // 터치 기기에서만 건다(마우스는 클릭으로 시작하므로 여백이 불필요).
+  splPullBind(el){
+    if(!el){ this.splPullOff(); return; }
+    if(this._splPullOn) return;
+    if(!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches)) return;
+    this._splPullOn = true;
+    document.body.classList.add('rl-splash-pull');
+    const park=()=>{ if(this._splPullOn) window.scrollTo(0, SPL_PULL); };
+    park(); requestAnimationFrame(park); setTimeout(park, 120);   // dvh가 흔들려도 제자리로
+    this._splPullScroll = ()=>{ if(!this._splPullOn) return;
+      if(SPL_PULL - window.scrollY >= 40) this._splPullOk = true; };
+    this._splPullEnd = ()=>{ if(!this._splPullOn) return;
+      if(this._splPullOk){ this.sfxUnlock(); this._startBoot(); }
+      else { const c=this._splCta; if(c){ c.style.animation='none'; void c.offsetWidth;
+          c.style.animation='rlSplNudge .3s ease-in-out 2';
+          setTimeout(()=>{ if(this._splCta) this._splCta.style.animation=''; }, 700); }
+        park(); } };
+    window.addEventListener('scroll', this._splPullScroll, {passive:true});
+    el.addEventListener('touchend', this._splPullEnd, {passive:true});
+    el.addEventListener('touchcancel', this._splPullEnd, {passive:true});
+  }
+  splPullOff(){
+    if(!this._splPullOn) return; this._splPullOn=false; this._splPullOk=false;
+    document.body.classList.remove('rl-splash-pull');
+    if(this._splPullScroll) window.removeEventListener('scroll', this._splPullScroll);
+    this._splPullScroll=null; this._splPullEnd=null;
+    window.scrollTo(0,0);
+  }
   // 좌표계 = SVG 원본 420x856. 420폭 스테이지를 프레임 폭에 맞춰 균일 스케일(상단 앵커).
   splashScreen(){
     if(this.state && this.state.err) return this.phone(h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:T.lo,fontFamily:T.mono,fontSize:13}}, (this.eng?this.t('frag_error'):'오류:')+' '+this.state.err));
     const verTxt = 'ver A0.'+String(TITLE_VER).padStart(4,'0')+' ('+TITLE_DATE+')';
     const BG='#1B1B1B';
     // ★터치는 **탭으로 시작하지 않는다**(문구가 DRAG TO START인 이유). iOS Safari 하단 툴바는
-    //   실제 드래그로만 접히는데, 탭으로 넘어가면 접히지 않은 채 들어가 하단에 검은 띠가 남는다.
-    //   게다가 임계를 넘는 순간 바로 전환하면 툴바가 반쯤 접힌 상태로 넘어가므로, 판정은 드래그 중에
-    //   해두고 **손가락을 뗄 때** 시작한다. 마우스는 툴바가 없으니 클릭으로도 시작.
-    //   ⚠️툴바가 접히며 레이아웃이 바뀌면 pointercancel이 날 수 있다 — 취소에서도 시작해야 한다.
-    //   시작은 _startBoot의 _bootStarted 가드로 1회만.
+    //   화면을 아래로 끌어내려야 접히고, 탭으로 넘어가면 접히지 않은 채 들어가 하단에 검은 띠가 남는다.
+    //   당기는 일 자체는 splPullBind가 만든 스테이지(문서 스크롤)가 담당하고, 여기서는
+    //   마우스 클릭만 받는다. 시작은 _startBoot의 _bootStarted 가드로 1회만.
     const go=()=>{ this.sfxUnlock(); this._startBoot(); };
     const nudge=()=>{ const el=this._splCta; if(!el) return;
       el.style.animation='none'; void el.offsetWidth; el.style.animation='rlSplNudge .3s ease-in-out 2';
       setTimeout(()=>{ if(this._splCta) this._splCta.style.animation=''; }, 700); };
-    const drag={ onPointerDown:(e)=>{ this._spY=e.clientY; this._spOk=false; },
-      onPointerMove:(e)=>{ if(this._spY==null) return; if(e.clientY-this._spY>24) this._spOk=true; },
-      onPointerUp:(e)=>{ const had=this._spY!=null, ok=this._spOk; this._spY=null; this._spOk=false;
-        if(!had) return; if(ok || (e&&e.pointerType!=='touch')) go(); else nudge(); },
-      onPointerCancel:()=>{ const ok=this._spOk; this._spY=null; this._spOk=false; if(ok) go(); } };
+    // 터치: 아래로 당긴 양(=scrollY 감소)으로 판정하고 **손을 뗄 때** 시작. 마우스: 클릭으로 시작.
+    const drag={ onPointerDown:(e)=>{ if(e.pointerType!=='touch'){ this._spM=true; } },
+      onPointerUp:(e)=>{ if(e && e.pointerType!=='touch'){ if(this._spM){ this._spM=false; go(); } return; } },
+      onPointerCancel:()=>{ this._spM=false; } };
     // ★스테이지를 둘로 나눠 **위는 천장, 아래는 바닥**에 앵커한다.
     //   한 덩어리로 상단 앵커만 하면 목업 비율(420:856=1:2.04)보다 세로로 긴 기기(19.5:9=1:2.17)에서
     //   아트가 바닥에 못 닿아 아래에 빈 배경이 남는다. 폭 스케일은 양쪽 같다.
     const fit=(anchor)=>(el)=>{ if(!el) return; const f=el.parentElement; if(!f) return;
       el.style.transform='scale('+(f.clientWidth/420)+')'; el.style.transformOrigin=anchor; };
     const LAYER={position:'absolute',left:0,width:420,height:856,pointerEvents:'none'};
-    return this.phone(h('div',Object.assign({
-      style:{flex:1,position:'relative',overflow:'hidden',background:BG,cursor:'pointer',touchAction:'none'}}, drag),
+    return this.phone(h('div',Object.assign({ ref:(el)=>this.splPullBind(el),
+      style:{flex:1,position:'relative',overflow:'hidden',background:BG,cursor:'pointer',touchAction:'pan-y'}}, drag),
       // ── 바닥 앵커: 두꺼비 · 그라데이션 · CTA
       h('div',{key:'bot',ref:fit('0 100%'),style:Object.assign({bottom:0},LAYER)},
         // 두꺼비 — y345부터 420x558. 원본 880x1168과 같은 비율이라 늘어나지 않는다. 애니메이션 없음.
