@@ -323,7 +323,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 67;
+const TITLE_VER = 68;
 const TITLE_DATE = '0917';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -4298,7 +4298,7 @@ void main(){
     this.saveGame(); }
   // 이미 다른 팝업이 떠 있으면 비켜준다 — 한 화면에 둘이 겹치지 않게.
   tutoOpen(k){ if(!TUTO[k] || this.state.tuto || this.tutoSeen(k)) return false;
-    this.setState({tuto:{k:k,i:0}}); return true; }
+    this.setState({tuto:{k:k,i:0,max:0}}); return true; }
   tutoClose(mode){ const t=this.state.tuto; if(!t) return;
     this.tutoMark(t.k, mode); this.setState({tuto:null}); }
   // 인벤토리 진입/탭 전환 때 걸리는 팝업을 고른다. 렌더 도중 setState를 피하려 다음 틱으로 미룬다.
@@ -4316,8 +4316,12 @@ void main(){
     const t=this.state.tuto, def=t&&TUTO[t.k]; if(!def) return null;
     const pages=def.t, n=pages.length, i=Math.min(t.i, n-1);
     const line=pages[i], txt=(this.en()&&line[1])?line[1]:line[0];
-    const canClose = (n===1) || (i>0);        // ★여러 장은 한 장이라도 넘겨야 닫을 수 있다
-    const go=(d)=>{ const ni=Math.max(0,Math.min(n-1,i+d)); if(ni!==i) this.setState({tuto:{k:t.k,i:ni}}); };
+    // ★여러 장은 **마지막 장까지 넘겨야** 닫을 수 있다. 한 번 끝까지 본 뒤에는
+    //   앞 장으로 되돌아가도 계속 활성 — 그래서 '현재 장'이 아니라 '최대 도달 장(max)'으로 판정한다.
+    const mx = Math.max(this.eng.N(t.max,0), i);
+    const canClose = (n===1) || (mx >= n-1);
+    const go=(d)=>{ const ni=Math.max(0,Math.min(n-1,i+d));
+      if(ni!==i) this.setState({tuto:{k:t.k,i:ni,max:Math.max(mx,ni)}}); };
     const btn=(label,on,mode)=>h('button',{key:mode,disabled:!on,
       onClick:on?()=>this.tutoClose(mode):null,
       style:{width:164,height:47,boxSizing:'border-box',borderRadius:23.5,background:'transparent',
