@@ -323,7 +323,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 68;
+const TITLE_VER = 69;
 const TITLE_DATE = '0917';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -336,19 +336,9 @@ const TITLE_DATE = '0917';
 //   ⚠️ 여러 장짜리는 **첫 장에서 두 버튼이 비활성** — 한 장이라도 넘겨야 닫을 수 있다.
 //   문구의 \n = 줄바꿈. EN이 ''이면 KR로 폴백(번역 들어오면 채운다).
 const TUTO_SNOOZE_H = 48;
-const TUTO = {
-  inv_move1: { t:[
-    ['소지품속 아이템의 핸들부분을 드래그 해서 옮겨보세요.',''],
-    ['주머니에서 가방으로, 가방에서 주머니로 옮길 수 있습니다.',''],
-    ['주머니에 있는 아이템은 귀환에 실패, 사망해도 사라지지 않아요.',''] ] },
-  inv_move2: { t:[
-    ['보관함에 있는 아이템을 밀어 소지품으로 보내세요.\n소지품, 가방 에서도 아이템을 밀어서 꺼낼 수 있어요.',''] ] },
-  inv_compare1: { t:[
-    ['보관함, 소지품에서 장비 아이템을 눌러보세요.',''],
-    ['현재 착용중인 장비의 정보를 비교해 볼 수 있습니다.\n착용 중인 장비가 있을때만 확인가능합니다.',''] ] },
-  inv_merge1: { t:[
-    ['보관함을 아래로 당기면 흩어진 아이템을 하나로 합칠 수 있어요.',''] ] },
-};
+// 문구는 **UIString 시트**가 정본 — StringID = tuto_<팝업키>_<장번호>. 여기엔 장수만 둔다.
+// 시트 문구의 \n(두 글자)은 렌더에서 실제 줄바꿈으로 바꾼다.
+const TUTO = { inv_move1:3, inv_move2:1, inv_compare1:2, inv_merge1:1 };
 // '아이템 합치기'가 요구하는 귀환 성공 횟수(사망·도망 제외 — gs.extracts).
 const TUTO_MERGE_AFTER = 5;
 
@@ -506,8 +496,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val47');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val14');
+      const eng = await import('./engine.js?v=val48');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val15');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -4313,9 +4303,9 @@ void main(){
     }, 0);
   }
   tutoOverlay(){
-    const t=this.state.tuto, def=t&&TUTO[t.k]; if(!def) return null;
-    const pages=def.t, n=pages.length, i=Math.min(t.i, n-1);
-    const line=pages[i], txt=(this.en()&&line[1])?line[1]:line[0];
+    const t=this.state.tuto, n=t?TUTO[t.k]:0; if(!n) return null;
+    const i=Math.min(this.eng.N(t.i,0), n-1);
+    const txt=String(this.t('tuto_'+t.k+'_'+(i+1))).replace(/\\n/g,'\n');
     // ★여러 장은 **마지막 장까지 넘겨야** 닫을 수 있다. 한 번 끝까지 본 뒤에는
     //   앞 장으로 되돌아가도 계속 활성 — 그래서 '현재 장'이 아니라 '최대 도달 장(max)'으로 판정한다.
     const mx = Math.max(this.eng.N(t.max,0), i);
@@ -4340,7 +4330,7 @@ void main(){
         backgroundSize:'cover',backgroundPosition:'center'}}),
       // 페이지 인디케이터 — 12x2 대시, 간격 8. **활성은 길이가 아니라 색만 다르다.**
       n>1? h('div',{key:'dots',style:{flex:'0 0 auto',display:'flex',gap:8,marginTop:16}},
-        ...pages.map((_,d)=>h('div',{key:d,style:{width:12,height:2,borderRadius:1,
+        ...Array.from({length:n},(_,d)=>h('div',{key:d,style:{width:12,height:2,borderRadius:1,
           background:d===i?'#A9ABAF':'#2B2E32'}}))) : null,
       h('div',{key:'chip',style:{flex:'0 0 auto',marginTop:n>1?23:25,width:75,height:22,
         border:'1px solid '+T.line2,borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center',

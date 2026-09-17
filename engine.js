@@ -1,7 +1,7 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val8';
+import { DATA as FALLBACK } from './data/game-data.js?v=val9';
 import { buildIndex } from './sheet-loader.js?v=val11';
 
 export let DATA = FALLBACK;
@@ -238,6 +238,14 @@ const V3_STRINGS = {
   title_tap_start:['DRAG TO START','DRAG TO START'],
   boot_tip_label:['TIP','TIP'],
   loot_reopen:['전리품 보기','View loot'],
+  // 튜토리얼 팝업(B층) — 정본은 UIString 시트. 여기는 시트를 못 받았을 때의 폴백.
+  tuto_inv_move1_1:['소지품속 아이템의 핸들부분을 드래그 해서 옮겨보세요.','Drag an item by its handle to move it.'],
+  tuto_inv_move1_2:['주머니에서 가방으로, 가방에서 주머니로 옮길 수 있습니다.','You can move items between your pocket and your bag.'],
+  tuto_inv_move1_3:['주머니에 있는 아이템은 귀환에 실패, 사망해도 사라지지 않아요.','Items in your pocket survive even if you die or fail to extract.'],
+  tuto_inv_move2_1:['보관함에 있는 아이템을 밀어 소지품으로 보내세요.\\n소지품, 가방 에서도 아이템을 밀어서 꺼낼 수 있어요.','Swipe an item in the vault to send it to your belongings.\\nYou can swipe items out of your belongings and bag too.'],
+  tuto_inv_compare1_1:['보관함, 소지품에서 장비 아이템을 눌러보세요.','Tap a gear item in the vault or your belongings.'],
+  tuto_inv_compare1_2:['현재 착용중인 장비의 정보를 비교해 볼 수 있습니다.\\n착용 중인 장비가 있을때만 확인가능합니다.','You can compare it against the gear you have equipped.\\nThis only works when something is equipped in that slot.'],
+  tuto_inv_merge1_1:['보관함을 아래로 당기면 흩어진 아이템을 하나로 합칠 수 있어요.','Pull down in the vault to merge scattered stacks into one.'],
 };
 export function invalidateUi(){ _uiById = null; _uiByKr = null; }
 
