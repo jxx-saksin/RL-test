@@ -71,6 +71,10 @@
      overscroll-behavior:contain은 0까지 당긴 뒤 더 당겼을 때의 '당겨서 새로고침'을 막는다. */
   body.rl-splash-pull{overscroll-behavior-y:contain;background:#1B1B1B;}
   body.rl-splash-pull .rl-wrap{min-height:calc(100dvh + 160px);padding-top:160px;background:#1B1B1B;}
+  /* 프레임의 노치 여백(padding-top:env(safe-area-inset-top)) 안쪽은 평소 T.bg로 칠해져 상태바에
+     가려 보이지 않는다. 당기면 드러나면서 타이틀 배경 사이에 다른 검정이 한 겹 끼어 계단처럼 보이므로,
+     스플래시 동안만 프레임 배경을 타이틀과 같은 색으로 맞춰 경계를 없앤다. */
+  body.rl-splash-pull .rl-frame{background:#1B1B1B !important;}
   @keyframes rlSplNudge{0%,100%{transform:translateY(0);filter:none}30%{transform:translateY(7px);filter:brightness(1.8)}60%{transform:translateY(0);filter:brightness(1.8)}}
   @keyframes rlBounceUp{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
   /* 디스크 삽입 직후 2초 — 드라이브 LED 급속 점멸 */
@@ -319,7 +323,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 64;
+const TITLE_VER = 65;
 const TITLE_DATE = '0917';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -1258,11 +1262,16 @@ class Component extends DCLogic {
     if(!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches)) return;
     this._splPullOn = true;
     document.body.classList.add('rl-splash-pull');
+    // 문서 캔버스(html)도 맞춘다 — 끝까지 당겨 오버스크롤되면 body 뒤의 이 색이 드러난다.
+    document.documentElement.style.background = '#1B1B1B';
     const park=()=>{ if(this._splPullOn) window.scrollTo(0, SPL_PULL); };
     park(); requestAnimationFrame(park); setTimeout(park, 120);   // dvh가 흔들려도 제자리로
     this._splPullScroll = ()=>{ if(!this._splPullOn) return;
       if(SPL_PULL - window.scrollY >= 40) this._splPullOk = true; };
+    // 판정은 두 벌 — 뗄 때의 실제 위치를 먼저 보고(스냅백 전이면 여기서 잡힌다),
+    // 이미 되돌아간 뒤라면 당기는 동안 scroll 이벤트가 세워 둔 플래그로 잡는다.
     this._splPullEnd = ()=>{ if(!this._splPullOn) return;
+      if(SPL_PULL - window.scrollY >= 40) this._splPullOk = true;
       if(this._splPullOk){ this.sfxUnlock(); this._startBoot(); }
       else { const c=this._splCta; if(c){ c.style.animation='none'; void c.offsetWidth;
           c.style.animation='rlSplNudge .3s ease-in-out 2';
@@ -1275,6 +1284,7 @@ class Component extends DCLogic {
   splPullOff(){
     if(!this._splPullOn) return; this._splPullOn=false; this._splPullOk=false;
     document.body.classList.remove('rl-splash-pull');
+    document.documentElement.style.background = '';
     if(this._splPullScroll) window.removeEventListener('scroll', this._splPullScroll);
     this._splPullScroll=null; this._splPullEnd=null;
     window.scrollTo(0,0);
