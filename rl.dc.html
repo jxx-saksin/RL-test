@@ -323,7 +323,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 65;
+const TITLE_VER = 66;
 const TITLE_DATE = '0917';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -4328,11 +4328,11 @@ void main(){
       onPointerCancel:()=>{ if(this._isw){ this._isw.el.style.transition='transform .2s'; this._isw.el.style.transform='none'; this._isw=null; } },
       style:{position:'relative',borderBottom:'1px solid '+T.line,background:T.bg,padding:'14px 15px 14px 30px',touchAction:'pan-y'}},
       h('div',{'data-invgrip':'1',onPointerDown:(e)=>this.invGripDown(e,inst.uid),style:{position:'absolute',left:0,top:0,bottom:0,width:28,cursor:'grab',touchAction:'none'}},
-        h('div',{style:{position:'absolute',left:11,top:14,bottom:14,width:4,borderRadius:2,background:barCol,pointerEvents:'none'}})),
+        h('div',{'data-invbar':barCol,style:{position:'absolute',left:11,top:14,bottom:14,width:4,borderRadius:2,background:barCol,pointerEvents:'none'}})),
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}},
         this.catChip(catOf(inst),false),
         ms>=2?this.qtyChip(inst,ms):null),
-      h('div',{style:{marginTop:8}},
+      h('div',{'data-invname':'1',style:{marginTop:8}},
         h('span',{style:{fontFamily:T.sans,fontSize:14,color:T.hi}}, this.itemLabel(inst))),
       desc?h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,marginTop:4,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, desc):null);
   }
@@ -4386,11 +4386,35 @@ void main(){
   invGripDown(e,uid){
     e.preventDefault(); e.stopPropagation();
     const slotEl=e.currentTarget.closest('[data-invslot]'); if(!slotEl) return;
+    // ★고스트는 innerHTML 복사가 아니라 **직접 조립**한다. 복사하면 컨테이너 자신의 스타일
+    //   (padding:14px 15px 14px 30px)이 따라오지 않아 내용이 왼쪽 끝에 붙고 높이가 29px 줄며,
+    //   글자가 박스 밖으로 삐져나온다. 크기는 원본 rect 그대로, 내용은 핸들 바 + 이름만.
+    const r=slotEl.getBoundingClientRect();
+    const barEl=slotEl.querySelector('[data-invbar]');
+    const nameEl=slotEl.querySelector('[data-invname]');
+    const barCol=(barEl&&barEl.getAttribute('data-invbar'))||'rgba(216,178,90,0.35)';
     const ghost=document.createElement('div');
-    ghost.style.cssText='position:fixed;pointer-events:none;z-index:9000;width:'+slotEl.offsetWidth+'px;border-radius:10px;overflow:hidden;background:'+T.s2+';border:1.5px solid #4A4D53;box-shadow:0 16px 34px rgba(0,0,0,.6);';
-    ghost.innerHTML=slotEl.innerHTML; document.body.appendChild(ghost); slotEl.style.opacity='0.35';
+    ghost.style.cssText='position:fixed;pointer-events:none;z-index:9000;box-sizing:border-box;'
+      +'width:'+Math.round(r.width)+'px;height:'+Math.round(r.height)+'px;'
+      +'display:flex;align-items:center;justify-content:center;padding:0 30px;'
+      +'border-radius:10px;overflow:hidden;background:'+T.s2+';'
+      +'border:1.5px solid '+barCol+';box-shadow:0 16px 34px rgba(0,0,0,.6);';
+    const gBar=document.createElement('div');
+    gBar.style.cssText='position:absolute;left:11px;top:14px;bottom:14px;width:4px;border-radius:2px;background:'+barCol+';';
+    const gName=document.createElement('div');
+    gName.style.cssText='font-family:'+T.sans+';font-size:14px;color:'+T.hi
+      +';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;';
+    gName.textContent=nameEl?nameEl.textContent:'';
+    ghost.appendChild(gBar); ghost.appendChild(gName);
+    document.body.appendChild(ghost); slotEl.style.opacity='0.35';
+    // 잡은 지점의 슬롯 내 상대 위치를 유지 — 원본 자리에서 그대로 떠오른다. 좌우는 화면 안으로 클램프.
+    const offX=e.clientX-r.left, offY=e.clientY-r.top;
     let over=null; const setOver=(el)=>{ if(over&&over!==el) over.style.background=T.bg; over=el; if(el) el.style.background='rgba(124,165,187,0.16)'; };
-    const move=(ev)=>{ ghost.style.left=(ev.clientX-30)+'px'; ghost.style.top=(ev.clientY-24)+'px'; const el=document.elementFromPoint(ev.clientX,ev.clientY); const t=el?el.closest('[data-invslot]'):null; setOver(t&&t!==slotEl?t:null); };
+    const move=(ev)=>{
+      const maxX=Math.max(4, window.innerWidth-r.width-4);
+      ghost.style.left=Math.max(4, Math.min(ev.clientX-offX, maxX))+'px';
+      ghost.style.top=(ev.clientY-offY)+'px';
+      const el=document.elementFromPoint(ev.clientX,ev.clientY); const t=el?el.closest('[data-invslot]'):null; setOver(t&&t!==slotEl?t:null); };
     const up=(ev)=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); if(ghost.parentNode)ghost.remove(); setOver(null); slotEl.style.opacity=''; slotEl.style.transform='';
       const el=document.elementFromPoint(ev.clientX,ev.clientY); const t=el?el.closest('[data-invslot]'):null;
       if(t&&t!==slotEl){ this.invDrop(uid, t.getAttribute('data-sec'), t.getAttribute('data-uid')||''); } else this.forceUpdate(); };
