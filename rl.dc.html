@@ -228,7 +228,7 @@ const SFX = {
   get_sato:         'assets/sound/effect/get-sato.m4a',
   got_sato:         'assets/sound/effect/got-sato.m4a',
   loss_sato:        'assets/sound/effect/loss-sato.m4a',
-  title_drag:       'assets/sound/effect/title-drag.m4a',       // 타이틀을 아래로 당기기 시작하는 순간 (1.00s)
+  title_drag:       'assets/sound/effect/title-drag.m4a',       // 타이틀 → 부팅 로딩으로 넘어가는 순간 (1.00s)
   // 휴식 화면 전용 사용음 (각 1.03s) — 의약품/음식 각 2종 중 랜덤. 다른 화면에서는 쓰지 않는다.
   rest_heal1:       'assets/sound/effect/rest-heal-1.m4a',
   rest_heal2:       'assets/sound/effect/rest-heal-2.m4a',
@@ -343,7 +343,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 72;
+const TITLE_VER = 73;
 const TITLE_DATE = '0918';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -519,8 +519,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val49');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val16');
+      const eng = await import('./engine.js?v=val50');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val17');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -532,6 +532,10 @@ class Component extends DCLogic {
   // 스플래시 탭 → iOS 자이로 권한 요청(제스처) + 부팅 로딩 진입(게이지 4초 + 로드 완료 대기)
   async _startBoot(){
     if(this._bootStarted) return; this._bootStarted=true;
+    // ★시작음 — 반드시 **첫 await 앞**에서 낸다. await를 넘기면 제스처 컨텍스트를 벗어나
+    //   iOS가 재생을 막는다(requestGyroPerm이 권한 팝업을 띄우면 더 확실히 벗어난다).
+    //   드래그 도중(touchmove)에 울리던 것을 여기로 옮겼다 — 실기에서 그때는 끝내 소리가 나지 않았다.
+    this.sfx('title_drag');
     this.splPullOff();   // 타이틀 당기기 스테이지 원복(여백 제거 + 스크롤 0)
     await this.requestGyroPerm();   // 권한 팝업 응답까지 대기 → 게이지·타이머가 팝업 닫힌 후 동시에 시작(0% 멈춤 방지)
     this._bootLoadStarted=false;    // 이중 안전 — 어떤 경로로든 가드가 미리 소비됐어도 진짜 로딩에서 게이지 재시작
@@ -1339,29 +1343,22 @@ class Component extends DCLogic {
     document.body.classList.add('rl-splash-pull');
     // 문서 캔버스(html)도 맞춘다 — 끝까지 당겨 오버스크롤되면 body 뒤의 이 색이 드러난다.
     document.documentElement.style.background = '#1B1B1B';
-    this.sfxPrime('title_drag');   // 당기는 순간에 울려야 하므로 버퍼를 먼저 받아 둔다
+    this.sfxPrime('title_drag');   // 로딩 진입에 바로 울려야 하므로 버퍼를 먼저 받아 둔다
     const park=()=>{ if(this._splPullOn) window.scrollTo(0, SPL_PULL); };
     park(); requestAnimationFrame(park); setTimeout(park, 120);   // dvh가 흔들려도 제자리로
     // 손가락이 닿는 순간 = iOS 오디오를 풀 수 있는 제스처. 여기서 풀어야 아래 scroll에서 소리가 난다.
-    this._splPullStart = (e)=>{ if(!this._splPullOn) return;
-      this._splDragSfx=false;
-      const t=e&&e.touches&&e.touches[0]; this._splTY = t? t.clientY : null;
-      this.sfxUnlock(); };
+    // 손가락이 닿는 순간 오디오를 푼다 — iOS는 제스처 **안**에서 풀어야 이후 재생이 통과한다.
+    this._splPullStart = ()=>{ if(!this._splPullOn) return; this.sfxUnlock(); };
     // ★★판정을 scroll에 걸면 안 된다 — 이 화면에서는 문서가 실제로 스크롤돼도
     //   window/document 어느 쪽에도 scroll 이벤트가 오지 않는다(2026-09-18 계측: 스크롤 20px에 이벤트 0건).
     //   부팅 판정이 touchend에서 scrollY를 직접 읽도록 보강돼 있는 것도 같은 이유다.
     //   그래서 소리는 **손가락 이동량**으로 낸다 — 스크롤 이벤트가 오든 말든 확실하다.
-    this._splPullMove = (e)=>{ if(!this._splPullOn) return;
-      const t=e&&e.touches&&e.touches[0]; if(!t) return;
-      // 성공 임계(40)가 아니라 '움직이기 시작한' 8px에서 운다 — 손가락을 따라오는 느낌이 나야 한다.
-      if(this._splTY!=null && !this._splDragSfx && (t.clientY - this._splTY) >= 8){
-        this._splDragSfx=true; this.sfx('title_drag'); }
+    // 당김 성공(40px) 판정을 손가락 이동에서도 세운다 — 이 화면은 문서가 실제로 스크롤돼도
+    // window/document 어느 쪽에도 scroll 이벤트가 오지 않는다(2026-09-18 계측: 20px 스크롤에 0건).
+    this._splPullMove = ()=>{ if(!this._splPullOn) return;
       if(SPL_PULL - window.scrollY >= 40) this._splPullOk = true; };
-    // scroll은 보조로만 남긴다(오는 환경에서는 더 이르게 잡힌다). 중복은 _splDragSfx가 막는다.
     this._splPullScroll = ()=>{ if(!this._splPullOn) return;
-      const pulled = SPL_PULL - window.scrollY;
-      if(pulled >= 8 && !this._splDragSfx){ this._splDragSfx=true; this.sfx('title_drag'); }
-      if(pulled >= 40) this._splPullOk = true; };
+      if(SPL_PULL - window.scrollY >= 40) this._splPullOk = true; };
     // 판정은 두 벌 — 뗄 때의 실제 위치를 먼저 보고(스냅백 전이면 여기서 잡힌다),
     // 이미 되돌아간 뒤라면 당기는 동안 scroll 이벤트가 세워 둔 플래그로 잡는다.
     this._splPullEnd = ()=>{ if(!this._splPullOn) return;
@@ -1383,7 +1380,7 @@ class Component extends DCLogic {
     document.documentElement.style.background = '';
     if(this._splPullScroll) window.removeEventListener('scroll', this._splPullScroll);
     this._splPullScroll=null; this._splPullEnd=null; this._splPullStart=null;
-    this._splPullMove=null; this._splDragSfx=false; this._splTY=null;
+    this._splPullMove=null;
     window.scrollTo(0,0);
   }
   // 좌표계 = SVG 원본 420x856. 420폭 스테이지를 프레임 폭에 맞춰 균일 스케일(상단 앵커).
@@ -4430,9 +4427,15 @@ void main(){
     const seg=this.state.seg, filter=this.state.filter;
     this.tutoTick(seg);   // 튜토리얼 팝업 — 탭이 바뀐 첫 렌더에서만 걸린다(다음 틱 실행)
     const list=(seg==='vault'?this.gs.vault:this.gs.bag);
-    const cats=[['전체','common_all'],['무기','item_weapon'],['갑옷','item_armor_body'],['가방','item_bag'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['징표','item_talisman'],['술','item_liquor'],['모듈','item_module'],['데이터','item_data'],['귀중품','item_quest']];
+    const cats=[['전체','common_all'],['무기','item_weapon'],['방어구','item_armor_body'],['가방','item_bag'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['징표','item_talisman'],['술','item_liquor'],['모듈','item_module'],['데이터','item_data'],['귀중품','item_quest']];
     const catOf=(inst)=>{ if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]) return '술'; if(this.eng.byId.module&&this.eng.byId.module[inst.id]) return '모듈'; if(this.eng.byId.usb&&this.eng.byId.usb[inst.id]) return '데이터'; const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||(this.eng.byId.bag&&this.eng.byId.bag[inst.id]); if(!s) return ''; return CATKR[s.Category]||s.Category; };
-    const rows=list.filter(inst=>filter==='전체'||catOf(inst)===filter).sort((a,b)=>(this.isEquipped(b.uid)?1:0)-(this.isEquipped(a.uid)?1:0));
+    // ★'방어구' 칩 하나가 투구·갑옷을 함께 담는다. 예전 '갑옷' 칩은 Body만 잡아
+    //   투구는 어느 칩에도 걸리지 않았다(전체에서만 보였다).
+    const catHit=(inst)=>{ if(filter==='전체') return true;
+      const c=catOf(inst);
+      if(filter==='방어구') return c==='투구'||c==='갑옷';
+      return c===filter; };
+    const rows=list.filter(catHit).sort((a,b)=>(this.isEquipped(b.uid)?1:0)-(this.isEquipped(a.uid)?1:0));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       this.screenTitle('INVENTORY','nav_inventory',this.storageChips()),   // 소지품에선 PASS 대신 보관고 잔량을 본다
       // 2버튼 바 — svg/header-2button.svg. 헤더에 바로 붙고 하단 모서리만 r16, 높이 47.

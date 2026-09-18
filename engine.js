@@ -1,7 +1,7 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val10';
+import { DATA as FALLBACK } from './data/game-data.js?v=val11';
 import { buildIndex } from './sheet-loader.js?v=val11';
 
 export let DATA = FALLBACK;
@@ -191,7 +191,7 @@ const V3_STRINGS = {
   search_failed_desc:['시체에서 아무것도 찾을 수 없었다.','Found nothing on the body.'],
   search_failed_cat:['실패','FAILED'],
   item_desc_label:['아이템 설명','Item description'],
-  item_head:['방어구','Head'], item_body:['갑옷','Body'], item_food:['음식','Food'],
+  item_head:['투구','Head'], item_body:['갑옷','Body'], item_food:['음식','Food'],
   item_junk:['정크','Junk'], item_quest:['퀘스트','Quest'], item_key:['키','Key'],
   item_accessory:['장신구','Accessory'], item_talisman:['징표','Token'], dmg_reduce:['피해 감소','Damage Reduced'], item_material_type:['재질','Material'],
   common_me:['나','Me'],
