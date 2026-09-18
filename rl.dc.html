@@ -215,6 +215,10 @@ const SFX = {
   battle_victory:   'assets/sound/effect/battle-victory.m4a',     // 전투 승리 (2.04s)
   battle_defeat:    'assets/sound/effect/battle-defeat.m4a',      // 전투 패배 (3.02s)
   quest_accept:     'assets/sound/effect/quest-accept.m4a',       // 퀘스트 수락 확정 (1.00s)
+  // 사토 3종 (각 1.03s) — get=카운트업이 도는 동안 / got=즉시 입금 / loss=흥정 실패로 값이 내려갈 때
+  get_sato:         'assets/sound/effect/get-sato.m4a',
+  got_sato:         'assets/sound/effect/got-sato.m4a',
+  loss_sato:        'assets/sound/effect/loss-sato.m4a',
   // ── card ──
   card_flip1:       'assets/sound/card/card-flip.m4a',            // 카드 한 장이 뒤집히는 순간 — 3종 랜덤·연속 방지
   card_flip2:       'assets/sound/card/card-flip2.m4a',
@@ -245,7 +249,7 @@ const SFX_GAIN = {
   card_swipe1:1.00, card_swipe2:0.97, card_swipe3:1.05,
   // UI 효과음 목표 0.050
   card_insert:1.33, tap_terminal_done:0.42, open_bag:0.19, close_bag:0.39, disk_insert:1.14, disk_load:0.68,
-  quest_accept:2.10,
+  quest_accept:2.10, get_sato:0.40, got_sato:0.18, loss_sato:1.20,
   // 승패 재즐은 조금 더 존재감 있게 0.070
   battle_victory:0.19, battle_defeat:0.23,
   // 상점 진입음 목표 0.050
@@ -323,8 +327,8 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 69;
-const TITLE_DATE = '0917';
+const TITLE_VER = 70;
+const TITLE_DATE = '0918';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -338,7 +342,10 @@ const TITLE_DATE = '0917';
 const TUTO_SNOOZE_H = 48;
 // 문구는 **UIString 시트**가 정본 — StringID = tuto_<팝업키>_<장번호>. 여기엔 장수만 둔다.
 // 시트 문구의 \n(두 글자)은 렌더에서 실제 줄바꿈으로 바꾼다.
-const TUTO = { inv_move1:3, inv_move2:1, inv_compare1:2, inv_merge1:1 };
+const TUTO = { inv_move1:3, inv_move2:1, inv_compare1:2, inv_merge1:1,
+  loot_get1:4, death1:2, cmb_flee1:2, cmb_boss1:1, loot_reget1:2, bar_appr1:4, pawn_hag1:3 };
+// 전투 화면 위에 뜨는 팝업(cmb_*·loot_reget1)이 있는 구간에서 조우 회차로 거는 트리거.
+const TUTO_BOSS_ENC = 3;   // 보스 등장 #1 — 3전 조우 전투 시작
 // '아이템 합치기'가 요구하는 귀환 성공 횟수(사망·도망 제외 — gs.extracts).
 const TUTO_MERGE_AFTER = 5;
 
@@ -496,8 +503,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val48');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val15');
+      const eng = await import('./engine.js?v=val49');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val16');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -802,12 +809,17 @@ class Component extends DCLogic {
     const prof = this.eng.playerProfile(this.gs, staZero); prof.maxHp = full.maxHp;
     const res = this.eng.simulateCombat(prof, mProf, this.gs.hp);
     Object.assign(this.combat, { prof:prof, res, revealed:1, phase:'fighting', staZero, encounter:this.combat.encounter+1 });
+    // 튜토리얼 — 카드를 뒤집고 전투에 돌입한 직후. tick()이 팝업 동안 멈춘다.
+    { const enc=this.combat.encounter;
+      if(enc===1) this.tutoOpen('cmb_flee1');
+      else if(enc>=TUTO_BOSS_ENC) this.tutoOpen('cmb_boss1'); }
     this.forceUpdate();
     if(this._t) clearInterval(this._t);
     this._t = setInterval(()=>this.tick(), 300);
   }
   tick(){
     const c=this.combat;
+    if(this.state.tuto) return;   // ★튜토리얼 팝업이 떠 있는 동안은 로그를 멈춘다 — 읽는 사이 전투가 끝나버린다
     if(c.revealed < c.res.log.length){ c.revealed++; this.setCombatFx(c); this.forceUpdate(); }
     else { clearInterval(this._t); this._t=null; this.finishCombat(); }
   }
@@ -881,7 +893,9 @@ class Component extends DCLogic {
         // 사전소지품(주머니/가방)을 드랍 화면에 함께 표시 — gs.bag의 미착용 아이템을 lm.bag으로 이동(중복 방지), 커밋 시 되돌림.
         const lm={view:'field',focus:0,fromCombat:true,field:c.lootDraw.slice(),bag:[]}; const keep=[];
         for(const it of this.gs.bag){ if(this.isEquipped(it.uid)){ keep.push(it); continue; } it.locked=(it.loc==='pocket'); it.pre=true; lm.bag.push(it); }
-        this.gs.bag=keep; this.state.lm=lm; this.sfxDealIn(this.lmCards(lm).length); this.setState({screen:'lootmanage'}); return;
+        this.gs.bag=keep; this.state.lm=lm; this.sfxDealIn(this.lmCards(lm).length); this.setState({screen:'lootmanage'});
+        setTimeout(()=>this.tutoOpen('loot_get1'),0);   // 튜토리얼 — 전리품 획득 화면 첫 진입
+        return;
       }
     } else if(res.winner==='monster'){ c.phase='dead'; this.sfx('battle_defeat'); }
     else { c.phase='timeout'; }
@@ -1019,7 +1033,10 @@ class Component extends DCLogic {
     }
     // 상점 진입 = 메뉴 화면(screen-clinic-menu.svg). 서비스 탭은 메뉴에서 고른 뒤 'vendor'로 간다.
     this.sfx(SHOP_SFX[id]);   // 상점별 진입음(없는 벤더면 조용히 무음)
-    this.setState({screen:'vendorMenu',vendor:id,vtab:first,sel:null,repairSel:null,repairMode:null,modalZone:null,apr:null,mod:null}); }
+    this.setState({screen:'vendorMenu',vendor:id,vtab:first,sel:null,repairSel:null,repairMode:null,modalZone:null,apr:null,mod:null});
+    // 튜토리얼 — 입장 시점(서비스 탭이 아니라 상점 메뉴 진입)에 건다.
+    { const k = (id==='vendor_tavern') ? 'bar_appr1' : (id==='vendor_pawnshop') ? 'pawn_hag1' : null;
+      if(k) setTimeout(()=>this.tutoOpen(k),0); } }
   openVendorTab(tab){ this._healDone=false; this._feedDone=false;
     if(tab==='haggle') this.sfxDealIn(this.valuablesOwned().length);
     this.setState({screen:'vendor',vtab:tab,sel:null,repairSel:null,repairMode:null,apr:null,mod:null,hg:(tab==='haggle'?{phase:'list',focus:0}:null)}); }
@@ -3432,6 +3449,7 @@ void main(){
   }
   hgAnimate(inst,r){
     if(this._hgRaf) cancelAnimationFrame(this._hgRaf);
+    this.sfx(r.to>=r.from?'get_sato':'loss_sato');   // 흥정은 값이 내려가는 라운드도 있다 — 라운드마다(최대 hgMax회) 운다
     const dur=900, t0=performance.now();
     const step=(now)=>{ const p=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-p,3);
       inst.value=Math.round(r.from+(r.to-r.from)*e); this.forceUpdate();
@@ -3446,7 +3464,7 @@ void main(){
     const inst=this.hgSel(); if(!inst||inst.value==null) return;
     this.hgSettle();
     const price=Math.max(0,Math.round(this.eng.N(inst.value)));
-    this.gs.sato+=price; this.consumeInst(inst.uid);
+    this.gs.sato+=price; this.consumeInst(inst.uid); this.sfx('got_sato');
     this.flash(this.eng.anyName(inst.id)+' · '+price.toLocaleString()+' '+this.t('currency_sato'));
     const n=this.valuablesOwned().length;
     this.setState({hg:{focus:Math.max(0,Math.min((this.state.hg||{}).focus||0, n-1)),phase:'list'}});
@@ -3655,6 +3673,7 @@ void main(){
     const num=box.querySelector('[data-satonum]'), wal=box.querySelector('[data-satowallet]'), halo=box.querySelector('[data-satohalo]');
     box.style.boxShadow='inset 0 0 0 1px oklch(0.740 0.055 224 / .5)';
     if(halo) halo.style.opacity='1';
+    this.sfx('get_sato');   // 카운트업이 도는 동안 — 연출 2.5s, 음원 1.03s라 시작에 얹는다
     const easeOut=t=>1-Math.pow(1-t,4);
     let st=null; const dur=2500;
     const tick=now=>{
@@ -4038,6 +4057,8 @@ void main(){
     //   몬스터 상세 카드의 [전리품 보기]로 되돌아올 수 있다. drawCards()에서 비운다.
     if(c) c.lootLeft=(lm.field||[]).slice();
     this.saveGame(); this.setState({screen:'combat'});
+    if(left>0) setTimeout(()=>this.tutoOpen('loot_reget1'),0);   // 튜토리얼 — 두고 온 전리품이 있을 때만
+
     this.flash(this.en()?('Stashed '+kept+(left?' · left '+left:'')):(kept+'개 담음'+(left?(' · '+left+'개 두고 옴'):''))); }
   // 두고 온 전리품으로 되돌아가기. 최초 진입(전투 승리)과 **같은 방식**으로 lm을 짓는다 —
   // 기존 소지품은 다시 pre:true로 lm.bag에 실리므로 재커밋해도 중복 지급되지 않는다.
@@ -5504,7 +5525,8 @@ void main(){
     const insts=ids.map(id=>{ const x=this.eng.mkInstance(id,1); x.qty=1; x.locked=false; return x; });
     this.qSet(q.QuestID,{s:'rw', rw:insts});
     this.setState({qRew:q.QuestID,qOpen:[],qFocus:0});
-    this.sfxDealIn(insts.length); this.qRevealAll();
+    this.sfxDealIn(insts.length); if(rw.sato) this.sfx('got_sato');   // 딜링과 동시(사토 보상이 있을 때만)
+    this.qRevealAll();
   }
 
   qRewInsts(){ const r=this.qRec(this.state.qRew); return (r&&Array.isArray(r.rw))?r.rw:[]; }
@@ -7322,7 +7344,7 @@ void main(){
     const price=this.sellPrice(rep); if(price<=0){ this.flash(this.t('shop_no_sale')); return; }
     const total=insts.reduce((s,x)=>s+(x.qty||1),0);
     qty=Math.max(1, Math.min(qty||1, total));
-    this.gs.sato+=price*qty;
+    this.gs.sato+=price*qty; this.sfx('got_sato');
     let left=qty;
     for(const inst of insts){ if(left<=0) break; const have=inst.qty||1; const take=Math.min(have,left);
       if(take>=have){ const rm=(arr)=>{const i=arr.findIndex(x=>x.uid===inst.uid); if(i>=0){arr.splice(i,1);return true;} return false;}; rm(this.gs.vault)||rm(this.gs.bag); }
@@ -7460,7 +7482,8 @@ void main(){
   }
   // ===== 태그 단말 (screen-tap-terminal-*.svg · 402x828) =====
   // 존 모달 '레이드하기' → 이 화면. 카드를 위로 끌어 단말에 삽입 → 패스 1회 차감 → 1.5초 뒤 레이드 로딩.
-  openTap(zoneId){ this._tapDone=false; this._tapDrag=null; this.setState({screen:'tap', tapZone:zoneId, modalZone:null}); }
+  openTap(zoneId){ this._tapDone=false; this._tapDrag=null; this.setState({screen:'tap', tapZone:zoneId, modalZone:null});
+    setTimeout(()=>this.tutoOpen('death1'),0); }   // 튜토리얼 — 사망 규칙. 카드를 꽂기 전에 알려야 한다
   // 키카드 존(경찰서 등)은 프로토콜 패스를 쓰지 않는다 — 키카드 1장을 삽입(1회용)하고 나간다.
   // 키 소모 자체는 startSortie의 consumeItem(z.UnlockKey)가 이미 처리하므로 여기선 패스 차감만 건너뛴다.
   tapKeyOf(zoneId){
