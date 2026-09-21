@@ -343,7 +343,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 75;
+const TITLE_VER = 76;
 const TITLE_DATE = '0921';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -6299,12 +6299,10 @@ void main(){
       this.slotTabs(3, this.craftSlotsN(), slot, (i)=>this.setState({craftSlot:i,craftSel:null}), (i)=>{ const j=this.craftJob(i); return (j&&j.phase==='run')?j.left:null; }),
       h('div',{style:{position:'relative',zIndex:1,flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column'}},
         list.length? list.map(bp=>this.craftRow(bp,slot))
-          // 설치된 도면이 없을 때 — 버튼을 잠그는 대신 들어와서 이유를 읽게 한다(공통 안내 pill).
-          // ★note는 **블록 폭(336)을 전제로 만든 조각**이다. flex 아이템으로 두면 내용만큼 줄어들어
-          //   좌우 패딩이 없는 탓에 글자가 알약 모서리에 붙는다 — 폭을 주는 상자로 감싼다.
-          : h('div',{style:{padding:'18px 16px 0'}},
-              h('div',{style:{maxWidth:336,margin:'0 auto'}},
-                this.craftSheetBits().note(this.t('hide_craft_empty'),'#CCA26E',true)))),
+          // 설치된 도면이 없을 때 — 버튼을 잠그는 대신 들어와서 이유를 읽게 한다.
+          // ★아이콘 달린 안내 pill(note)은 **시트·팝업 전용**이다. 목록의 빈 상태는
+          //   분해(hide_disa_empty)·수리와 같은 **글자만** 형식으로 통일한다.
+          : h('div',{style:{padding:'40px 0',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, this.t('hide_craft_empty'))),
       (job||rev)? null : h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D'}},
         h('button',{onClick:()=>this.openHideFac('workbench'),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.en()?'Back':'뒤로가기')),
       (job&&!rev)? h('div',{key:'cdim',style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',zIndex:5}}) : null,   // ⚠️ pointerEvents:none 금지 — 딤을 통과한 클릭이 뒤 목록을 눌러 화면이 바뀐다
