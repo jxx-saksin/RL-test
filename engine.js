@@ -403,6 +403,18 @@ function rollGrowthTags(rare){
   return Array.from({ length: n }, () => STAT_KEYS[randInt(0, 3)]);
 }
 
+// 최초 지급품 — **`Config.start_vault_items`가 정본**이다(코드에 ID를 박지 않는다 —
+// 지급 구성이 바뀌어도 따라온다). 지금은 지급 배트·프로토콜 조끼·캡 + 구호 배낭.
+// ★지급품에는 **미감정 옵션을 붙이지 않는다**(2026-09-21). 튜토리얼 구간에서 처음 만지는
+//   물건이라 수치가 가려져 있으면 장비 화면을 읽는 법부터 막힌다.
+// 캐시는 원본 문자열로 무효화한다 — setDATA()로 시트가 통째로 바뀌어도 따라잡는다.
+let _starterRaw = null, _starterSet = new Set();
+export function isStarterItem(id){
+  if (!id) return false;
+  const raw = String(C.start_vault_items || '');
+  if (raw !== _starterRaw){ _starterRaw = raw; _starterSet = new Set(raw.split(',').map(x => x.trim()).filter(Boolean)); }
+  return _starterSet.has(String(id));
+}
 // v3 instance: 베이스ID · sockets[] · unappraised[] · rolls{} · growthTags[] · dur/maxDur
 export function mkInstance(id, qty = 1, opts = {}) {
   const w = byId.weapon[id], a = byId.armor[id], it = byId.item[id], af = byId.artifact[id], tal = byId.talisman && byId.talisman[id], bg = byId.bag && byId.bag[id];
@@ -441,7 +453,8 @@ export function mkInstance(id, qty = 1, opts = {}) {
   // 3) 미감정 롤: 수치 옵션마다 독립 · p = clamp(base × zoneMult, 0, 1). ★growthTags는 감정 대상이 아니다.
   const mult = N(opts.unappraisedMult, 1);
   const p = clamp(N(C.unappraised_base_chance, 0.1) * mult, 0, 1);
-  inst.unappraised = APPRAISE_OPTS[kind].filter(() => Math.random() < p);
+  // ★지급품은 굴리지 않는다 — rolls(수치)는 그대로 만들고 '가림'만 없앤다.
+  inst.unappraised = isStarterItem(id) ? [] : APPRAISE_OPTS[kind].filter(() => Math.random() < p);
   // 4) 성장 태그 — 드랍 시 확정·공개 (장신구와 동일 규칙)
   inst.growthTags = rollGrowthTags(opts.rareZone);
   inst.appraised = inst.unappraised.length === 0;

@@ -661,6 +661,14 @@ class Component extends DCLogic {
         inst.unappraised = inst.unappraised.filter(k=>k!=='growthTags');
         inst.appraised = inst.unappraised.length===0;
       }
+      // 마이그레이션(2026-09-21): 최초 지급품(Config.start_vault_items)은 미감정 옵션을
+      // 붙이지 않게 바뀌었다. 옛 세이브에 남은 가림은 여기서 푼다 — 이미 굴려둔 수치(rolls)는
+      // 그대로 두고 **가림만 걷는다**(재롤 금지 — 갖고 있던 아이템이 바뀌면 안 된다).
+      // 지급품은 드랍·상점 어디에도 없어서, 세이브에 있는 건 곧 시작 때 받은 그 물건이다.
+      if(inst.unappraised && inst.unappraised.length && eng.isStarterItem(inst.id)){
+        inst.unappraised = [];
+        inst.appraised = true;
+      }
       return inst; };
     gs.bag=gs.bag.map(rebuild); gs.vault=gs.vault.map(rebuild);
     gs.equip=Object.assign({weapon:null,head:null,body:null,artifact1:null,artifact2:null,bag:null}, gs.equip||{});
