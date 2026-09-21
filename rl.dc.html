@@ -343,7 +343,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 77;
+const TITLE_VER = 78;
 const TITLE_DATE = '0921';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -360,7 +360,9 @@ const TUTO_SNOOZE_H = 48;
 // 시트 문구의 \n(두 글자)은 렌더에서 실제 줄바꿈으로 바꾼다.
 const TUTO = { inv_move1:3, inv_move2:1, inv_compare1:2, inv_merge1:1,
   loot_get1:4, death1:2, cmb_flee1:2, cmb_boss1:1, loot_reget1:2, bar_appr1:4, pawn_hag1:3,
-  pass_chg1:2 };
+  pass_chg1:2,
+  // 아지트 — 시설 기능 첫 진입(hideAction). 시설당 기능 2개씩이다.
+  term_inst1:3, term_dec1:2, wb_craft1:2, wb_disa1:2, rs_rep1:2, rs_mod1:4 };
 // 전투 화면 위에 뜨는 팝업(cmb_*·loot_reget1)이 있는 구간에서 조우 회차로 거는 트리거.
 const TUTO_BOSS_ENC = 3;   // 보스 등장 #1 — 3전 조우 전투 시작
 // 패스 충전 #1 — 레이드 화면에 들어왔는데 패스가 이만큼 이하로 남았을 때.
@@ -369,8 +371,14 @@ const TUTO_BOSS_ENC = 3;   // 보스 등장 #1 — 3전 조우 전투 시작
 const TUTO_PASS_LOW = 3;
 // '아이템 합치기'가 요구하는 귀환 성공 횟수(사망·도망 제외 — gs.extracts).
 const TUTO_MERGE_AFTER = 5;
+// 아지트 기능 첫 진입 팝업 — hideFacItems의 항목 키 → 팝업 키.
+// 'upgrade'·'exit'은 없다(안내할 불가역 규칙이 없다).
+const HIDE_TUTO = { repair:'rs_rep1', module:'rs_mod1', craft:'wb_craft1',
+                    disassemble:'wb_disa1', disk:'term_inst1', decode:'term_dec1' };
 
 const PATCH_NOTES = [
+  { ver:78, date:'21/Sep', lines:[
+    ['기능 및 편의성 관련 튜토리얼 업데이트','Tutorial updates for features and quality-of-life'] ] },
   { ver:61, date:'15/Sep', lines:[
     ['몬스터 사망시 전리품 재획득 가능 인터페이스추가.','You can reopen the loot screen after a kill'],
     ['일부 누락된 아트웍 업데이트.','Added artwork that was still missing'] ] },
@@ -524,8 +532,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val53');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val19');
+      const eng = await import('./engine.js?v=val54');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val20');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -6976,7 +6984,10 @@ void main(){
           : [h('button',{key:'d',disabled:true,style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:MUT,fontFamily:T.sans,fontSize:12}}, this.t('usb_decode_do')),
              h('button',{key:'c',onClick:()=>this.openHideFac('terminal'),style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:HI,fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.t('hide_disk_close'))])));
   }
-  hideAction(facId,k){ if(k==='upgrade') this.openUpg(facId); else if(k==='repair') this.setState({screen:'rsrep',repairSel:null,repairMode:'hideout'}); else if(k==='module') this.setState({screen:'rsmod',mdSel:null,mdSheet:null,mdModule:null,mdSlot:0,mdIdx:0}); else if(k==='craft') this.setState({screen:'craft',craftSlot:this.craftFreeSlot(),craftSel:null,craftConfirm:false,craftRev:null,craftFlip:false}); else if(k==='disassemble') this.setState({screen:'disa',disaSel:null,disaConfirm:false,disaRev:false,disaOpen:[],disaFocus:0}); else if(k==='disk') this.openDiskList(); else if(k==='decode') this.setState({screen:'decode',decodeSlot:0,dataSel:null}); else this.flash('TBD: '+facId+' / '+k); }
+  hideAction(facId,k){ if(k==='upgrade') this.openUpg(facId); else if(k==='repair') this.setState({screen:'rsrep',repairSel:null,repairMode:'hideout'}); else if(k==='module') this.setState({screen:'rsmod',mdSel:null,mdSheet:null,mdModule:null,mdSlot:0,mdIdx:0}); else if(k==='craft') this.setState({screen:'craft',craftSlot:this.craftFreeSlot(),craftSel:null,craftConfirm:false,craftRev:null,craftFlip:false}); else if(k==='disassemble') this.setState({screen:'disa',disaSel:null,disaConfirm:false,disaRev:false,disaOpen:[],disaFocus:0}); else if(k==='disk') this.openDiskList(); else if(k==='decode') this.setState({screen:'decode',decodeSlot:0,dataSel:null}); else this.flash('TBD: '+facId+' / '+k);
+    // 튜토리얼 — 기능 첫 진입. 화면 전환 setState 뒤 다음 틱에 건다(상점 진입과 같은 형태).
+    // gs.tuto에 기록돼 한 번만 뜬다.
+    const tk=HIDE_TUTO[k]; if(tk) setTimeout(()=>this.tutoOpen(tk),0); }
   // 아지트 오픈 판정 — 조건(귀환 N회·NPC N인·대가)은 튜토리얼 확정 때 여기 하나에만 붙인다.
   // 지금은 Config hideout_unlock_force=1로 열어두고 화면부터 만든다.
   // 남은 시간은 endAt-now로 매번 새로 계산되지만, **다시 그리지 않으면 화면 숫자가 안 변한다.**

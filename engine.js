@@ -1,7 +1,7 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val13';
+import { DATA as FALLBACK } from './data/game-data.js?v=val14';
 import { buildIndex } from './sheet-loader.js?v=val11';
 
 export let DATA = FALLBACK;
@@ -111,7 +111,7 @@ const V3_STRINGS = {
   hide_craft_failed:['제작에 실패해 재료가 소모되었습니다.','Crafting failed. Materials were consumed.'],
   hide_craft_do:['제작','Craft'], hide_craft_doing:['제작중','Crafting'],
   hide_craft_done_label:['완성','Done'], hide_craft_fail_label:['실패','Failed'],
-  hide_craft_empty:['설치된 도면이 없다.','No blueprints installed.'],
+  hide_craft_empty:['설치된 제작법이 없다.','No blueprints installed.'],
   hide_store_put:['보관함에 넣기','Store'],
   // 조립대 · 분해
   hide_disa_label:['분해','Disassemble'], hide_disa_section:['분해가능 아이템','Disassemblable'],
