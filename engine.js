@@ -1,7 +1,7 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val11';
+import { DATA as FALLBACK } from './data/game-data.js?v=val12';
 import { buildIndex } from './sheet-loader.js?v=val11';
 
 export let DATA = FALLBACK;
@@ -201,6 +201,10 @@ const V3_STRINGS = {
   pvp_flee_success:['도주 성공 — 무사히 벗어났다','Fled clean — got away safely'],
   pvp_win_pick_tpl:['승리 — 카드 1장 선택 · 복제 확률 {Rate}%','Win — pick 1 card · copy chance {Rate}%'],
   pvp_lose_pick_tpl:['패배 — 카드 1장 선택 · 도주 실패 확률 {Rate}%','Lose — pick 1 card · flee-fail chance {Rate}%'],
+  pvp_cold_chip:['콜드데이터','Cold Data'], pvp_grade_survivor:['생존자','Survivor'],
+  // 장비 재질 — 시트 UIString(mat_*)이 정본. 시트를 못 읽는 로컬·장애 때 키가 그대로 새는 걸 막는다.
+  mat_metal:['금속','Metal'], mat_wood:['목재','Wood'],
+  mat_fabric:['섬유','Fabric'], mat_synthetic:['합성','Synthetic'],
   // save system (UIString Category=save — sheet wins, these are offline fallbacks)
   save_section:['세이브','Save'],
   save_continue:['이어하기','Continue'],
@@ -270,6 +274,15 @@ export function invalidateUi(){ _uiById = null; _uiByKr = null; }
 // affix name/target resolved lang-aware at display time (instances store affixId)
 export function affixName(af){ if(!af) return ''; const row = (DATA.affixes || []).find(x => x.AffixID === af.affixId); return row ? tr(row, 'AffixName') : (af.name || ''); }
 export function affixTarget(af){ if(!af) return ''; const row = (DATA.affixes || []).find(x => x.AffixID === af.affixId); return row ? tr(row, 'TargetStat') : (af.targetKr || af.target || ''); }
+
+// 장비 재질 — 시트 Material 열은 **한글과 영문이 섞여 있다**(장비는 금속/목재/섬유/합성,
+// 아이템·몬스터는 Metal/Fabric/Organic…). 양쪽을 같은 키로 받아 UIString으로 옮긴다.
+// ★영문화 이전/이후 어느 시트 상태에서도 돌아간다 — 시트 교체와 배포 타이밍을 묶지 않아도 된다.
+//   REPAIR_MAT_JUNK(수리 정크)도 두 표기를 모두 키로 갖고 있어 같은 이유로 안전하다.
+const MAT_KEY = { '금속':'mat_metal', Metal:'mat_metal', '목재':'mat_wood', Wood:'mat_wood',
+                  '섬유':'mat_fabric', Fabric:'mat_fabric', '합성':'mat_synthetic', Synthetic:'mat_synthetic' };
+// 표에 없는 값('-'·None·Electronic 등)은 빈 문자열 — 호출부가 '—'로 채운다.
+export function materialLabel(v){ const k = MAT_KEY[String(v == null ? '' : v).trim()]; return k ? t(k) : ''; }
 const N = (v, d = 0) => (v === '' || v == null || isNaN(Number(v)) ? d : Number(v));
 const rand = (a, b) => a + Math.random() * (b - a);
 const randInt = (a, b) => Math.floor(rand(a, b + 1));
@@ -1294,7 +1307,7 @@ export function coldProfile(bot){
     attribute: (wd && wd.Attribute && wd.Attribute !== 'none') ? wd.Attribute : null,
     weaponMaxDmg: w ? w.maxAtk : 2,
     // PvP는 상대가 콜드데이터라 Monster 탭 행이 없다 → 스태미너·제한시간을 Config로 관리(2026-08-26).
-    grade: '생존자', staminaCost: N(C.pvp_stamina_cost, 3), timeLimit: N(C.pvp_time_limit, 60),
+    grade: t('pvp_grade_survivor'), staminaCost: N(C.pvp_stamina_cost, 3), timeLimit: N(C.pvp_time_limit, 60),
   };
 }
 // 매칭: 순수 1차 스탯 총합 ±pvp_match_range, 같은 CityID. 범위 내 없으면 가장 가까운 후보로 폴백.
