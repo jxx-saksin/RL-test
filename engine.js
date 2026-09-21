@@ -1,7 +1,7 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val12';
+import { DATA as FALLBACK } from './data/game-data.js?v=val13';
 import { buildIndex } from './sheet-loader.js?v=val11';
 
 export let DATA = FALLBACK;
@@ -268,6 +268,8 @@ const V3_STRINGS = {
   tuto_pawn_hag1_1:['귀중품을 획득했다면 전당포에서 값을 매겨보세요.','Got a valuable? Take it to the pawnshop to have it priced.'],
   tuto_pawn_hag1_2:['원하는 귀중품을 위로 올려 값을 물어보세요.','Swipe a valuable up to hear an offer.'],
   tuto_pawn_hag1_3:['마음에 드는 가격이라면 판매하세요.\\n총 3번의 흥정이 가능합니다.','Sell if the offer suits you.\\nYou can haggle up to three times.'],
+  tuto_pass_chg1_1:['우측 상단의 PASS를 눌러\\n레이드에 필요한 패스를 충전할 수 있습니다.','Tap PASS at the top right to top up\\nthe passes your raids need.'],
+  tuto_pass_chg1_2:['10회까지는 30분마다 무료로 충전되며,\\n사토를 쓰면 즉시 충전할 수 있습니다.','The first 10 refill free every 30 minutes.\\nSpend Sato to refill instantly.'],
 };
 export function invalidateUi(){ _uiById = null; _uiByKr = null; }
 

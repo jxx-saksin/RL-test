@@ -1060,7 +1060,7 @@ export const DATA = {
     {"StringID": "hide_craft_doing", "Text_KR": "제작중", "Text_EN": "Crafting", "Category": "hide", "UIRole": "button", "Status": "Planning", "Notes": "비활성 라벨", "LastUpdated": 46271},
     {"StringID": "hide_craft_done_label", "Text_KR": "완성", "Text_EN": "Done", "Category": "hide", "UIRole": "label", "Status": "Planning", "Notes": "-", "LastUpdated": 46271},
     {"StringID": "hide_craft_fail_label", "Text_KR": "실패", "Text_EN": "Failed", "Category": "hide", "UIRole": "label", "Status": "Planning", "Notes": "-", "LastUpdated": 46271},
-    {"StringID": "hide_craft_empty", "Text_KR": "설치된 도면이 없다.", "Text_EN": "No blueprints installed.", "Category": "hide", "UIRole": "empty", "Status": "Planning", "Notes": "-", "LastUpdated": 46271},
+    {"StringID": "hide_craft_empty", "Text_KR": "설치된 제작 설명서가 없다.", "Text_EN": "No blueprints installed.", "Category": "hide", "UIRole": "empty", "Status": "Planning", "Notes": "-", "LastUpdated": 46271},
     {"StringID": "hide_store_put", "Text_KR": "보관함에 넣기", "Text_EN": "Store", "Category": "hide", "UIRole": "button", "Status": "Planning", "Notes": "-", "LastUpdated": 46271},
     {"StringID": "hide_disa_label", "Text_KR": "분해", "Text_EN": "Disassemble", "Category": "hide", "UIRole": "label", "Status": "Planning", "Notes": "-", "LastUpdated": 46271},
     {"StringID": "hide_disa_section", "Text_KR": "분해가능 아이템", "Text_EN": "Disassemblable", "Category": "hide", "UIRole": "label", "Status": "Planning", "Notes": "목록 상단 라벨 바", "LastUpdated": 46271},
@@ -1187,7 +1187,9 @@ export const DATA = {
     {"StringID": "mat_fabric", "Text_KR": "섬유", "Text_EN": "Fabric", "Category": "item", "UIRole": "label", "Status": "Planning", "Notes": "장비 재질 — Weapon.Material / Armor.Material 값", "LastUpdated": 46286},
     {"StringID": "mat_synthetic", "Text_KR": "합성", "Text_EN": "Synthetic", "Category": "item", "UIRole": "label", "Status": "Planning", "Notes": "장비 재질 — Weapon.Material / Armor.Material 값", "LastUpdated": 46286},
     {"StringID": "pvp_cold_chip", "Text_KR": "콜드데이터", "Text_EN": "Cold Data", "Category": "pvp", "UIRole": "chip", "Status": "Planning", "Notes": "PvP 상대 카드 — 콜드데이터 봇 표식", "LastUpdated": 46286},
-    {"StringID": "pvp_grade_survivor", "Text_KR": "생존자", "Text_EN": "Survivor", "Category": "pvp", "UIRole": "label", "Status": "Planning", "Notes": "PvP 상대 등급 — Monster 탭 행이 없어 코드가 만든다", "LastUpdated": 46286}
+    {"StringID": "pvp_grade_survivor", "Text_KR": "생존자", "Text_EN": "Survivor", "Category": "pvp", "UIRole": "label", "Status": "Planning", "Notes": "PvP 상대 등급 — Monster 탭 행이 없어 코드가 만든다", "LastUpdated": 46286},
+    {"StringID": "tuto_pass_chg1_1", "Text_KR": "우측 상단의 PASS를 눌러\\n레이드에 필요한 패스를 충전할 수 있습니다.", "Text_EN": "Tap PASS at the top right to top up\\nthe passes your raids need.", "Category": "tutorial", "UIRole": "tutorial", "Status": "Planning", "Notes": "패스 충전 #1 — 레이드 화면 진입 시 패스 3회 이하", "LastUpdated": 46286},
+    {"StringID": "tuto_pass_chg1_2", "Text_KR": "10회까지는 30분마다 무료로 충전되며,\\n사토를 쓰면 즉시 충전할 수 있습니다.", "Text_EN": "The first 10 refill free every 30 minutes.\\nSpend Sato to refill instantly.", "Category": "tutorial", "UIRole": "tutorial", "Status": "Planning", "Notes": "패스 충전 #1 — 2/2", "LastUpdated": 46286}
   ],
   "usb": [
     {"USBID": "usb_gutter_roach", "Name_KR": "거대 바퀴 데이터", "Name_EN": "Gutter Roach", "MonsterID": "monster_gutter_roach", "Grants": "[{\"stat\":\"stat_will\",\"v\":1}]", "UploadMinutes": 5, "Description": "극한에서도 살아남는 끈질긴 생존의 본능.", "Description_EN": "The relentless survival instinct that endures any extreme.", "SellPrice": 5000, "Status": "Planning", "Notes": "-", "LastUpdated": 46228},
