@@ -1,7 +1,7 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val17';
+import { DATA as FALLBACK } from './data/game-data.js?v=val18';
 import { buildIndex } from './sheet-loader.js?v=val23';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
