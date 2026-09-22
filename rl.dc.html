@@ -4117,7 +4117,10 @@ void main(){
         (isGear||isAcc)?h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('item_durability')),
           h('div',{style:{height:6,flexGrow:1,borderRadius:999,overflow:'hidden',background:ART}}, h('div',{style:{height:6,borderRadius:999,background:inst.dur<=0?'rgb(196,103,93)':SUB,width:(inst.maxDur?Math.max(0,Math.min(100,inst.dur/inst.maxDur*100))*mkP:0)+'%'}})),
-          h('span',{style:{width:50,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:'100%',color:this.durCol(inst,MID),flexShrink:0}}, MK(this.durTxt(inst)))):null,
+          // ★제작 미리보기는 항상 '??' 한 덩어리다(목업 create2와 같다). MK에 맡기면
+          //   '23/24'→'??/??' · 미감정→'??'로 **글자 수가 갈려** 그 자체로 미감정 여부가 새고,
+          //   durCol의 파랑(#7683F3)까지 붙는다 — 둘 다 제작 때 다시 굴리는 값이라 미리보기가 맞는다는 보장이 없다.
+          h('span',{style:{width:50,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:'100%',color:(mask==='?')?MID:this.durCol(inst,MID),flexShrink:0}}, (mask==='?')?'??':MK(this.durTxt(inst)))):null,
         stats.length?h('div',{style:{height:28,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'15px 0',display:'flex',alignItems:'flex-start'}}, secLabel((isBag||liq||s.Category==='Medicine'||s.Category==='Food')?'EFFECT':'STAT')):null,
         stats.length?h('div',{style:{alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'2px 0'}},
           h('div',{style:{display:'grid',gridTemplateRows:('31px '.repeat(isGear?nRows:stats.length)).trim(),gridTemplateColumns:isGear?'1fr 1fr':'1fr',gap:'0 16px'}},
