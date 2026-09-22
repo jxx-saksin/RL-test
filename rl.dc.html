@@ -362,7 +362,9 @@ const TUTO = { inv_move1:3, inv_move2:1, inv_compare1:2, inv_merge1:1,
   loot_get1:4, death1:2, cmb_flee1:2, cmb_boss1:1, loot_reget1:2, bar_appr1:4, pawn_hag1:3,
   pass_chg1:2,
   // 아지트 — 시설 기능 첫 진입(hideAction). 시설당 기능 2개씩이다.
-  term_inst1:3, term_dec1:2, wb_craft1:2, wb_disa1:2, rs_rep1:3, rs_mod1:4 };
+  term_inst1:3, term_dec1:2, wb_craft1:2, wb_disa1:2, rs_rep1:3, rs_mod1:4,
+  // 성장 태그 — **태그가 붙은 장비를 처음 착용했을 때**(toggleEquip). 착용 경로는 거기 하나다.
+  growth_tag1:2 };
 // 전투 화면 위에 뜨는 팝업(cmb_*·loot_reget1)이 있는 구간에서 조우 회차로 거는 트리거.
 const TUTO_BOSS_ENC = 3;   // 보스 등장 #1 — 3전 조우 전투 시작
 // 패스 충전 #1 — 레이드 화면에 들어왔는데 패스가 이만큼 이하로 남았을 때.
@@ -4742,7 +4744,10 @@ void main(){
     const slot=this.slotOf(inst); if(!slot) return;
     // 해제는 gearOff로 위임 — 장비·가방 모두 금고(가방은 내용물까지)로 보냄
     if(this.gs.equip[slot]===inst.uid){ this.gearOff(inst); return; }
-    else { this.gs.equip[slot]=inst.uid; this.moveToBag(inst.uid); this.flash(this.eng.anyName(inst.id)+(this.en()?' equipped':' 착용')); }
+    else { this.gs.equip[slot]=inst.uid; this.moveToBag(inst.uid); this.flash(this.eng.anyName(inst.id)+(this.en()?' equipped':' 착용'));
+      // 튜토리얼 — 성장 태그가 붙은 장비를 처음 착용한 순간. forceUpdate 뒤 다음 틱에 건다.
+      //   ⚠최초 지급품은 startingState가 equip에 바로 꽂아 이 경로를 안 거친다 — 직접 주워 착용하는 첫 태그 장비에서 뜼다.
+      if(this.eng.growthTagsActive(inst).length) setTimeout(()=>this.tutoOpen('growth_tag1'),0); }
     const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp);
     this.forceUpdate();
   }
