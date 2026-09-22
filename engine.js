@@ -150,7 +150,7 @@ const V3_STRINGS = {
   boot_retry:['다시 시도','Retry'], boot_offline:['오프라인으로 시작하기','Start offline'],
   boot_partial:['일부 데이터를 불러오는데 실패했습니다.','Some data failed to load.'],
   appraise_tab:['감정','Appraise'], module_tab:['모듈','Modules'],
-  appraise_unappraised:['미감정','Unappraised'],
+  appraise_unappraised:['미감정','Sealed'],   // ★EN은 폭 제약 — 내구도 값 칸이 width:50이라 'Unappraised'(72.9px)는 잘렸다. 6자 이하를 유지할 것
   // 도주 카드 뒤집기 전 경고. 실패해도 즉시 전투가 아니라 '다음 조우 카드'로 간다(2026-08-26 도망 개편).
   combat_flee_warn:['도주 실패시 다음 전투로 강제 진입합니다.','On failure, the next encounter is forced.'],
   appraise_pick_liquor:['감정에 쓸 술을 고른다','Pick a liquor to appraise with'],
