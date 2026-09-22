@@ -364,7 +364,11 @@ const TUTO = { inv_move1:3, inv_move2:1, inv_compare1:2, inv_merge1:1,
   // 아지트 — 시설 기능 첫 진입(hideAction). 시설당 기능 2개씩이다.
   term_inst1:3, term_dec1:2, wb_craft1:2, wb_disa1:2, rs_rep1:3, rs_mod1:4,
   // 성장 태그 — **태그가 붙은 장비를 처음 착용했을 때**(toggleEquip). 착용 경로는 거기 하나다.
-  growth_tag1:2 };
+  growth_tag1:2,
+  // 버프 소모품 — **버프 아이템을 가진 채 인벤토리에 들어왔을 때**(tutoTick).
+  //   '쓰는 순간'이 아니라 '가진 걸 알아차리는 순간'이다 — 레이드 전에 미리 먹으라는 안내라,
+  //   전투 중에 알려주면 이미 늦는다.
+  buff_use1:3 };
 // 전투 화면 위에 뜨는 팝업(cmb_*·loot_reget1)이 있는 구간에서 조우 회차로 거는 트리거.
 const TUTO_BOSS_ENC = 3;   // 보스 등장 #1 — 3전 조우 전투 시작
 // 패스 충전 #1 — 레이드 화면에 들어왔는데 패스가 이만큼 이하로 남았을 때.
@@ -537,8 +541,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val57');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val22');
+      const eng = await import('./engine.js?v=val58');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val23');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -4428,9 +4432,14 @@ void main(){
     if(this._tutoSeg===seg) return; this._tutoSeg=seg;
     setTimeout(()=>{
       if(this.state.screen!=='inventory' || this.state.seg!==seg) return;
-      if(seg==='bag'){ this.tutoOpen('inv_move1'); return; }
+      // 버프 소모품 — 인벤토리 3종을 **다 본 뒤**에 걸리는 뒷순위다. 탭과 무관하게(가방/보관함 둘 다)
+      //   버프 아이템을 하나라도 들고 있으면 뜬다. consumables()는 레이드 중이면 가방만 보므로
+      //   '지금 실제로 먹을 수 있는 것'과 판정이 어긋나지 않는다.
+      const buff=()=>{ if(this.consumables().some(x=>this.isBuffEffect(this.effectOf(x)))) this.tutoOpen('buff_use1'); };
+      if(seg==='bag'){ if(!this.tutoOpen('inv_move1')) buff(); return; }
       if(this.tutoOpen('inv_move2')) return;
-      if(this.eng.N(this.gs.extracts,0) >= TUTO_MERGE_AFTER) this.tutoOpen('inv_merge1');
+      if(this.eng.N(this.gs.extracts,0) >= TUTO_MERGE_AFTER && this.tutoOpen('inv_merge1')) return;
+      buff();
     }, 0);
   }
   tutoOverlay(){
