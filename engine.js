@@ -1,7 +1,7 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val18';
+import { DATA as FALLBACK } from './data/game-data.js?v=val19';
 import { buildIndex } from './sheet-loader.js?v=val23';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
@@ -351,6 +351,7 @@ export function startingState() {
     shopStock: {},                // shopId+itemId -> remaining
     shopStockAt: 0,               // 마지막 재고 리셋 시점의 sorties (restockShopsIfDue)
     shopRolls: {},                // shopId+itemId -> 진열분 고정 롤(술 도수). 재고와 함께 리셋된다
+    shopRot: {},                  // 'shopId|그룹' -> 이번 주기 당첨 ItemID (회전재고. rotHidden 참조)
     buffs: [],                    // 소모품 버프(§6-7) — 레이드 안에서만 산다. buffMods() 참조
     // 아지트(§3.5). lv = 시설별 현재 레벨 · upg = 진행 중인 업그레이드 {fac,to,endAt} 또는 null.
     // 시설 데이터(Facility 탭)에 다음 레벨 행이 없으면 업그레이드 버튼이 잠긴다 — 데이터가 곧 게이트다.
@@ -1005,23 +1006,63 @@ export function restockShopsIfDue(state) {
 }
 
 // 회전재고 — Shop.Notes에 '회전재고:<그룹>' 태그가 붙은 행들은 리셋 주기마다 그룹당 1종만 깔린다
-// (모듈 시그니처 부품 4종이 그렇다: 매번 다 살 수 있으면 모듈이 화폐로 바뀐다).
-// 진열될 1종은 값을 안 써서 Shop.StockMax 폴백으로 살아나고, 나머지는 shopStock에 0을 박아 품절로 만든다.
+// (모듈 시그니처 부품 4종·주점 술 8종이 그렇다: 매번 다 살 수 있으면 모듈이 화폐로 바뀐다).
+// ★안 깔린 품목은 '품절'이 아니라 '이번 주기엔 없는 물건'이다 — 목록에 아예 안 띄운다(rotHidden).
+//   예전엔 진 행에 shopStock=0을 박아 품절로 만들었는데, 그러면 플레이어가 당첨 품목을 다 사버린
+//   진짜 품절과 구분이 안 됐다. 그래서 '진 행'이 아니라 '당첨 ItemID'를 shopRot에 적는다.
 // ⚠️ 부팅마다 다시 뽑으면 안 된다 — 앱만 껐다 켜도 진열이 바뀐다. shopRotAt으로 주기당 한 번만.
 const ROT_TAG = /회전재고\s*:\s*([A-Za-z0-9_]+)/;
-export function applyStockRotation(state){
+export function rotGroupOf(row){ const m = ROT_TAG.exec(String((row && row.Notes) || '')); return m ? m[1] : null; }
+// 이 행이 이번 주기에 '안 깔린' 회전재고인가. 태그가 없으면 항상 false(상시 진열).
+// 당첨 기록이 아직 없으면(회전 한 번도 안 돈 세이브) 숨기지 않는다 — 안 보이는 것보단 보이는 게 안전하다.
+export function rotHidden(state, row){
+  const g = rotGroupOf(row); if (!g) return false;
+  const win = state && state.shopRot && state.shopRot[row.ShopID + '|' + g];
+  return win ? win !== row.ItemID : false;
+}
+export function rotGroups(){
   const groups = {};
   for (const r of (DATA.shops || [])){
-    const m = ROT_TAG.exec(String(r.Notes || '')); if (!m) continue;
-    const k = r.ShopID + '|' + m[1];
+    const g = rotGroupOf(r); if (!g) continue;
+    const k = r.ShopID + '|' + g;
     (groups[k] || (groups[k] = [])).push(r);
   }
+  return groups;
+}
+export function applyStockRotation(state){
+  const groups = rotGroups();
   state.shopStock = state.shopStock || {};
+  state.shopRot = state.shopRot || {};
   for (const k of Object.keys(groups)){
-    const rows = groups[k], win = randInt(0, rows.length - 1);
-    rows.forEach((r, i) => { if (i !== win) state.shopStock[r.ShopID + '|' + r.ItemID] = 0; });
+    const rows = groups[k], win = rows[randInt(0, rows.length - 1)];
+    state.shopRot[k] = win.ItemID;
+    // 옛 방식이 박아둔 품절 0을 치운다 — 안 치우면 당첨된 물건이 재고 0으로 깔린다.
+    rows.forEach(r => { delete state.shopStock[r.ShopID + '|' + r.ItemID]; });
   }
   state.shopRotAt = N(state.sorties);
+  return true;
+}
+// 옛 세이브 이행 — shopRot이 없던 시절엔 '진 행의 shopStock=0'이 회전 결과였다.
+// 재추첨하면 진행 중인 주기가 뒤틀리므로, 남아 있는 0에서 당첨자를 역산한다.
+export function migrateStockRotation(state){
+  if (!state || state.shopRotAt == null) return false;
+  state.shopRot = state.shopRot || {};
+  const groups = rotGroups();
+  for (const k of Object.keys(groups)){
+    if (state.shopRot[k]) continue;
+    const rows = groups[k];
+    const alive = rows.filter(r => N(state.shopStock[r.ShopID + '|' + r.ItemID], 1) !== 0);
+    if (alive.length === rows.length){
+      // 아무도 품절로 안 찍혀 있다 = 이 그룹은 회전한 적이 없다(태그를 이번에 새로 붙인 그룹).
+      // 다음 리셋까지 기다리면 그룹 전체가 그대로 깔리므로 지금 한 번 뽑는다.
+      state.shopRot[k] = rows[randInt(0, rows.length - 1)].ItemID;
+      continue;
+    }
+    // 정확히 1종만 살아 있어야 그게 당첨자다. 0종(다 사버림)·어중간하면 다음 리셋에 맡긴다.
+    if (alive.length !== 1) continue;
+    state.shopRot[k] = alive[0].ItemID;
+    rows.forEach(r => { if (r !== alive[0]) delete state.shopStock[r.ShopID + '|' + r.ItemID]; });
+  }
   return true;
 }
 

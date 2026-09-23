@@ -343,8 +343,8 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 84;
-const TITLE_DATE = '0922';
+const TITLE_VER = 85;
+const TITLE_DATE = '0923';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -386,6 +386,8 @@ const HIDE_TUTO = { repair:'rs_rep1', module:'rs_mod1', craft:'wb_craft1',
 const TUTO_ART_V = { 'wb_craft1-2':'?v=2', 'rs_rep1-2':'?v=2' };
 
 const PATCH_NOTES = [
+  { ver:85, date:'23/Sep', lines:[
+    ['모듈 업그레이드 재료 아이템 드랍 상향','Higher drop rates for module upgrade materials'] ] },
   { ver:78, date:'21/Sep', lines:[
     ['기능 및 편의성 관련 튜토리얼 업데이트','Tutorial updates for features and quality-of-life'] ] },
   { ver:61, date:'15/Sep', lines:[
@@ -541,8 +543,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val59');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val24');
+      const eng = await import('./engine.js?v=val60');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val25');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -709,7 +711,7 @@ class Component extends DCLogic {
       toVault.forEach(x=>{ delete x.loc; gs.vault.push(x); }); }
     const uids=new Set(gs.bag.concat(gs.vault).map(x=>x.uid));
     ['weapon','head','body','artifact1','artifact2','bag'].forEach(s=>{ if(gs.equip[s]&&!uids.has(gs.equip[s])) gs.equip[s]=null; });
-    gs.shopStock=gs.shopStock||{}; gs.shopRolls=gs.shopRolls||{}; gs.sato=eng.N(gs.sato,0); gs.sorties=eng.N(gs.sorties,0); gs.extracts=eng.N(gs.extracts,0); gs.tuto=gs.tuto||{};
+    gs.shopStock=gs.shopStock||{}; gs.shopRolls=gs.shopRolls||{}; gs.shopRot=gs.shopRot||{}; gs.sato=eng.N(gs.sato,0); gs.sorties=eng.N(gs.sorties,0); gs.extracts=eng.N(gs.extracts,0); gs.tuto=gs.tuto||{};
     // 버프는 안전지대에서 먹은 것도 살린다(레이드 출발 전 준비). 비우는 곳은 endSortie 하나뿐 —
     // 귀환하면 유지력이 남았든 말든 사라진다. saveObj가 gs를 통째로 담으므로 저장은 이미 되고 있었고,
     // 여기서 지우고 있어서 앱을 껐다 켜면 없어졌다(2026-08-31).
@@ -727,6 +729,9 @@ class Component extends DCLogic {
     gs.shopStockAt=eng.N(gs.shopStockAt,0);
     // 회전재고는 첫 리셋(복귀 3회) 전에도 깔려 있어야 한다 — 새 세이브·옛 세이브 모두 여기서 한 번만 뽑는다.
     if(gs.shopRotAt==null) eng.applyStockRotation(gs);
+    // 이미 한 주기가 돌던 옛 세이브는 당첨자 기록(shopRot)이 없다. 재추첨하면 진행 중인 주기가
+    // 뒤틀리므로 남아 있는 '품절 0'에서 역산한다 — 실패하면 그 그룹은 다음 리셋에 정상화된다.
+    else eng.migrateStockRotation(gs);
     this.gs=gs; this.combat=null;
     this.loadPass();   // 패스는 별도 키가 정본(런 세이브 값보다 우선)
     eng.setUidCounter(o.uidCounter);
@@ -767,6 +772,9 @@ class Component extends DCLogic {
     this.staMax = 10;
     gs.maxHp = full.maxHp; gs.hp = full.maxHp; gs.sta = this.staMax;
     this.gs = gs; this.combat = null;
+    // ★새 게임도 회전재고를 한 번 뽑아야 한다 — 안 뽑으면 첫 재고 리셋(복귀 3회) 전까지
+    //   당첨자가 없어서 그룹 전체가 그대로 깔린다(옛 코드에선 '4종 다 보임'으로 숨어 있던 구멍).
+    this.eng.applyStockRotation(gs);
     this.loadPass();   // 패스는 런과 무관한 고정 자산 — 기존 보유분이 있으면 그대로 이어받는다
     // equipped gear is 'carried' — it lives in 소지품(bag), never in 금고(vault)
     ['weapon','head','body','artifact1','artifact2','bag'].forEach(s=>{ if(gs.equip[s]) this.moveToBag(gs.equip[s]); });
@@ -7461,7 +7469,9 @@ void main(){
         h('div',{style:{fontFamily:T.sans,fontSize:14,color:'rgb(234,235,238)'}}, o.name),
         o.desc?h('div',{style:{fontFamily:T.sans,fontSize:12,color:'rgb(111,114,118)',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}, o.desc):null)); }
   vendorBuy(v){
-    const rows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID);
+    // ★회전재고 미진열분은 '품절'이 아니라 '없는 물건'이라 목록에 아예 안 띄운다.
+    //   당첨 품목을 다 사버린 경우는 rotHidden이 false라 '재고 00'으로 남는다 — 두 상태는 다르다.
+    const rows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID && !this.eng.rotHidden(this.gs,r));
     return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px',display:'flex',flexDirection:'column'}},
       rows.length? rows.map(r=>{ const price=this.eng.N(r.BuyPrice); const key=v.ShopID+'|'+r.ItemID; const stock=this.gs.shopStock[key]!=null?this.gs.shopStock[key]:this.eng.N(r.StockMax,99); const aff=this.gs.sato>=price&&stock>0; const liq=this.eng.byId.liquor&&this.eng.byId.liquor[r.ItemID]; const md=this.eng.byId.module&&this.eng.byId.module[r.ItemID]; const usb=this.eng.byId.usb&&this.eng.byId.usb[r.ItemID]; const src=this.eng.byId.item[r.ItemID]||this.eng.byId.weapon[r.ItemID]||this.eng.byId.armor[r.ItemID]||this.eng.byId.artifact[r.ItemID]||(this.eng.byId.talisman&&this.eng.byId.talisman[r.ItemID])||(this.eng.byId.bag&&this.eng.byId.bag[r.ItemID])||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
         const desc=(this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'')+(src.EffectValue?((' '+this.t('frag_dot_heal'))+src.EffectValue):'');
