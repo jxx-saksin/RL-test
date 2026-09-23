@@ -1080,13 +1080,13 @@ class Component extends DCLogic {
     this.saveGame();
     this.forceUpdate();
   }
-  services(v){ const list=String((v&&(v.Services_EN||v.Services))||'').split(',').map(s=>s.trim()).filter(Boolean); if(v&&String(v.ShopType||'')==='DataTech'&&!list.includes('Module')) list.push('Module'); if(v&&v.ShopID==='shop_canteen'&&!list.includes('Feed')&&!list.includes('Distribute')) list.push('Feed'); return list; }
+  services(v){ const list=String((v&&(v.Services_EN||v.Services))||'').split(',').map(s=>s.trim()).filter(Boolean); if(v&&v.ShopID==='shop_canteen'&&!list.includes('Feed')&&!list.includes('Distribute')) list.push('Feed'); return list; }
   tx(row,base){ return this.eng?this.eng.tr(row,base):''; }
   t(k){ if(this.eng) return this.eng.t(k); const f=BOOT_T[k]; return f?(this.en()?f[1]:f[0]):k; }
   en(){ return !!this.eng && this.eng.LANG==='en'; }
   isPvpZone(z){ if(!z) return false; const v=String(z.IsPvP==null?'':z.IsPvP).trim().toLowerCase(); return v==='1'||v==='true'||v==='y'||v==='yes'; }
   setLang(l){ this.lang=l; this.eng.setLang(l); try{localStorage.setItem('rl_lang',l);}catch(_){} this.forceUpdate(); }
-  openVendor(id){ const v=this.eng.byId.vendor[id]; const svc=this.services(v); const first=svc.includes('Buy')?'buy':svc.includes('Repair')?'repair':svc.includes('Heal')?'heal':(svc.includes('Feed')||svc.includes('Distribute'))?'feed':svc.includes('Load')?'load':svc.includes('Appraisal')?'appraise':svc.includes('Module')?'module':'sell'; if(this._t){clearInterval(this._t);this._t=null;}
+  openVendor(id){ const v=this.eng.byId.vendor[id]; const svc=this.services(v); const first=svc.includes('Buy')?'buy':svc.includes('Repair')?'repair':svc.includes('Heal')?'heal':(svc.includes('Feed')||svc.includes('Distribute'))?'feed':svc.includes('Load')?'load':svc.includes('Appraisal')?'appraise':'sell'; if(this._t){clearInterval(this._t);this._t=null;}
     if(svc.includes('Load')){
       const up=this.gs.usbUpload;
       if(up&&Date.now()>=up.endsAt){ this.usb={stage:'uploading',row:this.usbRowFor(up.usbId)}; this.completeUpload(); }
@@ -1847,7 +1847,7 @@ class Component extends DCLogic {
             this.hideoutOpen()? this.hideJobIcons() : null,
             this.hideoutOpen()? null : h('span',{style:{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.22)',fontFamily:T.mono,fontSize:10.5,letterSpacing:'1px',color:'#6F7276',whiteSpace:'nowrap'}}, this.en()?'SOON':'준비중'))),
         // 상점 행 7개 — 370x61 r8, 간격 8
-        ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Feed')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Module')||svc.includes('Sell')||svc.includes('Haggle')||svc.includes('Register')||svc.includes('Claim'); const act=()=>this.openVendor(v.VendorID);
+        ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Feed')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Sell')||svc.includes('Haggle')||svc.includes('Register')||svc.includes('Claim'); const act=()=>this.openVendor(v.VendorID);
             return h('button',{key:v.VendorID,disabled:!open,onClick:open?act:null,
               style:{position:'relative',flexShrink:0,height:63,boxSizing:'border-box',textAlign:'left',border:'1px solid #36383C',borderRadius:8,padding:0,cursor:open?'pointer':'default',overflow:'hidden',background:T.s3}},
               h('div',{style:{position:'absolute',inset:0,backgroundImage:'url(assets/art/shop/'+v.ShopID+'.webp)',backgroundSize:'cover',backgroundPosition:'center'}}),
@@ -3577,75 +3577,6 @@ void main(){
   }
   hgBack(){ this.hgSettle(); this.setState({hg:null,screen:'vendorMenu'}); }
 
-  // ================= 모듈 (미스터 박 · 소켓) =================
-  attachModuleNow(){ const m=this.state.mod; const item=this.eng.instById(this.gs,m.itemUid); const cost=this.eng.N(this.eng.DATA.config.module_attach_cost,500);
-    if(this.gs.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
-    if(!this.eng.attachModule(item,m.socketIdx,m.moduleId)){ this.flash(this.t('module_attach_fail')); return; }
-    this.gs.sato-=cost; this.consumeInst(this.moduleInvUid(m.moduleId));
-    const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp;
-    this.setState({mod:{itemUid:m.itemUid}}); }
-  removeModuleNow(){ const m=this.state.mod; const item=this.eng.instById(this.gs,m.itemUid); const cost=this.eng.N(this.eng.DATA.config.module_remove_cost,300);
-    if(this.gs.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
-    this.eng.removeModule(item,m.socketIdx); this.gs.sato-=cost;
-    const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp;
-    this.setState({mod:{itemUid:m.itemUid}}); }
-  moduleInvUid(moduleId){ const inst=this.ownedBy(x=>x.id===moduleId)[0]; return inst?inst.uid:null; }
-  vendorModule(v){
-    const m=this.state.mod||{}; const item=m.itemUid?this.eng.instById(this.gs,m.itemUid):null;
-    const label=(t)=>h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,margin:'2px 0 10px'}}, t);
-    const dlg=(line)=>h('div',{style:{background:T.s1,border:'1px solid '+T.line,borderRadius:6,padding:'13px 15px',marginBottom:16}},
-      h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:7}}, this.t('vendor_park_label')),
-      h('div',{style:{fontFamily:T.sans,fontSize:14,color:T.hi,lineHeight:1.65,wordBreak:'keep-all'}}, '"'+line+'"'));
-    const ghost=(t,onClick)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+T.line2,color:T.mid,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'11px',borderRadius:4,cursor:'pointer',marginTop:8}}, t);
-    const primBtn=(t,onClick,col)=>h('button',{onClick,style:{width:'100%',background:'transparent',border:'1px solid '+(col||T.hi),color:col||T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer'}}, t);
-    let body=[], line;
-    if(!item){ line=this.t('module_intro'); const list=this.socketItems();
-      body=[label(this.t('module_pick_item')), ...(list.length?list.map(inst=>
-        h('div',{key:inst.uid,onClick:()=>this.setState({mod:{itemUid:inst.uid}}),style:{border:'1px solid '+T.line,background:T.s1,borderRadius:6,padding:'12px 14px',cursor:'pointer',marginBottom:8}},
-          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:9}},
-            h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:500,color:T.hi}}, this.itemLabel(inst)),
-            h('span',{style:{fontFamily:T.mono,fontSize:10.5,color:T.lo}}, this.eng.socketFilled(inst)+'/'+inst.sockets.length)),
-          this.socketRow(inst)))
-        : [h('div',{key:'e',style:{fontFamily:T.sans,fontSize:13,color:T.faint,padding:'18px 0',textAlign:'center'}}, this.t('module_no_socket_item'))])];
-    } else if(m.socketIdx==null){ line=this.t('module_pick_socket');
-      body=[label(this.t('module_sockets')+' — '+this.itemLabel(item)),
-        h('div',{key:'sr',style:{display:'flex',justifyContent:'center',padding:'18px 0 22px'}}, this.socketRow(item,{size:40,onPick:(i)=>this.setState({mod:{...m,socketIdx:i,moduleId:null}})})),
-        h('div',{key:'h',style:{fontFamily:T.sans,fontSize:12,color:T.lo,textAlign:'center',lineHeight:1.6}}, this.t('module_tap_socket')),
-        ghost(this.t('btn_back'),()=>this.setState({mod:{}}))];
-    } else { const socket=item.sockets[m.socketIdx];
-      if(socket){ line=this.t('module_remove_line'); const mod=this.eng.byId.module[socket.moduleId]; const cost=this.eng.N(this.eng.DATA.config.module_remove_cost,300);
-        body=[label(this.t('module_installed')),
-          h('div',{key:'c',style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'14px',marginBottom:14,display:'flex',alignItems:'center',gap:11}},
-            h('div',{style:{width:26,height:26,borderRadius:'50%',background:this.moduleHex(mod),boxShadow:'0 0 8px '+this.moduleHex(mod),flex:'0 0 auto'}}),
-            h('div',null, h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:500,color:T.hi}}, this.eng.tr(mod,'ColorName')),
-              h('div',{style:{fontFamily:T.mono,fontSize:10.5,color:T.lo,marginTop:2}}, this.eng.tr(mod,'TargetStat')+' +'+socket.value))),
-          h('div',{key:'w',style:{fontFamily:T.sans,fontSize:12,color:T.danger,lineHeight:1.55,marginBottom:12}}, this.t('module_remove_warn')+' · '+cost+' '+this.t('currency_sato')),
-          primBtn(this.t('module_remove_do'),()=>this.removeModuleNow(),T.danger),
-          ghost(this.t('btn_back'),()=>this.setState({mod:{itemUid:item.uid}}))];
-      } else { line=this.t('module_pick_module'); const mods=this.ownedModules(item.kind); const cost=this.eng.N(this.eng.DATA.config.module_attach_cost,500);
-        if(!m.moduleId){ body=[label(this.t('module_owned')+' ('+(item.kind==='weapon'?this.t('item_slot_weapon'):this.t('item_slot_armor'))+')'),
-          ...(mods.length?mods.map(inst=>{ const mod=this.eng.byId.module[inst.id];
-            return h('div',{key:inst.uid,onClick:()=>this.setState({mod:{...m,moduleId:inst.id}}),style:{border:'1px solid '+T.line,background:T.s1,borderRadius:6,padding:'11px 13px',cursor:'pointer',marginBottom:8,display:'flex',alignItems:'center',gap:11}},
-              h('div',{style:{width:22,height:22,borderRadius:'50%',background:this.moduleHex(mod),boxShadow:'0 0 7px '+this.moduleHex(mod),flex:'0 0 auto'}}),
-              h('div',{style:{flex:1,minWidth:0}}, h('div',{style:{fontFamily:T.sans,fontSize:13.5,fontWeight:500,color:T.hi}}, this.eng.tr(mod,'ColorName')),
-                h('div',{style:{fontFamily:T.mono,fontSize:10,color:T.lo,marginTop:2}}, this.moduleHint(mod)+' · '+this.eng.tr(mod,'TargetStat')+' +'+mod.Value_Min+'~'+mod.Value_Max))); })
-            : [h('div',{key:'e',style:{fontFamily:T.sans,fontSize:13,color:T.faint,padding:'18px 0',textAlign:'center'}}, this.t('module_no_owned'))]),
-          ghost(this.t('btn_back'),()=>this.setState({mod:{itemUid:item.uid}}))];
-        } else { const mod=this.eng.byId.module[m.moduleId]; line=this.t('module_bind_line');
-          body=[label(this.t('module_confirm')),
-            h('div',{key:'c',style:{background:T.bg,border:'1px solid '+T.line,borderRadius:4,padding:'14px',marginBottom:12,display:'flex',alignItems:'center',gap:11}},
-              h('div',{style:{width:26,height:26,borderRadius:'50%',background:this.moduleHex(mod),boxShadow:'0 0 8px '+this.moduleHex(mod),flex:'0 0 auto'}}),
-              h('div',null, h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:500,color:T.hi}}, this.eng.tr(mod,'ColorName')),
-                h('div',{style:{fontFamily:T.mono,fontSize:10.5,color:T.lo,marginTop:2}}, this.eng.tr(mod,'TargetStat')+' +'+mod.Value_Min+'~'+mod.Value_Max))),
-            h('div',{key:'w',style:{fontFamily:T.sans,fontSize:12,color:T.warn,lineHeight:1.55,marginBottom:12}}, this.t('module_bind_warn')+' · '+cost+' '+this.t('currency_sato')),
-            primBtn(this.t('module_attach_do'),()=>this.attachModuleNow()),
-            ghost(this.t('btn_back'),()=>this.setState({mod:{itemUid:item.uid,socketIdx:m.socketIdx}}))];
-        }
-      }
-    }
-    return h('div',{style:{flex:1,overflowY:'auto',padding:'16px 18px 20px'}}, dlg(line), ...body);
-  }
-  moduleHint(mod){ const fam=String(mod.ColorFamily||''); const map={Red:this.t('module_hint_red'),Green:this.t('module_hint_green'),Blue:this.t('module_hint_blue'),Violet:this.t('module_hint_violet')}; return map[fam]||fam; }
 
   // ---- result ----
   resultGrowth(){
@@ -5220,7 +5151,6 @@ void main(){
     if(svc.includes('Feed')||svc.includes('Distribute')) add('feed', this.en()?'Rations':'배식하기');
     if(svc.includes('Appraisal')) add('appraise', this.en()?'Appraise':'감정받기');
     if(svc.includes('Haggle')) add('haggle', this.en()?'Haggle':'흥정하기');   // Buyout은 별도 항목 없이 흥정 화면의 [판매하기]
-    if(svc.includes('Module')) add('module', this.t('module_tab'));
     if(svc.includes('Load')) add('load', this.t('usb_decode'));
     const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID);
     if(buyRows.length||svc.includes('Sell')) add('trade', this.en()?'Trade':'거래하기');
@@ -7411,7 +7341,7 @@ void main(){
       if(a.itemUid&&!a.preview) return this.appraiseLiquorScreen(v);
       return this.vendorAppraiseScreen(v);
     }
-    const tabs=[]; if(svc.includes('Buy'))tabs.push(['buy',this.t('shop_buy')]); if(svc.includes('Sell'))tabs.push(['sell',this.t('shop_sell')]); if(svc.includes('Repair'))tabs.push(['repair',this.t('nav_repair')]); if(svc.includes('Heal'))tabs.push(['heal',this.t('heal_treat')]); if(svc.includes('Feed')||svc.includes('Distribute'))tabs.push(['feed',this.en()?'Recover':'회복']); if(svc.includes('Load'))tabs.push(['load',this.t('usb_decode')]); if(svc.includes('Appraisal'))tabs.push(['appraise',this.t('appraise_tab')]); if(svc.includes('Module'))tabs.push(['module',this.t('module_tab')]);
+    const tabs=[]; if(svc.includes('Buy'))tabs.push(['buy',this.t('shop_buy')]); if(svc.includes('Sell'))tabs.push(['sell',this.t('shop_sell')]); if(svc.includes('Repair'))tabs.push(['repair',this.t('nav_repair')]); if(svc.includes('Heal'))tabs.push(['heal',this.t('heal_treat')]); if(svc.includes('Feed')||svc.includes('Distribute'))tabs.push(['feed',this.en()?'Recover':'회복']); if(svc.includes('Load'))tabs.push(['load',this.t('usb_decode')]); if(svc.includes('Appraisal'))tabs.push(['appraise',this.t('appraise_tab')]);
     let tab=this.state.vtab; if(!tabs.some(t=>t[0]===tab)) tab=(tabs[0]||['buy'])[0];
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       h('div',{style:{position:'relative',flex:'0 0 auto',height:118,background:T.s3,overflow:'hidden'}},
@@ -7426,7 +7356,7 @@ void main(){
       tabs.length? h('div',{style:{display:'flex',flex:'0 0 auto',background:'rgb(24,25,29)',borderBottom:'1px solid rgb(54,56,60)'}},
         ...tabs.map(([k,l])=>{ const on=tab===k;
           return h('button',{key:k,onClick:()=>this.setState({vtab:k}),style:{flex:1,background:'none',border:'none',borderBottom:'2px solid '+(on?'rgb(169,171,175)':'transparent'),padding:'13px 0',cursor:'pointer',fontFamily:T.sans,fontSize:14,fontWeight:500,textAlign:'center',color:on?'rgb(234,235,238)':'rgb(111,114,118)'}}, l); })) : null,
-      tab==='buy'?this.vendorBuy(v):tab==='sell'?this.vendorSell(v):tab==='repair'?this.vendorRepair():tab==='feed'?this.vendorFeed(v):tab==='load'?this.vendorLoad(v):tab==='appraise'?this.vendorAppraiseScreen(v):tab==='module'?this.vendorModule(v):this.vendorHeal(v),
+      tab==='buy'?this.vendorBuy(v):tab==='sell'?this.vendorSell(v):tab==='repair'?this.vendorRepair():tab==='feed'?this.vendorFeed(v):tab==='load'?this.vendorLoad(v):tab==='appraise'?this.vendorAppraiseScreen(v):this.vendorHeal(v),
       (tab==='buy'||tab==='sell')?this.shopExitBox():null
     );
   }
