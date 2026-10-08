@@ -82,6 +82,8 @@
   @keyframes rlInnerGlow{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
   @keyframes rlShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(120%)}}
   @keyframes rlLvlPop{0%{transform:scale(1)}35%{transform:scale(1.4)}100%{transform:scale(1)}}
+  /* 교신 신호 — 탭바 캐릭터 아이콘. 초록으로 빠르게 5번(0.2s 간격) → 1.5s 멈춤 반복. 꺼진 색은 --nb(원래 아이콘 색). */
+  @keyframes rlCommsBlink{0%,8.33%,16.67%,25%,33.33%{color:#2FBF71;filter:drop-shadow(0 0 4px rgba(47,191,113,.85))}4.17%,12.5%,20.83%,29.17%,37.5%,100%{color:var(--nb);filter:none}}
   @keyframes rlBossTell{0%,100%{box-shadow:inset 0 0 30px 4px rgba(196,60,50,0)}50%{box-shadow:inset 0 0 34px 7px rgba(196,60,50,.16)}}
   @keyframes rlBossEdge{0%,100%{box-shadow:inset 0 0 0 1px rgba(196,60,50,.25),0 0 16px rgba(150,20,16,.12)}50%{box-shadow:inset 0 0 0 1.5px rgba(230,80,68,.48),0 0 26px rgba(180,26,20,.28)}}
   /* 보스 카드 금색 일렁이는 테두리 (#D89B00) */
@@ -377,6 +379,8 @@ const TUTO_BOSS_ENC = 3;   // 보스 등장 #1 — 3전 조우 전투 시작
 const TUTO_PASS_LOW = 3;
 // '아이템 합치기'가 요구하는 귀환 성공 횟수(사망·도망 제외 — gs.extracts).
 const TUTO_MERGE_AFTER = 5;
+// 교신 무전기 아이콘 — svg/screen-character-top.svg 패스 그대로(목업 좌표 · viewBox로 잘라 쓴다).
+const WALKIE_D='M346.219 31.995H365.784L366.862 32.5779V32.8122L367.26 33.2869V38.5689L368.2 39.2719V47.7206L367.129 48.6581V60.2795H366.992V60.7482H366.862L366.725 61.2169L366.32 61.5715L365.386 61.8058V61.92H346.754V61.8058H346.349L345.951 61.4513H345.683L345.546 61.1028L345.278 60.9826V60.6281H345.148V43.1418H345.416V43.0276H345.683V42.9074H345.951V42.7932H346.219L347.289 42.2044H347.694V42.0842L349.032 41.6155L349.437 41.2669V33.5213L349.3 33.4011L348.765 33.5213V41.0326L347.022 41.7356L346.884 41.6155V33.5213L345.148 33.4011V32.9324H345.278L345.416 32.4637L346.219 31.995ZM349.705 45.1368L348.229 45.7256L347.289 46.6631V46.8974L347.022 47.1318V47.6005H346.884V57.3471H347.022L347.159 58.0502L347.557 58.3987V58.6331L348.36 59.3421H348.627L349.437 59.8108H350.103V59.925H361.495V59.8108H362.168V59.6906L363.238 59.3421L364.316 58.2845V58.0502L364.583 57.8158V57.3471H364.714V49.0126H364.583L364.446 48.5439L363.238 47.8348H360.157V47.7206L359.484 47.6005L359.354 47.3661H359.086L358.551 46.8974V46.6631L358.146 46.3145V45.8398H358.016L357.878 45.3711H357.611L357.474 45.1368H349.705ZM350.24 45.96H356.671L357.206 46.3145L357.878 47.6005L358.283 47.955H358.551L358.819 48.3095H359.086L359.354 48.5439H359.889V48.6581H362.84L363.643 49.2469V49.4813H363.774V56.7582H363.643V57.2269H363.506L363.375 57.6956L363.108 57.8158V58.0502L362.573 58.5189H362.305L362.168 58.7532L361.495 58.8674V58.9876H350.103V58.8674L349.437 58.7532L349.3 58.5189H349.032L348.497 58.0502V57.8158L348.229 57.6956V57.4613L347.962 57.2269V56.6381H347.825V48.3095H347.962V47.7206H348.092L348.229 47.2519L348.497 47.1318V46.8974L348.895 46.5489H349.163L349.3 46.3145L350.24 46.0802V45.96ZM349.163 54.0602H349.032V55.5865H362.573V55.3461H362.703V54.1744L362.573 54.0602H349.163ZM349.163 49.4813H349.032V51.0076H362.573L362.703 50.8874V50.3045H362.573L362.435 49.8358L361.763 49.5955V49.4813H349.163ZM349.163 51.8308H349.032V53.2369H362.573L362.703 53.1168V51.945L362.573 51.8308H349.163ZM360.562 40.3235L359.752 40.5639L359.217 41.0326L358.949 41.8498H358.819V45.2569H358.949V45.8398H359.086L359.217 46.3145L360.294 47.0176L364.178 47.1318V47.0176L365.119 46.8974L365.249 46.6631L365.654 46.5489V46.3145L365.922 46.1944V45.8398H366.052V41.5013H365.922L365.784 41.0326L364.714 40.3235H360.562ZM349.568 56.4037H349.437V56.6381L349.835 56.9926V57.2269L350.906 57.8158H360.829V57.6956L361.365 57.5815L362.037 56.9926V56.7582L362.305 56.5239V56.4037H349.568ZM356.938 33.99L356.273 34.1042L355.868 34.5729V37.98L356.273 38.4487H356.54V38.5689H364.316L364.851 38.2144V37.8598H364.981V34.6931H364.851V34.3385L364.583 34.1042H364.178V33.99H356.938ZM344.208 34.2244H344.475V44.9024H344.208L343.94 44.6681L343.803 43.965L343 43.4963V39.2719L343.535 38.9174V37.3911H343.405V36.9224H343.268V35.0476L344.208 34.2244ZM360.425 41.0326H364.583L365.119 41.3811V41.6155H365.249V45.8398L364.714 46.3145H364.446V46.4287H360.829V46.3145H360.425L359.752 45.7256V45.3711H359.622V41.7356L360.425 41.0326ZM345.148 33.8698H346.081L346.219 33.99V42.0842L345.546 42.3245V42.4387H345.148V33.8698ZM351.448 47.1318L350.24 47.4863L349.568 48.0752L349.3 48.6581H357.474L356.808 48.0752V47.8348L356.54 47.7206L356.273 47.1318H351.448ZM356.808 37.0426H364.041V37.7456H356.808V37.0426ZM347.825 30H352.381L352.786 30.3485V31.4061L352.649 31.5263H347.557L347.426 31.4061V30.3485L347.825 30ZM344.071 55.1118H344.606V59.8108H344.338L343.673 59.2219V56.4037L344.071 56.2895V55.1118ZM344.338 46.8974H344.606V50.4187H344.071V49.95L343.673 49.8358V47.8348L343.535 47.7206L344.338 46.8974ZM344.071 51.0076H344.606V54.5289H344.071V53.94L343.673 53.8258V51.7106L344.071 51.4763V51.0076ZM360.96 43.6105L360.562 43.8448L360.692 44.3195H364.316L364.446 44.1994V43.8448L364.178 43.6105H360.96ZM360.829 41.97L360.562 42.0842V42.5589H360.829V42.6731H364.178V42.5589H364.446L364.316 41.97H360.829Z';
 // 아지트 기능 첫 진입 팝업 — hideFacItems의 항목 키 → 팝업 키.
 // 'upgrade'·'exit'은 없다(안내할 불가역 규칙이 없다).
 const HIDE_TUTO = { repair:'rs_rep1', module:'rs_mod1', craft:'wb_craft1',
@@ -1586,7 +1590,7 @@ class Component extends DCLogic {
       h('div',{style:{display:'flex',flexDirection:'row',gap:34,justifyContent:'center',alignItems:'center',height:64,padding:16,boxSizing:'border-box',background:'rgba(24,25,29,0.72)',backdropFilter:'blur(14px)',WebkitBackdropFilter:'blur(14px)',borderRadius:999,boxShadow:'inset 0 0 0 1px rgba(54,56,60,0.9)',pointerEvents:'auto'}},
         ...items.map(([k])=>{ const on=this.state.screen===k || (k==='zone'&&this.state.screen==='combat'); const sortie=k==='zone';
           const col=on?(sortie?'#C4675D':'rgb(234,235,238)'):'rgb(75,77,82)';
-          return h('button',{key:k,onClick:()=>this.go(k),style:{width:36,background:'none',border:'none',cursor:'pointer',padding:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:col,filter:(on&&sortie)?'drop-shadow(0 0 5px rgba(196,103,93,0.5))':'none'}},
+          return h('button',{key:k,onClick:()=>this.go(k),style:{width:36,background:'none',border:'none',cursor:'pointer',padding:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:col,...((k==='character'&&this.commsPending())?{'--nb':col,animation:'rlCommsBlink 2.4s ease-in-out infinite'}:{}),filter:(on&&sortie)?'drop-shadow(0 0 5px rgba(196,103,93,0.5))':'none'}},
             navIcon(k,'currentColor',20)); }))
     );
   }
@@ -1799,6 +1803,7 @@ class Component extends DCLogic {
     else if(s==='vendor') body=this.vendorScreen();
     else if(s==='vendorMenu') body=this.vendorMenu();
     else if(s==='quest') body=this.questScreen();
+    else if(s==='comms') body=this.commsScreen();
     else if(s==='hideout') body=this.hideoutList();
     else if(s==='hideFac') body=this.hideFacScreen();
     else if(s==='disk') body=this.diskListScreen();
@@ -1814,7 +1819,7 @@ class Component extends DCLogic {
     else if(s==='returnheal') body=this.returnHeal();
     else if(s==='pass') body=this.passScreen();
     else if(s==='tap') body=this.tapScreen();
-    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap' && s!=='hideout' && s!=='hideFac' && s!=='disk' && s!=='diskInsert' && s!=='decode' && s!=='craft' && s!=='disa' && s!=='rsrep' && s!=='rsmod' && s!=='quest';
+    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap' && s!=='hideout' && s!=='hideFac' && s!=='disk' && s!=='diskInsert' && s!=='decode' && s!=='craft' && s!=='disa' && s!=='rsrep' && s!=='rsmod' && s!=='quest' && s!=='comms';
     return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null, this.state.tuto?this.tutoOverlay():null);
   }
 
@@ -4908,7 +4913,9 @@ void main(){
     const slotDefs=[['weapon','무기'],['body','갑옷'],['head','투구'],['artifact1','장신구'],['artifact2','징표'],['bag','가방']];
     const kick=(t)=>h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:10}}, t);
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-      this.screenTitle('CHARACTER','nav_character'),
+      h('div',{key:'ctop',style:{position:'relative',flex:'0 0 auto'}},
+        this.screenTitle('CHARACTER','nav_character'),
+        this.commsBtn()),
       h('div',{style:{flex:1,margin:'16px 16px 16px',background:'#18191D',border:'1px solid #36383C',borderRadius:8,overflowY:'auto',padding:'14px 14px 110px'}},
         h('div',{style:{height:104,borderRadius:8,overflow:'hidden',marginBottom:16,background:'linear-gradient(180deg, oklch(0.30 0.01 264) 0%, oklch(0.19 0.008 264) 100%)'}}),
         h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:3}},
@@ -5192,6 +5199,191 @@ void main(){
   //   시트 폭 370(좌우 마진16) 패딩 24/18 하단 24 · 목표·보상 행 h36 13px · 배너 336x40 r16 #1A1B21
   // 상태색: 신규 #C19E6F · 진행중 #83B289 · 완료 #85B3C5 / 카운터 미달 #AE615C
   qCol(st){ return st==='done'?'#85B3C5':(st==='run'?'#83B289':'#C19E6F'); }
+  // ===== 교신 — 받은 퀘스트를 보는 기록 화면 (확장_v3 §3.6 · 목업 svg/screen-character-top · screen-comms-*) =====
+  // 진입 = 캐릭터 헤더 우측 무전기. ⚠️screen-character-top은 바깥 1px 프레임 때문에 전부 +1 밀려 있다 →
+  //   실좌표 아이콘 x342~367.2 · y29~60.9 / 점 (373.5,26.5) r2.5. 터치 영역 44×44를 아이콘 중심(354.6,45)에 맞춘다.
+  // 점·탭바 깜빡임 = **처리할 게 있을 때만**(B안: 완료 퀘스트 · 수령할 알림) — 조건은 commsPending 한 곳.
+  commsPending(){
+    if(!this.eng || !this.gs) return false;
+    if(this.commsAlerts().length) return true;
+    return ['daily','weekly'].some(t=>this.commsQuests(t).some(x=>x.st==='done')); }
+  commsBtn(){
+    return h('button',{key:'comms',onClick:()=>this.openComms(),'aria-label':this.t('comms_title'),
+      style:{position:'absolute',right:25.4,top:23,width:44,height:44,padding:0,border:'none',background:'none',cursor:'pointer'}},
+      h('svg',{key:'i',width:25.2,height:31.92,viewBox:'343 30 25.2 31.92',fill:'none',style:{position:'absolute',left:9.4,top:6,display:'block'}},
+        h('path',{fillRule:'evenodd',clipRule:'evenodd',fill:'#EAEBEE',d:WALKIE_D})),
+      this.commsPending()? h('span',{key:'d',style:{position:'absolute',left:38.4,top:1,width:5,height:5,borderRadius:'50%',background:'#2FBF71'}}) : null);
+  }
+  // 기본 탭 = 임무(열 때마다).
+  openComms(){ this.go('comms'); this.setState({commsTab:'mission',commsPick:null,commsOpen:null}); }
+  // 레이아웃 실측(screen-comms-story-empty · screen-comms-news): 헤더 90 · 탭 y90~137 · ● 라벨은 탭/앞 행 아래 29.5 ·
+  //   라벨→첫 행 5.5 · 임무 카드 x18~384 y190~262 r8. 행은 상점 행(shopRow)을 그대로 쓴다 — **기존 화면 우선**(사용자 2026-10-08).
+  //   하단 닫기 박스도 목업(좌우 10.5·테두리) 대신 퀘스트 화면의 하단 박스와 같은 규격.
+  commsScreen(){
+    const tab=this.state.commsTab==='news'?'news':'mission';
+    // 알림의 "n분전"·작업 완료 시점이 화면을 연 채로도 바뀌도록 5초마다 다시 그린다(교신을 떠나면 스스로 멈춤).
+    if(!this._commsT) this._commsT=setInterval(()=>{
+      if(this.state.screen!=='comms'){ clearInterval(this._commsT); this._commsT=null; return; }
+      this.forceUpdate(); },5000);
+    return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
+      this.screenTitle('COMMS','comms_title'),
+      this.segBar([{k:'mission',label:this.t('comms_tab_mission')},{k:'news',label:this.t('comms_tab_news')}],
+        tab, k=>this.setState({commsTab:k})),
+      h('div',{key:'cb:'+tab,style:{flex:'1 1 auto',minHeight:0,overflowY:'auto',padding:'0 0 24px',boxSizing:'border-box'}},
+        tab==='mission'? this.commsMission() : this.commsNews()),
+      this.commsCloseBox());
+  }
+  // ===== 임무 탭 = 스토리 기록 (목업 screen-comms-story · screen-comms-story-empty) =====
+  // ★교신은 기록 화면이다 — 스토리 진행은 상점 스토리 탭(NPC 대화)에서 일어나고 여기엔 결과만 쌓인다.
+  // 모델(commsStory) = { chapters:[{ no, name, done(완료 퀘스트 수), quests:[{ id, name, obj, cur, need, desc, dest }] }] }
+  //   dest = { label, go() } | null — 이동 목적지는 임무를 만들면서 퀘스트마다 정한다(사용자 2026-10-08).
+  //   진행 중 챕터 = done < 퀘스트 수인 첫 챕터 / 지난 스토리 = 다 끝난 챕터(최근 것이 위).
+  // ⚠️스토리 스키마(챕터 이름·순서 저장처)가 아직 미정이라 데이터 연결은 비어 있다 → 지금은 항상 빈 상태.
+  //   로컬 검증은 인스턴스에 _storyMock을 꽂아서 한다(배포본에서 쓰는 경로 아님).
+  commsStory(){ return this._storyMock || this.commsStoryData(); }
+  commsStoryData(){ return null; }
+  commsMission(){
+    const m=this.commsStory(), chs=(m&&Array.isArray(m.chapters))?m.chapters.filter(c=>c&&c.quests&&c.quests.length):[];
+    const cur=chs.find(c=>c.done<c.quests.length);
+    const past=chs.filter(c=>c.done>=c.quests.length).reverse();
+    const out=[this.commsSec('csec',this.t('comms_sec_story'))];
+    out.push(cur? this.commsStoryCard(cur,'cur',false,8)
+                : this.commsEmpty('cem',this.t('comms_story_empty'),this.t('comms_story_empty_sub'),8));
+    if(past.length){
+      out.push(this.commsSec('cpast',this.t('comms_sec_story_past')));
+      const open=this.state.commsOpen;
+      past.forEach((c,i)=>out.push(open===c.no? this.commsStoryCard(c,'p'+c.no,true,i?12:8) : this.commsPastRow(c,i?12:8)));
+    }
+    return out;
+  }
+  // 챕터 칩 — readyChip(h22 · mono 9.5 · bg #212327) · 진행 중=흰 테두리 / 지난=회색
+  commsChapterChip(c,past){ return this.readyChip(this.t('comms_chapter').replace('{N}',c.no), past?'#6F7276':'#EAEBEE',{bg:'#212327',pad:'5px 9px',solid:true}); }
+  commsChapterHead(c,past,right,onClick){
+    return h('div',{key:'hd',onClick:onClick||null,style:{display:'flex',alignItems:'center',gap:7.5,height:22,cursor:onClick?'pointer':'default'}},
+      this.commsChapterChip(c,past),
+      h('span',{key:'n',style:{flex:1,minWidth:0,fontFamily:T.mono,fontSize:10,color:'#A9ABAF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, c.name),
+      right);
+  }
+  // 지난 스토리(접힘) — h54 · 우측 「완료」. 누르면 진행 중 카드와 같은 모양으로 펼친다.
+  commsPastRow(c,mt){
+    return h('div',{key:'pr'+c.no,onClick:()=>this.setState({commsOpen:c.no}),style:{margin:mt+'px 18px 0',background:'#18191D',border:'1px solid #36383C',borderRadius:8,padding:'15px 16px',cursor:'pointer'}},
+      this.commsChapterHead(c,true,h('span',{key:'r',style:{flex:'0 0 auto',fontFamily:T.sans,fontSize:11,color:'#A9ABAF'}}, this.t('quest_chip_done'))));
+  }
+  // 스토리 카드 — 실측: 외곽 x18~384 · 본문 y190~412(위 r8, 테두리) + 이동 줄 y412~444(아래 r8, #454545).
+  //   본문 = 챕터줄 h22 → 18 → 퀘스트명 sans14 → 8.5 → 목표 mono10 + 카운터 → 18 → 진행바 h4 → 16 → 사정 mono10/13.
+  // ★진행바 칸 = 퀘스트 선택기. 끝난 칸·지금 칸을 누르면 그 퀘스트로 카드 내용이 바뀐다 · 아직 안 한 칸은 무반응.
+  //   기본 선택 = 진행 중 챕터는 지금 퀘스트 / 지난 챕터는 마지막 퀘스트. 직접 고른 동안만 나머지 칸을 흐리게 해서 어디를 보는지 알린다.
+  commsStoryCard(c,key,past,mt){
+    const n=c.quests.length, def=past? n-1 : Math.min(c.done,n-1);
+    const pk=(this.state.commsPick||{})[key], sel=(pk!=null&&pk<=Math.min(c.done,n-1))? pk : def;
+    const q=c.quests[sel]||{}, qDone=sel<c.done, need=this.eng.N(q.need,0), cur=qDone? need : Math.min(this.eng.N(q.cur,0),need);
+    const pick=(i)=>this.setState({commsPick:Object.assign({},this.state.commsPick||{},{[key]:i})});
+    const mono=(fs,col)=>({fontFamily:T.mono,fontSize:fs,lineHeight:fs+'px',color:col});
+    const move=(!past && !qDone && q.dest)? q.dest : null;
+    const body=h('div',{key:'b',style:{background:'#18191D',border:'1px solid #36383C',borderRadius:move?'8px 8px 0 0':8,padding:'15px 16px 16px'}},
+      this.commsChapterHead(c,past, h('span',{key:'r',style:Object.assign({flex:'0 0 auto'},mono(11,'#A9ABAF'))}, c.done+'/'+n),
+        past? ()=>this.setState({commsOpen:null}) : null),
+      h('div',{key:'qn',style:{marginTop:18,fontFamily:T.sans,fontSize:14,lineHeight:'14px',color:'#EAEBEE'}}, q.name||''),
+      h('div',{key:'ob',style:{marginTop:8.5,display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}},
+        h('span',{key:'t',style:Object.assign({minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'},mono(10,'#6F7276'))}, q.obj||''),
+        h('span',{key:'c',style:Object.assign({flex:'0 0 auto'},mono(10,'#6F7276'))}, cur+'/'+need)),
+      // 칸 h4 · 폭 균등 · 간격 13.8(목업 6칸 = 44×6 + 13.8×5 = 333). 터치 영역은 위아래 8씩 넓힌다.
+      h('div',{key:'bar',style:{marginTop:18,display:'flex',gap:13.8}},
+        ...c.quests.map((_,i)=>{ const can=i<=Math.min(c.done,n-1);
+          return h('div',{key:i,onClick:can?()=>pick(i):null,style:{flex:1,height:20,margin:'-8px 0',display:'flex',alignItems:'center',cursor:can?'pointer':'default'}},
+            h('div',{style:{flex:1,height:4,borderRadius:2,background:i<c.done?'#83B289':'#6F7276',opacity:(pk!=null&&i!==sel)?0.4:1,transition:'opacity .15s'}})); })),
+      q.desc? h('div',{key:'ds',style:Object.assign({marginTop:16,whiteSpace:'pre-line',wordBreak:'keep-all'},mono(10,'#A9ABAF'),{lineHeight:'13px'})}, q.desc) : null);
+    return h('div',{key:'sc'+key,style:{margin:mt+'px 18px 0'}},
+      body,
+      move? h('div',{key:'mv',onClick:()=>move.go&&move.go(),style:{height:32,background:'#454545',borderRadius:'0 0 8px 8px',padding:'0 20px 0 16px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}},
+        h('span',{key:'l',style:mono(10,'#A9ABAF')}, move.label),
+        // 갈매기 — 목업 패스 그대로(viewBox로 잘라 쓴다)
+        h('svg',{key:'i',width:6.2,height:12.8,viewBox:'357.5 421.5 6.2 12.8',fill:'none',style:{display:'block',flex:'0 0 auto'}},
+          h('path',{fillRule:'evenodd',clipRule:'evenodd',fill:'#A9ABAF',d:'M357.809 421.744C358.061 421.528 358.44 421.558 358.655 421.809L363.455 427.409C363.648 427.634 363.648 427.965 363.455 428.19L358.655 433.79C358.44 434.042 358.061 434.071 357.809 433.855C357.558 433.64 357.528 433.261 357.744 433.009L362.209 427.8L357.744 422.59C357.528 422.338 357.558 421.96 357.809 421.744Z'}))) : null);
+  }
+  // 소식 탭 = 알림(최신 1건) → 일일 → 주간. 비어 있는 구역은 라벨째 숨기고, 전부 비면 빈 상태 카드 하나.
+  commsNews(){
+    const al=this.commsAlerts()[0], out=[];
+    if(al) out.push(this.commsSec('sa',this.t('comms_sec_alert')), this.commsAlertRow(al));
+    for(const [type,key] of [['daily','comms_sec_daily'],['weekly','comms_sec_weekly']]){
+      const list=this.commsQuests(type);
+      if(list.length) out.push(this.commsSec('s'+type,this.t(key)), ...list.map(x=>this.commsQuestRow(x.q,x.st)));
+    }
+    if(!out.length) out.push(this.commsEmpty('cen',this.t('comms_news_empty'),this.t('comms_news_empty_sub'),29.5));
+    return out;
+  }
+  // 알림 = 내 아지트 시간형 완료 4종(제작·설치·업그레이드·해독) 중 **아직 수령 안 한 것**.
+  //   실패한 제작은 넣지 않는다(시작 3초 뒤 눈앞에서 판정된다). 수령하면 슬롯이 비면서 자연히 빠지고 다음 건이 올라온다.
+  //   at = 완료 시각(endAt) — 최신순 정렬.
+  commsAlerts(){
+    const H=this.gs.hideout||{}, now=Date.now(), N=v=>this.eng.N(v,0), out=[];
+    const U=H.upg||{};
+    for(const f in U){ const u=U[f]; if(u && N(u.endAt)<=now) out.push({k:'upgrade',fac:f,name:this.hideFacName(f),n:N(u.to),at:N(u.endAt)}); }
+    this.craftJobs().forEach((j,i)=>{ const c=this.craftJob(i);
+      if(c && c.phase==='done') out.push({k:'craft',fac:'workbench',slot:i,name:this.eng.anyName(c.bp.OutputItemID),at:N(j.endAt)}); });
+    this.diskJobs().forEach((j,i)=>{ if(j && j.id && N(j.endAt)<=now) out.push({k:'disk',fac:'terminal',slot:i,name:this.eng.anyName(j.id),at:N(j.endAt)}); });
+    this.decodeJobs().forEach((j,i)=>{ if(j && j.id && N(j.endAt)<=now) out.push({k:'decode',fac:'terminal',slot:i,name:this.eng.anyName(j.id),at:N(j.endAt)}); });
+    return out.sort((a,b)=>b.at-a.at);
+  }
+  commsAgo(at){ const m=Math.floor(Math.max(0,Date.now()-at)/60000);
+    if(m<1) return this.t('comms_time_now');
+    if(m<60) return this.t('comms_time_min').replace('{N}',m);
+    const hr=Math.floor(m/60);
+    return hr<24? this.t('comms_time_hour').replace('{N}',hr) : this.t('comms_time_day').replace('{N}',Math.floor(hr/24)); }
+  // 상태칩 — 상점 리스트 퀘스트 칩과 같은 꼴(h20 · bg #0A0B0E). 회색=수락만(진행 0) · 초록=하나라도 진행 · 블루=완료.
+  commsChip(label,col){ return this.readyChip(label,col,{bg:'#0A0B0E',pad:'4px 9px',solid:true}); }
+  commsAlertRow(a){
+    return this.shopRow({key:'al', cat:this.hideFacName(a.fac),
+      name:this.t('comms_alert_'+a.k).replace('{Name}',a.name).replace('{N}',a.n),
+      desc:this.commsAgo(a.at), right:this.commsChip(this.t('quest_chip_done'),'#85B3C5'),
+      onClick:()=>this.commsGoAlert(a)});
+  }
+  // 알림 행 → 해당 시설 화면(수령하는 자리). 뒤로가기는 그 시설 메뉴로 돌아간다.
+  commsGoAlert(a){
+    this.openHideFac(a.fac);
+    if(a.k==='upgrade'){ this.openUpg(a.fac); return; }
+    this.hideAction(a.fac,a.k);
+    if(a.k==='craft') this.setState({craftSlot:a.slot});
+    else if(a.k==='decode') this.setState({decodeSlot:a.slot});
+  }
+  // 받은 퀘스트 = **수락한 것만**(기록 있음 · 포기/수령완료 제외). 일일은 오늘 편성분만. 정렬 = 완료 > 진행.
+  commsQuests(type){ this.qSync();
+    return this.eng.questRows()
+      .filter(q=>String(q.Type||'')===type && this.qRec(q.QuestID) && this.qInToday(q))
+      .map((q,i)=>({q,i,st:this.qState(q)})).filter(x=>x.st==='run'||x.st==='done')
+      .sort((a,b)=>((a.st==='done'?0:1)-(b.st==='done'?0:1))||(a.i-b.i)); }
+  commsQuestRow(q,st){
+    let chip;
+    if(st==='done') chip=this.commsChip(this.t('quest_chip_done'),'#85B3C5');
+    else { const o=this.eng.questObjective(q), t=o&&o.targets[0], need=t?t.count:0, cur=Math.min(this.qProg(q)[0]||0,need);
+      chip=this.commsChip(cur+'/'+need, cur>0?'#83B289':'#757575'); }
+    const v=this.eng.byId.vendor[q.GiverVendorID]||{};
+    return this.shopRow({key:q.QuestID, cat:this.shopName(v.ShopID,v), name:this.eng.tr(q,'Name'), desc:this.qSummary(q),
+      right:chip, onClick:()=>this.commsGoQuest(q)});
+  }
+  // 퀘스트 행 → 기버 상점의 퀘스트 시트(수락·제출·완료하는 자리).
+  commsGoQuest(q){ const vid=String(q.GiverVendorID||''); if(!this.eng.byId.vendor[vid]) return;
+    this.openVendor(vid); this.openQuest(); this.openQuestSheet(q.QuestID); }
+  // ● 구역 라벨 — 점 x18~23 #A9ABAF · 글자 x27.5 sans10 #6F7276 · 줄 높이 10 · 위 29.5 / 아래 5.5
+  //   ⚠️아래 5.5는 margin이 아니라 padding — 다음 카드의 margin-top과 **겹쳐서(collapse)** 간격이 5px 줄었었다.
+  commsSec(key,txt){
+    return h('div',{key:key,style:{display:'flex',alignItems:'center',gap:4.5,height:10,padding:'0 0 5.5px',boxSizing:'content-box',margin:'29.5px 18px 0'}},
+      h('span',{key:'d',style:{flex:'0 0 auto',width:5,height:5,borderRadius:'50%',background:'#A9ABAF'}}),
+      h('span',{key:'t',style:{fontFamily:T.sans,fontSize:10,lineHeight:'10px',color:'#6F7276'}}, txt));
+  }
+  // 빈 상태 카드 — h72 · 제목 sans14 #EAEBEE / 보조 sans10 #6F7276
+  commsEmpty(key,title,sub,mt){
+    return h('div',{key:key,style:{margin:mt+'px 18px 0',background:'#18191D',border:'1px solid #36383C',borderRadius:8,
+        padding:'19.5px 16px 17.5px',display:'flex',flexDirection:'column',gap:9}},
+      h('div',{key:'a',style:{fontFamily:T.sans,fontSize:14,lineHeight:'14px',color:'#EAEBEE'}}, title),
+      h('div',{key:'b',style:{fontFamily:T.sans,fontSize:10,lineHeight:'10px',color:'#6F7276'}}, sub));
+  }
+  // 하단 닫기 — 퀘스트 화면 하단 박스와 같은 규격(margin 0 16 24 · padding 24/18 · r24 · 무테).
+  commsCloseBox(){
+    return h('div',{style:{flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex'}},
+      h('button',{onClick:()=>this.go('character'),style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.t('quest_btn_close')));
+  }
+
   qMap(){ if(!this.gs.quests||typeof this.gs.quests!=='object') this.gs.quests={}; return this.gs.quests; }
   // 리셋 = 주기 인덱스가 바뀌면 기록을 통째로 버린다. 포기(gave)·수령완료(clr)도 여기서 함께 풀린다.
   // ★단 하나의 예외 — 아직 안 받아간 보상 카드(s:'rw')는 살린다. 분해 결과와 같은 규칙으로,
