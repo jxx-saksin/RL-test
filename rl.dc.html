@@ -83,6 +83,9 @@
   @keyframes rlShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(120%)}}
   @keyframes rlLvlPop{0%{transform:scale(1)}35%{transform:scale(1.4)}100%{transform:scale(1)}}
   /* 교신 신호 — 탭바 캐릭터 아이콘. 초록으로 빠르게 5번(0.2s 간격) → 1.5s 멈춤 반복. 꺼진 색은 --nb(원래 아이콘 색). */
+  /* 온보딩 도입 — 눈을 깜빡이며 뜨는 연출(3.6s). 타원 구멍(=뜬 눈) 높이가 0 → 실눈 → 0 → 반쯤 → 깜빡 → 완전히 뜸. 흐림은 4.2s에 걷힌다. */
+  @keyframes rlEyeOpen{0%,11%{height:0}24%{height:22%}33%{height:0}49%{height:40%}56%{height:36%}62%,68%{height:0}100%{height:250%}}
+  @keyframes rlWakeBlur{0%{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);background:rgba(0,0,0,.45)}70%{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);background:rgba(0,0,0,.2)}100%{backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);background:rgba(0,0,0,0)}}
   @keyframes rlCommsBlink{0%,8.33%,16.67%,25%,33.33%{color:#2FBF71;filter:drop-shadow(0 0 4px rgba(47,191,113,.85))}4.17%,12.5%,20.83%,29.17%,37.5%,100%{color:var(--nb);filter:none}}
   @keyframes rlBossTell{0%,100%{box-shadow:inset 0 0 30px 4px rgba(196,60,50,0)}50%{box-shadow:inset 0 0 34px 7px rgba(196,60,50,.16)}}
   @keyframes rlBossEdge{0%,100%{box-shadow:inset 0 0 0 1px rgba(196,60,50,.25),0 0 16px rgba(150,20,16,.12)}50%{box-shadow:inset 0 0 0 1.5px rgba(230,80,68,.48),0 0 26px rgba(180,26,20,.28)}}
@@ -612,6 +615,8 @@ class Component extends DCLogic {
     if(screen==='vendor'){ const id=q.get('vendor')||'vendor_clinic'; const vtab=q.get('vtab'); this.openVendor(id); if(vtab) this.setState({vtab}); }
     // 전리품 화면은 state.lm이 있어야 그려진다 — 샘플 카드를 채워주는 개발용 진입로(?screen=lootmanage)
     else if(screen==='lootmanage'){ this.openLootDebug(); }
+    // 온보딩 도입 연출 미리보기(?screen=wake) — 보건소 메뉴 위에 눈 뜨는 연출. 실제 새 게임 배선은 챕터1 구현 때.
+    else if(screen==='wake'){ this.openVendor('vendor_clinic'); this.setState({wake:true}); }
     else this.go(screen);
   }
   // 캐시(있으면) → 번들. loadData의 catch 경로와 같은 규칙을 버튼에서도 쓴다.
@@ -1834,7 +1839,7 @@ class Component extends DCLogic {
     else if(s==='pass') body=this.passScreen();
     else if(s==='tap') body=this.tapScreen();
     const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap' && s!=='hideout' && s!=='hideFac' && s!=='disk' && s!=='diskInsert' && s!=='decode' && s!=='craft' && s!=='disa' && s!=='rsrep' && s!=='rsmod' && s!=='quest' && s!=='comms';
-    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null, this.state.tuto?this.tutoOverlay():null);
+    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null, this.state.tuto?this.tutoOverlay():null, this.state.wake?this.wakeOverlay():null);
   }
 
   // ---- safehouse ----
@@ -4400,6 +4405,19 @@ void main(){
       buff();
     }, 0);
   }
+  // ===== 온보딩 도입 — 눈을 깜빡이며 뜨는 연출 (확장_v3 §3.6 온보딩 챕터1 · 사용자 2026-10-09 "직접 만들어줘") =====
+  // 뜬 눈 = 화면보다 넓은 타원 구멍. 구멍 바깥은 box-shadow spread로 전부 검게 덮고(눈꺼풀), 안쪽 가장자리는 inset 그림자로 흐리게.
+  //   ⚠️transform scaleY로 여닫으면 spread 그림자까지 같이 납작해져 화면이 드러난다 → height를 애니메이션한다(요소 1개라 부담 없음).
+  // 흐림 판 = backdrop blur가 걷힌다. 연출 중 아래 화면 입력은 막는다.
+  // 닫힘 = 흐림 애니 끝(4.2s) 또는 안전 타이머 4.4s(탭이 백그라운드라 애니가 멈춰도 갇히지 않게) 중 먼저 오는 쪽.
+  wakeOverlay(){
+    if(!this._wakeT) this._wakeT=setTimeout(()=>this.wakeDone(),4400);
+    return h('div',{key:'wake',style:{position:'absolute',inset:0,zIndex:90,overflow:'hidden',pointerEvents:'auto'}},
+      h('div',{key:'bl',onAnimationEnd:()=>this.wakeDone(),style:{position:'absolute',inset:0,animation:'rlWakeBlur 4.2s ease-out forwards'}}),
+      h('div',{key:'eye',style:{position:'absolute',left:'50%',top:'50%',width:'170%',height:0,borderRadius:'50%',transform:'translate(-50%,-50%)',
+        boxShadow:'0 0 0 200vmax #000, inset 0 0 28px 12px #000',animation:'rlEyeOpen 3.6s ease-in-out forwards'}}));
+  }
+  wakeDone(){ if(this._wakeT){ clearTimeout(this._wakeT); this._wakeT=null; } if(this.state.wake) this.setState({wake:false}); }
   tutoOverlay(){
     const t=this.state.tuto, n=t?TUTO[t.k]:0; if(!n) return null;
     const i=Math.min(this.eng.N(t.i,0), n-1);
