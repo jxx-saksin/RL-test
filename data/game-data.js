@@ -1263,7 +1263,8 @@ export const DATA = {
     {"StringID": "reward_sato_name", "Text_KR": "{N} SATO", "Text_EN": "{N} SATO", "Category": "reward", "UIRole": "label", "Status": "Planning", "Notes": "보상 카드 · 사토 제목 · {N}=금액(천 단위 쉼표)", "LastUpdated": 46304},
     {"StringID": "reward_sato_desc", "Text_KR": "어디서든 사용가능한 화폐이다.", "Text_EN": "Currency accepted anywhere.", "Category": "reward", "UIRole": "label", "Status": "Planning", "Notes": "보상 카드 · 사토 설명", "LastUpdated": 46304},
     {"StringID": "story_ch01", "Text_KR": "프로토콜 규약", "Text_EN": "The Protocol Accord", "Category": "story", "UIRole": "label", "Status": "Planning", "Notes": "챕터 이름 · StoryQuest Chapter=1", "LastUpdated": 46304},
-    {"StringID": "quest_sum_act_equip", "Text_KR": "지급품 {n}종 착용", "Text_EN": "Equip {n} issued items", "Category": "quest", "UIRole": "label", "Status": "Planning", "Notes": "스토리 act/equip 목표 한 줄 · {n}=목표 수(교신 임무 카드)", "LastUpdated": 46304}
+    {"StringID": "quest_sum_act_equip", "Text_KR": "지급품 {n}종 착용", "Text_EN": "Equip {n} issued items", "Category": "quest", "UIRole": "label", "Status": "Planning", "Notes": "스토리 act/equip 목표 한 줄 · {n}=목표 수(교신 임무 카드)", "LastUpdated": 46304},
+    {"StringID": "quest_obj_equip", "Text_KR": "{a} 착용", "Text_EN": "Equip {a}", "Category": "quest", "UIRole": "label", "Status": "Planning", "Notes": "스토리 착용 목표 한 줄(아이템마다) · {a}=아이템 이름 · 교신 임무 카드", "LastUpdated": 46304}
   ],
   "usb": [
     {"USBID": "usb_gutter_roach", "Name_KR": "거대 바퀴 데이터", "Name_EN": "Gutter Roach", "MonsterID": "monster_gutter_roach", "Grants": "[{\"stat\":\"stat_will\",\"v\":1}]", "UploadMinutes": 5, "Description": "극한에서도 살아남는 끈질긴 생존의 본능.", "Description_EN": "The relentless survival instinct that endures any extreme.", "SellPrice": 5000, "Status": "Planning", "Notes": "-", "LastUpdated": 46228},
