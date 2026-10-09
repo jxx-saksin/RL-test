@@ -383,6 +383,8 @@ const TUTO_MERGE_AFTER = 5;
 // 상점 NPC 표정 5종(파일 = assets/art/npc/<VendorID>_<키>.webp) · 크로스페이드 초 · 평상시 타자기 ms/글자(빠르게 — 퀘스트 대화보다 빠름)
 const NPC_FACES=['neutral','happy','sad','angry','flustered'];
 const NPC_FADE=0.6;
+// 대사 박스 판 투명도(목업 0.5 → 사용자 "너무 진하다" 2026-10-09)
+const NPC_BOX_A=0.35;
 // NPC별 크기 보정(아래 가운데 기준 축소) — 생성 엔진이 확대해서 뽑은 컷을 다른 NPC 크기에 맞춘다.
 // 기준 = 원본(768×1360)에서 머리 꼭대기가 y≈360. 마르타는 y≈92라 1.25배 커 보였다(2026-10-09 실측). 키 = VendorID 또는 VendorID_표정(표정이 우선).
 // 메뉴(평상시)에서는 초상을 띄우지 않는 NPC — 카이토 렌은 문 안쪽에서 나오지 않는 컨셉(퀘스트 대화 때만 등장 · 사용자 2026-10-09). 대사 박스는 그대로.
@@ -5213,7 +5215,7 @@ void main(){
   }
   // ===== 상점 NPC — 평상시 한 줄 (확장_v3 §3.6 「상점 NPC 대화」 · 목업 svg/screen-clinic-menu-npc) =====
   // 실측(402 프레임): NPC 레이어 x91 폭310 높이549(768×1360 원본 비율) · 아래끝 = 패널 윗선
-  //   대사 박스 x36~366 · 위·아래 선 y443/y500 = 1px #A1A1A1 + 양끝 마름모 · 판 black 50% 330×57 · 패널과 간격 16.5
+  //   대사 박스 x36~366 · 위·아래 선 y443/y500 = 1px #A1A1A1 + 양끝 마름모 · 판 black(NPC_BOX_A) 330×57 · 패널과 간격 16.5
   //   이름 = sans12 #EAEBEE · 위선에서 11 위 · 뒤에 80×39 그림자(위 투명 → 아래 검정) · 본문 = sans14 가운데
   // 대사 = NpcDialogue(Flow=menu · Stage=idle) 랜덤 1줄 · 직전 줄 제외 · 박스 탭 = 타이핑 중이면 그 줄 완성 / 다 나왔으면 다른 줄
   // 표정 = 행의 Expression → 5장을 겹쳐 두고 opacity만 바꾼다(크로스페이드 NPC_FADE). 파일이 없으면 neutral.
@@ -5266,7 +5268,7 @@ void main(){
       h('div',{key:'nm',style:{position:'absolute',left:'50%',bottom:'100%',transform:'translateX(-50%)',minWidth:80,height:39,padding:'0 7px',boxSizing:'border-box',
         background:'linear-gradient(180deg,rgba(17,19,21,0) 12.1%,#000 100%)',display:'flex',alignItems:'flex-end',justifyContent:'center',paddingBottom:11,pointerEvents:'none'}},
         h('span',{style:{fontFamily:T.sans,fontSize:12,lineHeight:'12px',color:'#EAEBEE',whiteSpace:'nowrap'}}, name)),
-      h('div',{key:'bg',style:{position:'absolute',inset:0,background:'rgba(0,0,0,.5)'}}),
+      h('div',{key:'bg',style:{position:'absolute',inset:0,background:'rgba(0,0,0,'+NPC_BOX_A+')'}}),
       rule(true), rule(false),
       // 남은 글자는 투명으로 미리 깔아 둔다 — 가운데 정렬이 타이핑 중에 흔들리지 않게
       h('div',{key:'tx',style:{position:'absolute',inset:0,padding:'0 16px',display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center',
