@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val20';
-import { buildIndex } from './sheet-loader.js?v=val26';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
+import { DATA as FALLBACK } from './data/game-data.js?v=val21';
+import { buildIndex } from './sheet-loader.js?v=val27';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
 
@@ -1479,10 +1479,12 @@ export function questObjective(q){
   let ts = Array.isArray(o.targets) ? o.targets : null;
   if (!ts) ts = [{ id: o.target, filter: o.filter, count: o.count }];      // 구형 폴백
   // 대상 지정 축 3종 — id(단일 ID) / filter(Category 목록) / effect(EffectType). 셋 중 하나만 있으면 유효.
+  // ids = 여러 ID 중 아무거나(스토리 act 목표 · 예: 지급품 4종 착용) — 2026-10-09
   ts = ts.map(x => ({ id: x.id || null, filter: Array.isArray(x.filter) ? x.filter : null,
                       effect: x.effect ? String(x.effect).trim() : null,
+                      ids: Array.isArray(x.ids) ? x.ids.map(String) : null,
                       count: Math.max(1, N(x.count, 1)) }))
-         .filter(x => x.id || x.filter || x.effect);
+         .filter(x => x.id || x.filter || x.effect || x.ids);
   if (!ts.length) return null;
   return { ...o, kind: String(o.kind), targets: ts };
 }
@@ -1490,7 +1492,20 @@ export function questReward(q){
   const r = questJson(q && q.Reward) || {};
   return { sato: N(r.sato, 0), pass: N(r.pass, 0),
            items: (r.items && typeof r.items === 'object') ? r.items : {},
-           group: (r.group && r.group.id) ? { id: r.group.id, min: Math.max(1, N(r.group.min, 1)), max: Math.max(1, N(r.group.max, 1)) } : null };
+           group: (r.group && r.group.id) ? { id: r.group.id, min: Math.max(1, N(r.group.min, 1)), max: Math.max(1, N(r.group.max, 1)) } : null,
+           // 스토리 확장(확장_v3 §3.6 ⑧) — to = 아이템 들어갈 곳 · cards = 연출 카드 · opens = 해금(카드 순서)
+           to: r.to === 'bag' ? 'bag' : (r.to === 'vault' ? 'vault' : null),
+           cards: Array.isArray(r.cards) ? r.cards.map(String) : [],
+           opens: Array.isArray(r.opens) ? r.opens.map(String) : [] };
+}
+// ---------- 스토리 퀘스트 (StoryQuest 탭 · Chapter·Order 순번) ----------
+export function storyRows(){
+  return (DATA.storyQuests || []).slice().sort((a, b) => (N(a.Chapter, 0) - N(b.Chapter, 0)) || (N(a.Order, 0) - N(b.Order, 0)));
+}
+export function storyRow(id){ return (DATA.storyQuests || []).find(q => q.QuestID === id) || null; }
+// 퀘스트 대사(QuestDialogue) — QuestID + Stage(start/done/radio)
+export function storyLines(qid, stage){
+  return (DATA.questDialogue || []).filter(r => r.QuestID === qid && String(r.Stage || '') === stage);
 }
 // 리셋 주기 — 오늘 quest_reset_anchor_hour시 정각을 기준점으로 잡고 quest_reset_minutes 간격으로 칸을 나눈다.
 // 30분이면 05:00·05:30·06:00…, 1440분이면 매일 05:00 한 번. 같은 식으로 둘 다 돈다.

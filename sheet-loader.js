@@ -3,7 +3,7 @@
 // the same structure as the bundled data/game-data.js. CORS-enabled via the
 // gviz endpoint (works for link-shared sheets).
 
-import { DATA as BUNDLE } from './data/game-data.js?v=val20';
+import { DATA as BUNDLE } from './data/game-data.js?v=val21';
 
 // 탭 이름 → shape() 결과 필드. 선택 탭이 실패했을 때 번들 값으로 메꾸는 데 쓴다.
 const TAB_FIELD = { Config:'config', PrimaryStat:'primaryStats', SecondaryStat:'secondaryStats',
@@ -12,15 +12,16 @@ const TAB_FIELD = { Config:'config', PrimaryStat:'primaryStats', SecondaryStat:'
   Shop:'shops', LootTable:'lootTable', Accessory:'artifacts', Talisman:'talismans', Bag:'bags',
   Affix:'affixes', SpawnTable:'spawnTable', CombatLog:'combatLog', USB:'usb', ColdData:'coldData',
   NpcDialogue:'npcDialogue', UIString:'ui', Liquor:'liquor', Module:'modules', LootGroup:'lootGroups',
-  LootGroupItem:'lootGroupItems', Tip:'tips', Facility:'facilities', Blueprint:'blueprints', Quest:'quests' };
+  LootGroupItem:'lootGroupItems', Tip:'tips', Facility:'facilities', Blueprint:'blueprints', Quest:'quests',
+  StoryQuest:'storyQuests', QuestDialogue:'questDialogue' };
 
 export const SHEET_ID = '1d-LNhcuFo1dKO1zzszDNAXXT-zDqffatr1aCe3yB8ls';
 export const TABS = ['Config','PrimaryStat','SecondaryStat','StatusEffect','WeaponAttribute',
   'Weapon','Armor','Item','Valuable','Monster','City','Zone','Vendor','Shop','LootTable','Accessory','Talisman','Bag','Affix','SpawnTable','CombatLog',
   'USB','ColdData','NpcDialogue','UIString',
-  'Liquor','Module','LootGroup','LootGroupItem','Tip','Facility','Blueprint','Quest'];
+  'Liquor','Module','LootGroup','LootGroupItem','Tip','Facility','Blueprint','Quest','StoryQuest','QuestDialogue'];
 // tabs that may not exist yet in older sheets — a failed fetch is non-fatal
-const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString','Liquor','Module','LootGroup','LootGroupItem','Talisman','Bag','Tip','Valuable','Facility','Blueprint','Quest']);
+const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString','Liquor','Module','LootGroup','LootGroupItem','Talisman','Bag','Tip','Valuable','Facility','Blueprint','Quest','StoryQuest','QuestDialogue']);
 
 // --- RFC4180-ish CSV parser (handles quoted commas + newlines) ---
 export function parseCSV(text) {
@@ -155,6 +156,9 @@ export function shape(rowsByTab) {
     facilities: toObjs(rowsByTab.Facility || []).filter(r => String(r.FacilityLevelID || '').trim()),
     blueprints: toObjs(rowsByTab.Blueprint || []).filter(r => String(r.BlueprintID || '').trim()),
     quests: toObjs(rowsByTab.Quest || []).filter(r => String(r.QuestID || '').trim()),
+    // 스토리 퀘스트(Chapter·Order 순번)와 퀘스트 대사(start/done/radio) — 2026-10-09 신설 탭
+    storyQuests: toObjs(rowsByTab.StoryQuest || []).filter(r => String(r.QuestID || '').trim()),
+    questDialogue: toObjs(rowsByTab.QuestDialogue || []).filter(r => String(r.LineID || '').trim() && String(r.QuestID || '').trim()),
   };
   // 못 받은 탭은 번들 값으로 메꾼다 — 텍스트·전투로그처럼 비면 화면이 깨지는 탭이 있다.
   const skipped = (rowsByTab && rowsByTab.__skipped) || [];
