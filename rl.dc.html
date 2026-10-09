@@ -90,6 +90,9 @@
   @keyframes rlTalkPanelIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:none}}
   /* 다음 행선지 안내 — 글자가 빨갛게 숨 쉰다(소지품 화면의 [보관함] 탭 · 아이템 시트의 [착용]) */
   @keyframes rlHintGlow{0%,100%{color:#EAEBEE;text-shadow:none}50%{color:#E0625A;text-shadow:0 0 8px rgba(224,98,90,.8)}}
+  /* 손 안내 — 대상 쪽으로 톡톡 두드리듯(아래쪽 대상은 180° 뒤집혀 있어 방향을 반대로) */
+  @keyframes rlHandTap{0%,100%{transform:translate(0,0)}50%{transform:translate(-3px,-6px)}}
+  @keyframes rlHandTapD{0%,100%{transform:rotate(180deg) translate(0,0)}50%{transform:rotate(180deg) translate(-3px,-6px)}}
   @keyframes rlCommsBlink{0%,8.33%,16.67%,25%,33.33%{color:#2FBF71;filter:drop-shadow(0 0 4px rgba(47,191,113,.85))}4.17%,12.5%,20.83%,29.17%,37.5%,100%{color:var(--nb);filter:none}}
   @keyframes rlBossTell{0%,100%{box-shadow:inset 0 0 30px 4px rgba(196,60,50,0)}50%{box-shadow:inset 0 0 34px 7px rgba(196,60,50,.16)}}
   @keyframes rlBossEdge{0%,100%{box-shadow:inset 0 0 0 1px rgba(196,60,50,.25),0 0 16px rgba(150,20,16,.12)}50%{box-shadow:inset 0 0 0 1.5px rgba(230,80,68,.48),0 0 26px rgba(180,26,20,.28)}}
@@ -1625,8 +1628,8 @@ class Component extends DCLogic {
       h('div',{style:{display:'flex',flexDirection:'row',gap:34,justifyContent:'center',alignItems:'center',height:64,padding:16,boxSizing:'border-box',background:'rgba(24,25,29,0.72)',backdropFilter:'blur(14px)',WebkitBackdropFilter:'blur(14px)',borderRadius:999,boxShadow:'inset 0 0 0 1px rgba(54,56,60,0.9)',pointerEvents:'auto'}},
         ...items.map(([k])=>{ const on=this.state.screen===k || (k==='zone'&&this.state.screen==='combat'); const sortie=k==='zone';
           const col=on?(sortie?'#C4675D':'rgb(234,235,238)'):'rgb(75,77,82)';
-          const lockN=this.storyNavLock() && k!=='inventory';   // 스토리 안내 중엔 소지품만 열린다(사용자 2026-10-09)
-          return h('button',{key:k,disabled:lockN,onClick:lockN?null:()=>this.go(k),style:{opacity:lockN?0.35:1,width:36,background:'none',border:'none',cursor:lockN?'default':'pointer',padding:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:col,...((k==='character'&&this.commsPending())?{'--nb':col,animation:'rlCommsBlink 2.4s ease-in-out infinite'}:{}),filter:(on&&sortie)?'drop-shadow(0 0 5px rgba(196,103,93,0.5))':'none'}},
+          const allow=this.storyNavAllow(), lockN=!!allow && k!==allow;   // 스토리 안내 중엔 안내하는 칸만 열린다(사용자 2026-10-09)
+          return h('button',{key:k,'data-guide':'nav-'+k,disabled:lockN,onClick:lockN?null:()=>this.go(k),style:{opacity:lockN?0.35:1,width:36,background:'none',border:'none',cursor:lockN?'default':'pointer',padding:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:col,...((k==='character'&&this.commsPending())?{'--nb':col,animation:'rlCommsBlink 2.4s ease-in-out infinite'}:{}),filter:(on&&sortie)?'drop-shadow(0 0 5px rgba(196,103,93,0.5))':'none'}},
             navIcon(k,'currentColor',20)); }))
     );
   }
@@ -1856,7 +1859,7 @@ class Component extends DCLogic {
     else if(s==='pass') body=this.passScreen();
     else if(s==='tap') body=this.tapScreen();
     const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap' && s!=='hideout' && s!=='hideFac' && s!=='disk' && s!=='diskInsert' && s!=='decode' && s!=='craft' && s!=='disa' && s!=='rsrep' && s!=='rsmod' && s!=='quest' && s!=='comms';
-    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null, this.state.tuto?this.tutoOverlay():null, this.state.wake?this.wakeOverlay():null);
+    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null, this.state.tuto?this.tutoOverlay():null, this.state.wake?this.wakeOverlay():null, this.storyGuideOverlay());
   }
 
   // ---- safehouse ----
@@ -4423,6 +4426,27 @@ void main(){
       buff();
     }, 0);
   }
+  // ===== 스토리 손 안내 — 화면을 은은하게 어둡게 + 가리키는 곳만 밝게 + 손 아이콘(assets/art/ui/guide_hand.webp 43×57 픽셀아트) =====
+  //   대상 = data-guide 속성 요소. 위치는 매 200ms 다시 재서 따라간다(스크롤·레이아웃 변화). 클릭은 그대로 통과(pointerEvents none).
+  //   손끝 = 이미지 (14,2). 화면 아래쪽 대상(하단 내비)은 손을 위에서 아래로 가리키게 뒤집는다.
+  storyGuideOverlay(){ const tg=this.storyGuideTarget();
+    if(!tg){ if(this._gdT){ clearTimeout(this._gdT); this._gdT=null; } this._gdRect=null; this._gdKey=null; return null; }
+    if(!this._gdT){ const tick=()=>{ this._gdT=null; const k=this.storyGuideTarget(); if(!k) return;
+        const root=this._gdEl, el=document.querySelector('[data-guide="'+k+'"]');
+        if(root&&el){ const a=root.getBoundingClientRect(), b=el.getBoundingClientRect();
+          const r={x:b.left-a.left,y:b.top-a.top,w:b.width,h:b.height,H:a.height}; const o=this._gdRect;
+          if(!o||this._gdKey!==k||Math.abs(o.x-r.x)+Math.abs(o.y-r.y)+Math.abs(o.w-r.w)+Math.abs(o.h-r.h)>0.5){ this._gdRect=r; this._gdKey=k; this.forceUpdate(); } }
+        this._gdT=setTimeout(tick,200); };
+      this._gdT=setTimeout(tick,0); }
+    const r=(this._gdKey===tg)?this._gdRect:null, P=6;
+    const low=r&&(r.y+r.h/2>r.H*0.7);   // 아래쪽 대상 → 손을 위에서
+    return h('div',{key:'guide',ref:el=>{ this._gdEl=el; },style:{position:'absolute',inset:0,zIndex:25,pointerEvents:'none'}},
+      r? h('div',{key:'spot',style:{position:'absolute',left:r.x-P,top:r.y-P,width:r.w+P*2,height:r.h+P*2,borderRadius:12,
+        boxShadow:'0 0 0 9999px rgba(0,0,0,.55)',transition:'left .3s, top .3s, width .3s, height .3s'}}) : h('div',{key:'dim',style:{position:'absolute',inset:0,background:'rgba(0,0,0,.55)'}}),
+      r? h('img',{key:'hand',src:'assets/art/ui/guide_hand.webp',alt:'',draggable:false,
+        style:{position:'absolute',width:43,height:57,imageRendering:'pixelated',
+          left:low? (r.x+r.w/2-29) : (r.x+r.w/2-14), top:low? (r.y-57+4) : (r.y+r.h/2+8),
+          transform:low?'rotate(180deg)':'none', animation:(low?'rlHandTapD':'rlHandTap')+' 1s ease-in-out infinite', filter:'drop-shadow(0 2px 4px rgba(0,0,0,.6))'}}) : null); }
   // ===== 온보딩 도입 — 눈을 깜빡이며 뜨는 연출 (확장_v3 §3.6 온보딩 챕터1 · 사용자 2026-10-09 "직접 만들어줘") =====
   // 뜬 눈 = 화면보다 넓은 타원 구멍. 구멍 바깥은 box-shadow spread로 전부 검게 덮고(눈꺼풀), 안쪽 가장자리는 inset 그림자로 흐리게.
   //   ⚠️transform scaleY로 여닫으면 spread 그림자까지 같이 납작해져 화면이 드러난다 → height를 애니메이션한다(요소 1개라 부담 없음).
@@ -4516,7 +4540,7 @@ void main(){
       this.screenTitle('INVENTORY','nav_inventory',this.storageChips()),   // 소지품에선 PASS 대신 보관고 잔량을 본다
       // 2버튼 바 — svg/header-2button.svg. 헤더에 바로 붙고 하단 모서리만 r16, 높이 47.
       // (구 안내문구 "레이드에 소지하는 아이템 슬롯"은 삭제 — SVG 기준)
-      this.segBar([{k:'bag',label:this.t('nav_belongings')},{k:'vault',label:(this._hintVault&&seg!=='vault')? h('span',{key:'hv',style:{animation:'rlHintGlow 1.4s ease-in-out infinite'}}, this.t('nav_vault')) : this.t('nav_vault')}],
+      this.segBar([{k:'bag',label:this.t('nav_belongings')},{k:'vault',guide:'vault-tab',label:(this._hintVault&&seg!=='vault')? h('span',{key:'hv',style:{animation:'rlHintGlow 1.4s ease-in-out infinite'}}, this.t('nav_vault')) : this.t('nav_vault')}],
         seg, k=>{ if(k==='vault') this._hintVault=false; this.setState({seg:k}); }),
       // 소지품=슬롯 3섹션(belongings) · 금고=필터칩+리스트(기존)
       seg==='bag'? this.belongings(catOf) : h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
@@ -5363,8 +5387,20 @@ void main(){
     const q=this.eng.storyRow(c.id), o=q&&this.eng.questObjective(q); if(!o||o.kind!=='act'||o.what!=='equip'||this.storyAllDone(q)) return null;
     const ids=[]; o.targets.forEach(t=>(t.ids||(t.id?[t.id]:[])).forEach(x=>ids.push(x))); return {q,ids}; }
   storyNavLock(){ return !!this.storyGuide(); }
+  // 보고 대기 — 착용을 다 했고 아직 기버에게 안 갔다(교신 임무 → 보건소로 유도)
+  storyReport(){ if(!this.gs||!this.eng||!this.eng.storyRow) return null; const c=this.storyMap().cur; if(!c||c.s!=='run') return null;
+    const q=this.eng.storyRow(c.id), o=q&&this.eng.questObjective(q); if(!o||o.kind!=='act'||o.what!=='equip'||!this.storyAllDone(q)) return null; return q; }
+  // 하단 내비에서 누를 수 있는 칸 하나(나머지 잠금) — 착용 중 = 소지품 · 보고 대기 = 캐릭터(교신으로)
+  storyNavAllow(){ if(this.storyGuide()) return 'inventory'; if(this.storyReport()) return 'character'; return null; }
+  // 손 안내 대상(data-guide) — 스크린샷 흐름(사용자 2026-10-09): [보관함] 탭 → (착용) → 캐릭터 → 무전기 → 교신 이동 줄(보건소)
+  storyGuideTarget(){ const s=this.state.screen;
+    if(this.state.tuto||this.state.sel||this.state.wake) return null;
+    if(this.storyGuide()){ if(s==='inventory') return this.state.seg==='vault'? null : 'vault-tab'; return 'nav-inventory'; }
+    if(this.storyReport()){ if(s==='comms') return this.state.commsTab==='news'? null : 'comms-move'; if(s==='character') return 'comms-btn'; if(s==='vendorMenu') return null; return 'nav-character'; }
+    return null; }
   storyGuideItem(inst){ const g=this.storyGuide(); return !!(g&&inst&&g.ids.indexOf(inst.id)>=0); }
-  storyTutoHold(k){ return (k==='inv_compare1'||k==='growth_tag1') && !!this.storyGuide(); }
+  // 1번 퀘스트(지급품 착용 · 보고 전)까지 미루는 튜토리얼 — 장비 비교·성장 태그·소지품 핸들 드래그·보관함 밀기(사용자 2026-10-09)
+  storyTutoHold(k){ return ['inv_compare1','growth_tag1','inv_move1','inv_move2'].indexOf(k)>=0 && !!(this.storyGuide()||this.storyReport()); }
   // 새 게임 도입 — 첫 스토리 퀘스트가 살아 있으면 눈 뜨는 연출 → 기버 상점 대화
   storyBoot(){ const q=this.storyNext(), m=this.storyMap();
     if(!q||m.cur||Object.keys(m.done).length) return;
@@ -5428,7 +5464,7 @@ void main(){
     const dots='. . .'; let kids;
     if(t.wait==='choose'){ const st=t.steps[t.si]; kids=st.choices.slice(0,2).map((c,i)=>btn('c'+i, ready?(this.tx(c,'Line')||c.Line_KR):dots, ready, ()=>this.talkPick(this.eng.N(c.ChoiceNo,i+1)))); }
     else if(t.wait==='end' && !this.talkTyping()) kids=[btn('ok', ready?this.t('btn_confirm'):dots, ready, ()=>this.talkFinish())];
-    else kids=[btn('d0',dots,false), btn('d1',dots,false)];
+    else kids=[h('span',{key:'dots',style:{alignSelf:'center',fontFamily:T.sans,fontSize:14,letterSpacing:'.2em',color:'#4B4D52'}}, dots)];
     return h('div',{key:'tpanel',style:{position:'absolute',left:16,right:16,bottom:24,height:160,zIndex:3,padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',
       display:'flex',flexDirection:'column',justifyContent:'center',gap:16}}, ...kids); }
   talkSkipBtn(){ const t=this.talk; if(!t||t.wait==='choose'||t.wait==='end') return null;
@@ -5547,7 +5583,7 @@ void main(){
     { const c=this.storyMap().cur, q=c&&this.eng.storyRow(c.id); if(q && (c.s==='rw' || this.storyAllDone(q))) return true; }
     return ['daily','weekly'].some(t=>this.commsQuests(t).some(x=>x.st==='done')); }
   commsBtn(){
-    return h('button',{key:'comms',onClick:()=>this.openComms(),'aria-label':this.t('comms_title'),
+    return h('button',{key:'comms','data-guide':'comms-btn',onClick:()=>this.openComms(),'aria-label':this.t('comms_title'),
       style:{position:'absolute',right:25.4,top:23,width:44,height:44,padding:0,border:'none',background:'none',cursor:'pointer'}},
       h('svg',{key:'i',width:25.2,height:31.92,viewBox:'343 30 25.2 31.92',fill:'none',style:{position:'absolute',left:9.4,top:6,display:'block'}},
         h('path',{fillRule:'evenodd',clipRule:'evenodd',fill:'#EAEBEE',d:WALKIE_D})),
@@ -5671,7 +5707,7 @@ void main(){
       q.desc? h('div',{key:'ds',style:Object.assign({marginTop:16,whiteSpace:'pre-line',wordBreak:'keep-all'},mono(10,'#A9ABAF'),{lineHeight:'13px'})}, q.desc) : null);
     return h('div',{key:'sc'+key,style:{margin:mt+'px 18px 0'}},
       body,
-      move? h('div',{key:'mv',onClick:()=>move.go&&move.go(),style:{height:32,background:'#454545',borderRadius:'0 0 8px 8px',padding:'0 20px 0 16px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}},
+      move? h('div',{key:'mv','data-guide':(!past&&key==='cur')?'comms-move':null,onClick:()=>move.go&&move.go(),style:{height:32,background:'#454545',borderRadius:'0 0 8px 8px',padding:'0 20px 0 16px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}},
         h('span',{key:'l',style:mono(10,'#A9ABAF')}, move.label),
         // 갈매기 — 목업 패스 그대로(viewBox로 잘라 쓴다)
         h('svg',{key:'i',width:6.2,height:12.8,viewBox:'357.5 421.5 6.2 12.8',fill:'none',style:{display:'block',flex:'0 0 auto'}},
@@ -7953,7 +7989,7 @@ void main(){
           color:dis?'#4B4D52':(on?'#EAEBEE':'#6F7276'),fontFamily:T.sans,fontSize:14,fontWeight:400,
           cursor:dis?'default':'pointer',padding:0};
         if(it.tail) Object.assign(st,{display:'flex',alignItems:'center',justifyContent:'center',gap:8});
-        const pr={key:it.k,disabled:dis,onClick:dis?null:()=>onPick(it.k),style:st};
+        const pr={key:it.k,disabled:dis,onClick:dis?null:()=>onPick(it.k),style:st,'data-guide':it.guide||null};
         return it.tail
           ? h('button',pr, h('span',{key:'l'}, it.label), h('span',{key:'t',style:{display:'flex'}}, it.tail))
           : h('button',pr, it.label);
