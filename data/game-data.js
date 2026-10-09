@@ -689,7 +689,7 @@ export const DATA = {
     {"StringID": "nav_shop", "Text_KR": "상점", "Text_EN": "Shop", "Category": "nav", "UIRole": "tab", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
     {"StringID": "nav_repair", "Text_KR": "수리", "Text_EN": "Repair", "Category": "nav", "UIRole": "tab", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
     {"StringID": "nav_belongings", "Text_KR": "소지품", "Text_EN": "Belongings", "Category": "nav", "UIRole": "tab", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
-    {"StringID": "nav_vault", "Text_KR": "금고", "Text_EN": "Vault", "Category": "nav", "UIRole": "tab", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
+    {"StringID": "nav_vault", "Text_KR": "보관함", "Text_EN": "Vault", "Category": "nav", "UIRole": "tab", "Status": "Planning", "Notes": "-", "LastUpdated": 46304},
     {"StringID": "nav_quest", "Text_KR": "퀘스트", "Text_EN": "Quest", "Category": "nav", "UIRole": "tab", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
     {"StringID": "nav_settings", "Text_KR": "설정", "Text_EN": "Settings", "Category": "nav", "UIRole": "tab", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
     {"StringID": "nav_feedback", "Text_KR": "피드백", "Text_EN": "Feedback", "Category": "nav", "UIRole": "tab", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
@@ -857,7 +857,7 @@ export const DATA = {
     {"StringID": "btn_return", "Text_KR": "귀환하기", "Text_EN": "Return", "Category": "btn", "UIRole": "button", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
     {"StringID": "btn_leave", "Text_KR": "자리를 뜬다", "Text_EN": "Leave", "Category": "btn", "UIRole": "button", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
     {"StringID": "btn_to_safehouse", "Text_KR": "프로토콜로", "Text_EN": "To Protocol", "Category": "btn", "UIRole": "button", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
-    {"StringID": "btn_to_vault", "Text_KR": "금고로 이동", "Text_EN": "Move to Vault", "Category": "btn", "UIRole": "button", "Status": "Planning", "Notes": "통합: 금고로", "LastUpdated": 46218},
+    {"StringID": "btn_to_vault", "Text_KR": "보관함으로 이동", "Text_EN": "Move to Vault", "Category": "btn", "UIRole": "button", "Status": "Planning", "Notes": "통합: 금고로", "LastUpdated": 46304},
     {"StringID": "btn_to_belongings", "Text_KR": "소지품으로 이동", "Text_EN": "Move to Belongings", "Category": "btn", "UIRole": "button", "Status": "Planning", "Notes": "통합: 소지품으로", "LastUpdated": 46218},
     {"StringID": "common_loading", "Text_KR": "불러오는 중…", "Text_EN": "Loading…", "Category": "common", "UIRole": "label", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
     {"StringID": "common_empty", "Text_KR": "비어 있음", "Text_EN": "Empty", "Category": "common", "UIRole": "label", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
@@ -876,7 +876,7 @@ export const DATA = {
     {"StringID": "belongings_sortie", "Text_KR": "소지품", "Text_EN": "Belongings", "Category": "nav", "UIRole": "label", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
     {"StringID": "belongings_lose_hint", "Text_KR": "레이드에 소지하는 아이템 슬롯", "Text_EN": "Item slots you carry on a raid", "Category": "belongings", "UIRole": "message", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
     {"StringID": "vault_keep_hint", "Text_KR": "프로토콜 지구에 보관되고 있는 아이템 슬롯", "Text_EN": "Item slots stored in the Protocol", "Category": "belongings", "UIRole": "message", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
-    {"StringID": "vault_safe_label", "Text_KR": "금고", "Text_EN": "Safe", "Category": "nav", "UIRole": "label", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
+    {"StringID": "vault_safe_label", "Text_KR": "보관함", "Text_EN": "Safe", "Category": "nav", "UIRole": "label", "Status": "Planning", "Notes": "-", "LastUpdated": 46304},
     {"StringID": "currency_sato", "Text_KR": "사토", "Text_EN": "Sato", "Category": "currency", "UIRole": "label", "Status": "Planning", "Notes": "통합: ' 사토'(공백)", "LastUpdated": 46218},
     {"StringID": "kicker_escape", "Text_KR": "ESCAPE · 도주", "Text_EN": "ESCAPE · Flee", "Category": "kicker", "UIRole": "kicker", "Status": "Planning", "Notes": "EN킥커+KR글로스", "LastUpdated": 46218},
     {"StringID": "kicker_repairing", "Text_KR": "REPAIR · 수리 중", "Text_EN": "REPAIR · Repairing", "Category": "kicker", "UIRole": "kicker", "Status": "Planning", "Notes": "-", "LastUpdated": 46218},
@@ -1262,7 +1262,8 @@ export const DATA = {
     {"StringID": "reward_cat_sato", "Text_KR": "화폐", "Text_EN": "Currency", "Category": "reward", "UIRole": "label", "Status": "Planning", "Notes": "보상 카드 분류 라벨 · 사토", "LastUpdated": 46304},
     {"StringID": "reward_sato_name", "Text_KR": "{N} SATO", "Text_EN": "{N} SATO", "Category": "reward", "UIRole": "label", "Status": "Planning", "Notes": "보상 카드 · 사토 제목 · {N}=금액(천 단위 쉼표)", "LastUpdated": 46304},
     {"StringID": "reward_sato_desc", "Text_KR": "어디서든 사용가능한 화폐이다.", "Text_EN": "Currency accepted anywhere.", "Category": "reward", "UIRole": "label", "Status": "Planning", "Notes": "보상 카드 · 사토 설명", "LastUpdated": 46304},
-    {"StringID": "story_ch01", "Text_KR": "프로토콜 규약", "Text_EN": "The Protocol Accord", "Category": "story", "UIRole": "label", "Status": "Planning", "Notes": "챕터 이름 · StoryQuest Chapter=1", "LastUpdated": 46304}
+    {"StringID": "story_ch01", "Text_KR": "프로토콜 규약", "Text_EN": "The Protocol Accord", "Category": "story", "UIRole": "label", "Status": "Planning", "Notes": "챕터 이름 · StoryQuest Chapter=1", "LastUpdated": 46304},
+    {"StringID": "quest_sum_act_equip", "Text_KR": "지급품 {n}종 착용", "Text_EN": "Equip {n} issued items", "Category": "quest", "UIRole": "label", "Status": "Planning", "Notes": "스토리 act/equip 목표 한 줄 · {n}=목표 수(교신 임무 카드)", "LastUpdated": 46304}
   ],
   "usb": [
     {"USBID": "usb_gutter_roach", "Name_KR": "거대 바퀴 데이터", "Name_EN": "Gutter Roach", "MonsterID": "monster_gutter_roach", "Grants": "[{\"stat\":\"stat_will\",\"v\":1}]", "UploadMinutes": 5, "Description": "극한에서도 살아남는 끈질긴 생존의 본능.", "Description_EN": "The relentless survival instinct that endures any extreme.", "SellPrice": 5000, "Status": "Planning", "Notes": "-", "LastUpdated": 46228},

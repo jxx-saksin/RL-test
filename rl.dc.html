@@ -86,6 +86,10 @@
   /* 온보딩 도입 — 눈을 깜빡이며 뜨는 연출(3.6s). 타원 구멍(=뜬 눈) 높이가 0 → 실눈 → 0 → 반쯤 → 깜빡 → 완전히 뜸. 흐림은 4.2s에 걷힌다. */
   @keyframes rlEyeOpen{0%,11%{height:0}24%{height:22%}33%{height:0}49%{height:40%}56%{height:36%}62%,68%{height:0}100%{height:250%}}
   @keyframes rlWakeBlur{0%{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);background:rgba(0,0,0,.45)}70%{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);background:rgba(0,0,0,.2)}100%{backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);background:rgba(0,0,0,0)}}
+  /* 퀘스트 대화 하단 박스 — 선택지·[확인]이 필요할 때만 떠오른다 */
+  @keyframes rlTalkPanelIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:none}}
+  /* 다음 행선지 안내 — 탭 글자가 초록으로 은은하게 숨 쉰다(예: 소지품 화면의 [보관함] 탭) */
+  @keyframes rlHintGlow{0%,100%{color:#EAEBEE;text-shadow:none}50%{color:#83B289;text-shadow:0 0 8px rgba(131,178,137,.75)}}
   @keyframes rlCommsBlink{0%,8.33%,16.67%,25%,33.33%{color:#2FBF71;filter:drop-shadow(0 0 4px rgba(47,191,113,.85))}4.17%,12.5%,20.83%,29.17%,37.5%,100%{color:var(--nb);filter:none}}
   @keyframes rlBossTell{0%,100%{box-shadow:inset 0 0 30px 4px rgba(196,60,50,0)}50%{box-shadow:inset 0 0 34px 7px rgba(196,60,50,.16)}}
   @keyframes rlBossEdge{0%,100%{box-shadow:inset 0 0 0 1px rgba(196,60,50,.25),0 0 16px rgba(150,20,16,.12)}50%{box-shadow:inset 0 0 0 1.5px rgba(230,80,68,.48),0 0 26px rgba(180,26,20,.28)}}
@@ -568,8 +572,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val62');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val27');
+      const eng = await import('./engine.js?v=val63');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val28');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -4510,8 +4514,8 @@ void main(){
       this.screenTitle('INVENTORY','nav_inventory',this.storageChips()),   // 소지품에선 PASS 대신 보관고 잔량을 본다
       // 2버튼 바 — svg/header-2button.svg. 헤더에 바로 붙고 하단 모서리만 r16, 높이 47.
       // (구 안내문구 "레이드에 소지하는 아이템 슬롯"은 삭제 — SVG 기준)
-      this.segBar([{k:'bag',label:this.t('nav_belongings')},{k:'vault',label:this.t('nav_vault')}],
-        seg, k=>this.setState({seg:k})),
+      this.segBar([{k:'bag',label:this.t('nav_belongings')},{k:'vault',label:(this._hintVault&&seg!=='vault')? h('span',{key:'hv',style:{animation:'rlHintGlow 1.4s ease-in-out infinite'}}, this.t('nav_vault')) : this.t('nav_vault')}],
+        seg, k=>{ if(k==='vault') this._hintVault=false; this.setState({seg:k}); }),
       // 소지품=슬롯 3섹션(belongings) · 금고=필터칩+리스트(기존)
       seg==='bag'? this.belongings(catOf) : h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
         h('div',{style:{display:'flex',gap:6,padding:'12px 18px',overflowX:'auto',flex:'0 0 auto'}},
@@ -4622,7 +4626,7 @@ void main(){
     if(inst.kind==='bag'){ const dump=this.gs.bag.filter(x=>!this.isEquipped(x.uid)&&x.loc!=='pocket'&&x.uid!==inst.uid);
       dump.forEach(d=>{ const i=this.gs.bag.findIndex(y=>y.uid===d.uid); if(i<0)return; const [it]=this.gs.bag.splice(i,1); delete it.loc; if(this.maxStack(it.id)>1) this.stackAdd(this.gs.vault,it.id,it.qty||1,{unappraisedMult:it.unappraisedMult, rareZone:it.rareZone}); else this.gs.vault.push(it); }); }
     const bi=this.gs.bag.findIndex(x=>x.uid===inst.uid); if(bi>=0){ const [it]=this.gs.bag.splice(bi,1); delete it.loc; this.gs.vault.push(it); }
-    this.saveGame(); this.forceUpdate(); this.flash(this.en()?'Unequipped → Vault':'해제 → 금고');
+    this.saveGame(); this.forceUpdate(); this.flash(this.en()?'Unequipped → Vault':'해제 → 보관함');
   }
   invGripDown(e,uid){
     e.preventDefault(); e.stopPropagation();
@@ -5392,24 +5396,24 @@ void main(){
     for(let i=end-(j<0?0:1);i>t.si;i--){ if(t.steps[i].t==='line'){ this.talkSay(t.steps[i].row,true); break; } }
     if(this.talkTyping()) this.npcComplete();
     t.si=end; t.wait= j<0? 'end' : 'choose'; this._talkFullAt=0; this.forceUpdate(); }
-  talkUpcoming(){ const t=this.talk;
-    for(let i=Math.max(t.si,0);i<t.steps.length;i++){ const st=t.steps[i]; if(st.t!=='choice') continue; if(i===t.si && t.wait!=='choose') continue; return st; }
-    return null; }
   talkFinish(){ const t=this.talk; if(!t||t.wait!=='end'||!this.talkReady()) return;
     const q=this.eng.storyRow(t.qid); this.talk=null;
-    if(t.stage==='start'){ this.storyMap().cur={id:t.qid,s:'run',p:[]}; this.saveGame(); this.sfx('quest_accept'); this.npcPickLine(t.vid); this.forceUpdate(); }
+    if(t.stage==='start'){ this.storyMap().cur={id:t.qid,s:'run',p:[]}; this.saveGame(); this.sfx('quest_accept');
+      // 받은 뒤 갈 곳 안내 — Dest가 보관함이면 소지품 화면으로 보내고 [보관함] 탭을 반짝인다(보관함을 열면 멈춤)
+      if(q && String(q.Dest||'').trim()==='screen:vault'){ this._hintVault=true; this.go('inventory'); this.setState({seg:'bag'}); return; }
+      this.npcPickLine(t.vid); this.forceUpdate(); }
     else if(t.stage==='done' && q){ this.storyGrant(q); } }
-  // 하단 패널 — 항상 2칸(높이 고정 → 박스가 흔들리지 않게). 선택지 지점 = 두 선택지(활성) / 그 전 = 다가올 선택지(비활성) / 더 없으면 [확인] 한 칸.
-  talkPanel(){ const t=this.talk, ready=this.talkReady(), up=this.talkUpcoming();
-    const btn=(key,label,on,onClick,hide)=>h('button',{key,disabled:!on,onClick:on?onClick:null,
+  // 하단 박스 — 평소엔 없다(다음 선택지를 미리 보여주지 않는다 · 사용자 2026-10-09). 선택지 지점 = 2칸 / 대화 끝 = [확인] 1칸.
+  //   NPC·대사 박스 위치가 흔들리지 않게 자리(2칸 높이 184 = 패널 160 + 아래 여백 24)는 늘 비워 두고, 박스는 그 안 아래쪽에 붙는다.
+  talkPanel(){ const t=this.talk, ready=this.talkReady();
+    const btn=(key,label,on,onClick)=>h('button',{key,disabled:!on,onClick:on?onClick:null,
       style:{height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:on?'#EAEBEE':'#4B4D52',fontFamily:T.sans,fontSize:12,fontWeight:400,
-        cursor:on?'pointer':'default',visibility:hide?'hidden':'visible',WebkitTapHighlightColor:'transparent'}}, label);
-    let kids;
-    if(t.wait==='choose'){ const st=t.steps[t.si]; kids=st.choices.slice(0,2).map((c,i)=>btn('c'+i,this.tx(c,'Line')||c.Line_KR,ready,()=>this.talkPick(this.eng.N(c.ChoiceNo,i+1)))); }
-    else if(up){ kids=up.choices.slice(0,2).map((c,i)=>btn('c'+i,this.tx(c,'Line')||c.Line_KR,false)); }
-    else kids=[btn('ok',this.t('btn_confirm'),t.wait==='end'&&ready,()=>this.talkFinish()), btn('pad','·',false,null,true)];
-    while(kids.length<2) kids.push(btn('pad'+kids.length,'·',false,null,true));
-    return h('div',{key:'tpanel',style:{position:'relative',zIndex:3,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',flexDirection:'column',gap:16}}, ...kids); }
+        cursor:on?'pointer':'default',WebkitTapHighlightColor:'transparent',transition:'color .2s'}}, label);
+    let kids=null, k='';
+    if(t.wait==='choose'){ const st=t.steps[t.si]; k='c'+t.si; kids=st.choices.slice(0,2).map((c,i)=>btn('c'+i,this.tx(c,'Line')||c.Line_KR,ready,()=>this.talkPick(this.eng.N(c.ChoiceNo,i+1)))); }
+    else if(t.wait==='end' && !this.talkTyping()){ k='end'; kids=[btn('ok',this.t('btn_confirm'),ready,()=>this.talkFinish())]; }
+    return h('div',{key:'tslot',style:{position:'relative',zIndex:3,flex:'0 0 auto',height:184}},
+      kids? h('div',{key:'tp'+k,style:{position:'absolute',left:16,right:16,bottom:24,padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',flexDirection:'column',gap:16,animation:'rlTalkPanelIn .28s ease-out'}}, ...kids) : null); }
   talkSkipBtn(){ const t=this.talk; if(!t||t.wait==='choose'||t.wait==='end') return null;
     return h('button',{key:'skip',onClick:()=>this.talkSkip(),
       style:{position:'absolute',zIndex:3,right:39,bottom:'calc(100% + 20px)',height:24,padding:'0 0 0 8px',border:'none',background:'none',display:'flex',alignItems:'center',gap:6,cursor:'pointer',WebkitTapHighlightColor:'transparent'}},
@@ -5477,7 +5481,11 @@ void main(){
         desc? h('span',{style:{fontFamily:T.sans,fontSize:12,lineHeight:1.6,color:MUT}}, desc) : null)); }
   storyCardFront(cd){
     if(cd.k==='item') return this.lootCardBig(cd.inst,true);
-    if(cd.k==='card') return this.keycardBig({id:cd.id==='protocol_pass'?'protocol_pass_full':cd.id},true);
+    // 프로토콜 패스 = 이미지 자체가 카드(테두리·배경 없음 · 사용자 2026-10-09)
+    //   이미지(700²) 안의 카드 실측 = x139~573 · y29~666(435×638) → 카드 높이를 442에 맞춰(×0.693) 가운데 정렬한다.
+    if(cd.k==='card') return h('div',{style:{position:'relative',width:342,height:442}},
+      h('img',{src:'assets/art/cards/'+(cd.id==='protocol_pass'?'protocol_pass_full':cd.id)+'.webp?v=2',alt:'',draggable:false,
+        style:{position:'absolute',left:-75.7,top:-19.8,width:485,height:485,maxWidth:'none',pointerEvents:'none',filter:'drop-shadow(0 14px 30px rgba(0,0,0,.5))'}}));
     if(cd.k==='sato') return this.storySatoBig(cd.n);
     return this.storyOpenBig(cd); }
   // 보상 화면 — 귀환 결과 전리품 캐러셀과 같은 값(250 간격 · 옆 카드 scale .9 · brightness .9 · 0.55s 플립)
@@ -5517,6 +5525,7 @@ void main(){
   commsPending(){
     if(!this.eng || !this.gs) return false;
     if(this.commsAlerts().length) return true;
+    { const c=this.storyMap().cur, q=c&&this.eng.storyRow(c.id); if(q && (c.s==='rw' || this.storyAllDone(q))) return true; }
     return ['daily','weekly'].some(t=>this.commsQuests(t).some(x=>x.st==='done')); }
   commsBtn(){
     return h('button',{key:'comms',onClick:()=>this.openComms(),'aria-label':this.t('comms_title'),
@@ -5552,7 +5561,33 @@ void main(){
   // ⚠️스토리 스키마(챕터 이름·순서 저장처)가 아직 미정이라 데이터 연결은 비어 있다 → 지금은 항상 빈 상태.
   //   로컬 검증은 인스턴스에 _storyMock을 꽂아서 한다(배포본에서 쓰는 경로 아님).
   commsStory(){ return this._storyMock || this.commsStoryData(); }
-  commsStoryData(){ return null; }
+  // 교신 임무 탭 모델 — gs.story에서 만든다. 시작 안 한 챕터는 기록이 없다.
+  //   reach = 칸을 눌러 볼 수 있는 마지막 칸(진행 중 퀘스트 · 없으면 마지막 완료) — 아직 안 받은 퀘스트는 보이지 않는다(스포일러 방지).
+  commsStoryData(){ if(!this.eng||!this.gs||!this.eng.storyRows) return null;
+    const m=this.storyMap(), rows=this.eng.storyRows(); if(!rows.length) return null;
+    const byCh={}; rows.forEach(q=>{ const k=this.eng.N(q.Chapter,0); (byCh[k]||(byCh[k]=[])).push(q); });
+    const chapters=[];
+    Object.keys(byCh).map(Number).sort((a,b)=>a-b).forEach(no=>{ const qs=byCh[no];
+      const done=qs.filter(q=>m.done[q.QuestID]).length, ai=qs.findIndex(q=>m.cur&&m.cur.id===q.QuestID);
+      if(!done && ai<0) return;
+      chapters.push({no,name:this.t('story_ch'+String(no).padStart(2,'0')),done,reach:ai>=0?ai:done-1,
+        quests:qs.map((q,i)=>{ const o=this.eng.questObjective(q), need=o?o.targets[0].count:0, pr=(i===ai)?this.storyProg(q):[];
+          return {id:q.QuestID,name:this.tx(q,'Name'),obj:this.storySummary(q),cur:m.done[q.QuestID]?need:this.eng.N(pr[0],0),need,
+            desc:this.tx(q,'Description'),dest:(i===ai&&m.cur&&m.cur.s==='run')?this.storyDest(q):null}; })}); });
+    return {chapters}; }
+  // 목표 한 줄 — act는 UIString quest_sum_act_<what>({n}) · 나머지는 일일과 같은 qSummary
+  storySummary(q){ const o=this.eng.questObjective(q); if(!o) return '';
+    if(o.kind==='act'){ const t=this.t('quest_sum_act_'+o.what); return (t&&t!=='quest_sum_act_'+o.what)? t.replace('{n}',o.targets[0].count) : ''; }
+    return this.qSummary(q); }
+  // 이동 줄 — 목표를 다 채웠으면 기버 상점(보고) · 아니면 Dest(screen:vault / vendor:… / zone:…)
+  storyDest(q){ const giver=String(q.GiverVendorID||'');
+    const toV=(vid)=>{ const v=this.eng.byId.vendor[vid]||{}; return {label:this.shopName(v.ShopID,v), go:()=>this.openVendor(vid)}; };
+    if(this.storyAllDone(q) && giver) return toV(giver);
+    const d=String(q.Dest||'').trim(), i=d.indexOf(':'), kind=d.slice(0,i), id=d.slice(i+1);
+    if(kind==='screen'&&id==='vault') return {label:this.t('nav_vault'), go:()=>{ this.go('inventory'); this.setState({seg:'vault'}); }};
+    if(kind==='vendor') return toV(id);
+    if(kind==='zone'){ const z=this.eng.byId.zone[id]||{}; return {label:this.tx(z,'ZoneName')||id, go:()=>this.go('zone')}; }
+    return null; }
   commsMission(){
     const m=this.commsStory(), chs=(m&&Array.isArray(m.chapters))?m.chapters.filter(c=>c&&c.quests&&c.quests.length):[];
     const cur=chs.find(c=>c.done<c.quests.length);
@@ -5585,8 +5620,9 @@ void main(){
   // ★진행바 칸 = 퀘스트 선택기. 끝난 칸·지금 칸을 누르면 그 퀘스트로 카드 내용이 바뀐다 · 아직 안 한 칸은 무반응.
   //   기본 선택 = 진행 중 챕터는 지금 퀘스트 / 지난 챕터는 마지막 퀘스트. 직접 고른 동안만 나머지 칸을 흐리게 해서 어디를 보는지 알린다.
   commsStoryCard(c,key,past,mt){
-    const n=c.quests.length, def=past? n-1 : Math.min(c.done,n-1);
-    const pk=(this.state.commsPick||{})[key], sel=(pk!=null&&pk<=Math.min(c.done,n-1))? pk : def;
+    // reach(스토리 실데이터) = 볼 수 있는 마지막 칸 — 없으면 옛 규칙(완료 수)
+    const n=c.quests.length, lim=Math.min(c.reach!=null?c.reach:c.done,n-1), def=past? n-1 : lim;
+    const pk=(this.state.commsPick||{})[key], sel=(pk!=null&&pk<=lim)? pk : def;
     const q=c.quests[sel]||{}, qDone=sel<c.done, need=this.eng.N(q.need,0), cur=qDone? need : Math.min(this.eng.N(q.cur,0),need);
     const pick=(i)=>this.setState({commsPick:Object.assign({},this.state.commsPick||{},{[key]:i})});
     const mono=(fs,col)=>({fontFamily:T.mono,fontSize:fs,lineHeight:fs+'px',color:col});
@@ -5600,7 +5636,7 @@ void main(){
         h('span',{key:'c',style:Object.assign({flex:'0 0 auto'},mono(10,'#6F7276'))}, cur+'/'+need)),
       // 칸 h4 · 폭 균등 · 간격 13.8(목업 6칸 = 44×6 + 13.8×5 = 333). 터치 영역은 위아래 8씩 넓힌다.
       h('div',{key:'bar',style:{marginTop:18,display:'flex',gap:13.8}},
-        ...c.quests.map((_,i)=>{ const can=i<=Math.min(c.done,n-1);
+        ...c.quests.map((_,i)=>{ const can=i<=lim;
           return h('div',{key:i,onClick:can?()=>pick(i):null,style:{flex:1,height:20,margin:'-8px 0',display:'flex',alignItems:'center',cursor:can?'pointer':'default'}},
             h('div',{style:{flex:1,height:4,borderRadius:2,background:i<c.done?'#83B289':'#6F7276',opacity:(pk!=null&&i!==sel)?0.4:1,transition:'opacity .15s'}})); })),
       q.desc? h('div',{key:'ds',style:Object.assign({marginTop:16,whiteSpace:'pre-line',wordBreak:'keep-all'},mono(10,'#A9ABAF'),{lineHeight:'13px'})}, q.desc) : null);
