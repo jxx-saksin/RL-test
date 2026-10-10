@@ -3567,7 +3567,10 @@ void main(){
       else { this._aprRaf=null; this.aprSettle(); this.forceUpdate(); } };
     this._aprRaf=requestAnimationFrame(step);
   }
-  aprDone(){ this.aprSettle(); this.setState({apr:null}); const sf=this.storyStageFor(this.state.vendor); if(sf&&sf.stage==='done'){ this.vendorBack(); return; } this.go('safehouse'); }   /* 감정으로 목표를 채웠으면 박 완료 대화 */
+  storyGiven(uid){ const c=this.gs&&this.storyMap().cur; return !!(c&&c.s==='run'&&Array.isArray(c.given)&&c.given.indexOf(uid)>=0); }
+  aprDone(){ this.aprSettle(); const au=(this.state.apr||{}).itemUid; this.setState({apr:null});
+    if(au&&this.storyGiven(au)){ const c=this.storyMap().cur, q=this.eng.storyRow(c.id), o=q&&this.eng.questObjective(q);
+      if(o&&o.takeBack){ const it=this.eng.instById(this.gs,au); this.consumeInst(au); c.given=c.given.filter(u=>u!==au); this.saveGame(); if(it) this.flash((this.eng.anyName(it.id)||'')+(this.en()?' returned':' · 돌려줌')); } }   /* 감정이 끝난 퀘스트 장비는 박이 다시 가져간다(사용자 2026-10-10) */ const sf=this.storyStageFor(this.state.vendor); if(sf&&sf.stage==='done'){ this.vendorBack(); return; } this.go('safehouse'); }   /* 감정으로 목표를 채웠으면 박 완료 대화 */
   // ================= 흥정 (전당포 · 마르타 콜) =================
   // 귀중품은 가치가 숨어 있다. 카드를 위로 올려 보내면 마르타가 값을 부르고(최대 3회),
   // 매번 직전 제시가에서 오르내린다. 수수료 없음(2026-08-23 확정 — 구 valuable_fee_k 폐기).
@@ -5029,14 +5032,16 @@ void main(){
   // 목업 = buySheet와 같은 조립(딤 + lootCardBig 'fit' + 하단 박스 369x79 · 버튼 165x48 2개)이라 그대로 재사용.
   aprSheet(){
     const a=this.state.apr||{}; const inst=this.eng.instById(this.gs,a.itemUid); if(!inst) return null;
-    const close=()=>this.setState({apr:{}});
+    const held=this.storyGiven(inst.uid);   /* 박이 건넨 퀘스트 장비 — [감정받기]만(닫기 비활성) */
+    const close=held? ()=>{} : ()=>this.setState({apr:{}});
     return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
         h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...inst,qty:1},'fit'))),
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
         h('div',{style:{display:'flex',gap:8}},
           this.fbtn(this.en()?'Appraise':'감정받기','#eaebee',()=>this.setState({apr:{itemUid:inst.uid,liq:[]}}),true),
-          this.fbtn(this.en()?'Close':'닫기','#eaebee',close,true))));
+          held? h('button',{disabled:true,style:{flex:1,minWidth:0,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color:'#4B4D52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'default'}}, this.en()?'Close':'닫기')
+            : this.fbtn(this.en()?'Close':'닫기','#eaebee',close,true))));
   }
 
   // 상점 구매 모달 — itemSheet 패턴 재사용(상세카드 + 수량 스테퍼 + 닫기/구매하기)
@@ -5708,7 +5713,8 @@ void main(){
     const q=this.eng.storyRow(t.qid); this.talk=null;
     if(t.stage==='start'){ const sm=this.storyMap(); sm.cur={id:t.qid,s:'run',p:[]}; if(t.vid&&sm.opened.indexOf('vendor:'+t.vid)<0) sm.opened.push('vendor:'+t.vid);
       { const o=q&&this.eng.questObjective(q); if(o&&o.give&&typeof o.give==='object') for(const id in o.give){ for(let k=0;k<Math.max(1,this.eng.N(o.give[id],1));k++){ const inst=this.eng.mkInstance(id,1); inst.qty=1;
-            if(o.unapp&&inst.rolls&&(inst.kind==='weapon'||inst.kind==='armor')){ inst.unappraised=Object.keys(inst.rolls); inst.appraised=false; } this.gs.vault.push(inst); } } }   /* 수락 때 건네는 물건(2번 술값 = 박이 맡아 둔 미감정 쇠파이프 → 보관함) */
+            if(o.unapp&&inst.rolls&&(inst.kind==='weapon'||inst.kind==='armor')){ inst.unappraised=Array.isArray(o.unapp)? o.unapp.filter(k=>k in inst.rolls) : Object.keys(inst.rolls); inst.appraised=false; }   /* unapp 배열 = 그 수치만 가림 */
+            this.gs.vault.push(inst); (sm.cur.given||(sm.cur.given=[])).push(inst.uid); } } }   /* 수락 때 건네는 물건(2번 술값 = 박이 맡아 둔 미감정 쇠파이프 → 보관함) */
       this.saveGame(); this.sfx('quest_accept');
       // 받은 뒤 갈 곳 안내 — Dest가 보관함이면 소지품 화면으로 보내고 [보관함] 탭을 반짝인다(보관함을 열면 멈춤)
       if(q && String(q.Dest||'').trim()==='screen:vault'){ this._hintVault=true; this.go('inventory'); this.setState({seg:'bag'}); return; }
