@@ -985,13 +985,15 @@ class Component extends DCLogic {
       const loot = this.eng.rollLoot(c.mProf.id, c.zoneId);
       { const sr=this.storyRaidOn(); if(sr&&!sr.got){ if(sr.r.noloot) loot.length=0;   // 스토리 레이드 noloot — 아이템 드랍 없음(사토는 그대로)
           const d=sr.r.drops&&sr.r.drops[String(c.encounter)]; if(d){ loot.length=0;   /* 확정 드랍이 걸린 전투는 그 아이템만(사용자 2026-10-10) */
-            for(const id in d){ if(this.eng.byId.item[id]) loot.unshift({id, qty:Math.max(1,this.eng.N(d[id],1))}); } } } }   // drops = n전 확정 드랍 · 맨 앞 카드(손 안내가 바로 가리키게)
+            for(const id in d){ if(this.eng.byId.item[id]||(this.eng.byId.weapon&&this.eng.byId.weapon[id])||(this.eng.byId.armor&&this.eng.byId.armor[id])) loot.unshift({id, qty:Math.max(1,this.eng.N(d[id],1)), unapp:!!sr.r.unapp}); } } } }   // drops = n전 확정 드랍 · 맨 앞 카드(손 안내가 바로 가리키게)
       // quest drop: the police keycard is carried by 하람의 파수꾼 (assigned drop, not a global roll)
       if(c.mProf.id==='monster_haram_warden' && !this.hasItem('item_police_keycard') && Math.random()<0.35){ loot.push({id:'item_police_keycard', qty:1}); }
       c.lootInsts=[]; c.lootDraw=[];
       // 전투 드랍 → 루팅 카드 화면에서 직접 담게 인스턴스 생성. 드랍은 전부 낱개(qty 1)로 분리 — 스택은 가방에 담길 때만.
       for(const l of loot){ c.runLoot.push(l); const n=Math.max(1, l.qty||1);
-        for(let k=0;k<n;k++){ const inst=this.eng.mkInstance(l.id, 1, {unappraisedMult:l.unappraisedMult, rareZone:l.rareZone}); inst.qty=1; inst.locked=false; c.lootDraw.push(inst); } }
+        for(let k=0;k<n;k++){ const inst=this.eng.mkInstance(l.id, 1, {unappraisedMult:l.unappraisedMult, rareZone:l.rareZone}); inst.qty=1; inst.locked=false;
+          if(l.unapp&&inst.rolls&&(inst.kind==='weapon'||inst.kind==='armor')){ inst.unappraised=Object.keys(inst.rolls); inst.appraised=false; }   /* 스토리 확정 드랍 unapp — 수치 전부 가림(2번 술값) */
+          c.lootDraw.push(inst); } }
       c.loot = loot;
       // 사토 드롭 (Config 공식: StaminaCost × per × 배율) — 누적만, 귀환 성공 시 지급(사망 시 0)
       // 배율 = lo + (hi-lo) × rand()^curve. curve=1이면 균등, 클수록 하한에 몰리고 상한(대박)이 희귀해진다.
@@ -3517,7 +3519,7 @@ void main(){
   // 술 도수는 "합산"해서 엔진 appraise(inst, proofPct)에 그대로 넘긴다(엔진 무수정).
   aprMax(){ return Math.max(1, Math.round(this.eng.N(this.eng.DATA.config.appraise_max_liquor, 3))); }
   // 수수료 = floor(도수 합) × 사토/도. 소수점은 도수 합 쪽에서 버린다(목업 19.50% → 1900 사토).
-  appraiseFee(totalProof){ return Math.floor(this.eng.N(totalProof)) * this.eng.N(this.eng.DATA.config.appraise_sato_per_proof, 100); }
+  appraiseFee(totalProof){ if(this.storyFree('appraise')) return 0; return Math.floor(this.eng.N(totalProof)) * this.eng.N(this.eng.DATA.config.appraise_sato_per_proof, 100); }
   aprLiquors(){ const a=this.state.apr||{}; return (a.liq||[]).map(u=>this.eng.instById(this.gs,u)).filter(Boolean); }
   aprTotalProof(){ return this.aprLiquors().reduce((t,l)=>t+this.eng.N(l.proof), 0); }
   aprToggleLiquor(uid){ const a=this.state.apr||{}; const cur=(a.liq||[]).slice(); const i=cur.indexOf(uid);
@@ -3532,6 +3534,7 @@ void main(){
     this._aprRatio=Math.max(0, Math.min(1, this.eng.N(item.dur)/Math.max(1,Math.round(this.eng.N(item.maxDur)))));
     const changes=this.eng.appraise(item,total);          // 도수 합 = ±변동폭
     this.gs.sato-=fee; liqs.forEach(l=>this.consumeInst(l.uid));   // 제출한 술은 병째 소모
+    this.storyAct('appraise',this.state.vendor);
     const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp);
     this.flipSettled(this,'apr',false);   // 직전 감정의 '평면 복귀' 표시를 지운다 — 안 지우면 2회차 플립이 3D로 안 돈다
     this.setState({apr:{itemUid:a.itemUid,liq:[],phase:'card',results:changes,proof:total,flipped:false}});
@@ -3564,7 +3567,7 @@ void main(){
       else { this._aprRaf=null; this.aprSettle(); this.forceUpdate(); } };
     this._aprRaf=requestAnimationFrame(step);
   }
-  aprDone(){ this.aprSettle(); this.setState({apr:null}); this.go('safehouse'); }
+  aprDone(){ this.aprSettle(); this.setState({apr:null}); const sf=this.storyStageFor(this.state.vendor); if(sf&&sf.stage==='done'){ this.vendorBack(); return; } this.go('safehouse'); }   /* 감정으로 목표를 채웠으면 박 완료 대화 */
   // ================= 흥정 (전당포 · 마르타 콜) =================
   // 귀중품은 가치가 숨어 있다. 카드를 위로 올려 보내면 마르타가 값을 부르고(최대 3회),
   // 매번 직전 제시가에서 오르내린다. 수수료 없음(2026-08-23 확정 — 구 valuable_fee_k 폐기).
@@ -5518,7 +5521,8 @@ void main(){
     const q=this.eng.storyRow(c.id), o=q&&this.eng.questObjective(q), r=o&&o.raid; if(!o||o.kind!=='act'||!r||typeof r!=='object') return null;
     const got=this.storyAllDone(q) || !!(r.until && this.storyOwns(String(r.until)));
     return {q,o,r,got,zid:String(r.zone||((o.targets[0]||{}).ids||[])[0]||'')}; }
-  storyOwns(id){ const g=this.gs, has=a=>(a||[]).some(x=>x&&x.id===id); return has(g.bag)||has(g.vault); }
+  storyOwns(id){ if(id==='@unappraised') return this.unappItems().length>0;   /* 미감정 장비 아무거나(2번 술값) */
+    const g=this.gs, has=a=>(a||[]).some(x=>x&&x.id===id); return has(g.bag)||has(g.vault); }
   storyRaidOn(){ const sr=this.storyRaid(), c=this.combat; return (sr&&c&&(!sr.zid||c.zoneId===sr.zid))?sr:null; }
   // 지금 전투 뒤에 누를 수 있는 버튼 하나 — continue / rest / return (휴식 단계는 회복템을 쓰거나 체력이 가득이면 continue로 바뀐다)
   storyRaidStep(){ const sr=this.storyRaidOn(), c=this.combat; if(!sr||!c) return null; const a=Array.isArray(sr.r.after)?sr.r.after:[];
@@ -5537,10 +5541,11 @@ void main(){
     if(['combat','sortieLoad','result','lootmanage','returnheal'].indexOf(s)>=0) return null;
     return 'nav-zone'; }
   // 전리품 화면 손 안내(4번 until 아이템) — 뒤집기 → 아래로 끌어 가방 → [가방] → 자물쇠(주머니) → [완료]
-  storyLootGuide(sr){ const lm=this.state.lm, id=String(sr.r.until||''); if(!lm||!id) return null;
+  storyRaidItem(r){ const u=String(r.until||''); if(u&&u[0]!=='@') return u; const d=(r.drops||{})['1']||{}; return Object.keys(d)[0]||''; }   /* 손 안내가 따라갈 아이템 */
+  storyLootGuide(sr){ const lm=this.state.lm, id=this.storyRaidItem(sr.r); if(!lm||!id) return null;
     const fi=lm.field.findIndex(x=>x.id===id), be=lm.bag.find(x=>x.id===id&&!x.pre);
     if(fi>=0){ if(lm.view!=='field') return 'lm-view'; if((lm.focus||0)!==fi) return null; return (lm.opened&&lm.opened.has(lm.field[fi].uid))? 'lm-card|drag' : 'lm-card'; }
-    if(be&&!be.locked&&this.lmLocked(lm)>=2) return 'lm-done';   /* 주머니가 이미 꽉 찼으면 가방에 넣은 걸로 끝(잠금 강요 안 함) */
+    if(be&&!be.locked&&(this.lmLocked(lm)>=2||sr.r.lock===false)) return 'lm-done';   /* lock:false = 가방에 넣으면 끝 */   /* 주머니가 이미 꽉 찼으면 가방에 넣은 걸로 끝(잠금 강요 안 함) */
     if(be&&!be.locked){ if(lm.view!=='bag') return 'lm-view'; return lm.bag[lm.focus||0]===be? 'lm-lock' : null; }
     if(be&&be.locked) return (this.storyRadioFired('item_lock')||!this.storyHasRadio('item_lock'))? 'lm-done' : 'lm-chips';   /* 칩 안내는 item_lock 무전이 있는 퀘스트(4번)만 */   // 잠근 뒤 2초 = 주머니·가방·전리품 칩을 밝혀 두고 → 무전 → [완료]
     return null; }
@@ -5560,9 +5565,9 @@ void main(){
     return this.storyGuideToVendor(vid); }
   storyRadioFired(on){ const c=this.storyMap().cur, f=(c&&c.radio)||{}; return Object.keys(f).some(k=>k.indexOf('"on":"'+on+'"')>=0); }
   // 잠그기 전엔 [완료]를 막는다 — 4번은 자물쇠(주머니)까지가 핵심(사용자 2026-10-10)
-  storyLootBlock(){ const sr=this.storyRaid(); if(!sr||sr.got||!sr.r.until) return false; const lm=this.state.lm; if(!lm) return false; const id=String(sr.r.until);
-    return lm.field.some(x=>x.id===id) || (this.lmLocked(lm)<2 && lm.bag.some(x=>x.id===id&&!x.pre&&!x.locked)); }
-  storyLootFocus(lm){ const sr=this.storyRaid(); if(!sr||!sr.r.until||!lm) return -1; return lm.bag.findIndex(x=>x.id===String(sr.r.until)&&!x.pre); }
+  storyLootBlock(){ const sr=this.storyRaid(); if(!sr||sr.got||!sr.r.until) return false; const lm=this.state.lm; if(!lm) return false; const id=this.storyRaidItem(sr.r);
+    return lm.field.some(x=>x.id===id) || (sr.r.lock!==false && this.lmLocked(lm)<2 && lm.bag.some(x=>x.id===id&&!x.pre&&!x.locked)); }
+  storyLootFocus(lm){ const sr=this.storyRaid(); if(!sr||!sr.r.until||!lm) return -1; const id=this.storyRaidItem(sr.r); return lm.bag.findIndex(x=>x.id===id&&!x.pre); }
   // 상점 열림(온보딩) — 첫 스토리 퀘스트 기버 + 보상으로 연 상점(opened)만 · 스토리가 없으면 전부 열림
   storyShopOpen(vid){ const rows=(this.eng&&this.eng.storyRows)?this.eng.storyRows():[]; if(!this.gs||!rows.length) return true;
     if(String(rows[0].GiverVendorID||'')===vid) return true; const m=this.storyMap(), q=this.storyNext();
@@ -5576,6 +5581,7 @@ void main(){
   storyDailyOpen(){ const rows=(this.eng&&this.eng.storyRows)?this.eng.storyRows():[]; if(!this.gs||!rows.length) return true; return this.storyMap().opened.indexOf('feature:daily')>=0; }
   // 퀘스트 받기 전 호출 무전(Trigger call) — 있으면 다음 퀘스트로 가는 길이 교신(무전기)을 거친다(5번)
   storyCallRows(q){ if(!q||!this.eng.storyLines) return []; return this.eng.storyLines(q.QuestID,'radio').filter(r=>{ try{ return JSON.parse(String(r.Trigger||'')).on==='call'; }catch(_){ return false; } }).sort((a,b)=>this.eng.N(a.Seq,0)-this.eng.N(b.Seq,0)); }
+  storyQuietStart(q){ return this.eng.N(q&&q.Chapter,1)>=2; }   /* 챕터2부터 퀘스트 시작은 손 안내·내비 잠금 없이(찾아가는 건 유저 몫 · 사용자 2026-10-10) */
   storyCallAuto(q){ return this.storyCallRows(q).some(r=>{ try{ return JSON.parse(String(r.Trigger||'')).id==='auto'; }catch(_){ return false; } }); }
   // 무료 1회(보상 free) — gs.story.free = { heal:1 } · 쓰면 지운다
   storyFreeOnce(k){ const f=this.gs&&this.gs.story&&this.gs.story.free; return !!(f&&f[k]); }
@@ -5589,7 +5595,7 @@ void main(){
   storyReport(){ if(!this.gs||!this.eng||!this.eng.storyRow) return null; const c=this.storyMap().cur; if(!c||c.s!=='run') return null;
     const q=this.eng.storyRow(c.id), o=q&&this.eng.questObjective(q); if(!o||o.kind!=='act'||o.what!=='equip'||!this.storyAllDone(q)) return null; return q; }
   // 하단 내비에서 누를 수 있는 칸 하나(나머지 잠금) — 착용 중 = 소지품 · 보고 대기 = 캐릭터(교신으로)
-  storyNavAllow(){ if(this.storyGuide()) return 'inventory'; if(this.storyReport()) return 'character'; { const pq=this.storyPending(); if(pq&&!this.storyCallAuto(pq)) return this.storyCallRows(pq).length? 'character' : 'safehouse'; } if(this.storyActRun('feed')||this.storyActRun('repair')) return 'safehouse'; { const sr=this.storyRaid(); if(sr&&sr.r.nodie) return sr.got?'safehouse':'zone'; } return null; }   /* 내비 잠금은 nodie(챕터1 안내형) 레이드만 — 챕터2는 자유 */
+  storyNavAllow(){ if(this.storyGuide()) return 'inventory'; if(this.storyReport()) return 'character'; { const pq=this.storyPending(); if(pq&&!this.storyCallAuto(pq)&&!this.storyQuietStart(pq)) return this.storyCallRows(pq).length? 'character' : 'safehouse'; } if(this.storyActRun('feed')||this.storyActRun('repair')) return 'safehouse'; { const sr=this.storyRaid(); if(sr&&sr.r.nodie) return sr.got?'safehouse':'zone'; } return null; }   /* 내비 잠금은 nodie(챕터1 안내형) 레이드만 — 챕터2는 자유 */
   // 손 안내 대상(data-guide) — 스크린샷 흐름(사용자 2026-10-09): [보관함] 탭 → (착용) → 캐릭터 → 무전기 → 교신 이동 줄(보건소)
   storyGuideTarget(){ const s=this.state.screen;
     if(this.state.tuto||this.state.sel||this.state.wake||this.radio||this.talk||this.storyRew) return null;
@@ -5606,6 +5612,7 @@ void main(){
         if(sr.got){ const vid=String(sr.q.GiverVendorID||'');   // 4번: 가져왔으면 기버에게 판매 → 완료 대화
           if(['combat','sortieLoad','result','lootmanage','returnheal','tap'].indexOf(s)>=0) return null;
           if(sr.o.what==='haggle') return this.storyHaggleGuide(sr.q,vid);
+          if(sr.o.what==='appraise'){ if(s==='vendorMenu'&&this.state.vendor===vid) return this.storyAllDone(sr.q)? null : 'svc-appraise'; if(s==='vendor'&&this.state.vendor===vid) return null; return this.storyGuideToVendor(vid); }   /* 감정 화면은 자유 */
           if(this.state.vendor===vid && s==='vendor'){ if(this.storyAllDone(sr.q)) return this.state.sellSel? null : 'trade-back';
             if(this.state.vtab!=='sell') return 'seg-sell'; return this.state.sellSel? 'sell-go' : 'sell-'+String(sr.r.until||''); }
           if(this.state.vendor===vid && s==='vendorMenu') return this.storyAllDone(sr.q)? null : 'svc-trade';
@@ -5614,7 +5621,7 @@ void main(){
     // 첫 치료 무료(3번 보상) — 보건소에 있을 때만 [치료] → [치료하기]
     if(this.storyFreeOnce('heal') && this.gs.hp<this.gs.maxHp && this.state.vendor==='vendor_clinic'){
       if(s==='vendorMenu') return 'svc-heal'; if(s==='vendor'&&this.state.vtab==='heal') return this._rcvAnim?null:'heal-btn'; }
-    { const p=this.storyPending(); if(p&&this.storyCallAuto(p)) return null;   /* 자동 호출(챕터2 1번) — 무전만, 찾아가는 건 유저 몫 */
+    { const p=this.storyPending(); if(p&&(this.storyCallAuto(p)||this.storyQuietStart(p))) return null;   /* 자동 호출(챕터2 1번) — 무전만, 찾아가는 건 유저 몫 */
       if(p){ const gv=String(p.GiverVendorID);
         if(this.storyCallRows(p).length){   // 5번: 캐릭터 → 무전기 → (맥 호출) → 이동 줄 → 철물점
           if(s==='comms') return this.state.commsTab==='news'? null : 'comms-move'; if(s==='character') return 'comms-btn';
