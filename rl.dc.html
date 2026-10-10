@@ -5901,8 +5901,10 @@ void main(){
         quests:qs.map((q,i)=>{ const o=this.eng.questObjective(q), need=o?o.targets[0].count:0, pr=(i===ai)?this.storyProg(q):[];
           return {id:q.QuestID,name:this.tx(q,'Name'),obj:this.storySummary(q),cur:m.done[q.QuestID]?need:((i===ai&&o&&o.prog==='owns'&&o.raid&&o.raid.until)?((this.storyOwns(String(o.raid.until))||this.storyAllDone(q))?need:0):this.eng.N(pr[0],0)),need,   /* prog:owns = 가져왔으면 채움 */
             objs:this.storyObjLines(q, i===ai, !!m.done[q.QuestID]),
-            desc:this.tx(q,'Description'),dest:(i===ai&&((m.cur&&m.cur.s==='run')||(call&&pq===q)))?this.storyDest(q):null}; })}); });
+            desc:(m.done[q.QuestID]||(m.cur&&m.cur.id===q.QuestID&&m.cur.s==='rw'))? this.storyDoneDesc(q) : this.tx(q,'Description'),dest:(i===ai&&((m.cur&&m.cur.s==='run')||(call&&pq===q)))?this.storyDest(q):null}; })}); });
     return {chapters}; }
+  // 완료 후 사정 문단 — UIString quest_done_<QuestID>(있으면) · 없으면 원래 Description(사용자 2026-10-10 "감정이 끝나면 다음 행선지가 보여야")
+  storyDoneDesc(q){ const k='quest_done_'+q.QuestID, t=this.t(k); return (t&&t!==k)? t : this.tx(q,'Description'); }
   // 목표 여러 줄(교신 카드) — act/equip은 아이템마다 한 줄 「{이름} 착용 0/1」(사용자 2026-10-09) · 그 밖은 null(한 줄 표시)
   storyObjLines(q,active,done){ const o=this.eng.questObjective(q); if(!o||o.kind!=='act'||o.what!=='equip') return null;
     const tpl=this.t('quest_obj_equip'), eqIds=new Set();
