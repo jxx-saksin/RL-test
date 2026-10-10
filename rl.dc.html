@@ -582,8 +582,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val67');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val32');
+      const eng = await import('./engine.js?v=val68');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val33');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -891,6 +891,9 @@ class Component extends DCLogic {
       }
       return { type:'monster', id };
     });
+    // 스토리 레이드 — 이번 판 몬스터를 고정한다(카드 3장 모두 같은 몬스터 · 보스 없음)
+    { const sr=this.storyRaidOn(), sp=sr&&Array.isArray(sr.r.spawn)?sr.r.spawn:null;
+      if(sp&&sp.length){ const id=sp[Math.min(this.combat.encounter||0, sp.length-1)]; if(this.eng.byId.monster[id]) for(let i=0;i<cards.length;i++) cards[i]={type:'monster',id}; } }
     Object.assign(this.combat, { cards, picked:null, mProf:null, pvp:null, pvpCards:null, phase:'cards', res:null, revealed:0, loot:[], ups:[], cardFocus:Math.floor(n/2), flipped:false });
     this.sfxDeal(cards.length);   // 딜링 — 카드 1장당 1회, 간격 랜덤
     if(this._t){ clearInterval(this._t); this._t=null; }
@@ -1019,7 +1022,8 @@ class Component extends DCLogic {
     return made;
   }
   addToBag(id, qty, opts){ return this.stackAdd(this.gs.bag, id, qty, opts); }
-  extract(){ this.qOnExtract();   // 퀘스트: 정찰 가산 + 연전 연승 확정(생환만 인정)
+  extract(){ this.qOnExtract();
+    { const sr=this.storyRaidOn(); if(sr){ const sp=Array.isArray(sr.r.spawn)?sr.r.spawn.length:0; if((this.combat.encounter||0)>=sp) this.storyAct('extract', this.combat.zoneId); } }   // 퀘스트: 정찰 가산 + 연전 연승 확정(생환만 인정)
     if(this.combat && !this.combat.satoPaid){ this.gs.sato+=this.eng.N(this.combat.satoGained,0); this.combat.satoPaid=true;
       // ★귀환 성공 전용 카운터. gs.sorties는 사망·도망도 세므로 쓸 수 없다(engine.js endSortie 주석).
       //   ⚠️ fleeSuccess는 도망 **실패** 때도 false로 남는다 — !fleeSuccess로 재면 도망 실패 후
@@ -1027,6 +1031,10 @@ class Component extends DCLogic {
       if(this.combat.fleeSuccess!==true) this.gs.extracts=this.eng.N(this.gs.extracts,0)+1; } this.setState({ screen:'result' }); this.combat.result='extract'; if(this._t){clearInterval(this._t);this._t=null;} this.forceUpdate();
     if(this.lootUids().length){ this.combat.resultStage='loot'; if(this._lootRevealTimer)clearTimeout(this._lootRevealTimer); this._lootRevealTimer=setTimeout(()=>this.startLootReveal(), 450); } }
   death(){
+    { const sr=this.storyRaidOn(); if(sr&&sr.r.safe){   // 스토리 레이드 safe — 가방·내구도 그대로 · 체력은 시작 비율로 · 진행(전투 무전 포함)은 처음부터
+        const cur=this.storyMap().cur; cur.p=[]; if(cur.radio){ Object.keys(cur.radio).forEach(k=>{ if(/fight_end|rest_empty/.test(k)) delete cur.radio[k]; }); }
+        this.gs.hp=Math.max(1,Math.round(this.gs.maxHp*Math.min(1,Math.max(0.01,this.eng.N(this.eng.DATA.config.start_hp_ratio,1)))));
+        this.combat.result='death'; this.combat.broke=null; this.combat.brokeFrom=0; this.saveGame(); this.setState({ screen:'result' }); return; } }
     this.gs.hp = 1;   // 사망(몬스터·PvP) 귀환 시 체력 1로 생존
     // 사망 시 유지: 주머니 2슬롯 + 착용 장비(투구·갑옷·무기·악세서리·부적). 가방(및 가방 속 전리품)은 착용템이라도 예외로 전부 소멸.
     // 가방은 어디에 있든 잃는다. gs.bag만 훑으면, 금고에 앉은 채 착용으로 남은 유령 가방이 살아남는다.
@@ -1066,7 +1074,8 @@ class Component extends DCLogic {
     this.setState({screen:'vendor', vendor:'vendor_clinic', vtab:'heal', sel:null, repairSel:null, repairMode:null, modalZone:null, apr:null, mod:null});
     if(r) this.flashRestock(); }
   // 귀환 성공 → 회복 스테이션(S5-3). 배너에 쓸 존 ID를 combat 정리 전에 챙겨둔다.
-  toReturnHeal(){ const r=this.endSortie(); this._retZoneId=(this.combat&&this.combat.zoneId)||null; this.combat=null; this._retHealing=false; this.go('returnheal'); if(r) this.flashRestock(); }
+  toReturnHeal(){ { const sq=this.storyDirectReport(); if(sq){ const r=this.endSortie(); this.combat=null; this.openVendor(String(sq.GiverVendorID)); if(r) this.flashRestock(); return; } }   // 3번: 회복 스테이션 없이 보건소 완료 대화로
+    const r=this.endSortie(); this._retZoneId=(this.combat&&this.combat.zoneId)||null; this.combat=null; this._retHealing=false; this.go('returnheal'); if(r) this.flashRestock(); }
 
   // ---------- inventory ----------
   medicineMax(){ return this.eng.N(this.eng.DATA.config.medicine_slot_default,5); }
@@ -1681,6 +1690,7 @@ class Component extends DCLogic {
   //   표시와 실제 굴림이 어긋난다(표시 15%인데 굴림은 20%가 되는 식).
   bossChip(){
     const c=this.combat; if(!c) return null;
+    if(this.storyRaidOn()) return null;   // 스토리 레이드는 조우 고정 — 보스가 안 나온다
     // PvP 존에는 보스가 없다 — 같은 자리에 유저 조우 확률(PVP CHANCE)을 띄운다.
     const z=this.eng.byId.zone[c.zoneId];
     if(this.isPvpZone(z)) return this.pvpChip(z);
@@ -1955,9 +1965,9 @@ class Component extends DCLogic {
       // ---- zone list for selected city ----
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,padding:'0 18px 8px',flex:'0 0 auto'}}, selSlot.name+''+this.t('kicker_dot_infiltration')),
       h('div',{style:{overflowY:'auto',flex:1,padding:'0 16px 100px'}},
-        zones.length? zones.map((z,i)=>{ const hidden=this.eng.N(z.IsHidden)===1;
-          return h('div',{key:z.ZoneID,onClick:()=>this.setState({modalZone:z}),
-            style:{padding:'16px 0',borderTop:i>0?'1px solid '+T.line:'none',cursor:'pointer',display:'flex',flexDirection:'column',gap:4}},
+        zones.length? zones.map((z,i)=>{ const hidden=this.eng.N(z.IsHidden)===1; const srz=this.storyRaid(), off=!!(srz&&srz.zid&&srz.zid!==z.ZoneID);
+          return h('div',{key:z.ZoneID,'data-guide':'zone-'+z.ZoneID,onClick:off?null:()=>this.setState({modalZone:z}),
+            style:{padding:'16px 0',borderTop:i>0?'1px solid '+T.line:'none',cursor:off?'default':'pointer',opacity:off?0.35:1,display:'flex',flexDirection:'column',gap:4}},
             h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}},
               h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:500,color:T.hi}}, this.tx(z,'ZoneName')),
               h('div',{style:{display:'flex',gap:4,alignItems:'center',flexShrink:0}},
@@ -1989,7 +1999,7 @@ class Component extends DCLogic {
         h('div',{key:'bar',style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6,height:38,borderRadius:8,background:'rgb(26,27,33)'}}, icInfo(19,'rgb(204,162,110)'), h('span',{style:{fontFamily:T.sans,fontSize:12,color:'rgb(204,162,110)'}}, '\u201c'+keyName+'\u201d'+(this.en()?' will be used.':'\ub97c \uc0ac\uc6a9\ud569\ub2c8\ub2e4.'))),
         h('button',{key:'btn',disabled:dead,onClick:dead?null:()=>this.openTap(z.ZoneID),style:{display:'flex',justifyContent:'center',alignItems:'center',width:'100%',boxSizing:'border-box',height:48,borderRadius:24,border:'none',background:'#212227',cursor:dead?'default':'pointer',opacity:dead?.5:1}}, icUnlock(22,'rgb(204,162,110)'))];
     } else {
-      bottom=[ h('button',{key:'btn',disabled:dead,onClick:dead?null:()=>this.openTap(z.ZoneID),style:{marginTop:8,width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:dead?'#4B4D52':'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:dead?'default':'pointer'}}, dead?this.t('heal_restore_first'):(this.en()?'Raid':'레이드 시작')) ];   // 스태미너 바↔레이드하기 간격: flex gap16 + marginTop8 = 24
+      bottom=[ h('button',{key:'btn','data-guide':'zone-go',disabled:dead,onClick:dead?null:()=>this.openTap(z.ZoneID),style:{marginTop:8,width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:dead?'#4B4D52':'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:dead?'default':'pointer'}}, dead?this.t('heal_restore_first'):(this.en()?'Raid':'레이드 시작')) ];   // 스태미너 바↔레이드하기 간격: flex gap16 + marginTop8 = 24
     }
     return h('div',{onClick:()=>this.setState({modalZone:null}),style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',display:'flex',alignItems:'flex-end',zIndex:30,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 24px',background:'#18191D',borderRadius:24,padding:'24px 18px',display:'flex',flexDirection:'column',gap:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
@@ -2262,22 +2272,26 @@ class Component extends DCLogic {
     const btn=(label,onClick,danger)=>h('button',{onClick,style:{flex:1,background:danger?'transparent':T.s2,border:'1px solid '+(danger?T.danger:T.line2),color:danger?T.danger:T.hi,fontFamily:T.sans,fontSize:14,fontWeight:400,padding:'14px',borderRadius:4,cursor:'pointer'}},label);
     if(c.phase==='pvpWin'||c.phase==='pvpLose') return this.pvpControls();
     const g=this.gs;
-    const toRest=()=>{ this.sfxDealIn(this.restCards().length); this.combat.restReturn=this.combat.phase; this.combat.phase='rest'; this.combat.restFocus=null; this.forceUpdate(); };
-    const sbtn=(label,onClick,accent)=>h('button',{onClick,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#1E2025',color:accent||'rgb(234,235,238)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}},label);
+    const toRest=()=>{ { const sr=this.storyRaidOn(); if(sr&&sr.r.restGrant&&!this.restCards().length&&!this.combat.restGranted){   // 회복템이 하나도 없으면 퀘스트가 넣어 준다(무전 rest_empty)
+        for(const id in sr.r.restGrant){ if(this.eng.byId.item[id]) this.addToBag(id, Math.max(1,this.eng.N(sr.r.restGrant[id],1))); } this.combat.restGranted=true; this.saveGame(); } }
+      this.sfxDealIn(this.restCards().length); this.combat.restReturn=this.combat.phase; this.combat.phase='rest'; this.combat.restFocus=null; this.forceUpdate(); };
+    // 스토리 레이드 — 이번에 누를 수 있는 버튼 하나만 살린다(나머지는 흐리게 · 도망은 없다)
+    const step=this.storyRaidStep();
+    const sbtn=(label,onClick,accent,k)=>{ const off=!!step&&!!k&&k!==step; return h('button',{onClick:off?null:onClick,disabled:off,'data-guide':k?'raid-'+k:null,style:{flex:1,height:48,opacity:off?0.35:1,boxSizing:'border-box',borderRadius:999,border:'none',background:'#1E2025',color:accent||'rgb(234,235,238)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:off?'default':'pointer'}},label); };
     const bars=h('div',{style:{display:'flex',gap:5}},
       h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_hp'),Math.round(g.hp),Math.round(g.maxHp),Math.max(0,Math.min(100,g.hp/g.maxHp*100)),'rgb(174,97,92)')),
       h('div',{style:{flex:1}}, this.zoneBar(this.t('stat_stamina'),Math.round(g.sta),Math.round(this.staMax),Math.max(0,Math.min(100,g.sta/this.staMax*100)),'rgb(193,158,111)')));
     let statusEl=null, buttons;
     // 이탈 버튼: 해당 회차에 도망 확률 행이 있으면 [도망가기](도주 카드 판정), 없으면 [귀환하기](100%).
     // 시간 초과도 '한 판 치렀다'로 본다 — 아니면 시간을 끌어 초과시키는 게 자유 귀환 우회로가 된다.
-    const outBtn=()=> this.fleeChance()!=null
+    const outBtn=()=> (this.fleeChance()!=null && !step)
       ? sbtn(this.t('btn_flee_out'),()=>this.attemptFlee())
-      : sbtn(this.t('btn_return'),()=>this.extract());
+      : sbtn(this.t('btn_return'),()=>this.extract(),null,'return');
     if(c.phase==='won'){
-      buttons=h('div',{style:{display:'flex',gap:8}}, sbtn(this.t('btn_continue'),()=>this.drawCards()), sbtn(this.en()?'Rest':'휴식 하기',toRest), outBtn());
+      buttons=h('div',{style:{display:'flex',gap:8}}, sbtn(this.t('btn_continue'),()=>this.drawCards(),null,'continue'), sbtn(this.en()?'Rest':'휴식 하기',toRest,null,'rest'), outBtn());
     } else if(c.phase==='timeout'){
       statusEl=h('div',{style:{fontFamily:T.mono,fontSize:11,color:T.warn,textAlign:'center'}}, this.t('combat_timeout'));
-      buttons=h('div',{style:{display:'flex',gap:8}}, sbtn(this.t('combat_reengage'),()=>this.drawCards()), sbtn(this.en()?'Rest':'휴식 하기',toRest), outBtn());
+      buttons=h('div',{style:{display:'flex',gap:8}}, sbtn(this.t('combat_reengage'),()=>this.drawCards(),null,'continue'), sbtn(this.en()?'Rest':'휴식 하기',toRest,null,'rest'), outBtn());
     } else {
       buttons=h('div',{style:{display:'flex',gap:8}}, sbtn(this.t('btn_confirm_result'),()=>this.death(),'rgb(196,103,93)'));
     }
@@ -2343,7 +2357,7 @@ class Component extends DCLogic {
   }
   // 아이템 소모 + 다음 카드 즉시 중앙화 — 날아가기 애니 직후(~300ms), 회복 바를 기다리지 않음.
   // 회복과 버프가 함께 쓴다(버프는 회복 바가 없어 이 꼬리만 필요하다).
-  restConsume(card){
+  restConsume(card){ if(this.combat) this.combat.restUsed=true;   // 스토리 레이드 휴식 단계 — 한 번 쓰면 [계속]이 열린다
     const g=this.gs;
     this.sfxRest(card);   // 사용 확정 = 이 함수 진입. 가득 참 등으로 되돌아간 경우엔 여기까지 오지 않는다.
     // ★휴식 화면은 레이드 중 아이템을 쓰는 주 경로다 — 여기에 훅이 없어서 사용형 퀘스트가 거의 안 올랐고
@@ -2399,7 +2413,7 @@ class Component extends DCLogic {
       h('div',{onPointerDown:(e)=>{this._rsx=e.clientX;this._rmoved=false;},onPointerMove:(e)=>{if(this._rsx!=null&&Math.abs(e.clientX-this._rsx)>8)this._rmoved=true;},onPointerUp:(e)=>{if(this._rsx==null)return;const dx=e.clientX-this._rsx;this._rsx=null;if(Math.abs(dx)>30){ if(dx<0)this.restNav(1); else this.restNav(-1);} },style:{position:'relative',zIndex:1,flex:'0 1 502px',minHeight:0,overflow:'hidden'}},
         list.length? list.map((card,i)=>{ const off=i-c.restFocus, abs=Math.abs(off), isC=off===0; const x=off*250, s=isC?1:0.9, o=1;
             const handlers=isC?this.restCenterHandlers():{onClick:()=>{ if(!this._rmoved){c.restFocus=i;this.forceUpdate();} }};
-            return h('div',Object.assign({key:card.uid+'#'+i,'data-rscard':isC?'focus':null},handlers,{style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(482px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,filter:isC?'none':'brightness(0.9)',zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'grab':'pointer',touchAction:'none'}}), this.lootCardBig(card)); })
+            return h('div',Object.assign({key:card.uid+'#'+i,'data-rscard':isC?'focus':null,'data-guide':isC?'rest-card':null},handlers,{style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(482px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+s+')',opacity:o,filter:isC?'none':'brightness(0.9)',zIndex:isC?20:10-abs,transition:'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:isC?'grab':'pointer',touchAction:'none'}}), this.lootCardBig(card)); })
           : this.cardEmptyBand(this.en()?'No food or medicine to use.':'사용할 음식이나 의약품이 없습니다.')),
       // 힌트 (위로 올려 사용)
       h('div',{style:{position:'relative',zIndex:1,flex:'1 1 auto',minHeight:0}}, list.length? h('div',{style:{height:'100%',padding:'6px 16px 16px',boxSizing:'border-box',display:'flex',flexDirection:'column',justifyContent:'center'}},
@@ -2411,7 +2425,7 @@ class Component extends DCLogic {
           h('div',{style:{display:'flex',gap:12}},
             gbar(this.t('stat_hp'), el=>this._rHpBar=el, el=>this._rHpFill=el, el=>this._rHpNum=el, g.hp, g.maxHp, hpPct, '#ae615c', '#d68f7f', 'rgba(174,97,92,.55)'),
             gbar(this.t('stat_stamina'), el=>this._rStaBar=el, el=>this._rStaFill=el, el=>this._rStaNum=el, g.sta, this.staMax, staPct, '#c19e6f', '#e0c39a', 'rgba(193,158,111,.55)')),
-          h('button',{onClick:backToDone,style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'rgb(234,235,238)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, list.length?(this.en()?'Done':'완료'):(this.en()?'Continue':'계속 진행')))));
+          h('button',{onClick:backToDone,'data-guide':'rest-done',style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'rgb(234,235,238)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, list.length?(this.en()?'Done':'완료'):(this.en()?'Continue':'계속 진행')))));
   }
   // ---- monster card draw (S3 · 전투 진입) ----
   focusCard(i){ if(this.combat.flipped) return; if(i!==this.combat.cardFocus) this.sfxSwipe(); this.combat.cardFocus=i; this.forceUpdate(); }
@@ -2853,7 +2867,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       h('div',{onPointerDown:(e)=>{this._sx=e.clientX;this._moved=false;},onPointerMove:(e)=>{if(this._sx!=null&&Math.abs(e.clientX-this._sx)>8)this._moved=true;},onPointerUp:(e)=>{if(this._sx==null)return;const dx=e.clientX-this._sx;this._sx=null;if(this.combat.flipped)return;if(Math.abs(dx)>30){ if(dx<0)this.focusCard(Math.min(this.combat.cards.length-1,this.combat.cardFocus+1)); else this.focusCard(Math.max(0,this.combat.cardFocus-1)); }},style:{flex:1,position:'relative',overflow:'hidden'}},
         c.cards.map((id,i)=>{ const off=i-c.cardFocus, abs=Math.abs(off); const isCenter=off===0; const x=off*250, s=isCenter?1:0.9; let o=1; if(flipped&&!isCenter) o=0; const rot=(flipped&&isCenter)?180:0; const settled=this.flipSettled(c,'enc'+i,flipped&&isCenter); const flat=settled||!(flipped&&isCenter);   // 3D는 센터 플립 순간에만 — 그 외 평면(레이어 승격·z-index 무시 방지)
               const cbm=(id&&id.type==='monster')?this.eng.byId.monster[id.id]:null; const isBossBack=!!(cbm&&String(cbm.Grade||'').toLowerCase()==='boss');
-              return h('div',{key:i,onClick:()=>{ if(this._moved||flipped) return; isCenter?this.flipCenter():this.focusCard(i); },
+              return h('div',{key:i,'data-guide':isCenter?'raid-card':null,onClick:()=>{ if(this._moved||flipped) return; isCenter?this.flipCenter():this.focusCard(i); },
                 style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(473px, 100%)',transform:'translate(calc(-50% + '+x+'px), calc(-50% - 16px)) scale('+s+')',opacity:isCenter?1:o,filter:isCenter?'none':'brightness(0.9)',zIndex:isCenter?20:10-abs,transition:isCenter?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:(flipped&&!isCenter)?'none':'auto'}},
                 h('div',{style:flat?{position:'relative',width:'100%',height:'100%'}:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:'rotateY('+rot+'deg)'}},
                   (flat&&flipped)?null:h('div',{style:flat?{position:'absolute',inset:0,background:T.s2,backgroundImage:'url(assets/art/card_back/monster_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s',background:T.s2,backgroundImage:'url(assets/art/card_back/monster_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,borderRadius:8,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}},
@@ -2869,7 +2883,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
           // 카드 화면 도망은 폐지됐다(2026-08-26) — 카드를 뽑았으면 그 판은 확정. 도망은 전투 사이에서만 시도한다.
           // 몬스터를 보고 무를 수 있으면 depth 램프(깊이=보스 확률)가 무의미해지고, 전투 사이 [도망가기]의 우회로가 된다.
           h('div',{style:{display:'flex',gap:8}},
-            h('button',{disabled:!flipped,onClick:flipped?()=>this.enterCombat():null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:flipped?'rgb(196,103,93)':'rgb(75,77,82)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:flipped?'pointer':'default'}}, this.t('combat_start'))))));
+            h('button',{disabled:!flipped,'data-guide':'raid-fight',onClick:flipped?()=>this.enterCombat():null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:flipped?'rgb(196,103,93)':'rgb(75,77,82)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:flipped?'pointer':'default'}}, this.t('combat_start'))))));
   }
   cardBack(i,n){
     return h('button',{key:i,onClick:()=>this.pickCard(i),
@@ -4444,7 +4458,9 @@ void main(){
     const fired=c.radio||{}, groups={};
     this.eng.storyLines(c.id,'radio').forEach(r=>{ const k=String(r.Trigger||'').trim(); if(!k||k==='-') return; (groups[k]||(groups[k]=[])).push(r); });
     for(const k in groups){ if(fired[k]) continue; let tr; try{ tr=JSON.parse(k); }catch(_){ continue; }
-      const hit=(tr.on==='goal_done' && this.storyAllDone(q)) || (tr.on==='screen' && (this.state.screen===tr.id || (this.state.screen==='vendor' && 'vendor_'+this.state.vtab===tr.id)));
+      const hit=(tr.on==='goal_done' && this.storyAllDone(q)) || (tr.on==='screen' && (this.state.screen===tr.id || (this.state.screen==='vendor' && 'vendor_'+this.state.vtab===tr.id)))
+        || (tr.on==='fight_end' && this.state.screen==='combat' && this.combat && (this.combat.phase==='won'||this.combat.phase==='timeout') && this.combat.encounter===this.eng.N(tr.n,0))
+        || (tr.on==='rest_empty' && this.state.screen==='combat' && this.combat && this.combat.phase==='rest' && !!this.combat.restGranted);
       if(!hit) continue;
       const rows=groups[k].slice().sort((a,b)=>this.eng.N(a.Seq,0)-this.eng.N(b.Seq,0));
       c.radio=Object.assign({},fired,{[k]:1}); this.saveGame();
@@ -4470,7 +4486,7 @@ void main(){
   // ===== 스토리 손 안내 — 화면을 은은하게 어둡게 + 가리키는 곳만 밝게 + 손 아이콘(assets/art/ui/guide_hand.webp 43×57 픽셀아트) =====
   //   대상 = data-guide 속성 요소. 위치는 매 200ms 다시 재서 따라간다(스크롤·레이아웃 변화). 클릭은 그대로 통과(pointerEvents none).
   //   손끝 = 이미지 (14,2). 화면 아래쪽 대상(하단 내비)은 손을 위에서 아래로 가리키게 뒤집는다.
-  storyGuideOverlay(){ this.storyRadioCheck(); const tg=this.storyGuideTarget();
+  storyGuideOverlay(){ window.__Q=this; /* __Q = 미리보기 디버그 핸들 */ this.storyRadioCheck(); const tg=this.storyGuideTarget();
     if(!tg){ if(this._gdT){ clearTimeout(this._gdT); this._gdT=null; } this._gdRect=null; this._gdKey=null; return null; }
     if(!this._gdT){ const tick=()=>{ this._gdT=null; const k=this.storyGuideTarget(); if(!k) return;
         const root=this._gdEl, el=document.querySelector('[data-guide="'+k+'"]');
@@ -4481,7 +4497,7 @@ void main(){
       this._gdT=setTimeout(tick,0); }
     const r=(this._gdKey===tg)?this._gdRect:null, P=6;
     const low=r&&(r.y+r.h/2>r.H*0.7);   // 아래쪽 대상 → 손을 위에서
-    return h('div',{key:'guide',ref:el=>{ this._gdEl=el; },style:{position:'absolute',inset:0,zIndex:25,pointerEvents:'none'}},
+    return h('div',{key:'guide',ref:el=>{ this._gdEl=el; },style:{position:'absolute',inset:0,zIndex:35,pointerEvents:'none'}},   // 35 = 존 시트(30) 위 · 무전(70) 아래
       // 어둠 판에 타원 구멍을 마스크로 뚫는다 — 안쪽 62%까지 완전히 밝고 바깥 100%까지 부드럽게 어두워진다(가우시안 블러처럼 · 사용자 2026-10-09)
       r? (()=>{ const cx=r.x+r.w/2, cy=r.y+r.h/2, rx=Math.round(r.w/2*1.3+22), ry=Math.round(r.h/2*1.3+22);
           const m='radial-gradient('+rx+'px '+ry+'px at '+cx+'px '+cy+'px, transparent 0%, transparent 62%, rgba(0,0,0,.6) 82%, #000 100%)';
@@ -5441,6 +5457,27 @@ void main(){
   // 다음 퀘스트 받으러 가기 — 앞 퀘스트 보상까지 받았고 다음 기버가 기다릴 때(맨 처음 퀘스트는 storyBoot가 바로 데려간다)
   storyPending(){ if(!this.gs||!this.eng||!this.eng.storyRow) return null; const m=this.storyMap(); if(m.cur||!Object.keys(m.done).length) return null;
     const q=this.storyNext(); return (q&&q.GiverVendorID&&this.storyUnlockOk(q))?q:null; }
+  // 스토리 레이드(목표 act/extract + raid 블록 · 3번 「규약이 없는 곳」) — {q,o,r,zid}
+  //   raid = { spawn:[1전,2전,3전 몬스터], after:[전투 n 뒤 누를 버튼 continue|rest|return], safe, noflee, restGrant:{id:n}, direct }
+  storyRaid(){ const q=this.storyActRun('extract'); if(!q) return null; const o=this.eng.questObjective(q), r=o&&o.raid; if(!r||typeof r!=='object') return null;
+    return {q,o,r,zid:String(((o.targets[0]||{}).ids||[])[0]||'')}; }
+  storyRaidOn(){ const sr=this.storyRaid(), c=this.combat; return (sr&&c&&(!sr.zid||c.zoneId===sr.zid))?sr:null; }
+  // 지금 전투 뒤에 누를 수 있는 버튼 하나 — continue / rest / return (휴식 단계는 회복템을 쓰거나 체력이 가득이면 continue로 바뀐다)
+  storyRaidStep(){ const sr=this.storyRaidOn(), c=this.combat; if(!sr||!c) return null; const a=Array.isArray(sr.r.after)?sr.r.after:[];
+    const st=String(a[Math.max(0,Math.min(a.length-1,(c.encounter||1)-1))]||'continue');
+    if(st==='rest' && (c.restUsed || this.gs.hp>=this.gs.maxHp)) return 'continue';
+    return st; }
+  // 귀환 → 기버에게 바로(회복 스테이션 건너뜀) — 목표를 다 채운 direct 레이드
+  storyDirectReport(){ const sr=this.storyRaid(); return (sr&&sr.r.direct&&this.storyAllDone(sr.q))?sr.q:null; }
+  // 레이드까지 손 안내 — 상점이면 뒤로 · 하단 [레이드] → 존 행 → [진입] → 패스 카드
+  storyGuideToZone(zid){ const s=this.state.screen;
+    if(s==='zone') return this.state.modalZone? 'zone-go' : 'zone-'+zid;
+    if(s==='tap') return this._tapDone? null : 'tap-card';
+    if(s==='vendorMenu'||s==='vendor') return 'shop-back';
+    if(['combat','sortieLoad','result','lootmanage','returnheal'].indexOf(s)>=0) return null;
+    return 'nav-zone'; }
+  // 무료 1회(보상 free) — gs.story.free = { heal:1 } · 쓰면 지운다
+  storyFreeOnce(k){ const f=this.gs&&this.gs.story&&this.gs.story.free; return !!(f&&f[k]); }
   // 상점까지 손 안내 — 다른 상점 메뉴면 뒤로 · 프로토콜 지구면 그 상점 행 · 그 밖은 하단 프로토콜 지구
   storyGuideToVendor(vid){ const s=this.state.screen;
     if(s==='vendorMenu') return this.state.vendor===vid? null : 'shop-back';
@@ -5451,12 +5488,22 @@ void main(){
   storyReport(){ if(!this.gs||!this.eng||!this.eng.storyRow) return null; const c=this.storyMap().cur; if(!c||c.s!=='run') return null;
     const q=this.eng.storyRow(c.id), o=q&&this.eng.questObjective(q); if(!o||o.kind!=='act'||o.what!=='equip'||!this.storyAllDone(q)) return null; return q; }
   // 하단 내비에서 누를 수 있는 칸 하나(나머지 잠금) — 착용 중 = 소지품 · 보고 대기 = 캐릭터(교신으로)
-  storyNavAllow(){ if(this.storyGuide()) return 'inventory'; if(this.storyReport()) return 'character'; if(this.storyPending()||this.storyActRun('feed')) return 'safehouse'; return null; }
+  storyNavAllow(){ if(this.storyGuide()) return 'inventory'; if(this.storyReport()) return 'character'; if(this.storyPending()||this.storyActRun('feed')) return 'safehouse'; if(this.storyRaid()) return 'zone'; return null; }
   // 손 안내 대상(data-guide) — 스크린샷 흐름(사용자 2026-10-09): [보관함] 탭 → (착용) → 캐릭터 → 무전기 → 교신 이동 줄(보건소)
   storyGuideTarget(){ const s=this.state.screen;
     if(this.state.tuto||this.state.sel||this.state.wake||this.radio||this.talk||this.storyRew) return null;
     if(this.storyGuide()){ if(s==='inventory') return this.state.seg==='vault'? null : 'vault-tab'; return 'nav-inventory'; }
     if(this.storyReport()){ if(s==='comms') return this.state.commsTab==='news'? null : 'comms-move'; if(s==='character') return 'comms-btn'; if(s==='vendorMenu') return null; return 'nav-character'; }
+    // 3번 레이드 — 존까지 안내 · 전투 뒤엔 누를 수 있는 버튼 · 휴식은 카드(위로 올려 사용) → [완료]
+    { const sr=this.storyRaid(); if(sr){ const c=this.combat;
+        if(s==='combat'&&c){ if(c.phase==='won'||c.phase==='timeout'){ const st=this.storyRaidStep(); return st?'raid-'+st:null; }
+          if(c.phase==='cards') return c.flipped?'raid-fight':'raid-card';
+          if(c.phase==='rest') return (c.restUsed||this.gs.hp>=this.gs.maxHp||!this.restCards().length)? 'rest-done' : (this._restAnim?null:'rest-card');
+          return null; }
+        return this.storyGuideToZone(sr.zid); } }
+    // 첫 치료 무료(3번 보상) — 보건소에 있을 때만 [치료] → [치료하기]
+    if(this.storyFreeOnce('heal') && this.gs.hp<this.gs.maxHp && this.state.vendor==='vendor_clinic'){
+      if(s==='vendorMenu') return 'svc-heal'; if(s==='vendor'&&this.state.vtab==='heal') return this._rcvAnim?null:'heal-btn'; }
     { const p=this.storyPending(); if(p) return this.storyGuideToVendor(String(p.GiverVendorID)); }
     // 2번 배식 — 메뉴 [배식하기] → [회복] → (다 먹으면) [나가기] → 완료 대화
     { const q=this.storyActRun('feed'); if(q){ const vid=String(q.GiverVendorID||''), done=this.storyAllDone(q);
@@ -5466,7 +5513,8 @@ void main(){
     return null; }
   storyGuideItem(inst){ const g=this.storyGuide(); return !!(g&&inst&&g.ids.indexOf(inst.id)>=0); }
   // 1번 퀘스트(지급품 착용 · 보고 전)까지 미루는 튜토리얼 — 장비 비교·성장 태그·소지품 핸들 드래그·보관함 밀기(사용자 2026-10-09)
-  storyTutoHold(k){ return ['inv_compare1','growth_tag1','inv_move1','inv_move2'].indexOf(k)>=0 && !!(this.storyGuide()||this.storyReport()); }
+  storyTutoHold(k){ if(['cmb_flee1','death1','cmb_boss1','loot_reget1'].indexOf(k)>=0 && this.storyRaid()) return true;   // 3번(도망 비활성·사망 패널티 면제·보스 없음)과 어긋나는 팝업 · 퀘스트당 팝업 1개(loot_get1만)
+    return ['inv_compare1','growth_tag1','inv_move1','inv_move2'].indexOf(k)>=0 && !!(this.storyGuide()||this.storyReport()); }
   // 새 게임 도입 — 첫 스토리 퀘스트가 살아 있으면 눈 뜨는 연출 → 기버 상점 대화
   storyBoot(){ const q=this.storyNext(), m=this.storyMap();
     if(!q||m.cur||Object.keys(m.done).length) return;
@@ -5569,6 +5617,7 @@ void main(){
       else if(cd.k==='sato') this.gs.sato=this.eng.N(this.gs.sato,0)+cd.n;
       else if(cd.k==='open'){ const key=cd.kind+':'+cd.id; if(m.opened.indexOf(key)<0) m.opened.push(key); } });
     (rw.opens||[]).filter(o=>String(o).startsWith('feature:')).forEach(o=>{ if(m.opened.indexOf(o)<0) m.opened.push(o); });
+    (rw.free||[]).forEach(k=>{ if(!m.free||typeof m.free!=='object') m.free={}; m.free[k]=1; });   // 첫 치료 무료 등 — 쓰면 지운다
     if(rw.pass){ const cap=Math.max(1,this.eng.N(this.eng.C.pass_cap,50)); this.gs.pass=Math.min(cap,this.eng.N(this.gs.pass,0)+rw.pass); this.savePass(); }
     if((c.cards||[]).some(cd=>cd.k==='sato')) this.sfx('got_sato');
     m.done[c.id]=Date.now(); m.cur=null; this.storyRew=null; this.saveGame();
@@ -8140,7 +8189,7 @@ void main(){
         return this.shopRow({key:g.uids[0],cat,name:this.itemLabel(inst),desc:this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'',priceLabel:'SELL '+g.price.toLocaleString(),priceColor:'rgb(204,162,110)',countLabel:(this.en()?'Owned ':'소지 ')+String(g.total).padStart(2,'0'),onClick:()=>this.openSell(g),dim:eq}); })
         : this.emptyRow(this.en()?'No items to sell.':'판매 가능한 아이템이 없습니다.'));
   }
-  healCost(){ return Math.max(0, Math.ceil((this.gs.maxHp - this.gs.hp) * this.eng.N(this.eng.DATA.config.heal_cost_per_hp, 2))); }
+  healCost(){ if(this.storyFreeOnce('heal')) return 0; return Math.max(0, Math.ceil((this.gs.maxHp - this.gs.hp) * this.eng.N(this.eng.DATA.config.heal_cost_per_hp, 2))); }
   // 게이지 차오름 애니메이션: fill width + 숫자 카운트업 + 샤이머/리딩엣지(rcv-on) + 완료 펄스(rcv-done)
   animRecover(fillEl,numEl,barEl,startVal,endVal,maxVal){
     return new Promise(resolve=>{
@@ -8169,7 +8218,7 @@ void main(){
     if(this._rcvAnim) return; const startHp=g.hp; g.sato-=cost; this._rcvAnim=true;
     this.recoverGlow('#83B289');
     this.animRecover(this._hpFill,this._hpNum,this._hpBar,startHp,g.maxHp,g.maxHp).then(()=>{
-      g.hp=g.maxHp; this._rcvAnim=false; this._healDone=true; this.flash(this.t('heal_done')); this.forceUpdate(); this.saveGame(); }); }
+      g.hp=g.maxHp; this._rcvAnim=false; this._healDone=true; if(this.storyFreeOnce('heal')) delete g.story.free.heal; this.flash(this.t('heal_done')); this.forceUpdate(); this.saveGame(); }); }
   vendorHeal(v){
     const g=this.gs; const cost=this.healCost();
     const full=g.hp>=g.maxHp; const aff=g.sato>=cost; const can=!full&&aff;
@@ -8319,7 +8368,7 @@ void main(){
       h('div',{key:'stage402-tap', ref:this.stageRef('tap'),
         style:{position:'absolute',left:0,top:0,width:402,height:828,transformOrigin:'0 0',pointerEvents:'none'}},
         // 카드 — 터미널보다 아래 레이어(삽입 시 안으로 빨려 들어감)
-        h('div',Object.assign({key:'card'}, drag, {style:{position:'absolute',left:30,top:CARD_Y,width:CARD_W,height:CARD_H,
+        h('div',Object.assign({key:'card','data-guide':'tap-card'}, drag, {style:{position:'absolute',left:30,top:CARD_Y,width:CARD_W,height:CARD_H,
           // 알파 PNG — 둥근 모서리·잘린 단면이 이미지 자체에 있으므로 borderRadius를 쓰지 않는다
           backgroundImage:'url('+cardArt+')',backgroundSize:'100% 100%',backgroundPosition:'center',backgroundRepeat:'no-repeat',
           zIndex:1,touchAction:'none',pointerEvents:dragOn?'auto':'none',cursor:dragOn?'grab':'default',

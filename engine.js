@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val26';
-import { buildIndex } from './sheet-loader.js?v=val32';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
+import { DATA as FALLBACK } from './data/game-data.js?v=val27';
+import { buildIndex } from './sheet-loader.js?v=val33';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
 
@@ -1496,7 +1496,8 @@ export function questReward(q){
            // 스토리 확장(확장_v3 §3.6 ⑧) — to = 아이템 들어갈 곳 · cards = 연출 카드 · opens = 해금(카드 순서)
            to: r.to === 'bag' ? 'bag' : (r.to === 'vault' ? 'vault' : null),
            cards: Array.isArray(r.cards) ? r.cards.map(String) : [],
-           opens: Array.isArray(r.opens) ? r.opens.map(String) : [] };
+           opens: Array.isArray(r.opens) ? r.opens.map(String) : [],
+           free: Array.isArray(r.free) ? r.free.map(String) : [] };   // 무료 1회(예: ["heal"] = 다음 치료 1회 0 사토 · 3번)
 }
 // ---------- 스토리 퀘스트 (StoryQuest 탭 · Chapter·Order 순번) ----------
 export function storyRows(){
