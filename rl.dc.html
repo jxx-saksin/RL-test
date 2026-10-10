@@ -406,8 +406,8 @@ const NPC_TW_FAST=28;
 // 퀘스트 대화 타자기(ms/글자) — 평상시보다 느리게 · 선택지 활성 직후 입력 무시(연타 사고 방지)
 const NPC_TW_TALK=42;
 const TALK_GUARD_MS=300;
-// 한 문장이 다 나오고 이만큼 지나면 다음 문장으로 저절로 넘어간다(사용자 2026-10-09 · 선택지·끝에서는 멈춘다)
-const TALK_AUTO_MS=1500;
+// 한 문장이 다 나오고 이만큼 지나면 다음 문장으로 저절로 넘어간다(사용자 2026-10-09 · 1.5s→3s 10-10 · 선택지·끝에서는 멈춘다 · 대화·무전 공통)
+const TALK_AUTO_MS=3000;
 // 무전 얼굴 = 초상(768×1360)에서 잘라 쓰는 사각형(x0,y0,x1,y1) — 사용자가 준 art_src/ui/vendor_*_comms.png에 FFT로 맞춘 값(확장_v3 §3.6 ⑤b)
 const NPC_COMMS_CROP={ vendor_clinic:[169.6,418.7,612.5,775.1], vendor_hardware:[190.6,375.0,590.6,696.9], vendor_canteen:[125.0,341.7,658.3,770.8],
   vendor_blackmarket:[141.8,283.6,619.4,667.9], vendor_pawnshop:[138.7,115.6,632.0,512.5], vendor_tavern:[157.1,293.2,603.8,652.7], vendor_auction:[198.2,498.5,582.6,807.8] };
@@ -582,8 +582,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val66');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val31');
+      const eng = await import('./engine.js?v=val67');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val32');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -4444,7 +4444,7 @@ void main(){
     const fired=c.radio||{}, groups={};
     this.eng.storyLines(c.id,'radio').forEach(r=>{ const k=String(r.Trigger||'').trim(); if(!k||k==='-') return; (groups[k]||(groups[k]=[])).push(r); });
     for(const k in groups){ if(fired[k]) continue; let tr; try{ tr=JSON.parse(k); }catch(_){ continue; }
-      const hit=(tr.on==='goal_done' && this.storyAllDone(q)) || (tr.on==='screen' && this.state.screen===tr.id);
+      const hit=(tr.on==='goal_done' && this.storyAllDone(q)) || (tr.on==='screen' && (this.state.screen===tr.id || (this.state.screen==='vendor' && 'vendor_'+this.state.vtab===tr.id)));
       if(!hit) continue;
       const rows=groups[k].slice().sort((a,b)=>this.eng.N(a.Seq,0)-this.eng.N(b.Seq,0));
       c.radio=Object.assign({},fired,{[k]:1}); this.saveGame();
