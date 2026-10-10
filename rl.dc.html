@@ -582,8 +582,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val65');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val30');
+      const eng = await import('./engine.js?v=val66');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val31');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -820,6 +820,9 @@ class Component extends DCLogic {
     // ★스토리 온보딩이 있으면 지급품을 자동 착용하지 않는다 — 챕터1 1번 「동의」의 목표가 보관함 지급품 착용이다.
     if(fresh && this.eng.storyRows && this.eng.storyRows().length){ Object.keys(gs.equip).forEach(k=>{ gs.equip[k]=null; }); gs.story={done:{},cur:null,opened:[]};
       const f2=this.eng.playerProfile(gs,false); gs.maxHp=f2.maxHp; gs.hp=f2.maxHp; }
+    // 시작 상태 — 부상당한 채 깨어남(온보딩 챕터1 · Config start_hp_ratio 0.7 · start_sta_ratio 0.3 · 키가 없으면 가득)
+    if(fresh){ const C=this.eng.DATA.config||{}, rh=Math.min(1,Math.max(0.01,this.eng.N(C.start_hp_ratio,1))), rs=Math.min(1,Math.max(0,this.eng.N(C.start_sta_ratio,1)));
+      gs.hp=Math.max(1,Math.round(gs.maxHp*rh)); gs.sta=Math.round(this.staMax*rs); }
     // equipped gear is 'carried' — it lives in 소지품(bag), never in 금고(vault)
     ['weapon','head','body','artifact1','artifact2','bag'].forEach(s=>{ if(gs.equip[s]) this.moveToBag(gs.equip[s]); });
   }
@@ -1775,7 +1778,7 @@ class Component extends DCLogic {
   // screenTitle과 달리 키커가 없고 타이틀만 온다(높이는 동일하게 90).
   shopHeader(title,onBack){
     return h('div',{style:{position:'relative',zIndex:2,flex:'0 0 auto',height:90,boxSizing:'border-box'}},
-      h('button',{onClick:onBack,style:{position:'absolute',left:18,top:24,width:28,height:28,padding:0,borderRadius:8,border:'none',background:'rgba(10,11,14,0.6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
+      h('button',{onClick:onBack,'data-guide':'shop-back',style:{position:'absolute',left:18,top:24,width:28,height:28,padding:0,borderRadius:8,border:'none',background:'rgba(10,11,14,0.6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
         h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'#EAEBEE',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}, h('path',{key:'p',d:'M14.5 5l-7 7 7 7'}))),
       h('div',{style:{position:'absolute',right:19,top:25,height:27,display:'flex',alignItems:'center'}}, this.currencyChips()),
       h('div',{style:{position:'absolute',left:24,top:62,fontFamily:T.sans,fontSize:16,lineHeight:'16px',fontWeight:400,color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap'}}, title));
@@ -1899,7 +1902,7 @@ class Component extends DCLogic {
             this.hideoutOpen()? null : h('span',{style:{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.22)',fontFamily:T.mono,fontSize:10.5,letterSpacing:'1px',color:'#6F7276',whiteSpace:'nowrap'}}, this.en()?'SOON':'준비중'))),
         // 상점 행 7개 — 370x61 r8, 간격 8
         ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Feed')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Sell')||svc.includes('Haggle')||svc.includes('Register')||svc.includes('Claim'); const act=()=>this.openVendor(v.VendorID);
-            return h('button',{key:v.VendorID,disabled:!open,onClick:open?act:null,
+            return h('button',{key:v.VendorID,'data-guide':'shop-'+v.VendorID,disabled:!open,onClick:open?act:null,
               style:{position:'relative',flexShrink:0,height:63,boxSizing:'border-box',textAlign:'left',border:'1px solid #36383C',borderRadius:8,padding:0,cursor:open?'pointer':'default',overflow:'hidden',background:T.s3}},
               h('div',{style:{position:'absolute',inset:0,backgroundImage:'url(assets/art/shop/'+v.ShopID+'.webp)',backgroundSize:'cover',backgroundPosition:'center'}}),
               h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(17,19,21,0.20) 0%, rgba(17,19,21,0.94) 100%)'}}),
@@ -5318,7 +5321,7 @@ void main(){
       // 패널 — svg x16.5 y516.5 369x287 r24 · 버튼 333x48 r24 간격 16
       h('div',{style:{position:'absolute',zIndex:1,left:16,right:16,bottom:24,padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',flexDirection:'column',gap:16}},
         ...items.map(it=>{ const qc=(it.k==='quest'&&!it.locked)? this.qVendorChip(v.VendorID) : null;
-          return h('button',{key:it.k,disabled:it.locked,
+          return h('button',{key:it.k,'data-guide':'svc-'+it.k,disabled:it.locked,
           onClick:it.locked?null:()=>{ if(it.k==='exit') this.go('safehouse'); else if(it.k==='quest') this.openQuest(); else if(it.k==='trade') this.openVendorTab((this.services(v).includes('Buy')||this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID))?'buy':'sell'); else this.openVendorTab(it.k); },
           style:{position:'relative',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:it.locked?'#6F7276':'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:it.locked?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
           it.locked? svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',15,'#6F7276',1.6) : null,
@@ -5428,16 +5431,38 @@ void main(){
     const q=this.eng.storyRow(c.id), o=q&&this.eng.questObjective(q); if(!o||o.kind!=='act'||o.what!=='equip'||this.storyAllDone(q)) return null;
     const ids=[]; o.targets.forEach(t=>(t.ids||(t.id?[t.id]:[])).forEach(x=>ids.push(x))); return {q,ids}; }
   storyNavLock(){ return !!this.storyGuide(); }
+  // act 진행 — 배식·판매·수리처럼 "한 번 했다"를 세는 목표(착용은 storyEquipCount가 바로 센다) · ids = 그 행동을 한 곳/대상(비면 아무 곳)
+  storyActRun(what){ if(!this.gs||!this.eng||!this.eng.storyRow) return null; const c=this.storyMap().cur; if(!c||c.s!=='run') return null;
+    const q=this.eng.storyRow(c.id), o=q&&this.eng.questObjective(q); return (o&&o.kind==='act'&&o.what===what)?q:null; }
+  storyAct(what,id){ const q=this.storyActRun(what); if(!q) return; const c=this.storyMap().cur, o=this.eng.questObjective(q); if(!Array.isArray(c.p)) c.p=[];
+    o.targets.forEach((t,i)=>{ const ids=t.ids||(t.id?[t.id]:[]); if(ids.length&&ids.indexOf(id)<0) return; c.p[i]=Math.min(t.count,this.eng.N(c.p[i],0)+1); }); this.saveGame(); }
+  // 무료 행동 — 목표에 free:true면 다 채우기 전까지 그 행동 비용 0(2번 첫 배식 · "첫 배식·첫 치료만 무료")
+  storyFree(what){ const q=this.storyActRun(what); return !!(q&&this.eng.questObjective(q).free&&!this.storyAllDone(q)); }
+  // 다음 퀘스트 받으러 가기 — 앞 퀘스트 보상까지 받았고 다음 기버가 기다릴 때(맨 처음 퀘스트는 storyBoot가 바로 데려간다)
+  storyPending(){ if(!this.gs||!this.eng||!this.eng.storyRow) return null; const m=this.storyMap(); if(m.cur||!Object.keys(m.done).length) return null;
+    const q=this.storyNext(); return (q&&q.GiverVendorID&&this.storyUnlockOk(q))?q:null; }
+  // 상점까지 손 안내 — 다른 상점 메뉴면 뒤로 · 프로토콜 지구면 그 상점 행 · 그 밖은 하단 프로토콜 지구
+  storyGuideToVendor(vid){ const s=this.state.screen;
+    if(s==='vendorMenu') return this.state.vendor===vid? null : 'shop-back';
+    if(s==='safehouse') return 'shop-'+vid;
+    if(s==='vendor') return null;
+    return 'nav-safehouse'; }
   // 보고 대기 — 착용을 다 했고 아직 기버에게 안 갔다(교신 임무 → 보건소로 유도)
   storyReport(){ if(!this.gs||!this.eng||!this.eng.storyRow) return null; const c=this.storyMap().cur; if(!c||c.s!=='run') return null;
     const q=this.eng.storyRow(c.id), o=q&&this.eng.questObjective(q); if(!o||o.kind!=='act'||o.what!=='equip'||!this.storyAllDone(q)) return null; return q; }
   // 하단 내비에서 누를 수 있는 칸 하나(나머지 잠금) — 착용 중 = 소지품 · 보고 대기 = 캐릭터(교신으로)
-  storyNavAllow(){ if(this.storyGuide()) return 'inventory'; if(this.storyReport()) return 'character'; return null; }
+  storyNavAllow(){ if(this.storyGuide()) return 'inventory'; if(this.storyReport()) return 'character'; if(this.storyPending()||this.storyActRun('feed')) return 'safehouse'; return null; }
   // 손 안내 대상(data-guide) — 스크린샷 흐름(사용자 2026-10-09): [보관함] 탭 → (착용) → 캐릭터 → 무전기 → 교신 이동 줄(보건소)
   storyGuideTarget(){ const s=this.state.screen;
-    if(this.state.tuto||this.state.sel||this.state.wake||this.radio) return null;
+    if(this.state.tuto||this.state.sel||this.state.wake||this.radio||this.talk||this.storyRew) return null;
     if(this.storyGuide()){ if(s==='inventory') return this.state.seg==='vault'? null : 'vault-tab'; return 'nav-inventory'; }
     if(this.storyReport()){ if(s==='comms') return this.state.commsTab==='news'? null : 'comms-move'; if(s==='character') return 'comms-btn'; if(s==='vendorMenu') return null; return 'nav-character'; }
+    { const p=this.storyPending(); if(p) return this.storyGuideToVendor(String(p.GiverVendorID)); }
+    // 2번 배식 — 메뉴 [배식하기] → [회복] → (다 먹으면) [나가기] → 완료 대화
+    { const q=this.storyActRun('feed'); if(q){ const vid=String(q.GiverVendorID||''), done=this.storyAllDone(q);
+        if(s==='vendor'&&this.state.vendor===vid&&this.state.vtab==='feed') return done?'feed-leave':(this._rcvAnim?null:'feed-btn');
+        if(s==='vendorMenu'&&this.state.vendor===vid) return done?null:'svc-feed';
+        return this.storyGuideToVendor(vid); } }
     return null; }
   storyGuideItem(inst){ const g=this.storyGuide(); return !!(g&&inst&&g.ids.indexOf(inst.id)>=0); }
   // 1번 퀘스트(지급품 착용 · 보고 전)까지 미루는 튜토리얼 — 장비 비교·성장 태그·소지품 핸들 드래그·보관함 밀기(사용자 2026-10-09)
@@ -6541,7 +6566,7 @@ void main(){
   // 시설 화면 헤더 = shopHeader와 같되 통화 칩만 아지트용으로 바꾼다.
   shopHeaderChips(title,onBack){
     return h('div',{style:{position:'relative',zIndex:2,flex:'0 0 auto',height:90,boxSizing:'border-box'}},
-      h('button',{onClick:onBack,style:{position:'absolute',left:18,top:24,width:28,height:28,padding:0,borderRadius:8,border:'none',background:'rgba(10,11,14,0.6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
+      h('button',{onClick:onBack,'data-guide':'shop-back',style:{position:'absolute',left:18,top:24,width:28,height:28,padding:0,borderRadius:8,border:'none',background:'rgba(10,11,14,0.6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
         h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'#EAEBEE',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}, h('path',{key:'p',d:'M14.5 5l-7 7 7 7'}))),
       h('div',{style:{position:'absolute',right:19,top:25,height:27,display:'flex',alignItems:'center'}}, this.storageChips()),
       h('div',{style:{position:'absolute',left:24,top:62,fontFamily:T.sans,fontSize:16,lineHeight:'16px',fontWeight:400,color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap'}}, title));
@@ -7959,7 +7984,7 @@ void main(){
       // 회복 이너글로우 (ref 직접 제어, 평소 opacity 0) — 휴식·귀환 화면과 동일 규격
       h('div',{ref:el=>this._rcvGlowEl=el,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:60,opacity:0,boxShadow:'inset 0 0 60px 6px '+sp.accent}}),
       this.shopArtBg(v.ShopID),
-      this.shopHeader(this.shopName(v.ShopID,v), ()=>this.setState({screen:'vendorMenu'})),
+      this.shopHeader(this.shopName(v.ShopID,v), ()=>this.vendorBack()),
       h('div',{style:{flex:'1 1 auto',minHeight:0}}),
       // 패널 — svg x16 y477 370x327 r24
       h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'0 17px 25px',boxSizing:'border-box',borderRadius:24,background:'#18191D'}},
@@ -7976,9 +8001,12 @@ void main(){
           row(sp.costLabel, sp.cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85B3C5':T.danger, false)),
         this.infoBox(ik, info),
         h('div',{style:{display:'flex',gap:8,marginTop:16}},
-          h('button',{disabled:!can,onClick:can?sp.act:null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:can?'#EAEBEE':'#4B4D52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:can?'pointer':'default'}}, sp.btn),
-          h('button',{onClick:()=>this.setState({screen:'vendorMenu'}),style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'Leave':'나가기'))));
+          h('button',{disabled:!can,onClick:can?sp.act:null,'data-guide':kind+'-btn',style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:can?'#EAEBEE':'#4B4D52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:can?'pointer':'default'}}, sp.btn),
+          h('button',{onClick:()=>this.vendorBack(),'data-guide':kind+'-leave',style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'Leave':'나가기'))));
   }
+  // 서비스 화면 → 메뉴 — 그 사이 스토리 목표를 채웠으면 바로 완료 대화(2번: 배식 후 [나가기])
+  vendorBack(){ const vid=this.state.vendor; this.setState({screen:'vendorMenu'}); const sf=vid&&this.storyStageFor(vid);
+    if(sf&&sf.stage==='done'&&!this.talk) this.talkBegin(vid,sf.q,'done'); }
   vendorScreen(){
     const v=this.eng.byId.vendor[this.state.vendor]||{};
     const svc=this.services(v);
@@ -8539,12 +8567,12 @@ void main(){
           btn(this.en()?'Recover All':'모두 회복','#83B289',can,()=>this.doReturnHeal()),
           btn(this.en()?'Skip':'건너뛰기','#EAEBEE',!busy,()=>this.goAfterRaid()))));
   }
-  feedCost(){ return Math.max(0, Math.ceil((this.staMax - this.gs.sta) * this.eng.N(this.eng.DATA.config.stamina_cost_per_point, 2))); }
+  feedCost(){ if(this.storyFree('feed')) return 0; return Math.max(0, Math.ceil((this.staMax - this.gs.sta) * this.eng.N(this.eng.DATA.config.stamina_cost_per_point, 2))); }
   doFeed(){ const g=this.gs; if(g.sta>=this.staMax){ this.flash(this.en()?'Stamina already full':'스태미너가 가득 찼습니다'); return; } const cost=this.feedCost(); if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
     if(this._rcvAnim) return; const startSta=g.sta; g.sato-=cost; this._rcvAnim=true;
     this.recoverGlow('#C19E6F');
     this.animRecover(this._staFill,this._staNum,this._staBar,startSta,this.staMax,this.staMax).then(()=>{
-      g.sta=this.staMax; this._rcvAnim=false; this._feedDone=true; this.flash(this.t('feed_done')); this.forceUpdate(); this.saveGame(); }); }
+      g.sta=this.staMax; this._rcvAnim=false; this._feedDone=true; this.storyAct('feed',this.state.vendor); this.flash(this.t('feed_done')); this.forceUpdate(); this.saveGame(); }); }
   vendorFeed(v){
     const g=this.gs; const cost=this.feedCost();
     const full=g.sta>=this.staMax; const aff=g.sato>=cost; const can=!full&&aff;
