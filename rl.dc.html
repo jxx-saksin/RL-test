@@ -5618,7 +5618,7 @@ void main(){
         if(sr.got){ const vid=String(sr.q.GiverVendorID||'');   // 4번: 가져왔으면 기버에게 판매 → 완료 대화
           if(['combat','sortieLoad','result','lootmanage','returnheal','tap'].indexOf(s)>=0) return null;
           if(sr.o.what==='haggle') return this.storyHaggleGuide(sr.q,vid);
-          if(sr.o.what==='bring') return (s==='vendorMenu'||s==='vendor')&&this.state.vendor===vid? null : this.storyGuideToVendor(vid);   /* 가져오기 = 기버 상점까지(들어가면 완료 대화) */
+          if(sr.o.what==='bring'||(sr.o.what==='extract'&&!sr.r.direct)) return (s==='vendorMenu'||s==='vendor')&&this.state.vendor===vid? null : this.storyGuideToVendor(vid);   /* 가져오기 = 기버 상점까지(들어가면 완료 대화) */
           if(sr.o.what==='sell'&&this.storyQuietStart(sr.q)){ if(s==='vendorMenu'&&this.state.vendor===vid) return this.storyAllDone(sr.q)? null : 'svc-trade'; if(s==='vendor'&&this.state.vendor===vid) return null; return this.storyGuideToVendor(vid); }   /* 챕터2 판매 = 메뉴 [거래]까지만 */
           if(sr.o.what==='appraise'){ if(s==='vendorMenu'&&this.state.vendor===vid) return this.storyAllDone(sr.q)? null : 'svc-appraise'; if(s==='vendor'&&this.state.vendor===vid) return null; return this.storyGuideToVendor(vid); }   /* 감정 화면은 자유 */
           if(this.state.vendor===vid && s==='vendor'){ if(this.storyAllDone(sr.q)) return this.state.sellSel? null : 'trade-back';
