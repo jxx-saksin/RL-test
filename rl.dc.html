@@ -1938,7 +1938,7 @@ class Component extends DCLogic {
                 // ★Quest 서비스가 없는 상점(온라인 키오스크)은 통째로 숨긴다 — 0/0/0 회색 칩 3개는 거짓 정보다(사용자 결정).
                 open
                   ? ((svc.includes('Quest')&&this.storyDailyOpen())? this.questCountChips(v.VendorID) : null)
-                  : h('div',{style:{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:24,boxSizing:'border-box',padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.22)',color:T.faint,fontFamily:T.mono,fontSize:10}}, svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',12,T.faint,1.6), this.t('common_locked'))));
+                  : h('div',{style:{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:24,boxSizing:'border-box',padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.22)',color:T.faint,fontFamily:T.mono,fontSize:10}}, icLock(12,T.faint), this.t('common_locked'))));
           }),
         // 하단 여백 스페이서 — gap 8이 앞에 붙으므로 163 + 8 = 171
         h('div',{key:'padb',style:{flex:'0 0 auto',height:163}}))
@@ -5371,7 +5371,7 @@ void main(){
           return h('button',{key:it.k,'data-guide':'svc-'+it.k,disabled:it.locked,
           onClick:it.locked?null:()=>{ if(it.k==='exit') this.go('safehouse'); else if(it.k==='quest') this.openQuest(); else if(it.k==='trade') this.openVendorTab((this.services(v).includes('Buy')||this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID))?'buy':'sell'); else this.openVendorTab(it.k); },
           style:{position:'relative',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:it.locked?'#6F7276':'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:it.locked?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
-          it.locked? svg('M6 10V8a4 4 0 118 0v2M5 10h10v8H5z',15,'#6F7276',1.6) : null,
+          it.locked? icLock(15,'#6F7276') : null,   // 자물쇠 = 프로젝트 공용 icLock(목업 svg 패스) — 임의 아이콘 금지
           h('span',{key:'l'}, it.label),
           // 칩은 absolute — gap으로 붙이면 가운데 정렬된 라벨이 밀린다(시설 버튼 칩과 같은 규칙)
           qc? h('span',{key:'chip',style:{position:'absolute',right:16,top:'50%',transform:'translateY(-50%)',display:'flex'}},
