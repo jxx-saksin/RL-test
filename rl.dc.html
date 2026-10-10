@@ -5390,7 +5390,7 @@ void main(){
       // 래퍼 높이 = 패널 높이 + 아래 여백 24 · 대화 ↔ 메뉴 전환 때 높이가 부드럽게 바뀌어 NPC가 툭 튀지 않는다
       h('div',{key:'pw',style:{position:'relative',flex:'0 0 auto',height:talk?184:(48*items.length+16*(items.length-1)+48+24),transition:'height .55s cubic-bezier(.16,1,.3,1)'}},
       // 카이토처럼 메뉴에선 숨는 NPC도 퀘스트 대화 때는 나온다
-      (NPC_MENU_HIDE.includes(v.VendorID)&&!talk)? null : this.npcPortrait(v.VendorID, L&&L.vid===v.VendorID? L.face : 'neutral', talk),
+      (NPC_MENU_HIDE.includes(v.VendorID)&&(!talk||this.talkHideNpc()))? null : this.npcPortrait(v.VendorID, L&&L.vid===v.VendorID? L.face : 'neutral', talk),
       (L&&L.vid===v.VendorID)? this.npcTalkBox(this.tx(v,'VendorName'), L, talk) : null,
       talk? this.talkSkipBtn() : null,
       talk? this.talkPanel() :
@@ -5717,10 +5717,13 @@ void main(){
             if(o.unapp&&inst.rolls&&(inst.kind==='weapon'||inst.kind==='armor')){ inst.unappraised=Array.isArray(o.unapp)? o.unapp.filter(k=>k in inst.rolls) : Object.keys(inst.rolls); inst.appraised=false; }   /* unapp 배열 = 그 수치만 가림 */
             this.gs.vault.push(inst); (sm.cur.given||(sm.cur.given=[])).push(inst.uid); } } }   /* 수락 때 건네는 물건(2번 술값 = 박이 맡아 둔 미감정 쇠파이프 → 보관함) */
       this.saveGame(); this.sfx('quest_accept');
+      { const o=q&&this.eng.questObjective(q); if(o&&o.talk){ this.storyGrant(q); return; } }
       // 받은 뒤 갈 곳 안내 — Dest가 보관함이면 소지품 화면으로 보내고 [보관함] 탭을 반짝인다(보관함을 열면 멈춤)
       if(q && String(q.Dest||'').trim()==='screen:vault'){ this._hintVault=true; this.go('inventory'); this.setState({seg:'bag'}); return; }
       this.npcPickLine(t.vid); this.forceUpdate(); }
     else if(t.stage==='done' && q){ this.storyGrant(q); } }
+  // 대화만 하는 퀘스트(Objective.talk) — 시작 대화가 끝나면 바로 보상(챕터2 3번 카이토) · hideNpc = 그 대화에 초상을 안 띄움(아직 등장 전)
+  talkHideNpc(){ const t=this.talk, q=t&&this.eng.storyRow(t.qid), o=q&&this.eng.questObjective(q); return !!(o&&o.hideNpc); }
   // 하단 박스 — 늘 같은 크기(2칸 높이 160 · 사용자 2026-10-09: 크기가 바뀌면 NPC 잘린 단면이 드러난다).
   //   대사 중 = 두 칸 모두 '. . .' 비활성(다음 선택지를 미리 보여주지 않는다) · 선택지 지점 = 글자가 나타나며 활성 · 끝 = [확인] 한 칸을 박스 가운데에.
   talkPanel(){ const t=this.talk, ready=this.talkReady();
