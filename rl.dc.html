@@ -93,6 +93,7 @@
   /* 손 안내 — 대상 쪽으로 톡톡 두드리듯(아래쪽 대상은 180° 뒤집혀 있어 방향을 반대로) */
   @keyframes rlHandTap{0%,100%{transform:translate(0,0)}50%{transform:translate(-3px,-6px)}}
   @keyframes rlHandDrag{0%{transform:translate(0,0);opacity:0}12%{opacity:1}70%{transform:translate(0,150px);opacity:1}85%,100%{transform:translate(0,150px);opacity:0}}
+  @keyframes rlHandDragUp{0%{transform:translate(0,60px);opacity:0}12%{opacity:1}70%{transform:translate(0,-90px);opacity:1}85%,100%{transform:translate(0,-90px);opacity:0}}
   @keyframes rlHandTapD{0%,100%{transform:rotate(180deg) translate(0,0)}50%{transform:rotate(180deg) translate(-3px,-6px)}}
   /* 퀘스트 대화 하단 — 기다리는 점(하나씩 천천히) */
   @keyframes rlTalkDot{0%,100%{opacity:.25}40%{opacity:1}70%{opacity:.25}}
@@ -980,7 +981,8 @@ class Component extends DCLogic {
       this.qOnKill(c.mProf&&c.mProf.id); this.qOnWin();        // 퀘스트: 소탕 카운트 + 연전 연승 누적
       const loot = this.eng.rollLoot(c.mProf.id, c.zoneId);
       { const sr=this.storyRaidOn(); if(sr&&!sr.got){ if(sr.r.noloot) loot.length=0;   // 스토리 레이드 noloot — 아이템 드랍 없음(사토는 그대로)
-          const d=sr.r.drops&&sr.r.drops[String(c.encounter)]; if(d) for(const id in d){ if(this.eng.byId.item[id]) loot.push({id, qty:Math.max(1,this.eng.N(d[id],1))}); } } }   // drops = n전 확정 드랍
+          const d=sr.r.drops&&sr.r.drops[String(c.encounter)]; if(d){ for(let j=loot.length-1;j>=0;j--) if(d[loot[j].id]) loot.splice(j,1);   /* 같은 아이템이 일반 드랍으로도 나오면 확정분만 남긴다 */
+            for(const id in d){ if(this.eng.byId.item[id]) loot.unshift({id, qty:Math.max(1,this.eng.N(d[id],1))}); } } } }   // drops = n전 확정 드랍 · 맨 앞 카드(손 안내가 바로 가리키게)
       // quest drop: the police keycard is carried by 하람의 파수꾼 (assigned drop, not a global roll)
       if(c.mProf.id==='monster_haram_warden' && !this.hasItem('item_police_keycard') && Math.random()<0.35){ loot.push({id:'item_police_keycard', qty:1}); }
       c.lootInsts=[]; c.lootDraw=[];
@@ -1165,7 +1167,7 @@ class Component extends DCLogic {
     { const sf=this.storyStageFor(id); if(sf&&(sf.stage==='start'||sf.stage==='done')) this.talkBegin(id,sf.q,sf.stage); else this.npcPickLine(id); }
     // 튜토리얼 — 입장 시점(서비스 탭이 아니라 상점 메뉴 진입)에 건다.
     { const k = (id==='vendor_tavern') ? 'bar_appr1' : (id==='vendor_pawnshop') ? 'pawn_hag1' : null;
-      if(k) setTimeout(()=>this.tutoOpen(k),0); } }
+      if(k&&!this.talk) setTimeout(()=>this.tutoOpen(k),0); } }   /* 퀘스트 대화로 들어올 땐 안 띄운다 — 다음 방문(그 기능을 쓸 때) 뜬다 */
   openVendorTab(tab){ this._healDone=false; this._feedDone=false;
     if(tab==='haggle') this.sfxDealIn(this.valuablesOwned().length);
     this.setState({screen:'vendor',vtab:tab,sel:null,repairSel:null,repairMode:null,apr:null,mod:null,hg:(tab==='haggle'?{phase:'list',focus:0}:null)}); }
@@ -3638,7 +3640,7 @@ void main(){
   hgFlip(){
     const g=this.state.hg||{}; if(g.phase!=='back') return;
     const inst=this.hgSel(), r=g.pend; if(!inst||!r) return;
-    inst.value=r.from; inst.valueUp=(r.to>=r.from);
+    inst.value=r.from; inst.valueUp=(r.to>=r.from); this._hgFrontAt=Date.now(); setTimeout(()=>this.forceUpdate(),1800);
     this.sfxFlip(); this.setState({hg:Object.assign({},g,{phase:'front'})});
     clearTimeout(this._hgAnimT);
     this._hgAnimT=setTimeout(()=>this.hgAnimate(inst,r), 330);   // 앞면이 드러난 뒤 카운트업
@@ -3660,12 +3662,12 @@ void main(){
     const inst=this.hgSel(); if(!inst||inst.value==null) return;
     this.hgSettle();
     const price=Math.max(0,Math.round(this.eng.N(inst.value)));
-    this.gs.sato+=price; this.consumeInst(inst.uid); this.sfx('got_sato');
+    this.gs.sato+=price; this.consumeInst(inst.uid); this.sfx('got_sato'); this.storyAct('haggle',this.state.vendor);
     this.flash(this.eng.anyName(inst.id)+' · '+price.toLocaleString()+' '+this.t('currency_sato'));
     const n=this.valuablesOwned().length;
     this.setState({hg:{focus:Math.max(0,Math.min((this.state.hg||{}).focus||0, n-1)),phase:'list'}});
   }
-  hgBack(){ this.hgSettle(); this.setState({hg:null,screen:'vendorMenu'}); }
+  hgBack(){ this.hgSettle(); this.setState({hg:null}); this.vendorBack(); }   /* 흥정으로 목표를 채웠으면 바로 완료 대화 */
 
 
   // ---- result ----
@@ -4533,7 +4535,7 @@ void main(){
     const r=(this._gdKey===tg)?this._gdRect:null, P=6;
     const low=r&&(r.y+r.h/2>r.H*0.7);   // 아래쪽 대상 → 손을 위에서
     const noDim=tg==='raid-fight';      // 몬스터 카드를 뒤집은 화면 — 정보를 읽어야 하니 어둡게 하지 않고 손만
-    const drag=tg==='rest-card'||tg.split('|')[1]==='drag';   // 카드를 아래로 끄는 손(휴식 사용 · 전리품 넣기)
+    const drag=tg==='rest-card'||tg.split('|')[1]==='drag', dragUp=tg.split('|')[1]==='up';   /* up = 카드를 위로 올리는 손(흥정) */   // 카드를 아래로 끄는 손(휴식 사용 · 전리품 넣기)
     const under=tg==='lm-chips';        // 칩 줄 — 손이 글자를 가리지 않게 칩 아래에서
     return h('div',{key:'guide',ref:el=>{ this._gdEl=el; },style:{position:'absolute',inset:0,zIndex:35,pointerEvents:'none'}},   // 35 = 존 시트(30) 위 · 무전(70) 아래
       // 어둠 판에 타원 구멍을 마스크로 뚫는다 — 안쪽 62%까지 완전히 밝고 바깥 100%까지 부드럽게 어두워진다(가우시안 블러처럼 · 사용자 2026-10-09)
@@ -4544,7 +4546,7 @@ void main(){
       r? h('img',{key:'hand',src:'assets/art/ui/guide_hand.webp',alt:'',draggable:false,
         style:{position:'absolute',width:43,height:57,imageRendering:'pixelated',
           left:low? (r.x+r.w/2-29) : (r.x+r.w/2-14), top:low? (r.y-57+4) : under? (r.y+r.h+2) : (r.y+r.h/2+8),
-          transform:low?'rotate(180deg)':'none', animation:drag?'rlHandDrag 2.2s ease-in-out infinite':((low?'rlHandTapD':'rlHandTap')+' 1s ease-in-out infinite'), filter:'drop-shadow(0 2px 4px rgba(0,0,0,.6))'}}) : null); }
+          transform:low?'rotate(180deg)':'none', animation:drag?'rlHandDrag 2.2s ease-in-out infinite':dragUp?'rlHandDragUp 2.2s ease-in-out infinite':((low?'rlHandTapD':'rlHandTap')+' 1s ease-in-out infinite'), filter:'drop-shadow(0 2px 4px rgba(0,0,0,.6))'}}) : null); }
   // ===== 온보딩 도입 — 눈을 깜빡이며 뜨는 연출 (확장_v3 §3.6 온보딩 챕터1 · 사용자 2026-10-09 "직접 만들어줘") =====
   // 뜬 눈 = 화면보다 넓은 타원 구멍. 구멍 바깥은 box-shadow spread로 전부 검게 덮고(눈꺼풀), 안쪽 가장자리는 inset 그림자로 흐리게.
   //   ⚠️transform scaleY로 여닫으면 spread 그림자까지 같이 납작해져 화면이 드러난다 → height를 애니메이션한다(요소 1개라 부담 없음).
@@ -5525,8 +5527,9 @@ void main(){
   storyLootGuide(sr){ const lm=this.state.lm, id=String(sr.r.until||''); if(!lm||!id) return null;
     const fi=lm.field.findIndex(x=>x.id===id), be=lm.bag.find(x=>x.id===id&&!x.pre);
     if(fi>=0){ if(lm.view!=='field') return 'lm-view'; if((lm.focus||0)!==fi) return null; return (lm.opened&&lm.opened.has(lm.field[fi].uid))? 'lm-card|drag' : 'lm-card'; }
+    if(be&&!be.locked&&this.lmLocked(lm)>=2) return 'lm-done';   /* 주머니가 이미 꽉 찼으면 가방에 넣은 걸로 끝(잠금 강요 안 함) */
     if(be&&!be.locked){ if(lm.view!=='bag') return 'lm-view'; return lm.bag[lm.focus||0]===be? 'lm-lock' : null; }
-    if(be&&be.locked) return this.storyRadioFired('item_lock')? 'lm-done' : 'lm-chips';   // 잠근 뒤 2초 = 주머니·가방·전리품 칩을 밝혀 두고 → 무전 → [완료]
+    if(be&&be.locked) return (this.storyRadioFired('item_lock')||!this.storyHasRadio('item_lock'))? 'lm-done' : 'lm-chips';   /* 칩 안내는 item_lock 무전이 있는 퀘스트(4번)만 */   // 잠근 뒤 2초 = 주머니·가방·전리품 칩을 밝혀 두고 → 무전 → [완료]
     return null; }
   // 전리품 화면 무전 Trigger(4번) — item_flip 뒤집음 · item_bag 가방에 넣음(전리품 화면) · bag_view 가방 화면 · item_lock 자물쇠 2초 뒤
   storyLootHit(tr){ const lm=this.state.lm, id=tr.id, op=lm.opened; const inBag=lm.bag.find(x=>x.id===id&&!x.pre);
@@ -5536,14 +5539,26 @@ void main(){
       case 'bag_view': return lm.view==='bag' && !!inBag && !inBag.locked;
       case 'item_lock': return !!inBag && inBag.locked && !!lm.lockedAt && Date.now()-lm.lockedAt>=2000;
       default: return false; } }
+  storyHasRadio(on){ const c=this.storyMap().cur; return !!(c&&this.eng.storyLines(c.id,'radio').some(r=>String(r.Trigger||'').indexOf('"on":"'+on+'"')>=0)); }
+  // 흥정 안내(챕터2 1번) — 메뉴 [흥정하기] → 카드 위로 끌기 → 뒷면 탭 → (값이 다 오른 뒤) [판매하기] → [닫기](완료 대화)
+  storyHaggleGuide(q,vid){ const s=this.state.screen, done=this.storyAllDone(q);
+    if(s==='vendor'&&this.state.vendor===vid&&this.state.vtab==='haggle'){ const ph=(this.state.hg||{}).phase||'list';
+      if(done) return ph==='list'? 'hg-btn' : null;
+      if(ph==='list') return 'hg-card|up'; if(ph==='back') return 'hg-card';
+      if(ph==='front') return (this._hgRaf||Date.now()-(this._hgFrontAt||0)<1700)? null : 'hg-btn';
+      return null; }
+    if(s==='vendorMenu'&&this.state.vendor===vid) return done? null : 'svc-haggle';
+    return this.storyGuideToVendor(vid); }
   storyRadioFired(on){ const c=this.storyMap().cur, f=(c&&c.radio)||{}; return Object.keys(f).some(k=>k.indexOf('"on":"'+on+'"')>=0); }
   // 잠그기 전엔 [완료]를 막는다 — 4번은 자물쇠(주머니)까지가 핵심(사용자 2026-10-10)
   storyLootBlock(){ const sr=this.storyRaid(); if(!sr||sr.got||!sr.r.until) return false; const lm=this.state.lm; if(!lm) return false; const id=String(sr.r.until);
-    return lm.field.some(x=>x.id===id) || lm.bag.some(x=>x.id===id&&!x.pre&&!x.locked); }
+    return lm.field.some(x=>x.id===id) || (this.lmLocked(lm)<2 && lm.bag.some(x=>x.id===id&&!x.pre&&!x.locked)); }
   storyLootFocus(lm){ const sr=this.storyRaid(); if(!sr||!sr.r.until||!lm) return -1; return lm.bag.findIndex(x=>x.id===String(sr.r.until)&&!x.pre); }
   // 상점 열림(온보딩) — 첫 스토리 퀘스트 기버 + 보상으로 연 상점(opened)만 · 스토리가 없으면 전부 열림
   storyShopOpen(vid){ const rows=(this.eng&&this.eng.storyRows)?this.eng.storyRows():[]; if(!this.gs||!rows.length) return true;
-    if(String(rows[0].GiverVendorID||'')===vid) return true; return this.storyMap().opened.indexOf('vendor:'+vid)>=0; }
+    if(String(rows[0].GiverVendorID||'')===vid) return true; const m=this.storyMap(), q=this.storyNext();
+    if(q&&String(q.GiverVendorID||'')===vid&&((m.cur&&m.cur.id===q.QuestID)||(m.called&&m.called[q.QuestID]))) return true;   /* 호출받은 기버 상점(챕터2 1번 마르타) */
+    return m.opened.indexOf('vendor:'+vid)>=0; }
   // 존 열림(온보딩) — 보상 opens의 zone:…만(2번 → 무너진 상가) · 스토리가 없으면 전부 열림
   storyZoneOpen(zid){ const rows=(this.eng&&this.eng.storyRows)?this.eng.storyRows():[]; if(!this.gs||!rows.length) return true; return this.storyMap().opened.indexOf('zone:'+zid)>=0; }
   // 아지트 열림(온보딩) — opened에 feature:hideout이 생기기 전엔 잠김(챕터2에서 연다 · 사용자 2026-10-10)
@@ -5573,13 +5588,14 @@ void main(){
     // 3번 레이드 — 존까지 안내 · 전투 뒤엔 누를 수 있는 버튼 · 휴식은 카드(위로 올려 사용) → [완료]
     { const sr=this.storyRaid(); if(sr){ const c=this.combat;
         if(s==='lootmanage') return this.storyLootGuide(sr);
-        if(s==='combat'&&c){ if(c.phase==='won'||c.phase==='timeout'){ const st=this.storyRaidStep(); return st?'raid-'+st:null; }
+        if(s==='combat'&&c&&!(sr.got&&(c.encounter||1)>(Array.isArray(sr.r.spawn)?sr.r.spawn.length:0))){ if(c.phase==='won'||c.phase==='timeout'){ const st=this.storyRaidStep(); return st?'raid-'+st:null; }
           if(c.phase==='cards') return c.flipped?'raid-fight':'raid-card';
           if(c.phase==='rest'){ if(this._restAnim||(c.restUsedAt&&Date.now()-c.restUsedAt<2000)) return null;   // 회복이 차는 걸 먼저 보여 준다(사용 후 2초)
             return (c.restUsed||this.gs.hp>=this.gs.maxHp||!this.restCards().length)? 'rest-done' : 'rest-card'; }
           return null; }
         if(sr.got){ const vid=String(sr.q.GiverVendorID||'');   // 4번: 가져왔으면 기버에게 판매 → 완료 대화
           if(['combat','sortieLoad','result','lootmanage','returnheal','tap'].indexOf(s)>=0) return null;
+          if(sr.o.what==='haggle') return this.storyHaggleGuide(sr.q,vid);
           if(this.state.vendor===vid && s==='vendor'){ if(this.storyAllDone(sr.q)) return this.state.sellSel? null : 'trade-back';
             if(this.state.vtab!=='sell') return 'seg-sell'; return this.state.sellSel? 'sell-go' : 'sell-'+String(sr.r.until||''); }
           if(this.state.vendor===vid && s==='vendorMenu') return this.storyAllDone(sr.q)? null : 'svc-trade';
@@ -5666,7 +5682,7 @@ void main(){
     t.si=end; t.wait= j<0? 'end' : 'choose'; this._talkFullAt=0; this.forceUpdate(); }
   talkFinish(){ const t=this.talk; if(!t||t.wait!=='end'||!this.talkReady()) return;
     const q=this.eng.storyRow(t.qid); this.talk=null;
-    if(t.stage==='start'){ this.storyMap().cur={id:t.qid,s:'run',p:[]}; this.saveGame(); this.sfx('quest_accept');
+    if(t.stage==='start'){ const sm=this.storyMap(); sm.cur={id:t.qid,s:'run',p:[]}; if(t.vid&&sm.opened.indexOf('vendor:'+t.vid)<0) sm.opened.push('vendor:'+t.vid); this.saveGame(); this.sfx('quest_accept');
       // 받은 뒤 갈 곳 안내 — Dest가 보관함이면 소지품 화면으로 보내고 [보관함] 탭을 반짝인다(보관함을 열면 멈춤)
       if(q && String(q.Dest||'').trim()==='screen:vault'){ this._hintVault=true; this.go('inventory'); this.setState({seg:'bag'}); return; }
       this.npcPickLine(t.vid); this.forceUpdate(); }
@@ -5868,6 +5884,7 @@ void main(){
   storyDest(q){ const giver=String(q.GiverVendorID||'');
     const toV=(vid)=>{ const v=this.eng.byId.vendor[vid]||{}; return {label:this.shopName(v.ShopID,v), go:()=>this.openVendor(vid)}; };
     if(this.storyAllDone(q) && giver) return toV(giver);
+    { const c=this.storyMap().cur; if(giver&&!(c&&c.id===q.QuestID)) return toV(giver); }   /* 받기 전(호출 대기) = 기버 상점으로 */
     { const sr=this.storyRaid(); if(sr&&sr.q===q&&sr.got&&giver) return toV(giver); }   // 4번: 가져왔으면 기버에게(판매)
     const d=String(q.Dest||'').trim(), i=d.indexOf(':'), kind=d.slice(0,i), id=d.slice(i+1);
     if(kind==='screen'&&id==='vault') return {label:this.t('nav_vault'), go:()=>{ this.go('inventory'); this.setState({seg:'vault'}); }};
@@ -7996,7 +8013,7 @@ void main(){
       : (phase==='list'? (this.en()?'Close':'닫기') : (this.en()?'End':'종료하기'));
     const btnOn = canSell || phase==='list';
     const bottom=h('div',{style:{position:'relative',zIndex:2,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D'}},
-      h('button',{disabled:!btnOn,onClick:btnOn?(canSell?()=>this.hgSell():()=>this.hgBack()):null,
+      h('button',{'data-guide':'hg-btn',disabled:!btnOn,onClick:btnOn?(canSell?()=>this.hgSell():()=>this.hgBack()):null,
         style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:btnOn?'#EAEBEE':'#454545',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:btnOn?'pointer':'default'}}, btnLabel));
 
     if(!list.length) return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
@@ -8046,7 +8063,7 @@ void main(){
       h('div',Object.assign({style:{position:'relative',zIndex:1,flex:1,minHeight:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',touchAction:'none'}},
         (phase==='list'||phase==='front')?swipe:null),
         // 카드 슬롯 — talk 단계에선 카드 대신 대사(목업 y436 = 슬롯의 66% 지점)
-        h('div',{key:'slot',style:{position:'relative',width:342,height:'min('+cardH+'px, 100%)',flex:'0 0 auto',display:'flex',alignItems:'center',justifyContent:'center'}},
+        h('div',{key:'slot','data-guide':'hg-card',style:{position:'relative',width:342,height:'min('+cardH+'px, 100%)',flex:'0 0 auto',display:'flex',alignItems:'center',justifyContent:'center'}},
           // 목록 단계 = 캐러셀(전리품·감정·PvP와 동종). 카드를 전부 absolute로 깔고 off로 밀어,
           // 키를 uid로만 잡아 포커스가 바뀌어도 노드가 유지되게 한다 — 키에 phase/focus가 섞이면
           // 노드가 교체되어 transition이 통째로 날아가고 '이미지만 즉시 갈림'이 된다.
