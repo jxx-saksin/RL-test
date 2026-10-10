@@ -97,6 +97,8 @@
   @keyframes rlHandTapD{0%,100%{transform:rotate(180deg) translate(0,0)}50%{transform:rotate(180deg) translate(-3px,-6px)}}
   /* 퀘스트 대화 하단 — 기다리는 점(하나씩 천천히) */
   @keyframes rlTalkDot{0%,100%{opacity:.25}40%{opacity:1}70%{opacity:.25}}
+  /* 무전기 점 — 하단 캐릭터 아이콘과 같은 박자(4~5번 깜빡 → 멈춤) */
+  @keyframes rlCommsDot{0%,8.33%,16.67%,25%,33.33%{opacity:1;box-shadow:0 0 6px 1px rgba(47,191,113,.9)}4.17%,12.5%,20.83%,29.17%,37.5%{opacity:.25;box-shadow:none}100%{opacity:1;box-shadow:none}}
   @keyframes rlCommsBlink{0%,8.33%,16.67%,25%,33.33%{color:#2FBF71;filter:drop-shadow(0 0 4px rgba(47,191,113,.85))}4.17%,12.5%,20.83%,29.17%,37.5%,100%{color:var(--nb);filter:none}}
   @keyframes rlBossTell{0%,100%{box-shadow:inset 0 0 30px 4px rgba(196,60,50,0)}50%{box-shadow:inset 0 0 34px 7px rgba(196,60,50,.16)}}
   @keyframes rlBossEdge{0%,100%{box-shadow:inset 0 0 0 1px rgba(196,60,50,.25),0 0 16px rgba(150,20,16,.12)}50%{box-shadow:inset 0 0 0 1.5px rgba(230,80,68,.48),0 0 26px rgba(180,26,20,.28)}}
@@ -5836,7 +5838,7 @@ void main(){
       style:{position:'absolute',right:25.4,top:23,width:44,height:44,padding:0,border:'none',background:'none',cursor:'pointer'}},
       h('svg',{key:'i',width:25.2,height:31.92,viewBox:'343 30 25.2 31.92',fill:'none',style:{position:'absolute',left:9.4,top:6,display:'block'}},
         h('path',{fillRule:'evenodd',clipRule:'evenodd',fill:'#EAEBEE',d:WALKIE_D})),
-      this.commsPending()? h('span',{key:'d',style:{position:'absolute',left:38.4,top:1,width:5,height:5,borderRadius:'50%',background:'#2FBF71'}}) : null);
+      this.commsPending()? h('span',{key:'d',style:{position:'absolute',left:38.4,top:1,width:5,height:5,borderRadius:'50%',background:'#2FBF71',animation:'rlCommsDot 2.4s ease-in-out infinite'}}) : null);
   }
   // 기본 탭 = 임무(열 때마다).
   openComms(){ this.go('comms'); this.setState({commsTab:'mission',commsPick:null,commsOpen:null}); }
