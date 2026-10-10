@@ -75,7 +75,7 @@ export const DATA = {
       "repair_accessory_cost_per_point": 120,
       "repair_accessory_cost_base": 0,
       "repair_accessory_fail_chance_per_point": 0.15,
-      "save_epoch": 2,
+      "save_epoch": 3,
       "hideout_unlock_force": 1,
       "repair_durability_per_junk": 5,
       "craft_fail_material_loss": 1,
