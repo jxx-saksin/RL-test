@@ -583,8 +583,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val70');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val35');
+      const eng = await import('./engine.js?v=val71');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val36');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -894,7 +894,7 @@ class Component extends DCLogic {
     });
     // 스토리 레이드 — 이번 판 몬스터를 고정한다(카드 3장 모두 같은 몬스터 · 보스 없음)
     { const sr=this.storyRaidOn(), sp=sr&&Array.isArray(sr.r.spawn)?sr.r.spawn:null;
-      if(sp&&sp.length&&!sr.got&&(this.combat.encounter||0)<sp.length){ const id=sp[this.combat.encounter||0]; if(this.eng.byId.monster[id]) for(let i=0;i<cards.length;i++) cards[i]={type:'monster',id}; } }
+      if(sp&&sp.length&&(this.combat.encounter||0)<sp.length){ const id=sp[this.combat.encounter||0]; if(this.eng.byId.monster[id]) for(let i=0;i<cards.length;i++) cards[i]={type:'monster',id}; } }
     Object.assign(this.combat, { cards, picked:null, mProf:null, pvp:null, pvpCards:null, phase:'cards', res:null, revealed:0, loot:[], ups:[], cardFocus:Math.floor(n/2), flipped:false });
     this.sfxDeal(cards.length);   // 딜링 — 카드 1장당 1회, 간격 랜덤
     if(this._t){ clearInterval(this._t); this._t=null; }
@@ -920,7 +920,10 @@ class Component extends DCLogic {
     const staZero = this.gs.sta <= 0;
     const full = this.eng.playerProfile(this.gs,false);
     const prof = this.eng.playerProfile(this.gs, staZero); prof.maxHp = full.maxHp;
-    const res = this.eng.simulateCombat(prof, mProf, this.gs.hp);
+    let res = this.eng.simulateCombat(prof, mProf, this.gs.hp);
+    // 스토리 레이드 nodie — 퀘스트 전투에선 지지 않는다(사용자 2026-10-10). 이길 때까지 다시 굴리고, 그래도 안 되면 적 공격을 줄인다.
+    { const sr=this.storyRaidOn(); if(sr&&sr.r.nodie){ for(let k=0;k<40&&res.winner!=='player';k++) res=this.eng.simulateCombat(prof, mProf, this.gs.hp);
+        for(let f=0.5;res.winner!=='player'&&f>0.01;f*=0.5){ const w=Object.assign({},mProf,{minAtk:mProf.minAtk*f,maxAtk:mProf.maxAtk*f,weaponMaxDmg:mProf.weaponMaxDmg*f,critChance:0,attribute:null}); res=this.eng.simulateCombat(prof, w, this.gs.hp); } } }
     Object.assign(this.combat, { prof:prof, res, revealed:1, phase:'fighting', staZero, encounter:this.combat.encounter+1 });
     // 튜토리얼 — 카드를 뒤집고 전투에 돌입한 직후. tick()이 팝업 동안 멈춘다.
     { const enc=this.combat.encounter;
@@ -958,6 +961,7 @@ class Component extends DCLogic {
     // 사망(dead)은 전투 화면이 그대로 남아 그대로 노출된다(2026-08-31).
     c.fx=null;
     this.gs.hp = res.playerHpEnd;
+    { const sr=this.storyRaidOn(); if(sr&&sr.r.nodie) this.gs.hp=Math.max(1,this.gs.hp); }   // nodie — 이겨도 0.4처럼 "0"으로 보이면 죽은 것 같다
     // 전투 종료 후 몬스터 등급만큼 스태미너 소모(진입 전이 아니라 종료 후). 도주 성공은 여기 안 옴 = 소모 없음.
     this.gs.sta = Math.max(0, this.gs.sta - this.eng.N(c.mProf.staminaCost, 0));
     c.durChanges = this.eng.applyDurabilityWear(this.gs, res.triggers) || [];
@@ -4250,7 +4254,8 @@ void main(){
       if(bagRoom){ entry.locked=false; this.flash(this.en()?'Unlocked':'잠금 해제'); }
       else { const bi=lm.bag.indexOf(entry); if(bi>=0) lm.bag.splice(bi,1); entry.locked=false; if(!lm.opened) lm.opened=new Set(); lm.opened.add(entry.uid); lm.field.push(entry); if(!lm.bag.length) lm.view='field'; this.lmFix(); this.flash(this.en()?'No bag · back to loot':'가방 없음 · 전리품으로'); } }
     else { if(!this.canPocket(entry)){ this.lmReject(this.noPocketMsg()); return; }
-      if(this.lmLocked(lm)>=2){ this.lmReject(this.en()?'Pocket max 2 · unlock one first':'주머니는 2칸까지 · 하나 해제하세요'); return; } entry.locked=true; this.flash(this.en()?'Locked (safe)':'주머니 잠금 (안전)'); }
+      if(this.lmLocked(lm)>=2){ this.lmReject(this.en()?'Pocket max 2 · unlock one first':'주머니는 2칸까지 · 하나 해제하세요'); return; } entry.locked=true;
+      /* 4번 무전(item_lock)은 잠근 지 2초 뒤 */ lm.lockedAt=Date.now(); clearTimeout(this._lmLockT); this._lmLockT=setTimeout(()=>this.forceUpdate(),2100); this.flash(this.en()?'Locked (safe)':'주머니 잠금 (안전)'); }
     this.forceUpdate();
   }
   // ⚠️ 부모(스테이지)에 명령형 스타일을 쓸 땐 반드시 vdom 정본값으로 되돌린다.
@@ -4325,10 +4330,11 @@ void main(){
           isField? h('span',{style:{lineHeight:0}}, this.lmLockIcon(false))
                  : h('button',{onClick:()=>this.lmToggleLock(),'data-guide':'lm-lock',style:{background:'transparent',border:'none',cursor:'pointer',padding:0,lineHeight:0},title:this.t('common_locked')}, this.lmLockIcon(focusLocked)))),
       // 카운트 칩 — svg y97~124 (주머니 #7CA5BB · 가방 #D8B25A · 전리품 #6B6B6B)
-      this.countChips([
+      // 칩 줄 — 4번 손 안내가 칩 세 개만 밝히도록 내용 폭으로 감싼다(바깥은 가운데 정렬 · 층은 칩과 같은 2)
+      h('div',{key:'lmchips',style:{position:'relative',zIndex:2,flex:'0 0 auto',display:'flex',justifyContent:'center'}}, h('div',{'data-guide':'lm-chips'}, this.countChips([
         [this.en()?'Pocket':'주머니', this.lmLocked(lm)+'/2', blue],
         [this.en()?'Bag':'가방', (lm.bag.length-this.lmLocked(lm))+'/'+this.lmBagCap(), gold],
-        [this.en()?'Loot':'전리품', String(lm.field.length), '#6B6B6B']]),
+        [this.en()?'Loot':'전리품', String(lm.field.length), '#6B6B6B']]))),
       // coverflow (실제 카드) — svg 카드 y135~617(482). 컨테이너 125~627 중앙정렬.
       // ⚠️ overflow:hidden 금지 — 소켓 있는 장비는 lootCardH가 502를 넘어(최대 585) 상·하단이 잘렸다.
       // zIndex 3 = 칩(2)·헤더(2) 위. 카드가 길면 칩과 힌트를 덮되 카드 전체가 보이는 쪽을 택했다(사용자 결정).
@@ -4467,7 +4473,8 @@ void main(){
       const hit=(tr.on==='goal_done' && this.storyAllDone(q)) || (tr.on==='screen' && (this.state.screen===tr.id || (this.state.screen==='vendor' && 'vendor_'+this.state.vtab===tr.id)))
         || (tr.on==='fight_end' && this.state.screen==='combat' && this.combat && (this.combat.phase==='won'||this.combat.phase==='timeout') && this.combat.encounter===this.eng.N(tr.n,0))
         || (tr.on==='rest_empty' && this.state.screen==='combat' && this.combat && this.combat.phase==='rest' && !!this.combat.restGranted)
-        || (tr.on==='item_get' && this.state.screen==='lootmanage' && !!this.state.lm && [...this.state.lm.field,...this.state.lm.bag].some(x=>x.id===tr.id&&!x.pre));
+        || (tr.on==='item_get' && this.state.screen==='lootmanage' && !!this.state.lm && [...this.state.lm.field,...this.state.lm.bag].some(x=>x.id===tr.id&&!x.pre))
+        || (this.state.screen==='lootmanage' && !!this.state.lm && this.storyLootHit(tr));
       if(!hit) continue;
       const rows=groups[k].slice().sort((a,b)=>this.eng.N(a.Seq,0)-this.eng.N(b.Seq,0));
       c.radio=Object.assign({},fired,{[k]:1}); this.saveGame();
@@ -4507,6 +4514,7 @@ void main(){
     const low=r&&(r.y+r.h/2>r.H*0.7);   // 아래쪽 대상 → 손을 위에서
     const noDim=tg==='raid-fight';      // 몬스터 카드를 뒤집은 화면 — 정보를 읽어야 하니 어둡게 하지 않고 손만
     const drag=tg==='rest-card'||tg.split('|')[1]==='drag';   // 카드를 아래로 끄는 손(휴식 사용 · 전리품 넣기)
+    const under=tg==='lm-chips';        // 칩 줄 — 손이 글자를 가리지 않게 칩 아래에서
     return h('div',{key:'guide',ref:el=>{ this._gdEl=el; },style:{position:'absolute',inset:0,zIndex:35,pointerEvents:'none'}},   // 35 = 존 시트(30) 위 · 무전(70) 아래
       // 어둠 판에 타원 구멍을 마스크로 뚫는다 — 안쪽 62%까지 완전히 밝고 바깥 100%까지 부드럽게 어두워진다(가우시안 블러처럼 · 사용자 2026-10-09)
       noDim? null : r? (()=>{ const cx=r.x+r.w/2, cy=r.y+r.h/2, rx=Math.round(r.w/2*1.3+22), ry=Math.round(r.h/2*1.3+22);
@@ -4515,7 +4523,7 @@ void main(){
         : h('div',{key:'dim',style:{position:'absolute',inset:0,background:'rgba(0,0,0,.55)'}}),
       r? h('img',{key:'hand',src:'assets/art/ui/guide_hand.webp',alt:'',draggable:false,
         style:{position:'absolute',width:43,height:57,imageRendering:'pixelated',
-          left:low? (r.x+r.w/2-29) : (r.x+r.w/2-14), top:low? (r.y-57+4) : (r.y+r.h/2+8),
+          left:low? (r.x+r.w/2-29) : (r.x+r.w/2-14), top:low? (r.y-57+4) : under? (r.y+r.h+2) : (r.y+r.h/2+8),
           transform:low?'rotate(180deg)':'none', animation:drag?'rlHandDrag 2.2s ease-in-out infinite':((low?'rlHandTapD':'rlHandTap')+' 1s ease-in-out infinite'), filter:'drop-shadow(0 2px 4px rgba(0,0,0,.6))'}}) : null); }
   // ===== 온보딩 도입 — 눈을 깜빡이며 뜨는 연출 (확장_v3 §3.6 온보딩 챕터1 · 사용자 2026-10-09 "직접 만들어줘") =====
   // 뜬 눈 = 화면보다 넓은 타원 구멍. 구멍 바깥은 box-shadow spread로 전부 검게 덮고(눈꺼풀), 안쪽 가장자리는 inset 그림자로 흐리게.
@@ -5496,8 +5504,17 @@ void main(){
     const fi=lm.field.findIndex(x=>x.id===id), be=lm.bag.find(x=>x.id===id&&!x.pre);
     if(fi>=0){ if(lm.view!=='field') return 'lm-view'; if((lm.focus||0)!==fi) return null; return (lm.opened&&lm.opened.has(lm.field[fi].uid))? 'lm-card|drag' : 'lm-card'; }
     if(be&&!be.locked){ if(lm.view!=='bag') return 'lm-view'; return lm.bag[lm.focus||0]===be? 'lm-lock' : null; }
-    if(be&&be.locked) return 'lm-done';
+    if(be&&be.locked) return this.storyRadioFired('item_lock')? 'lm-done' : 'lm-chips';   // 잠근 뒤 2초 = 주머니·가방·전리품 칩을 밝혀 두고 → 무전 → [완료]
     return null; }
+  // 전리품 화면 무전 Trigger(4번) — item_flip 뒤집음 · item_bag 가방에 넣음(전리품 화면) · bag_view 가방 화면 · item_lock 자물쇠 2초 뒤
+  storyLootHit(tr){ const lm=this.state.lm, id=tr.id, op=lm.opened; const inBag=lm.bag.find(x=>x.id===id&&!x.pre);
+    switch(tr.on){
+      case 'item_flip': return lm.view==='field' && lm.field.some(x=>x.id===id&&op&&op.has(x.uid));
+      case 'item_bag': return lm.view==='field' && !!inBag && !inBag.locked;
+      case 'bag_view': return lm.view==='bag' && !!inBag && !inBag.locked;
+      case 'item_lock': return !!inBag && inBag.locked && !!lm.lockedAt && Date.now()-lm.lockedAt>=2000;
+      default: return false; } }
+  storyRadioFired(on){ const c=this.storyMap().cur, f=(c&&c.radio)||{}; return Object.keys(f).some(k=>k.indexOf('"on":"'+on+'"')>=0); }
   // 잠그기 전엔 [완료]를 막는다 — 4번은 자물쇠(주머니)까지가 핵심(사용자 2026-10-10)
   storyLootBlock(){ const sr=this.storyRaid(); if(!sr||sr.got||!sr.r.until) return false; const lm=this.state.lm; if(!lm) return false; const id=String(sr.r.until);
     return lm.field.some(x=>x.id===id) || lm.bag.some(x=>x.id===id&&!x.pre&&!x.locked); }
