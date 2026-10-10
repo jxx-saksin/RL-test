@@ -188,15 +188,15 @@ const gearIcon=(slot,on)=>{
 const GEAR_SLOTS = [['bag','가방'],['weapon','무기'],['head','투구'],['body','갑옷'],['artifact1','장신구'],['artifact2','징표']];
 // 전당포 흥정 대사 폴백 — 시트 NpcDialogue(NPC=vendor_pawnshop / Flow=haggle)가 비었을 때만 쓴다
 const HAGGLE_TPL = {
-  intro:[['귀중품… 귀한 걸 찾아왔네?','Valuables... you brought something rare.'],
-         ['어디 보자. 손 좀 타긴 했군.',"Let me see. Been handled a bit, hasn't it."],
-         ['물건은 물건이네. 값은 따로 치고.',"It's the real thing. The price is another matter."]],
-  again:[['더 받고 싶다는 얼굴이군.',"That's the face of someone who wants more."],
-         ['다시 보자고? 후회는 자네 몫이야.','Another look? The regret is yours to keep.'],
-         ['한 번 더 재보지. 오를지 내릴지는 몰라.',"I'll weigh it again. Up or down, who knows."]],
-  max:[['더 이상은 나도 안 돼.','That is as far as I go.'],
-       ['여기까지야. 팔든지 들고 가든지.','This is it. Sell it or take it home.'],
-       ['세 번 봤으면 됐지.','Three looks is enough.']],
+  intro:[['귀중품… 귀한 걸 찾아오셨네요?','Valuables... you brought something rare.'],
+         ['어디 볼까요. 손 좀 탔네요.',"Let me see. Been handled a bit, hasn't it."],
+         ['물건은 물건이네요. 값은 따로 치고요.',"It's the real thing. The price is another matter."]],
+  again:[['더 받고 싶다는 얼굴이네요.',"That's the face of someone who wants more."],
+         ['다시 보자고요? 후회는 응찰자 씨 몫이에요.','Another look? The regret is yours to keep.'],
+         ['한 번 더 재 볼게요. 오를지 내릴지는 몰라요.',"I'll weigh it again. Up or down, who knows."]],
+  max:[['더 이상은 저도 안 돼요.','That is as far as I go.'],
+       ['여기까지예요. 파시든지 들고 가시든지요.','This is it. Sell it or take it home.'],
+       ['세 번 봤으면 됐죠.','Three looks is enough.']],
 };
 // 몬스터 등급 색 — 카드 리빌(monsterFront)과 퀘스트 목표 칩이 같은 표를 쓴다.
 const GRADECOL = { common:'rgb(234,235,238)', rare:'#83B289', unique:'#7CA5BB', special:'#B27EAD', boss:'#D6BB79' };
@@ -1896,7 +1896,7 @@ class Component extends DCLogic {
   // ---- safehouse ----
   safehouse(){
     // 상점 카드 고정 표시 순서 (ShopID 기준)
-    const ORDER=['shop_clinic','shop_canteen','shop_hardware','shop_tavern','shop_pawnshop','shop_blackmarket','shop_auction'];
+    const ORDER=['shop_clinic','shop_canteen','shop_hardware','shop_pawnshop','shop_tavern','shop_blackmarket','shop_auction'];   /* 열리는 순서(챕터1·2) */
     const ord=(v)=>{ const i=ORDER.indexOf(v.ShopID); return i<0?99:i; };
     const vendors=this.eng.DATA.vendors.slice().sort((a,b)=>ord(a)-ord(b));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
@@ -5829,6 +5829,7 @@ void main(){
     if(!this.eng || !this.gs) return false;
     if(this.commsAlerts().length) return true;
     { const c=this.storyMap().cur, q=c&&this.eng.storyRow(c.id); if(q && (c.s==='rw' || this.storyAllDone(q))) return true; }
+    { const m=this.storyMap(), pq=!m.cur&&this.storyPending(); if(pq && m.called && m.called[pq.QuestID]) return true; }   /* 호출받고 아직 안 받은 임무(챕터2 1번 마르타) — 받으러 갈 때까지 */
     return ['daily','weekly'].some(t=>this.commsQuests(t).some(x=>x.st==='done')); }
   commsBtn(){
     return h('button',{key:'comms','data-guide':'comms-btn',onClick:()=>this.openComms(),'aria-label':this.t('comms_title'),
