@@ -5497,6 +5497,7 @@ void main(){
     return have.size; }
   storyProg(q){ const o=this.eng.questObjective(q); if(!o) return [];
     if(o.kind==='act'&&o.what==='equip') return o.targets.map(t=>this.storyEquipCount(t));
+    if(o.kind==='act'&&o.what==='bring') return o.targets.map(t=>((t.ids||[]).some(id=>this.storyOwns(id))||!!this.storyMap().done[q.QuestID])?t.count:0);   /* 가져오기 = 갖고 있으면 채움(4번 회로 기판) */
     const c=this.storyMap().cur, p=(c&&Array.isArray(c.p))?c.p:[]; return o.targets.map((t,i)=>this.eng.N(p[i],0)); }
   storyAllDone(q){ const o=this.eng.questObjective(q); if(!o) return false; const pr=this.storyProg(q); return o.targets.every((t,i)=>pr[i]>=t.count); }
   // 상점에 들어왔을 때 할 일 — start(수락 대화) / done(완료 대화) / reward(못 받은 보상 카드) / null(평상시)
@@ -5617,6 +5618,7 @@ void main(){
         if(sr.got){ const vid=String(sr.q.GiverVendorID||'');   // 4번: 가져왔으면 기버에게 판매 → 완료 대화
           if(['combat','sortieLoad','result','lootmanage','returnheal','tap'].indexOf(s)>=0) return null;
           if(sr.o.what==='haggle') return this.storyHaggleGuide(sr.q,vid);
+          if(sr.o.what==='bring') return (s==='vendorMenu'||s==='vendor')&&this.state.vendor===vid? null : this.storyGuideToVendor(vid);   /* 가져오기 = 기버 상점까지(들어가면 완료 대화) */
           if(sr.o.what==='sell'&&this.storyQuietStart(sr.q)){ if(s==='vendorMenu'&&this.state.vendor===vid) return this.storyAllDone(sr.q)? null : 'svc-trade'; if(s==='vendor'&&this.state.vendor===vid) return null; return this.storyGuideToVendor(vid); }   /* 챕터2 판매 = 메뉴 [거래]까지만 */
           if(sr.o.what==='appraise'){ if(s==='vendorMenu'&&this.state.vendor===vid) return this.storyAllDone(sr.q)? null : 'svc-appraise'; if(s==='vendor'&&this.state.vendor===vid) return null; return this.storyGuideToVendor(vid); }   /* 감정 화면은 자유 */
           if(this.state.vendor===vid && s==='vendor'){ if(this.storyAllDone(sr.q)) return this.state.sellSel? null : 'trade-back';
@@ -5721,7 +5723,9 @@ void main(){
       // 받은 뒤 갈 곳 안내 — Dest가 보관함이면 소지품 화면으로 보내고 [보관함] 탭을 반짝인다(보관함을 열면 멈춤)
       if(q && String(q.Dest||'').trim()==='screen:vault'){ this._hintVault=true; this.go('inventory'); this.setState({seg:'bag'}); return; }
       this.npcPickLine(t.vid); this.forceUpdate(); }
-    else if(t.stage==='done' && q){ this.storyGrant(q); } }
+    else if(t.stage==='done' && q){ const o=this.eng.questObjective(q);
+      if(o&&o.what==='bring') o.targets.forEach(tg=>(tg.ids||[]).forEach(id=>{ for(const a of [this.gs.bag,this.gs.vault]){ const it=a.find(x=>x.id===id); if(it){ this.consumeInst(it.uid); return; } } }));   /* 건넨 물건은 기버가 가져간다 */
+      this.storyGrant(q); } }
   // 대화만 하는 퀘스트(Objective.talk) — 시작 대화가 끝나면 바로 보상(챕터2 3번 카이토) · hideNpc = 그 대화에 초상을 안 띄움(아직 등장 전)
   talkHideNpc(){ const t=this.talk, q=t&&this.eng.storyRow(t.qid), o=q&&this.eng.questObjective(q); return !!(o&&o.hideNpc); }
   // 하단 박스 — 늘 같은 크기(2칸 높이 160 · 사용자 2026-10-09: 크기가 바뀌면 NPC 잘린 단면이 드러난다).
