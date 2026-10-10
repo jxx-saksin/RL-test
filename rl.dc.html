@@ -194,7 +194,7 @@ const HAGGLE_TPL = {
          ['어디 볼까요. 손 좀 탔네요.',"Let me see. Been handled a bit, hasn't it."],
          ['물건은 물건이네요. 값은 따로 치고요.',"It's the real thing. The price is another matter."]],
   again:[['더 받고 싶다는 얼굴이네요.',"That's the face of someone who wants more."],
-         ['다시 보자고요? 후회는 응찰자 씨 몫이에요.','Another look? The regret is yours to keep.'],
+         ['다시 보자고요? 후회는 각자 몫이에요.','Another look? The regret is yours to keep.'],
          ['한 번 더 재 볼게요. 오를지 내릴지는 몰라요.',"I'll weigh it again. Up or down, who knows."]],
   max:[['더 이상은 저도 안 돼요.','That is as far as I go.'],
        ['여기까지예요. 파시든지 들고 가시든지요.','This is it. Sell it or take it home.'],
@@ -984,7 +984,7 @@ class Component extends DCLogic {
       this.qOnKill(c.mProf&&c.mProf.id); this.qOnWin();        // 퀘스트: 소탕 카운트 + 연전 연승 누적
       const loot = this.eng.rollLoot(c.mProf.id, c.zoneId);
       { const sr=this.storyRaidOn(); if(sr&&!sr.got){ if(sr.r.noloot) loot.length=0;   // 스토리 레이드 noloot — 아이템 드랍 없음(사토는 그대로)
-          const d=sr.r.drops&&sr.r.drops[String(c.encounter)]; if(d){ for(let j=loot.length-1;j>=0;j--) if(d[loot[j].id]) loot.splice(j,1);   /* 같은 아이템이 일반 드랍으로도 나오면 확정분만 남긴다 */
+          const d=sr.r.drops&&sr.r.drops[String(c.encounter)]; if(d){ loot.length=0;   /* 확정 드랍이 걸린 전투는 그 아이템만(사용자 2026-10-10) */
             for(const id in d){ if(this.eng.byId.item[id]) loot.unshift({id, qty:Math.max(1,this.eng.N(d[id],1))}); } } } }   // drops = n전 확정 드랍 · 맨 앞 카드(손 안내가 바로 가리키게)
       // quest drop: the police keycard is carried by 하람의 파수꾼 (assigned drop, not a global roll)
       if(c.mProf.id==='monster_haram_warden' && !this.hasItem('item_police_keycard') && Math.random()<0.35){ loot.push({id:'item_police_keycard', qty:1}); }
@@ -5555,11 +5555,7 @@ void main(){
   storyHasRadio(on){ const c=this.storyMap().cur; return !!(c&&this.eng.storyLines(c.id,'radio').some(r=>String(r.Trigger||'').indexOf('"on":"'+on+'"')>=0)); }
   // 흥정 안내(챕터2 1번) — 메뉴 [흥정하기] → 카드 위로 끌기 → 뒷면 탭 → (값이 다 오른 뒤) [판매하기] → [닫기](완료 대화)
   storyHaggleGuide(q,vid){ const s=this.state.screen, done=this.storyAllDone(q);
-    if(s==='vendor'&&this.state.vendor===vid&&this.state.vtab==='haggle'){ const ph=(this.state.hg||{}).phase||'list';
-      if(done) return ph==='list'? 'hg-btn' : null;
-      if(ph==='list') return 'hg-card|up'; if(ph==='back') return 'hg-card';
-      if(ph==='front') return (this._hgRaf||Date.now()-(this._hgFrontAt||0)<1700)? null : 'hg-btn';
-      return null; }
+    if(s==='vendor'&&this.state.vendor===vid&&this.state.vtab==='haggle') return null;   /* 흥정 화면은 손·어둠 없이 마음껏(사용자 2026-10-10) — 무전만 */
     if(s==='vendorMenu'&&this.state.vendor===vid) return done? null : 'svc-haggle';
     return this.storyGuideToVendor(vid); }
   storyRadioFired(on){ const c=this.storyMap().cur, f=(c&&c.radio)||{}; return Object.keys(f).some(k=>k.indexOf('"on":"'+on+'"')>=0); }
@@ -5880,7 +5876,7 @@ void main(){
       if(!done && ai<0) return;
       chapters.push({no,name:this.t('story_ch'+String(no).padStart(2,'0')),done,reach:ai>=0?ai:done-1,
         quests:qs.map((q,i)=>{ const o=this.eng.questObjective(q), need=o?o.targets[0].count:0, pr=(i===ai)?this.storyProg(q):[];
-          return {id:q.QuestID,name:this.tx(q,'Name'),obj:this.storySummary(q),cur:m.done[q.QuestID]?need:this.eng.N(pr[0],0),need,
+          return {id:q.QuestID,name:this.tx(q,'Name'),obj:this.storySummary(q),cur:m.done[q.QuestID]?need:((i===ai&&o&&o.prog==='owns'&&o.raid&&o.raid.until)?((this.storyOwns(String(o.raid.until))||this.storyAllDone(q))?need:0):this.eng.N(pr[0],0)),need,   /* prog:owns = 가져왔으면 채움 */
             objs:this.storyObjLines(q, i===ai, !!m.done[q.QuestID]),
             desc:this.tx(q,'Description'),dest:(i===ai&&((m.cur&&m.cur.s==='run')||(call&&pq===q)))?this.storyDest(q):null}; })}); });
     return {chapters}; }
@@ -5893,6 +5889,7 @@ void main(){
     return out; }
   // 목표 한 줄 — act는 UIString quest_sum_act_<what>({n}) · 나머지는 일일과 같은 qSummary
   storySummary(q){ const o=this.eng.questObjective(q); if(!o) return '';
+    if(o.sum){ const t=this.t(o.sum); if(t&&t!==o.sum) return t; }   /* 목표 한 줄 직접 지정(UIString 키) — 챕터2 1번 「회중시계 찾아오기」 */
     if(o.kind==='act'){ const t=this.t('quest_sum_act_'+o.what), a0=((o.targets[0]||{}).ids||[])[0];
       return (t&&t!=='quest_sum_act_'+o.what)? t.replace('{n}',o.targets[0].count).replace('{a}',a0?(this.eng.anyName(a0)||a0):'') : ''; }
     return this.qSummary(q); }
