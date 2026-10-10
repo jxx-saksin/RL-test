@@ -1964,13 +1964,17 @@ class Component extends DCLogic {
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       this.screenTitle('RAID','nav_sortie',this.currencyChips()),
       // ---- city carousel ----
-      h('div',{style:{display:'flex',gap:8,overflowX:'auto',padding:'16px 16px 16px',flex:'0 0 auto',scrollSnapType:'x mandatory'}},
+      // 다른 도시는 잠김 — 가로로 넘기려 하면 줄 전체가 살짝 떨리고 제자리(사용자 2026-10-10) · Web Animations라 인라인 style 안 건드림
+      h('div',{onPointerDown:e=>{ this._cityDx={x:e.clientX,y:e.clientY,done:false}; },
+        onPointerMove:e=>{ const d=this._cityDx; if(!d||d.done) return; const dx=e.clientX-d.x, dy=e.clientY-d.y;
+          if(Math.abs(dx)>18 && Math.abs(dx)>Math.abs(dy)){ d.done=true; const el=e.currentTarget; if(el.animate) el.animate([{transform:'translateX(0)'},{transform:'translateX('+(dx<0?-9:9)+'px)'},{transform:'translateX('+(dx<0?7:-7)+'px)'},{transform:'translateX('+(dx<0?-4:4)+'px)'},{transform:'translateX(2px)'},{transform:'translateX(0)'}],{duration:340,easing:'ease-out'}); } },
+        onPointerUp:()=>{ this._cityDx=null; }, onPointerCancel:()=>{ this._cityDx=null; },
+        style:{display:'flex',gap:8,overflowX:'hidden',padding:'16px 16px 16px',flex:'0 0 auto',touchAction:'pan-y'}},
         ...citySlots.map((sc,i)=>{ const active=sc.id===sel && !sc.locked;
           return h('div',{key:sc.id,onClick:sc.locked?()=>this.flash(this.t('zone_sealed_msg')):()=>this.setState({cityId:sc.id}),
-            style:{flex:'0 0 92%',scrollSnapAlign:'center',height:236,position:'relative',borderRadius:8,overflow:'hidden',boxShadow:'inset 0 0 0 1px '+(active?T.line2:T.line),cursor:sc.locked?'default':'pointer',backgroundColor:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 7px, oklch(0.27 0.008 264) 7px 8px)',backgroundSize:'cover',backgroundPosition:'center',backgroundRepeat:'no-repeat'}},
+            style:{flex:'0 0 92%',height:236,position:'relative',borderRadius:8,overflow:'hidden',boxShadow:'inset 0 0 0 1px '+(active?T.line2:T.line),cursor:sc.locked?'default':'pointer',backgroundColor:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 7px, oklch(0.27 0.008 264) 7px 8px)',backgroundSize:'cover',backgroundPosition:'center',backgroundRepeat:'no-repeat'}},
             (!sc.locked)?h('img',{src:'assets/art/cities/'+sc.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}):null,
             h('div',{style:{position:'absolute',inset:0,borderRadius:8,background:sc.locked?'linear-gradient(180deg, rgba(24,25,29,.55), rgba(24,25,29,.92))':'linear-gradient(180deg, rgba(24,25,29,0) 0%, rgb(24,25,29) 100%)'}}),
-            h('div',{style:{position:'absolute',left:16,top:14,fontFamily:T.mono,fontSize:9,color:T.faint,letterSpacing:'.12em'}}, 'CITY 0'+(i+1)+' · TIER '+(i+1)),
             h('div',{style:{position:'absolute',left:16,right:16,bottom:16}},
               h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:6}},
                 h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:600,color:sc.locked?T.mid:T.hi}}, sc.name),
