@@ -583,8 +583,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val68');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val33');
+      const eng = await import('./engine.js?v=val69');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val34');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -975,6 +975,7 @@ class Component extends DCLogic {
     if(res.winner==='player'){
       this.qOnKill(c.mProf&&c.mProf.id); this.qOnWin();        // 퀘스트: 소탕 카운트 + 연전 연승 누적
       const loot = this.eng.rollLoot(c.mProf.id, c.zoneId);
+      { const sr=this.storyRaidOn(); if(sr&&sr.r.noloot) loot.length=0; }   // 스토리 레이드 noloot — 아이템 드랍 없음(3번 · 사토는 그대로)
       // quest drop: the police keycard is carried by 하람의 파수꾼 (assigned drop, not a global roll)
       if(c.mProf.id==='monster_haram_warden' && !this.hasItem('item_police_keycard') && Math.random()<0.35){ loot.push({id:'item_police_keycard', qty:1}); }
       c.lootInsts=[]; c.lootDraw=[];
