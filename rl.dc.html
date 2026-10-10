@@ -1906,17 +1906,19 @@ class Component extends DCLogic {
       h('div',{style:{padding:'16px 16px 0',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:8}},
         // 아지트 — svg/screen-shop-list.svg. 370x191(아트 151 + 하단 띠 40) · 현재 잠금.
         h('div',{onClick:this.hideoutOpen()?()=>this.go('hideout'):null,style:{position:'relative',flexShrink:0,height:193,boxSizing:'border-box',border:'1px solid #36383C',borderRadius:8,overflow:'hidden',background:'#111315',marginBottom:6,cursor:this.hideoutOpen()?'pointer':'default'}},
-          h('div',{style:{position:'absolute',left:0,right:0,top:0,height:151,backgroundImage:'url(assets/art/shop/hide.webp)',backgroundSize:'cover',backgroundPosition:'center bottom'}}),
+          h('div',{style:{position:'absolute',left:0,right:0,top:0,height:151,backgroundImage:'url(assets/art/shop/hide.webp)',backgroundSize:'cover',backgroundPosition:'center bottom',filter:this.storyHideOpen()?'none':'grayscale(1)'}}),
           h('div',{style:{position:'absolute',left:0,right:0,top:0,height:151,background:'linear-gradient(180deg, rgba(17,19,21,0.94) 0%, rgba(17,19,21,0) 70.7%)'}}),
           // 잠금 밴드 (svg y196~257 = 카드 기준 90~151) — 오픈되면 걷힌다
-          this.hideoutOpen()? null : h('div',{style:{position:'absolute',left:0,right:0,top:90,height:61,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',gap:10}},
+          (this.hideoutOpen()||!this.storyHideOpen())? null : h('div',{style:{position:'absolute',left:0,right:0,top:90,height:61,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',gap:10}},
             this.icAlert('hex',20,'#A9ABAF'),
             h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#A9ABAF'}}, this.en()?'No access':'접근 금지')),
           // 하단 띠 (svg y257~297)
           h('div',{style:{position:'absolute',left:0,right:0,top:151,height:40,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 15px 0 17px'}},
             h('span',{style:{fontFamily:T.sans,fontSize:16,fontWeight:500,color:this.hideoutOpen()?'#EAEBEE':'#6F7276'}}, this.t('hide_title')),
             this.hideoutOpen()? this.hideJobIcons() : null,
-            this.hideoutOpen()? null : h('span',{style:{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.22)',fontFamily:T.mono,fontSize:10.5,letterSpacing:'1px',color:'#6F7276',whiteSpace:'nowrap'}}, this.en()?'SOON':'준비중'))),
+            this.hideoutOpen()? null : !this.storyHideOpen()
+              ? h('span',{style:{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',padding:'0 9px',borderRadius:6,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.35)',fontFamily:T.sans,fontSize:12,color:'#A9ABAF',whiteSpace:'nowrap'}}, this.t('shop_locked'))   // 온보딩 잠김 = 상점 행과 같은 [잠김]
+              : h('span',{style:{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',padding:'0 9px',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.22)',fontFamily:T.mono,fontSize:10.5,letterSpacing:'1px',color:'#6F7276',whiteSpace:'nowrap'}}, this.en()?'SOON':'준비중'))),
         // 상점 행 7개 — 370x61 r8, 간격 8
         ...vendors.map(v=>{ const svc=this.services(v); const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID); const open=buyRows.length>0||svc.includes('Repair')||svc.includes('Heal')||svc.includes('Feed')||svc.includes('Load')||svc.includes('Appraisal')||svc.includes('Sell')||svc.includes('Haggle')||svc.includes('Register')||svc.includes('Claim'); const sOpen=this.storyShopOpen(v.VendorID); const act=()=>this.openVendor(v.VendorID);
             if(!sOpen) return h('button',{key:v.VendorID,disabled:true,   // 아직 안 열린 상점(온보딩) — 흑백 · 이름 없음 · [잠김]만(사용자 2026-10-10)
@@ -5535,6 +5537,8 @@ void main(){
   // 상점 열림(온보딩) — 첫 스토리 퀘스트 기버 + 보상으로 연 상점(opened)만 · 스토리가 없으면 전부 열림
   storyShopOpen(vid){ const rows=(this.eng&&this.eng.storyRows)?this.eng.storyRows():[]; if(!this.gs||!rows.length) return true;
     if(String(rows[0].GiverVendorID||'')===vid) return true; return this.storyMap().opened.indexOf('vendor:'+vid)>=0; }
+  // 아지트 열림(온보딩) — opened에 feature:hideout이 생기기 전엔 잠김(챕터2에서 연다 · 사용자 2026-10-10)
+  storyHideOpen(){ const rows=(this.eng&&this.eng.storyRows)?this.eng.storyRows():[]; if(!this.gs||!rows.length) return true; return this.storyMap().opened.indexOf('feature:hideout')>=0; }
   // 일일 퀘스트 열림 — 5번 보상 feature:daily 전까지 퀘스트 칩·[퀘스트] 버튼을 숨긴다/잠근다
   storyDailyOpen(){ const rows=(this.eng&&this.eng.storyRows)?this.eng.storyRows():[]; if(!this.gs||!rows.length) return true; return this.storyMap().opened.indexOf('feature:daily')>=0; }
   // 퀘스트 받기 전 호출 무전(Trigger call) — 있으면 다음 퀘스트로 가는 길이 교신(무전기)을 거친다(5번)
@@ -7811,7 +7815,8 @@ void main(){
       this.forceUpdate();
     },1000);
   }
-  hideoutOpen(){ return this.eng.N(this.eng.DATA.config.hideout_unlock_force,0)===1 || this.eng.N(this.gs.hideout&&this.gs.hideout.built,0)===1; }
+  hideoutOpen(){ if(!this.storyHideOpen()) return false;   // 온보딩 — 챕터2에서 feature:hideout으로 연다
+    return this.eng.N(this.eng.DATA.config.hideout_unlock_force,0)===1 || this.eng.N(this.gs.hideout&&this.gs.hideout.built,0)===1; }
 
   // ===== 수리 리스트 (svg/screen-hardware-fix-item.svg) =====
   // 아트 175 + '수리 가능 아이템' 라벨 바(y175~223, 하단 모서리 r16) + 행(pitch 104) + 뒤로가기 박스
