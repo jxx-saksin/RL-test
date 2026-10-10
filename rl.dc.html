@@ -985,7 +985,7 @@ class Component extends DCLogic {
       const loot = this.eng.rollLoot(c.mProf.id, c.zoneId);
       { const sr=this.storyRaidOn(); if(sr&&!sr.got){ if(sr.r.noloot) loot.length=0;   // 스토리 레이드 noloot — 아이템 드랍 없음(사토는 그대로)
           const d=sr.r.drops&&sr.r.drops[String(c.encounter)]; if(d){ loot.length=0;   /* 확정 드랍이 걸린 전투는 그 아이템만(사용자 2026-10-10) */
-            for(const id in d){ if(this.eng.byId.item[id]||(this.eng.byId.weapon&&this.eng.byId.weapon[id])||(this.eng.byId.armor&&this.eng.byId.armor[id])) loot.unshift({id, qty:Math.max(1,this.eng.N(d[id],1)), unapp:!!sr.r.unapp}); } } } }   // drops = n전 확정 드랍 · 맨 앞 카드(손 안내가 바로 가리키게)
+            for(const id in d){ if(this.eng.byId.item[id]||(this.eng.byId.weapon&&this.eng.byId.weapon[id])||(this.eng.byId.armor&&this.eng.byId.armor[id])||(this.eng.byId.usb&&this.eng.byId.usb[id])) loot.unshift({id, qty:Math.max(1,this.eng.N(d[id],1)), unapp:!!sr.r.unapp}); } } } }   // drops = n전 확정 드랍 · 맨 앞 카드(손 안내가 바로 가리키게)
       // quest drop: the police keycard is carried by 하람의 파수꾼 (assigned drop, not a global roll)
       if(c.mProf.id==='monster_haram_warden' && !this.hasItem('item_police_keycard') && Math.random()<0.35){ loot.push({id:'item_police_keycard', qty:1}); }
       c.lootInsts=[]; c.lootDraw=[];
@@ -5617,6 +5617,7 @@ void main(){
         if(sr.got){ const vid=String(sr.q.GiverVendorID||'');   // 4번: 가져왔으면 기버에게 판매 → 완료 대화
           if(['combat','sortieLoad','result','lootmanage','returnheal','tap'].indexOf(s)>=0) return null;
           if(sr.o.what==='haggle') return this.storyHaggleGuide(sr.q,vid);
+          if(sr.o.what==='sell'&&this.storyQuietStart(sr.q)){ if(s==='vendorMenu'&&this.state.vendor===vid) return this.storyAllDone(sr.q)? null : 'svc-trade'; if(s==='vendor'&&this.state.vendor===vid) return null; return this.storyGuideToVendor(vid); }   /* 챕터2 판매 = 메뉴 [거래]까지만 */
           if(sr.o.what==='appraise'){ if(s==='vendorMenu'&&this.state.vendor===vid) return this.storyAllDone(sr.q)? null : 'svc-appraise'; if(s==='vendor'&&this.state.vendor===vid) return null; return this.storyGuideToVendor(vid); }   /* 감정 화면은 자유 */
           if(this.state.vendor===vid && s==='vendor'){ if(this.storyAllDone(sr.q)) return this.state.sellSel? null : 'trade-back';
             if(this.state.vtab!=='sell') return 'seg-sell'; return this.state.sellSel? 'sell-go' : 'sell-'+String(sr.r.until||''); }
