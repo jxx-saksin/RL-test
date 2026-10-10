@@ -94,6 +94,7 @@
   @keyframes rlHandTap{0%,100%{transform:translate(0,0)}50%{transform:translate(-3px,-6px)}}
   @keyframes rlHandDrag{0%{transform:translate(0,0);opacity:0}12%{opacity:1}70%{transform:translate(0,150px);opacity:1}85%,100%{transform:translate(0,150px);opacity:0}}
   @keyframes rlHandDragUp{0%{transform:translate(0,60px);opacity:0}12%{opacity:1}70%{transform:translate(0,-90px);opacity:1}85%,100%{transform:translate(0,-90px);opacity:0}}
+  @keyframes rlGripGlow{0%,100%{background:rgba(234,235,238,.35);box-shadow:none}50%{background:#EAEBEE;box-shadow:0 0 8px 2px rgba(234,235,238,.75)}}
   @keyframes rlHandSwipeR{0%{transform:translate(-40px,0);opacity:0}12%{opacity:1}70%{transform:translate(90px,0);opacity:1}85%,100%{transform:translate(90px,0);opacity:0}}
   @keyframes rlHandSwipeL{0%{transform:translate(60px,0);opacity:0}12%{opacity:1}70%{transform:translate(-90px,0);opacity:1}85%,100%{transform:translate(-90px,0);opacity:0}}
   @keyframes rlHandTapD{0%,100%{transform:rotate(180deg) translate(0,0)}50%{transform:rotate(180deg) translate(-3px,-6px)}}
@@ -407,6 +408,7 @@ const NPC_BOX_A=0.35;
 // 기준 = 원본(768×1360)에서 머리 꼭대기가 y≈360. 마르타는 y≈92라 1.25배 커 보였다(2026-10-09 실측). 키 = VendorID 또는 VendorID_표정(표정이 우선).
 // 메뉴(평상시)에서는 초상을 띄우지 않는 NPC — 카이토 렌은 문 안쪽에서 나오지 않는 컨셉(퀘스트 대화 때만 등장 · 사용자 2026-10-09). 대사 박스는 그대로.
 const NPC_MENU_HIDE=['vendor_blackmarket'];
+const TIDY_KEEP='item_med_plaster';   // 정리 튜토리얼 끝에 배낭에 남길 물건(반창고 · 사용자 2026-10-10)
 const NPC_FRAME={ vendor_pawnshop:0.79, vendor_auction:1.15 };   // 첸 하오는 반대로 y≈517이라 작다 — 메뉴 2칸이라 더 내려가는 것까지 감안
 const NPC_TW_FAST=28;
 // 퀘스트 대화 타자기(ms/글자) — 평상시보다 느리게 · 선택지 활성 직후 입력 무시(연타 사고 방지)
@@ -4720,7 +4722,7 @@ void main(){
       onPointerCancel:()=>{ if(this._isw){ this._isw.el.style.transition='transform .2s'; this._isw.el.style.transform='none'; this._isw=null; } },
       style:{position:'relative',borderBottom:'1px solid '+T.line,background:T.bg,padding:'14px 15px 14px 30px',touchAction:'pan-y'}},
       h('div',{'data-invgrip':'1','data-guide':'invgrip-'+inst.uid,onPointerDown:(e)=>this.invGripDown(e,inst.uid),style:{position:'absolute',left:0,top:0,bottom:0,width:28,cursor:'grab',touchAction:'none'}},
-        h('div',{'data-invbar':barCol,style:{position:'absolute',left:11,top:14,bottom:14,width:4,borderRadius:2,background:barCol,pointerEvents:'none'}})),
+        h('div',{'data-invbar':barCol,style:Object.assign({position:'absolute',left:11,top:14,bottom:14,width:4,borderRadius:2,background:barCol,pointerEvents:'none'}, this.tidyGripUid()===inst.uid?{animation:'rlGripGlow 1.1s ease-in-out infinite'}:null)})),   /* 정리 튜토리얼: 끌 손잡이가 반짝인다 */
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}},
         this.catChip(catOf(inst),false),
         ms>=2?this.qtyChip(inst,ms):null),
@@ -5593,6 +5595,7 @@ void main(){
   // ===== 아이템 정리 튜토리얼(챕터1 끝 직후 · 사용자 2026-10-10) — 맥 무전 + 손 안내 3단계 =====
   //   grip(손잡이로 주머니↔가방) → vault(오른쪽으로 밀어 보관함) → out(보관함에서 왼쪽으로 밀어 꺼내기) → end
   //   상태 gs.story.tidy = {st, uid, from, said} · 대사 = NpcDialogue NPC=vendor_hardware Flow=tidy Stage=intro|grip|vault|out|end
+  tidyGripUid(){ const m=this.gs&&this.storyMap(), T=m&&m.tidy; return (T&&T.st==='grip'&&T.said&&this.tidyActive())? T.uid : null; }
   tidyActive(){ if(!this.gs||!this.eng||!this.eng.storyRows) return false; const m=this.storyMap();
     if(!m.done['quest_story_c1_05']||m.done['quest_story_c2_01']||m.cur||(m.called&&m.called['quest_story_c2_01'])) return false;
     return !(m.tidy&&m.tidy.st==='done'); }
@@ -5600,10 +5603,10 @@ void main(){
     .sort((a,b)=>this.eng.N(a.VariantNo,0)-this.eng.N(b.VariantNo,0)).map(r=>Object.assign({},r,{LineID:r.DialogueID})); }
   tidyItems(){ const g=this.gs, free=g.bag.filter(x=>!this.isEquipped(x.uid)); return {pocket:free.filter(x=>x.loc==='pocket'), bag:free.filter(x=>x.loc!=='pocket'), cap:this.eng.equippedBagCapacity?this.eng.equippedBagCapacity(g):0}; }
   tidyPick(st){ const T=this.storyMap().tidy, it=this.tidyItems();
-    if(st==='grip'){ const up=it.pocket.length<2&&it.bag.find(x=>this.canPocket(x)); if(up) return {uid:up.uid,from:'bag'};
-      if(it.pocket.length) return {uid:it.pocket[0].uid,from:'pocket'}; return null; }
-    if(st==='vault'){ const x=it.bag[0]||it.pocket[0]; return x?{uid:x.uid,id:x.id}:null; }
-    if(st==='out'){ const x=(T.id&&this.gs.vault.find(v=>v.id===T.id))||this.gs.vault.find(v=>v.kind!=='bag'); return x?{uid:x.uid,id:x.id,have:this.tidyQty(x.id)}:null; }   /* 쌓이는 물건은 보관함에서 합쳐져 uid가 바뀐다 → id·수량으로 본다 */
+    if(st==='grip'){ const pl=it.pocket.find(x=>x.id===TIDY_KEEP)||it.pocket[0]; if(pl) return {uid:pl.uid,from:'pocket'};   /* 주머니 → 배낭(반창고 우선) */
+      const up=it.bag.find(x=>this.canPocket(x)); return up?{uid:up.uid,from:'bag'}:null; }
+    if(st==='vault'){ const x=it.pocket[0]||it.bag[0]; return x?{uid:x.uid,id:x.id}:null; }   /* 가방·주머니를 전부 비운다(하나씩) */
+    if(st==='out'){ const x=this.gs.vault.find(v=>v.id===TIDY_KEEP)||(T.id&&this.gs.vault.find(v=>v.id===T.id))||this.gs.vault.find(v=>v.kind!=='bag'); return x?{uid:x.uid,id:x.id,have:this.tidyQty(x.id)}:null; }   /* 반창고만 다시 챙긴다 */   /* 쌓이는 물건은 보관함에서 합쳐져 uid가 바뀐다 → id·수량으로 본다 */
     return null; }
   tidyQty(id){ return this.gs.bag.filter(x=>x.id===id&&!this.isEquipped(x.uid)).reduce((a,x)=>a+Math.max(1,this.eng.N(x.qty,1)),0); }
   tidyGo(st){ const m=this.storyMap(); m.tidy=Object.assign({},m.tidy,{st,said:0}); if(st!=='end'&&st!=='done'){ const pk=this.tidyPick(st); if(!pk){ const nx={grip:'vault',vault:'out',out:'end'}[st]; return this.tidyGo(nx); } Object.assign(m.tidy,pk); }
@@ -5617,7 +5620,7 @@ void main(){
     if(T.st==='grip'){ const x=this.gs.bag.find(i=>i.uid===T.uid); if(!x){ this.tidyGo('grip'); return; }
       if(((x.loc==='pocket')?'pocket':'bag')!==T.from){ this.tidyGo('vault'); return; }
       if(!T.said&&inv&&seg==='bag') say('grip'); return; }
-    if(T.st==='vault'){ if(!this.gs.bag.some(i=>i.uid===T.uid)){ this.tidyGo('out'); return; }   /* 소지품에서 빠졌으면 = 보관함으로 갔다(합쳐졌을 수 있음) */
+    if(T.st==='vault'){ if(!this.gs.bag.some(i=>i.uid===T.uid)){ const nx=this.tidyPick('vault'); if(nx){ Object.assign(T,nx); this.saveGame(); setTimeout(()=>this.forceUpdate(),0); } else this.tidyGo('out'); return; }   /* 남은 게 있으면 다음 줄로 손만 옮긴다 */   /* 소지품에서 빠졌으면 = 보관함으로 갔다(합쳐졌을 수 있음) */
       if(!T.said&&inv&&seg==='bag') say('vault'); return; }
     if(T.st==='out'){ if(this.tidyQty(T.id)>this.eng.N(T.have,0)){ this.tidyGo('end'); return; } const vx=this.gs.vault.find(v=>v.id===T.id); if(!vx){ this.tidyGo('out'); return; } if(vx.uid!==T.uid){ T.uid=vx.uid; }
       if(!T.said&&inv) say('out'); return; }
