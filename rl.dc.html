@@ -592,8 +592,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val76');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val41');
+      const eng = await import('./engine.js?v=val77');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val42');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -4503,8 +4503,9 @@ void main(){
     const c=this.storyMap().cur;
     if(!c){ const pq=this.storyPending(), rows=pq?this.storyCallRows(pq):[], m=this.storyMap();   // 받기 전 호출 — 교신 화면에서 1회 · id:auto면 레이드 밖 아무 화면에서
       const free=['combat','sortieLoad','result','lootmanage','returnheal','tap'].indexOf(this.state.screen)<0 && !this.storyRew && !this.state.notice && !!this.state.ready;
-      const navId=rows.length&&this.storyCallId(pq)==='nav'; if(navId&&(!this._navArm||this._navArm.q!==pq.QuestID)) this._navArm={q:pq.QuestID,s:this._navArmS||this.state.screen};   /* id:nav = 다른 화면으로 옮기면 호출(챕터1 5번 맥) */
-      const navHit=navId&&free&&this._navArm&&this.state.screen!==this._navArm.s;
+      const navId=rows.length&&this.storyCallId(pq)==='nav'; if(navId&&(!this._navArm||this._navArm.q!==pq.QuestID)) this._navArm={q:pq.QuestID,s:this._navArmS||this.state.screen,n:0};   /* id:nav = 화면을 2번 옮기면 호출(챕터1 5번 맥 · 사용자 2026-10-10) */
+      if(navId&&this._navArm&&this.state.screen!==this._navArm.s){ this._navArm.s=this.state.screen; this._navArm.n++; }
+      const navHit=navId&&free&&this._navArm&&this._navArm.n>=2;
       if(rows.length && (this.state.screen==='comms' || (free&&this.storyCallAuto(pq)) || navHit) && !(m.called&&m.called[pq.QuestID]) && !this.tidyActive()){ m.called=Object.assign({},m.called,{[pq.QuestID]:1}); this.saveGame();
         setTimeout(()=>{ if(this.state.tuto||this.state.notice||this.radio||this.talk){ delete m.called[pq.QuestID]; return; } this.radioOpen(String(pq.GiverVendorID||''),rows); },this.storyCallAuto(pq)?900:0); }   /* 자동 호출은 화면이 자리 잡은 뒤 */
       return; }
@@ -5601,15 +5602,15 @@ void main(){
   storyDailyOpen(){ const rows=(this.eng&&this.eng.storyRows)?this.eng.storyRows():[]; if(!this.gs||!rows.length) return true; return this.storyMap().opened.indexOf('feature:daily')>=0; }
   // 퀘스트 받기 전 호출 무전(Trigger call) — 있으면 다음 퀘스트로 가는 길이 교신(무전기)을 거친다(5번)
   storyCallRows(q){ if(!q||!this.eng.storyLines) return []; return this.eng.storyLines(q.QuestID,'radio').filter(r=>{ try{ return JSON.parse(String(r.Trigger||'')).on==='call'; }catch(_){ return false; } }).sort((a,b)=>this.eng.N(a.Seq,0)-this.eng.N(b.Seq,0)); }
-  // ===== 아이템 정리 튜토리얼(챕터1 끝 직후 · 사용자 2026-10-10) — 맥 무전 + 손 안내 3단계 =====
+  // ===== 아이템 정리 튜토리얼(챕터1 끝 직후 · 사용자 2026-10-10) — 유리 무전 + 손 안내 3단계 · 시작 = 레이드 화면 진입 =====
   //   grip(손잡이로 주머니↔가방) → vault(오른쪽으로 밀어 보관함) → out(보관함에서 왼쪽으로 밀어 꺼내기) → end
-  //   상태 gs.story.tidy = {st, uid, from, said} · 대사 = NpcDialogue NPC=vendor_hardware Flow=tidy Stage=intro|grip|vault|out|end
+  //   상태 gs.story.tidy = {st, uid, from, said} · 대사 = NpcDialogue NPC=vendor_clinic Flow=tidy Stage=intro|grip|vault|out|end
   tidyGripUid(){ const m=this.gs&&this.storyMap(), T=m&&m.tidy; return (T&&T.st==='grip'&&T.said&&this.tidyActive())? T.uid : null; }
   tidyPending(){ if(!this.gs||!this.eng||!this.eng.storyRows||!this.eng.storyRows().length) return false; const m=this.storyMap(); return !(m.tidy&&m.tidy.st==='done') && !m.done['quest_story_c2_01'] && !(m.cur&&String(m.cur.id).indexOf('quest_story_c2_')===0); }
   tidyActive(){ if(!this.gs||!this.eng||!this.eng.storyRows) return false; const m=this.storyMap();
     if(!m.done['quest_story_c1_05']||m.done['quest_story_c2_01']||m.cur||(m.called&&m.called['quest_story_c2_01'])) return false;
     return !(m.tidy&&m.tidy.st==='done'); }
-  tidyRows(st){ return ((this.eng.DATA.npcDialogue)||[]).filter(r=>String(r.NPC||'')==='vendor_hardware'&&String(r.Flow||'')==='tidy'&&String(r.Stage||'')===st)
+  tidyRows(st){ return ((this.eng.DATA.npcDialogue)||[]).filter(r=>String(r.NPC||'')==='vendor_clinic'&&String(r.Flow||'')==='tidy'&&String(r.Stage||'')===st)
     .sort((a,b)=>this.eng.N(a.VariantNo,0)-this.eng.N(b.VariantNo,0)).map(r=>Object.assign({},r,{LineID:r.DialogueID})); }
   tidyItems(){ const g=this.gs, free=g.bag.filter(x=>!this.isEquipped(x.uid)); return {pocket:free.filter(x=>x.loc==='pocket'), bag:free.filter(x=>x.loc!=='pocket'), cap:this.eng.equippedBagCapacity?this.eng.equippedBagCapacity(g):0}; }
   tidyPick(st){ const T=this.storyMap().tidy, it=this.tidyItems();
@@ -5619,8 +5620,8 @@ void main(){
     if(st==='out'){ const x=this.gs.vault.find(v=>v.id===TIDY_KEEP)||(T.id&&this.gs.vault.find(v=>v.id===T.id))||this.gs.vault.find(v=>v.kind!=='bag'); return x?{uid:x.uid,id:x.id,have:this.tidyQty(x.id)}:null; }   /* 반창고만 다시 챙긴다 */   /* 쌓이는 물건은 보관함에서 합쳐져 uid가 바뀐다 → id·수량으로 본다 */
     return null; }
   tidyQty(id){ return this.gs.bag.filter(x=>x.id===id&&!this.isEquipped(x.uid)).reduce((a,x)=>a+Math.max(1,this.eng.N(x.qty,1)),0); }
-  // 소지품에 반창고가 없으면 1개 지급하고 시작(다 써 버린 상태에서 막히던 문제 · 사용자 2026-10-10) — 주머니 자리가 있으면 주머니(첫 단계 = 주머니→배낭 끌기)
-  tidyGrantKeep(){ const g=this.gs; if(g.bag.some(x=>x.id===TIDY_KEEP&&!this.isEquipped(x.uid))) return;
+  // 소지품(가방·주머니·보관함)에 반창고가 하나도 없을 때만 1개 지급(다 써 버린 상태에서 막히던 문제 · 사용자 2026-10-10) — 주머니 자리가 있으면 주머니(첫 단계 = 주머니→배낭 끌기)
+  tidyGrantKeep(){ const g=this.gs; if(g.bag.some(x=>x.id===TIDY_KEEP&&!this.isEquipped(x.uid))||g.vault.some(v=>v.id===TIDY_KEEP)) return;
     const it=this.tidyItems(), inst=this.eng.mkInstance(TIDY_KEEP,1); inst.qty=1;
     inst.loc=it.pocket.length<2? 'pocket' : (it.bag.length<it.cap? 'bag' : 'pocket'); g.bag.push(inst); this.saveGame(); }
   tidyGo(st){ const m=this.storyMap(); m.tidy=Object.assign({},m.tidy,{st,said:0}); if(st!=='end'&&st!=='done'){ const pk=this.tidyPick(st); if(!pk){ const nx={grip:'vault',vault:'out',out:'end'}[st]; return this.tidyGo(nx); } Object.assign(m.tidy,pk); }
@@ -5628,10 +5629,10 @@ void main(){
   tidyTick(){ if(!this.tidyActive()||this.radio||this.talk||this.state.tuto||this.state.notice||this.storyRew||this.state.wake||!this.state.ready) return;
     const s=this.state.screen; if(['combat','sortieLoad','result','lootmanage','returnheal','tap'].indexOf(s)>=0) return;
     const m=this.storyMap(); if(!m.tidy||!m.tidy.st){ m.tidy={st:'intro',said:0}; }
-    const T=m.tidy, say=(st,after)=>{ T.said=1; this.saveGame(); const rows=this.tidyRows(st); setTimeout(()=>{ if(rows.length) this.radioOpen('vendor_hardware',rows); if(after) after(); },0); };
+    const T=m.tidy, say=(st,after)=>{ T.said=1; this.saveGame(); const rows=this.tidyRows(st); setTimeout(()=>{ if(rows.length) this.radioOpen('vendor_clinic',rows); if(after) after(); },0); };
     const inv=s==='inventory', seg=this.state.seg||'bag';
     if(T.st==='out'&&!this.gs.vault.some(v=>v.id===TIDY_KEEP)&&!this.gs.bag.some(x=>x.id===TIDY_KEEP)){ const pi=this.eng.mkInstance(TIDY_KEEP,1); pi.qty=1; this.gs.vault.push(pi); T.uid=pi.uid; T.id=TIDY_KEEP; T.have=this.tidyQty(TIDY_KEEP); this.saveGame(); }   /* 이미 진행 중인 세이브 — 꺼낼 반창고가 없으면 보관함에 1개 */
-    if(T.st==='intro'){ if(!T.said){ this.tidyGrantKeep(); say('intro',()=>this.tidyGo('grip')); } return; }
+    if(T.st==='intro'){ if(!T.said&&s==='zone'){ this.tidyGrantKeep(); say('intro',()=>this.tidyGo('grip')); } return; }
     if(T.st==='grip'){ const x=this.gs.bag.find(i=>i.uid===T.uid); if(!x){ this.tidyGo('grip'); return; }
       if(((x.loc==='pocket')?'pocket':'bag')!==T.from){ this.tidyGo('vault'); return; }
       if(!T.said&&inv&&seg==='bag') say('grip'); return; }
