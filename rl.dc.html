@@ -5635,6 +5635,12 @@ void main(){
         if(s==='vendorMenu'&&this.state.vendor===vid) return done?null:'svc-repair';
         if(['combat','sortieLoad','result','lootmanage','returnheal','tap'].indexOf(s)>=0) return null;
         return this.storyGuideToVendor(vid); } }
+    // 챕터2 2번 감정 — 주점 메뉴 [감정받기]까지만(감정 화면은 자유)
+    { const q=this.storyActRun('appraise'); if(q&&!this.storyRaid()){ const vid=String(q.GiverVendorID||''), done=this.storyAllDone(q);
+        if(s==='vendorMenu'&&this.state.vendor===vid) return done?null:'svc-appraise';
+        if(s==='vendor'&&this.state.vendor===vid) return null;
+        if(['combat','sortieLoad','result','lootmanage','returnheal','tap'].indexOf(s)>=0) return null;
+        return this.storyGuideToVendor(vid); } }
     // 2번 배식 — 메뉴 [배식하기] → [회복] → (다 먹으면) [나가기] → 완료 대화
     { const q=this.storyActRun('feed'); if(q){ const vid=String(q.GiverVendorID||''), done=this.storyAllDone(q);
         if(s==='vendor'&&this.state.vendor===vid&&this.state.vtab==='feed') return done?'feed-leave':(this._rcvAnim?null:'feed-btn');
@@ -5700,7 +5706,10 @@ void main(){
     t.si=end; t.wait= j<0? 'end' : 'choose'; this._talkFullAt=0; this.forceUpdate(); }
   talkFinish(){ const t=this.talk; if(!t||t.wait!=='end'||!this.talkReady()) return;
     const q=this.eng.storyRow(t.qid); this.talk=null;
-    if(t.stage==='start'){ const sm=this.storyMap(); sm.cur={id:t.qid,s:'run',p:[]}; if(t.vid&&sm.opened.indexOf('vendor:'+t.vid)<0) sm.opened.push('vendor:'+t.vid); this.saveGame(); this.sfx('quest_accept');
+    if(t.stage==='start'){ const sm=this.storyMap(); sm.cur={id:t.qid,s:'run',p:[]}; if(t.vid&&sm.opened.indexOf('vendor:'+t.vid)<0) sm.opened.push('vendor:'+t.vid);
+      { const o=q&&this.eng.questObjective(q); if(o&&o.give&&typeof o.give==='object') for(const id in o.give){ for(let k=0;k<Math.max(1,this.eng.N(o.give[id],1));k++){ const inst=this.eng.mkInstance(id,1); inst.qty=1;
+            if(o.unapp&&inst.rolls&&(inst.kind==='weapon'||inst.kind==='armor')){ inst.unappraised=Object.keys(inst.rolls); inst.appraised=false; } this.gs.vault.push(inst); } } }   /* 수락 때 건네는 물건(2번 술값 = 박이 맡아 둔 미감정 쇠파이프 → 보관함) */
+      this.saveGame(); this.sfx('quest_accept');
       // 받은 뒤 갈 곳 안내 — Dest가 보관함이면 소지품 화면으로 보내고 [보관함] 탭을 반짝인다(보관함을 열면 멈춤)
       if(q && String(q.Dest||'').trim()==='screen:vault'){ this._hintVault=true; this.go('inventory'); this.setState({seg:'bag'}); return; }
       this.npcPickLine(t.vid); this.forceUpdate(); }
