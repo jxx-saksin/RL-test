@@ -4552,7 +4552,7 @@ void main(){
       this._gdT=setTimeout(tick,0); }
     const r=(this._gdKey===tg)?this._gdRect:null, P=6;
     const low=r&&(r.y+r.h/2>r.H*0.7);   // 아래쪽 대상 → 손을 위에서
-    const noDim=tg==='raid-fight';      // 몬스터 카드를 뒤집은 화면 — 정보를 읽어야 하니 어둡게 하지 않고 손만
+    const noDim=tg==='raid-fight'||tg.split('|')[1]==='nodim';      // 몬스터 카드를 뒤집은 화면 — 정보를 읽어야 하니 어둡게 하지 않고 손만
     const drag=tg==='rest-card'||tg.split('|')[1]==='drag', dragUp=tg.split('|')[1]==='up';   /* up = 카드를 위로 올리는 손(흥정) */   // 카드를 아래로 끄는 손(휴식 사용 · 전리품 넣기)
     const under=tg==='lm-chips';        // 칩 줄 — 손이 글자를 가리지 않게 칩 아래에서
     return h('div',{key:'guide',ref:el=>{ this._gdEl=el; },style:{position:'absolute',inset:0,zIndex:35,pointerEvents:'none'}},   // 35 = 존 시트(30) 위 · 무전(70) 아래
@@ -5610,7 +5610,8 @@ void main(){
     // 3번 레이드 — 존까지 안내 · 전투 뒤엔 누를 수 있는 버튼 · 휴식은 카드(위로 올려 사용) → [완료]
     { const sr=this.storyRaid(); if(sr){ const c=this.combat;
         if(s==='lootmanage') return this.storyLootGuide(sr);
-        if(s==='combat'&&c&&!(sr.got&&(c.encounter||1)>(Array.isArray(sr.r.spawn)?sr.r.spawn.length:0))){ if(c.phase==='won'||c.phase==='timeout'){ const st=this.storyRaidStep(); return st?'raid-'+st:null; }
+        if(s==='combat'&&c&&!(sr.got&&(c.encounter||1)>(Array.isArray(sr.r.spawn)?sr.r.spawn.length:0))){ if(c.phase==='won'||c.phase==='timeout'){ const st=this.storyRaidStep(); if(st) return 'raid-'+st;
+            const hn=Array.isArray(sr.r.hint)?sr.r.hint[(c.encounter||1)-1]:null; return hn? 'raid-'+hn+'|nodim' : null; }   /* hint = 버튼 제한 없이 손만(어둡게 안 함 · 챕터2 5번) */
           if(c.phase==='cards') return c.flipped?'raid-fight':'raid-card';
           if(c.phase==='rest'){ if(this._restAnim||(c.restUsedAt&&Date.now()-c.restUsedAt<2000)) return null;   // 회복이 차는 걸 먼저 보여 준다(사용 후 2초)
             return (c.restUsed||this.gs.hp>=this.gs.maxHp||!this.restCards().length)? 'rest-done' : 'rest-card'; }
