@@ -4668,7 +4668,7 @@ void main(){
       // 소지품=슬롯 3섹션(belongings) · 금고=필터칩+리스트(기존)
       seg==='bag'? this.belongings(catOf) : h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
         h('div',{style:{display:'flex',gap:6,padding:'12px 18px',overflowX:'auto',flex:'0 0 auto'}},
-          ...cats.map(([id,lk])=>h('button',{key:id,onClick:()=>this.setState({filter:id}),style:{flex:'0 0 auto',background:filter===id?'rgb(43,46,50)':'transparent',border:'1px solid '+(filter===id?'rgb(74,77,83)':'rgb(54,56,60)'),color:filter===id?'rgb(234,235,238)':'rgb(111,114,118)',fontFamily:T.mono,fontSize:11,padding:'5px 11px',borderRadius:999,cursor:'pointer',whiteSpace:'nowrap'}},this.t(lk)))),
+          ...cats.map(([id,lk])=>h('button',{key:id,'data-guide':'vcat-'+id,onClick:()=>this.setState({filter:id}),style:{flex:'0 0 auto',background:filter===id?'rgb(43,46,50)':'transparent',border:'1px solid '+(filter===id?'rgb(74,77,83)':'rgb(54,56,60)'),color:filter===id?'rgb(234,235,238)':'rgb(111,114,118)',fontFamily:T.mono,fontSize:11,padding:'5px 11px',borderRadius:999,cursor:'pointer',whiteSpace:'nowrap'}},this.t(lk)))),
         // 당겨서 정리 — 클리퍼(overflow:hidden) 안에서 리스트만 내려가고 그 위로 힌트가 드러난다.
         h('div',Object.assign({style:{flex:1,position:'relative',overflow:'hidden',overscrollBehavior:'contain',userSelect:'none',WebkitUserSelect:'none',WebkitTouchCallout:'none'}}, this.vtHandlers()),
           h('div',{key:'vthint',ref:el=>{this._vtHint=el;},style:{position:'absolute',left:0,right:0,top:0,height:90,
@@ -5630,7 +5630,9 @@ void main(){
     if(['combat','sortieLoad','result','lootmanage','returnheal','tap'].indexOf(s)>=0) return null;
     if(s==='vendorMenu'||s==='vendor') return 'shop-back';
     if(s!=='inventory') return 'nav-inventory';
-    if(T.st==='out'){ if(seg!=='vault') return 'vault-tab'; return T.said? 'invrow-'+T.uid+'|left' : null; }
+    if(T.st==='out'){ if(seg!=='vault') return 'vault-tab'; if(!T.said) return null;
+      if(this.state.filter!=='약품') return 'vcat-약품';   /* 약품 칩을 눌러 정렬한 뒤 */
+      return 'invrow-'+T.uid+'|left'; }
     if(seg!=='bag') return 'bag-tab';
     if(!T.said) return null;
     if(T.st==='grip') return 'invgrip-'+T.uid+(T.from==='bag'?'|up':'|drag');
