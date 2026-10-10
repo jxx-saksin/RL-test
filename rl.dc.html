@@ -5530,6 +5530,7 @@ void main(){
   storyDirectReport(){ const sr=this.storyRaid(); return (sr&&sr.r.direct&&this.storyAllDone(sr.q))?sr.q:null; }
   // 레이드까지 손 안내 — 상점이면 뒤로 · 하단 [레이드] → 존 행 → [진입] → 패스 카드
   storyGuideToZone(zid){ const s=this.state.screen;
+    if(['tap','zone','safehouse','character','inventory','vendorMenu','vendor','comms'].indexOf(s)>=0 && this.raidWarnRows().length) return null;   /* 체력·스태미너 50% 이하 = 레이드로 떠밀지 않는다(경고 무전 뒤 돌아갈지는 유저 몫) */
     if(s==='zone') return this.state.modalZone? 'zone-go' : 'zone-'+zid;
     if(s==='tap') return this._tapDone? null : 'tap-card';
     if(s==='vendorMenu'||s==='vendor') return 'shop-back';
