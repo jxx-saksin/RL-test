@@ -432,7 +432,7 @@ const TUTO_ART_V = { 'wb_craft1-2':'?v=2', 'rs_rep1-2':'?v=2' };
 
 const PATCH_NOTES = [
   { ver:88, date:'10/Oct', lines:[
-    ['초반 퀘스트 구현 및 인터페이스 구현.','Early quests and interface implemented.'] ] },
+    ['초반 퀘스트 및 인터페이스 구현.','Early quests and interface.'] ] },
   { ver:87, date:'8/Oct', lines:[
     ['퀘스트 기록, 교신 화면 업데이트.','Quest log and Comms screen update.'] ] },
   { ver:85, date:'23/Sep', lines:[
@@ -592,8 +592,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val75');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val40');
+      const eng = await import('./engine.js?v=val76');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val41');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -1900,7 +1900,7 @@ class Component extends DCLogic {
     else if(s==='pass') body=this.passScreen();
     else if(s==='tap') body=this.tapScreen();
     const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap' && s!=='hideout' && s!=='hideFac' && s!=='disk' && s!=='diskInsert' && s!=='decode' && s!=='craft' && s!=='disa' && s!=='rsrep' && s!=='rsmod' && s!=='quest' && s!=='comms';
-    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null, this.state.tuto?this.tutoOverlay():null, this.state.wake?this.wakeOverlay():null, this.storyGuideOverlay(), this.radioOverlay());
+    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null, this.state.tuto?this.tutoOverlay():null, this.state.wake?this.wakeOverlay():null, this.state.langPick?this.langPickOverlay():null, this.storyGuideOverlay(), this.radioOverlay());
   }
 
   // ---- safehouse ----
@@ -4503,7 +4503,9 @@ void main(){
     const c=this.storyMap().cur;
     if(!c){ const pq=this.storyPending(), rows=pq?this.storyCallRows(pq):[], m=this.storyMap();   // 받기 전 호출 — 교신 화면에서 1회 · id:auto면 레이드 밖 아무 화면에서
       const free=['combat','sortieLoad','result','lootmanage','returnheal','tap'].indexOf(this.state.screen)<0 && !this.storyRew && !this.state.notice && !!this.state.ready;
-      if(rows.length && (this.state.screen==='comms' || (free&&this.storyCallAuto(pq))) && !(m.called&&m.called[pq.QuestID]) && !this.tidyActive()){ m.called=Object.assign({},m.called,{[pq.QuestID]:1}); this.saveGame();
+      const navId=rows.length&&this.storyCallId(pq)==='nav'; if(navId&&(!this._navArm||this._navArm.q!==pq.QuestID)) this._navArm={q:pq.QuestID,s:this._navArmS||this.state.screen};   /* id:nav = 다른 화면으로 옮기면 호출(챕터1 5번 맥) */
+      const navHit=navId&&free&&this._navArm&&this.state.screen!==this._navArm.s;
+      if(rows.length && (this.state.screen==='comms' || (free&&this.storyCallAuto(pq)) || navHit) && !(m.called&&m.called[pq.QuestID]) && !this.tidyActive()){ m.called=Object.assign({},m.called,{[pq.QuestID]:1}); this.saveGame();
         setTimeout(()=>{ if(this.state.tuto||this.state.notice||this.radio||this.talk){ delete m.called[pq.QuestID]; return; } this.radioOpen(String(pq.GiverVendorID||''),rows); },this.storyCallAuto(pq)?900:0); }   /* 자동 호출은 화면이 자리 잡은 뒤 */
       return; }
     if(c.s!=='run') return; const q=this.eng.storyRow(c.id); if(!q) return;
@@ -4584,6 +4586,11 @@ void main(){
       h('div',{key:'eye',style:{position:'absolute',left:'50%',top:'50%',width:'170%',height:0,borderRadius:'50%',transform:'translate(-50%,-50%)',
         boxShadow:'0 0 0 200vmax #000, inset 0 0 28px 12px #000',animation:'rlEyeOpen 3.6s ease-in-out forwards'}}));
   }
+  // 언어 고르기 — 검정 화면 가운데 둥근 버튼 두 개(흰 테두리·흰 글씨) · 고른 언어가 기본 설정(rl_lang)
+  langPickOverlay(){ const pick=l=>{ this._langPicked=true; this.setLang(l); this.setState({langPick:false}); this.wakeStart(); };
+    const b=(l,label)=>h('button',{key:l,onClick:()=>pick(l),style:{width:200,height:48,boxSizing:'border-box',borderRadius:24,border:'1px solid #EAEBEE',background:'transparent',color:'#EAEBEE',fontFamily:T.sans,fontSize:14,fontWeight:400,cursor:'pointer'}}, label);
+    return h('div',{key:'langpick',style:{position:'absolute',inset:0,zIndex:95,background:'#000',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16,animation:'rlFade .3s ease-out'}},
+      b('kr','한국어'), b('en','English')); }
   wakeDone(){ if(this._wakeT){ clearTimeout(this._wakeT); this._wakeT=null; } if(this.state.wake) this.setState({wake:false});
     if(this._talkHold){ this._talkHold=false; if(this.talk&&this.talk.si<0) this.talkNext(); } }
   tutoOverlay(){
@@ -5598,6 +5605,7 @@ void main(){
   //   grip(손잡이로 주머니↔가방) → vault(오른쪽으로 밀어 보관함) → out(보관함에서 왼쪽으로 밀어 꺼내기) → end
   //   상태 gs.story.tidy = {st, uid, from, said} · 대사 = NpcDialogue NPC=vendor_hardware Flow=tidy Stage=intro|grip|vault|out|end
   tidyGripUid(){ const m=this.gs&&this.storyMap(), T=m&&m.tidy; return (T&&T.st==='grip'&&T.said&&this.tidyActive())? T.uid : null; }
+  tidyPending(){ if(!this.gs||!this.eng||!this.eng.storyRows||!this.eng.storyRows().length) return false; const m=this.storyMap(); return !(m.tidy&&m.tidy.st==='done') && !m.done['quest_story_c2_01'] && !(m.cur&&String(m.cur.id).indexOf('quest_story_c2_')===0); }
   tidyActive(){ if(!this.gs||!this.eng||!this.eng.storyRows) return false; const m=this.storyMap();
     if(!m.done['quest_story_c1_05']||m.done['quest_story_c2_01']||m.cur||(m.called&&m.called['quest_story_c2_01'])) return false;
     return !(m.tidy&&m.tidy.st==='done'); }
@@ -5641,6 +5649,7 @@ void main(){
     if(T.st==='vault') return 'invrow-'+T.uid+'|right';
     return null; }
   storyQuietStart(q){ return this.eng.N(q&&q.Chapter,1)>=2; }   /* 챕터2부터 퀘스트 시작은 손 안내·내비 잠금 없이(찾아가는 건 유저 몫 · 사용자 2026-10-10) */
+  storyCallId(q){ const r=this.storyCallRows(q)[0]; try{ return String(JSON.parse(String(r.Trigger||'')).id||''); }catch(_){ return ''; } }
   storyCallAuto(q){ return this.storyCallRows(q).some(r=>{ try{ return JSON.parse(String(r.Trigger||'')).id==='auto'; }catch(_){ return false; } }); }
   // 무료 1회(보상 free) — gs.story.free = { heal:1 } · 쓰면 지운다
   storyFreeOnce(k){ const f=this.gs&&this.gs.story&&this.gs.story.free; return !!(f&&f[k]); }
@@ -5654,7 +5663,7 @@ void main(){
   storyReport(){ if(!this.gs||!this.eng||!this.eng.storyRow) return null; const c=this.storyMap().cur; if(!c||c.s!=='run') return null;
     const q=this.eng.storyRow(c.id), o=q&&this.eng.questObjective(q); if(!o||o.kind!=='act'||o.what!=='equip'||!this.storyAllDone(q)) return null; return q; }
   // 하단 내비에서 누를 수 있는 칸 하나(나머지 잠금) — 착용 중 = 소지품 · 보고 대기 = 캐릭터(교신으로)
-  storyNavAllow(){ if(this.storyGuide()) return 'inventory'; if(this.storyReport()) return 'character'; { const pq=this.storyPending(); if(pq&&!this.storyCallAuto(pq)&&!this.storyQuietStart(pq)) return this.storyCallRows(pq).length? 'character' : 'safehouse'; } if(this.storyActRun('feed')||this.storyActRun('repair')) return 'safehouse'; { const sr=this.storyRaid(); if(sr&&sr.r.nodie) return sr.got?'safehouse':'zone'; } return null; }   /* 내비 잠금은 nodie(챕터1 안내형) 레이드만 — 챕터2는 자유 */
+  storyNavAllow(){ if(this.storyGuide()) return 'inventory'; if(this.storyReport()) return 'character'; { const pq=this.storyPending(); if(pq&&!this.storyCallAuto(pq)&&!this.storyQuietStart(pq)){ if(!this.storyCallRows(pq).length) return 'safehouse'; const cm=this.storyMap().called; if(cm&&cm[pq.QuestID]) return 'safehouse'; return this.storyCallId(pq)==='nav'? null : 'character'; } } if(this.storyActRun('feed')||this.storyActRun('repair')) return 'safehouse'; { const sr=this.storyRaid(); if(sr&&sr.r.nodie) return sr.got?'safehouse':'zone'; } return null; }   /* 내비 잠금은 nodie(챕터1 안내형) 레이드만 — 챕터2는 자유 */
   // 손 안내 대상(data-guide) — 스크린샷 흐름(사용자 2026-10-09): [보관함] 탭 → (착용) → 캐릭터 → 무전기 → 교신 이동 줄(보건소)
   storyGuideTarget(){ const s=this.state.screen;
     if(this.state.tuto||this.state.sel||this.state.wake||this.radio||this.talk||this.storyRew) return null;
@@ -5686,6 +5695,7 @@ void main(){
       if(s==='vendorMenu') return 'svc-heal'; if(s==='vendor'&&this.state.vtab==='heal') return this._rcvAnim?null:'heal-btn'; }
     { const p=this.storyPending(); if(p&&(this.storyCallAuto(p)||this.storyQuietStart(p))) return null;   /* 자동 호출(챕터2 1번) — 무전만, 찾아가는 건 유저 몫 */
       if(p){ const gv=String(p.GiverVendorID);
+        if(this.storyCallRows(p).length&&this.storyCallId(p)==='nav'){ const cm=this.storyMap().called; return (cm&&cm[p.QuestID])? this.storyGuideToVendor(gv) : null; }   /* 5번: 화면 옮기면 맥 호출 → 철물점으로 손 */
         if(this.storyCallRows(p).length){   // 5번: 캐릭터 → 무전기 → (맥 호출) → 이동 줄 → 철물점
           if(s==='comms') return this.state.commsTab==='news'? null : 'comms-move'; if(s==='character') return 'comms-btn';
           if(['combat','sortieLoad','result','lootmanage','returnheal','tap'].indexOf(s)>=0) return null;
@@ -5714,6 +5724,7 @@ void main(){
   // 1번 퀘스트(지급품 착용 · 보고 전)까지 미루는 튜토리얼 — 장비 비교·성장 태그·소지품 핸들 드래그·보관함 밀기(사용자 2026-10-09)
   // 스토리 레이드 퀘스트(3·4번) 동안 미루는 팝업 — 도망·사망·보스·되찾기(3번 규칙과 어긋남) + 소지품 계열(귀환 후 소지품 착지 때 뜸) · 퀘스트당 팝업 1개(loot_get1만)
   storyTutoHold(k){ if(['inv_move1','inv_move2','inv_compare1','inv_merge1'].indexOf(k)>=0 && this.tidyActive()) return true;
+    if(['inv_move1','inv_move2'].indexOf(k)>=0 && this.tidyPending()) return true;   /* 이동 팝업은 정리 튜토리얼(챕터1 끝)이 대신 가르친다 — 그 전엔 띄우지 않는다 */
     if(['cmb_flee1','death1','cmb_boss1','loot_reget1','inv_move1','inv_move2','inv_compare1','growth_tag1','inv_merge1','buff_use1'].indexOf(k)>=0 && this.storyRaid()) return true;
     return ['inv_compare1','growth_tag1','inv_move1','inv_move2'].indexOf(k)>=0 && !!(this.storyGuide()||this.storyReport()); }
   // 새 게임 도입 — 첫 스토리 퀘스트가 살아 있으면 눈 뜨는 연출 → 기버 상점 대화
@@ -5724,7 +5735,8 @@ void main(){
     this.openVendor(vid,{silent:true});
     if(this.state.notice) this._wakePending=true; else this.wakeStart(); }
   // 눈 뜨는 연출 시작 — 상점 진입음은 마지막으로 크게 떠지는 구간(3.6s의 68% ≈ 2.45s)에 맞춰 울린다(사용자 2026-10-09)
-  wakeStart(){ this.setState({wake:true}); const vid=this._wakeVid; if(vid) setTimeout(()=>this.sfx(SHOP_SFX[vid]),2450); }
+  wakeStart(){ if(!this._langPicked){ this.setState({langPick:true}); return; }   /* 새 게임 첫 화면 = 언어 고르기(사용자 2026-10-10) → 고른 뒤 눈 뜨는 연출 */
+    this.setState({wake:true}); const vid=this._wakeVid; if(vid) setTimeout(()=>this.sfx(SHOP_SFX[vid]),2450); }
   // ===== 퀘스트 대화 (상점 메뉴의 퀘스트 모드 · 목업 svg/screen-clinic-npc) =====
   // 줄 묶기 = Seq 순. 같은 Seq에 choice가 있으면 선택지 지점(choice 1/2 + reaction 1/2), 반응이 끝나면 다음 Seq로 합류.
   storySteps(qid,stage){ const e=this.eng, by={}, kind=r=>String(r.Kind||'line');
@@ -5807,6 +5819,8 @@ void main(){
   // ===== 스토리 보상 — 전투 후 전리품 카드처럼 뒷면 → 순서대로 뒤집기 (사용자 2026-10-09) =====
   // 카드 = item(기존 전리품 카드) · card(프로토콜 패스 등 풀아트) · sato · open(해금: 상점/지역). 순서 = cards → items → sato → opens.
   storyGrant(q){ const rw=this.eng.questReward(q), m=this.storyMap(), cards=[];
+    { let raw=null; try{ raw=JSON.parse(String(q.Reward||'')); }catch(_){} const wear=raw&&raw.wear;   /* wear = 착용 장비 내구도를 깎아 둔다(챕터1 4번 → 5번 수리 · 사용자 2026-10-10) */
+      if(wear&&typeof wear==='object') for(const sl in wear){ const u=this.gs.equip[sl], x=u&&this.eng.instById(this.gs,u); if(x&&this.eng.N(x.maxDur)>0) x.dur=Math.max(0,this.eng.N(x.dur)-this.eng.N(wear[sl],0)); } }
     (rw.cards||[]).forEach(id=>cards.push({k:'card',id}));
     for(const id in rw.items){ const n=Math.max(1,this.eng.N(rw.items[id],1)); const inst=this.eng.mkInstance(id,n); if(this.maxStack(id)>1) inst.qty=n; cards.push({k:'item',inst}); }
     if(rw.sato) cards.push({k:'sato',n:rw.sato});
@@ -5820,7 +5834,7 @@ void main(){
   storyRewSkip(){ if(this._srT){ clearTimeout(this._srT); this._srT=null; } const r=this.storyRew, c=this.storyMap().cur; if(!r||!c) return;
     (c.cards||[]).forEach((_,i)=>r.open.add(i)); this.sfxFlip(); this.forceUpdate(); }
   // 보상 받기 — 아이템은 Reward.to(가방/금고)로 · 해금은 opened에 기록(실제 잠금·해제는 잠금 기반 작업 때 붙는다)
-  storyCollect(){ const m=this.storyMap(), c=m.cur; if(!c||c.s!=='rw') return;
+  storyCollect(){ const m=this.storyMap(), c=m.cur; if(!c||c.s!=='rw') return; this._navArmS=this.state.screen;   /* 보상 받은 화면 — id:nav 호출은 여기서 다른 화면으로 옮기면 */
     const q=this.eng.storyRow(c.id), rw=q?this.eng.questReward(q):{opens:[],to:null,pass:0};
     (c.cards||[]).forEach(cd=>{
       if(cd.k==='item') this.storyPlace(cd.inst, rw.to);
