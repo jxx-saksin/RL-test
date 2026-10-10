@@ -5619,6 +5619,10 @@ void main(){
     if(st==='out'){ const x=this.gs.vault.find(v=>v.id===TIDY_KEEP)||(T.id&&this.gs.vault.find(v=>v.id===T.id))||this.gs.vault.find(v=>v.kind!=='bag'); return x?{uid:x.uid,id:x.id,have:this.tidyQty(x.id)}:null; }   /* 반창고만 다시 챙긴다 */   /* 쌓이는 물건은 보관함에서 합쳐져 uid가 바뀐다 → id·수량으로 본다 */
     return null; }
   tidyQty(id){ return this.gs.bag.filter(x=>x.id===id&&!this.isEquipped(x.uid)).reduce((a,x)=>a+Math.max(1,this.eng.N(x.qty,1)),0); }
+  // 소지품에 반창고가 없으면 1개 지급하고 시작(다 써 버린 상태에서 막히던 문제 · 사용자 2026-10-10) — 주머니 자리가 있으면 주머니(첫 단계 = 주머니→배낭 끌기)
+  tidyGrantKeep(){ const g=this.gs; if(g.bag.some(x=>x.id===TIDY_KEEP&&!this.isEquipped(x.uid))) return;
+    const it=this.tidyItems(), inst=this.eng.mkInstance(TIDY_KEEP,1); inst.qty=1;
+    inst.loc=it.pocket.length<2? 'pocket' : (it.bag.length<it.cap? 'bag' : 'pocket'); g.bag.push(inst); this.saveGame(); }
   tidyGo(st){ const m=this.storyMap(); m.tidy=Object.assign({},m.tidy,{st,said:0}); if(st!=='end'&&st!=='done'){ const pk=this.tidyPick(st); if(!pk){ const nx={grip:'vault',vault:'out',out:'end'}[st]; return this.tidyGo(nx); } Object.assign(m.tidy,pk); }
     this.saveGame(); setTimeout(()=>this.forceUpdate(),0); }   /* 다음 단계 무전이 바로 걸리게 */
   tidyTick(){ if(!this.tidyActive()||this.radio||this.talk||this.state.tuto||this.state.notice||this.storyRew||this.state.wake||!this.state.ready) return;
@@ -5626,7 +5630,8 @@ void main(){
     const m=this.storyMap(); if(!m.tidy||!m.tidy.st){ m.tidy={st:'intro',said:0}; }
     const T=m.tidy, say=(st,after)=>{ T.said=1; this.saveGame(); const rows=this.tidyRows(st); setTimeout(()=>{ if(rows.length) this.radioOpen('vendor_hardware',rows); if(after) after(); },0); };
     const inv=s==='inventory', seg=this.state.seg||'bag';
-    if(T.st==='intro'){ if(!T.said){ say('intro',()=>this.tidyGo('grip')); } return; }
+    if(T.st==='out'&&!this.gs.vault.some(v=>v.id===TIDY_KEEP)&&!this.gs.bag.some(x=>x.id===TIDY_KEEP)){ const pi=this.eng.mkInstance(TIDY_KEEP,1); pi.qty=1; this.gs.vault.push(pi); T.uid=pi.uid; T.id=TIDY_KEEP; T.have=this.tidyQty(TIDY_KEEP); this.saveGame(); }   /* 이미 진행 중인 세이브 — 꺼낼 반창고가 없으면 보관함에 1개 */
+    if(T.st==='intro'){ if(!T.said){ this.tidyGrantKeep(); say('intro',()=>this.tidyGo('grip')); } return; }
     if(T.st==='grip'){ const x=this.gs.bag.find(i=>i.uid===T.uid); if(!x){ this.tidyGo('grip'); return; }
       if(((x.loc==='pocket')?'pocket':'bag')!==T.from){ this.tidyGo('vault'); return; }
       if(!T.said&&inv&&seg==='bag') say('grip'); return; }
