@@ -35,6 +35,9 @@
   img{-webkit-user-drag:none;user-drag:none;}
   @keyframes rlFade{from{opacity:0}to{opacity:1}}
   /* 카드 테두리 은은한 빛 — 귀중품=금 / 퀘스트 아이템=은 (4.8s 호흡) */
+  /* 성장 태그 프리즘 — 무지개가 흐르고(60px 주기 = 끝색=첫색이라 이음매 없음) 빛줄기가 가끔 훑는다 */
+  @keyframes rlPrism{from{background-position:0 0}to{background-position:60px 0}}
+  @keyframes rlPrismShine{0%{transform:translateX(-130%)}45%,100%{transform:translateX(140%)}}
   @keyframes rlGlowGold{0%,100%{box-shadow:0 0 6px rgba(214,178,112,0.08),inset 0 0 10px rgba(214,178,112,0.025),0 14px 44px rgba(0,0,0,.5)}50%{box-shadow:0 0 16px rgba(214,178,112,0.17),inset 0 0 18px rgba(214,178,112,0.055),0 14px 44px rgba(0,0,0,.5)}}
   @keyframes rlGlowSilver{0%,100%{box-shadow:0 0 6px rgba(206,212,220,0.06),inset 0 0 10px rgba(206,212,220,0.02),0 14px 44px rgba(0,0,0,.5)}50%{box-shadow:0 0 16px rgba(206,212,220,0.14),inset 0 0 18px rgba(206,212,220,0.045),0 14px 44px rgba(0,0,0,.5)}}
   @keyframes rlToastOut{from{opacity:1}to{opacity:0}}
@@ -373,7 +376,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 91;
+const TITLE_VER = 92;
 const TITLE_DATE = '1013';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -4259,6 +4262,7 @@ void main(){
     const hasSockets=isGear&&mask!=='?'&&inst.sockets&&inst.sockets.length;
     const abbr={str:'STR',dex:'DEX',vit:'VIT',will:'WILL'};
     const gtags=this.eng.growthTagsActive(inst);
+    const PRISM='linear-gradient(90deg,#F4B3CB 0px,#F3D7A2 12px,#BFEFCB 24px,#A6D9F3 36px,#C8B3F2 48px,#F4B3CB 60px)';
     // fig 스탯 셀: 147 · 하단 헤어라인 · 라벨 mono12 rgb(111,114,118) · 값 mono12 rgb(234,235,238)
     const cell=(k,v,key,col)=>h('div',{key:key,style:{borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'7px 0',justifyContent:'space-between',alignItems:'flex-start',boxSizing:'border-box'}},
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:LO,whiteSpace:'nowrap'}}, k),
@@ -4278,8 +4282,12 @@ void main(){
         ((gtags.length||this.durGone(inst))&&mask!=='?')?h('div',{style:{position:'absolute',right:15,top:15,display:'flex',flexDirection:'row-reverse',gap:7}},
           this.durGone(inst)? h('div',{key:'gone',style:{height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid #C4675D',padding:'0 8px',display:'flex',alignItems:'center'}},
             h('span',{style:{fontFamily:T.sans,fontSize:11,lineHeight:'100%',color:'#C4675D',whiteSpace:'nowrap'}}, this.t('item_destroyed'))) : null,   /* 파괴됨 = 우측 맨 끝 빨간 태그 · 성장 태그는 그 왼쪽(사용자 2026-10-12) */
-          ...gtags.map((tg,i)=>h('div',{key:i,style:{height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'0 8px',display:'flex',alignItems:'center'}},
-            h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:HI,whiteSpace:'nowrap'}}, abbr[tg]||tg))))
+          // 성장 태그 = 프리즘(라인·글씨에 무지개가 흐름 + 빛줄기) — 라인은 mask xor로 1px 테두리만 남긴다(안쪽 반투명 유지)
+          ...gtags.map((tg,i)=>h('div',{key:i,style:{position:'relative',height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',padding:'0 8px',display:'flex',alignItems:'center',overflow:'hidden'}},
+            h('div',{key:'ln',style:{position:'absolute',inset:0,borderRadius:4,padding:1,boxSizing:'border-box',background:PRISM,backgroundSize:'60px 100%',animation:'rlPrism 4s linear infinite',
+              WebkitMask:'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',WebkitMaskComposite:'xor',mask:'linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0)',pointerEvents:'none'}}),
+            h('span',{key:'tx',style:{position:'relative',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',whiteSpace:'nowrap',background:PRISM,backgroundSize:'60px 100%',WebkitBackgroundClip:'text',backgroundClip:'text',color:'transparent',WebkitTextFillColor:'transparent',animation:'rlPrism 4s linear infinite'}}, abbr[tg]||tg),
+            h('div',{key:'sh',style:{position:'absolute',top:0,bottom:0,left:0,width:'80%',background:'linear-gradient(105deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%)',animation:'rlPrismShine 6s ease-in-out '+(i*0.4)+'s infinite',pointerEvents:'none'}}))))
           // 성장 태그는 드랍 시 확정·공개라 미감정 배지가 없다(2026-08-25). 태그가 0개면 아무것도 안 그린다.
           :null,
         h('span',{style:{position:'absolute',left:15,bottom:13,display:'flex',alignItems:'center',gap:7,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}},
