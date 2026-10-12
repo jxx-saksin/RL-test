@@ -34,6 +34,9 @@
      pointercancel이 나고 스와이프가 통째로 죽는다 — 전역으로 막는다. */
   img{-webkit-user-drag:none;user-drag:none;}
   @keyframes rlFade{from{opacity:0}to{opacity:1}}
+  /* 카드 테두리 은은한 빛 — 귀중품=금 / 퀘스트 아이템=은 (4.8s 호흡) */
+  @keyframes rlGlowGold{0%,100%{box-shadow:0 0 6px rgba(214,178,112,0.08),inset 0 0 10px rgba(214,178,112,0.025),0 14px 44px rgba(0,0,0,.5)}50%{box-shadow:0 0 16px rgba(214,178,112,0.17),inset 0 0 18px rgba(214,178,112,0.055),0 14px 44px rgba(0,0,0,.5)}}
+  @keyframes rlGlowSilver{0%,100%{box-shadow:0 0 6px rgba(206,212,220,0.06),inset 0 0 10px rgba(206,212,220,0.02),0 14px 44px rgba(0,0,0,.5)}50%{box-shadow:0 0 16px rgba(206,212,220,0.14),inset 0 0 18px rgba(206,212,220,0.045),0 14px 44px rgba(0,0,0,.5)}}
   @keyframes rlToastOut{from{opacity:1}to{opacity:0}}
   @keyframes rlCharge{from{width:0}to{width:100%}}
   @keyframes rlPunch{0%,84%{transform:scale(1)}92%{transform:scale(1.22)}100%{transform:scale(1)}}
@@ -307,7 +310,7 @@ const PRELOAD = [
   ['assets/art/cities/city_01.webp',
    'assets/art/shop/shop_clinic.webp','assets/art/shop/shop_canteen.webp','assets/art/shop/shop_hardware.webp',
    'assets/art/shop/shop_pawnshop.webp','assets/art/shop/shop_tavern.webp','assets/art/shop/shop_blackmarket.webp',
-   'assets/art/shop/shop_auction.webp'],
+   'assets/art/shop/shop_auction.webp','assets/art/shop/hide_locked.webp','assets/art/shop/hide_open.webp'],
   // 2순위 — 레이드 존 목록 · 카드 뒷면
   [zoneArt('city_01_mall'),zoneArt('city_01_houses'),'assets/art/zones/city_01_tower.webp',
    'assets/art/zones/city_01_police.webp','assets/art/zones/city_01_greenhouse.webp','assets/art/zones/city_01_depot.webp',
@@ -370,7 +373,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 89;
+const TITLE_VER = 90;
 const TITLE_DATE = '1012';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -614,8 +617,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val78');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val43');
+      const eng = await import('./engine.js?v=val79');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val44');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -1948,7 +1951,7 @@ class Component extends DCLogic {
       h('div',{style:{padding:'16px 16px 0',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:8}},
         // 아지트 — svg/screen-shop-list.svg. 370x191(아트 151 + 하단 띠 40) · 현재 잠금.
         h('div',{onClick:this.hideoutOpen()?()=>this.go('hideout'):null,style:{position:'relative',flexShrink:0,height:193,boxSizing:'border-box',border:'1px solid #36383C',borderRadius:8,overflow:'hidden',background:'#111315',marginBottom:6,cursor:this.hideoutOpen()?'pointer':'default'}},
-          h('div',{style:{position:'absolute',left:0,right:0,top:0,height:151,backgroundImage:'url(assets/art/shop/hide.webp)',backgroundSize:'cover',backgroundPosition:'center bottom',filter:this.storyHideOpen()?'none':'grayscale(1)'}}),
+          h('div',{style:{position:'absolute',left:0,right:0,top:0,height:151,backgroundImage:'url(assets/art/shop/'+(this.hideoutOpen()?'hide_open':'hide_locked')+'.webp)',backgroundSize:'cover',backgroundPosition:'center 45%',filter:this.storyHideOpen()?'none':'grayscale(1)'}}),
           h('div',{style:{position:'absolute',left:0,right:0,top:0,height:151,background:'linear-gradient(180deg, rgba(17,19,21,0.94) 0%, rgba(17,19,21,0) 70.7%)'}}),
           // 잠금 밴드 (svg y196~257 = 카드 기준 90~151) — 오픈되면 걷힌다
           (this.hideoutOpen()||!this.storyHideOpen())? null : h('div',{style:{position:'absolute',left:0,right:0,top:90,height:61,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',gap:10}},
@@ -4177,7 +4180,7 @@ void main(){
   questCardBig(inst,fixed){
     const it=this.eng.byId.item[inst.id]||{};
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', SUB='#A5ACB2', HI='#EAEBEE', MUT='#4B4D52';
-    return h('div',{style:{position:'relative',width:342,height:fixed?this.lootCardH(inst):'100%',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
+    return h('div',{style:{position:'relative',width:342,height:fixed?this.lootCardH(inst):'100%',boxSizing:'border-box',background:C1,border:'1px solid rgba(206,212,220,0.23)',borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlGlowSilver 4.8s ease-in-out infinite'}},
       h('div',{style:{position:'relative',height:316,flexShrink:0,overflow:'hidden',background:'#0F1013'}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
         h('img',{key:'qart',draggable:false,src:'assets/art/items/'+inst.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',pointerEvents:'none',WebkitUserDrag:'none'}}),
@@ -4262,7 +4265,7 @@ void main(){
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:col||(v===UNW?UNC:HI),textAlign:'right',whiteSpace:'nowrap'}}, v));
     const secLabel=(t)=>h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:MUT}}, t);
     const nRows=Math.max(1,Math.ceil(stats.length/2));
-    return h('div',{style:{width:342,height:fixed==='fit'?'auto':(fixed?this.lootCardH(inst):'100%'),minHeight:fixed==='fit'?460:'auto',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
+    return h('div',{style:{width:342,height:fixed==='fit'?'auto':(fixed?this.lootCardH(inst):'100%'),minHeight:fixed==='fit'?460:'auto',boxSizing:'border-box',background:C1,border:'1px solid '+(val?'rgba(214,178,112,0.28)':LN),borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:val?'rlGlowGold 4.8s ease-in-out infinite':'none'}},
       // ART 190
       h('div',{style:{position:'relative',...artP,alignSelf:'stretch',background:md?C1:ART}},
         md?null:h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
@@ -4619,10 +4622,10 @@ void main(){
     const c=this.storyMap().cur;
     if(!c){ const pq=this.storyPending(), rows=pq?this.storyCallRows(pq):[], m=this.storyMap();   // 받기 전 호출 — 교신 화면에서 1회 · id:auto면 레이드 밖 아무 화면에서
       const free=['combat','sortieLoad','result','lootmanage','returnheal','tap'].indexOf(this.state.screen)<0 && !this.storyRew && !this.state.notice && !!this.state.ready;
-      const navId=rows.length&&this.storyCallId(pq)==='nav'; if(navId&&(!this._navArm||this._navArm.q!==pq.QuestID)) this._navArm={q:pq.QuestID,s:this._navArmS||this.state.screen,n:0};   /* id:nav = 화면을 2번 옮기면 호출(챕터1 5번 맥 · 사용자 2026-10-10) */
+      const cid=rows.length?this.storyCallId(pq):'', navId=cid==='nav'||cid==='auto'; if(navId&&(!this._navArm||this._navArm.q!==pq.QuestID)) this._navArm={q:pq.QuestID,s:this._navArmS||this.state.screen,n:0};   /* id:nav = 화면을 2번 옮기면 호출(챕터1 5번 맥 · 사용자 2026-10-10) */
       if(navId&&this._navArm&&this.state.screen!==this._navArm.s){ this._navArm.s=this.state.screen; this._navArm.n++; }
-      const navHit=navId&&free&&this._navArm&&this._navArm.n>=2;
-      if(rows.length && (this.state.screen==='comms' || (free&&this.storyCallAuto(pq)) || navHit) && !(m.called&&m.called[pq.QuestID]) && !this.tidyActive()){ m.called=Object.assign({},m.called,{[pq.QuestID]:1}); this.saveGame();
+      const navHit=navId&&free&&this._navArm&&this._navArm.n>=(cid==='nav'?2:1);   /* id:auto = 보상 받은 화면을 벗어나면 호출(사용자 2026-10-12) */
+      if(rows.length && (this.state.screen==='comms' || navHit) && !(m.called&&m.called[pq.QuestID]) && !this.tidyActive()){ m.called=Object.assign({},m.called,{[pq.QuestID]:1}); this.saveGame();
         setTimeout(()=>{ if(this.state.tuto||this.state.notice||this.radio||this.talk){ delete m.called[pq.QuestID]; return; } this.radioOpen(String(pq.GiverVendorID||''),rows); },this.storyCallAuto(pq)?900:0); }   /* 자동 호출은 화면이 자리 잡은 뒤 */
       return; }
     if(c.s!=='run') return; const q=this.eng.storyRow(c.id); if(!q) return;
@@ -6068,7 +6071,7 @@ void main(){
   storyOpenBig(cd){ const C1='rgb(24,25,29)', LN='rgb(54,56,60)', SUB='#A5ACB2', HI='#EAEBEE', MUT='#4B4D52';
     let art, cat, title, desc;
     if(cd.kind==='vendor'){ const v=this.eng.byId.vendor[cd.id]||{}; art='assets/art/shop/'+v.ShopID+'.webp'; cat=this.t('reward_cat_shop'); title=this.shopName(v.ShopID,v); desc=this.t('unlock_desc_'+cd.id); }
-    else if(cd.kind==='feature'){ art='assets/art/shop/hide.webp'; cat=this.t('reward_cat_hideout'); title=this.t('hide_title'); desc=this.t('unlock_desc_hideout'); }
+    else if(cd.kind==='feature'){ art='assets/art/shop/hide_open.webp'; cat=this.t('reward_cat_hideout'); title=this.t('hide_title'); desc=this.t('unlock_desc_hideout'); }
     else { const z=this.eng.byId.zone[cd.id]||{}; art=zoneArt(cd.id); cat=this.t('reward_cat_zone'); title=this.tx(z,'ZoneName')||cd.id; desc=this.tx(z,'Tagline'); }
     return this.storyBigFrame(art,cat,title,desc,C1,LN,SUB,HI,MUT); }
   storySatoBig(n){ return this.storyBigFrame('assets/art/cards/sato.webp',this.t('reward_cat_sato'),this.t('reward_sato_name').replace('{N}',Number(n).toLocaleString('en-US')),this.t('reward_sato_desc'),
@@ -6229,11 +6232,17 @@ void main(){
   }
   // 일반 임무 = 시설 복원 뒤 임무(FAC_RESTORE.task) · 진행 중이 위 · 행 = 일일 행(shopRow)과 같은 모양 · 누르면 그 시설로
   commsGeneral(){ if(!this.facStoryOn()) return []; const fac=this.storyMap().fac||{}, out=[];
-    for(const f in FAC_RESTORE){ const tk=FAC_RESTORE[f].task, st=fac[f]; if(tk&&st&&st.task) out.push({f,tk,done:st.task==='done'}); }
+    // 복원 임무(재료가 있는 시설 = 보관함 제외) → 그 시설의 후속 임무 순 · 둘 다 남는다
+    for(const f in FAC_RESTORE){ const tk=FAC_RESTORE[f].task, st=fac[f], mats=this.facRestoreMats(f);
+      if(mats.length) out.push({f,restore:true,mats,done:this.storyFacOpen(f)});
+      if(tk&&st&&st.task) out.push({f,tk,done:st.task==='done'}); }
     return out.sort((a,b)=>(a.done?1:0)-(b.done?1:0)); }
   commsGeneralRow(x){ const v=this.eng.byId.vendor[FAC_RESTORE[x.f].npc]||{};
-    return this.shopRow({key:'gen_'+x.f, cat:this.shopName(v.ShopID,v), name:this.t(x.tk.name), desc:this.t(x.tk.obj),
-      right:x.done? this.commsChip(this.t('quest_chip_done'),'#85B3C5') : this.commsChip('0/1','#757575'), onClick:()=>{ this.go('hideout'); this.openHideFac(x.f); }}); }
+    // 복원 = 목표는 재료별 보유/필요 · 칩은 재료 합계(넘친 건 안 셈)
+    const cnt=x.restore? x.mats.reduce((a,m)=>a+Math.min(m.have,m.need),0)+'/'+x.mats.reduce((a,m)=>a+m.need,0) : '0/1';
+    const desc=x.restore? x.mats.map(m=>m.label+' '+(x.done?m.need:Math.min(m.have,m.need))+'/'+m.need).join(' · ') : this.t(x.tk.obj);
+    return this.shopRow({key:'gen_'+x.f+(x.restore?'_r':''), cat:this.shopName(v.ShopID,v), name:this.t(x.restore?'quest_gen_restore_'+x.f:x.tk.name), desc,
+      right:x.done? this.commsChip(this.t('quest_chip_done'),'#85B3C5') : this.commsChip(cnt,'#757575'), onClick:()=>{ this.go('hideout'); this.openHideFac(x.f); }}); }
   // 챕터 칩 — readyChip(h22 · mono 9.5 · bg #212327) · 진행 중=흰 테두리 / 지난=회색
   commsChapterChip(c,past){ return this.readyChip(this.t('comms_chapter').replace('{N}',c.no), past?'#6F7276':'#EAEBEE',{bg:'#212327',pad:'5px 9px',solid:true}); }
   commsChapterHead(c,past,right,onClick){
