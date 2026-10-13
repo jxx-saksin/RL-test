@@ -1002,7 +1002,10 @@ class Component extends DCLogic {
   }
   setCombatFx(c){
     const idx=c.revealed-1, ln=c.res.log[idx];
-    if(!ln || (ln.type!=='hit' && ln.type!=='crit' && ln.type!=='miss')){ c.fx=null; return; }
+    // ★타격 연출은 '다음 로그 줄'이 아니라 자기 길이(숫자 ~0.7s · 카드 효과 ~0.45s)만큼 산다.
+    //   예전엔 다음 줄이 오면 바로 지웠다 — 줄당 300ms 고정일 땐 티가 안 났지만, 실제 시간 재생(combat_playback_scale)에서는
+    //   같은 시각 줄이 140ms 간격으로 붙어 숫자·미스가 뜨자마자 사라졌다(공속 1.5에서 "아무것도 안 뜬다"). 상태이상·도트 줄도 연출을 지우지 않는다.
+    if(!ln || (ln.type!=='hit' && ln.type!=='crit' && ln.type!=='miss')) return;
     const target = ln.who==='player' ? 'monster' : 'player';   // 공격자 반대편이 피격
     let dmg=0;
     if(ln.type==='hit' || ln.type==='crit'){
@@ -1020,7 +1023,12 @@ class Component extends DCLogic {
       const share = hpBefore>0 ? dmg/hpBefore : 1;
       tier = (ln.type==='crit' || share>=0.35) ? 2 : (share>=0.15 ? 1 : 0);
     }
-    c.fx={ seq:c.fxSeq, type:ln.type, target, dmg, crit:ln.type==='crit', tier, rx:0.18+Math.random()*0.64, ry:0.06+Math.random()*0.14 };
+    c.fx={ seq:c.fxSeq, type:ln.type, target, dmg, crit:ln.type==='crit', tier, rx:0.18+Math.random()*0.64, ry:0.06+Math.random()*0.14, at:Date.now() };
+    // 숫자는 겹쳐 떠도 된다(양쪽 카드 · 연타). 만료된 것만 거른다. 카드 효과(플래시·흔들림)는 최신 하나(c.fx)만.
+    c.fxs=(c.fxs||[]).filter(f=>Date.now()-f.at<800).concat(c.fx);
+    const seq=c.fx.seq;
+    clearTimeout(this._fxT1); this._fxT1=setTimeout(()=>{ if(this.combat===c && c.fx && c.fx.seq===seq){ c.fx=null; this.forceUpdate(); } }, 460);   // 플래시류는 fill-mode가 없어 끝나면 되살아난다 — 제때 걷는다
+    clearTimeout(this._fxT2); this._fxT2=setTimeout(()=>{ if(this.combat===c){ c.fxs=(c.fxs||[]).filter(f=>Date.now()-f.at<800); this.forceUpdate(); } }, 820);
     if(typeof navigator!=='undefined' && navigator.vibrate){ try{ if(tier===2) navigator.vibrate([0,80,45,90]); else if(tier===1) navigator.vibrate(70); else if(ln.type==='hit') navigator.vibrate(50); }catch(e){} }
   }
   finishCombat(){
@@ -1029,7 +1037,7 @@ class Component extends DCLogic {
     // 애니메이션이 끝나면 **opacity 1로 되돌아간다** — c.fx를 남겨두면 마지막 타격을 받은 쪽 카드가
     // 34% 붉은 레이어에 덮인 채 굳는다. 승리는 곧장 전리품 화면으로 넘어가 안 보이지만,
     // 사망(dead)은 전투 화면이 그대로 남아 그대로 노출된다(2026-08-31).
-    c.fx=null;
+    c.fx=null; c.fxs=[]; clearTimeout(this._fxT1); clearTimeout(this._fxT2);
     this.gs.hp = res.playerHpEnd;
     { const sr=this.storyRaidOn(); if(sr&&sr.r.nodie) this.gs.hp=Math.max(1,this.gs.hp); }   // nodie — 이겨도 0.4처럼 "0"으로 보이면 죽은 것 같다
     // 전투 종료 후 몬스터 등급만큼 스태미너 소모(진입 전이 아니라 종료 후). 도주 성공은 여기 안 옴 = 소모 없음.
@@ -2265,11 +2273,12 @@ class Component extends DCLogic {
     const masked=isMonster && !!prof.isUser;   // PvP(콜드데이터) 상대 = 수치 마스킹
     const fx=(this.combat&&this.combat.fx&&this.combat.fx.target===side)?this.combat.fx:null;
     const isHit=!!fx&&(fx.type==='hit'||fx.type==='crit');
+    const nums=((this.combat&&this.combat.fxs)||[]).filter(f=>f.target===side&&Date.now()-f.at<800);
     return h('div',{style:{position:'relative'}},
-      fx? h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':'#FF6A5A'),fontSize:fx.type==='miss'?36:(fx.crit?45:(fx.tier===2?38:(fx.tier===1?28:20))),textShadow:'0 2px 9px rgba(0,0,0,.75)',animation:(fx.type==='miss'?'rlMiss .7s':((fx.crit||fx.tier===2)?'rlCritPop .66s':'rlDmgFloat .6s'))+' ease-out forwards'}},
+      h('div',{key:'nums',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9}}, ...nums.map(fx=> h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':'#FF6A5A'),fontSize:fx.type==='miss'?36:(fx.crit?45:(fx.tier===2?38:(fx.tier===1?28:20))),textShadow:'0 2px 9px rgba(0,0,0,.75)',animation:(fx.type==='miss'?'rlMiss .7s':((fx.crit||fx.tier===2)?'rlCritPop .66s':'rlDmgFloat .6s'))+' ease-out forwards'}},
         (fx.crit||fx.tier===2)
           ? h('div',{key:'n',style:{lineHeight:1,animation:'rlNumShake .5s ease-out'}}, '-'+fx.dmg)
-          : (fx.type==='miss'?'miss':('-'+fx.dmg))) : null,
+          : (fx.type==='miss'?'miss':('-'+fx.dmg))))),
       h('div',{onClick:()=>this.setState({combatSheet:isMonster?'monster':'player'}),ref:el=>{ if(el && isHit && el._hit!==fx.seq){ el._hit=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation=(fx.tier>=1?'rlHitCrit .42s':'rlHit .3s')+' ease-out'; } },style:{position:'relative',background:isMonster?T.s2:T.s1,border:'1px solid '+T.line,borderRadius:6,overflow:'hidden',cursor:'pointer'}},
       isHit? h('div',{key:'fl'+fx.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:fx.tier===2?'rgba(230,64,52,.5)':(fx.tier===1?'rgba(222,64,52,.42)':'rgba(214,64,52,.34)'),animation:'rlHitFlash '+(fx.tier===2?'.42s':(fx.tier===1?'.36s':'.3s'))+' ease-out'}}):null,
       (fx&&fx.tier===2)? h('div',{key:'brd'+fx.seq,style:{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 1px #FFFFFF',animation:'rlBorderFlash .42s ease-out'}}):null,
