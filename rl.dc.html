@@ -1003,8 +1003,8 @@ class Component extends DCLogic {
     if(this._t) clearTimeout(this._t);
     this._t = setTimeout(()=>this.tick(), 300);
   }
-  // 빗나감/회피 문구 — 내 공격이 빗나가면 '빗나감'(MISS), 상대 공격을 내가 피하면 '회피'(DODGE). 연출은 같고 글자만 갈린다.
-  missText(fx){ const mine=fx.attacker==='player'; return this.en()?(mine?'MISS':'DODGE'):(mine?'빗나감':'회피'); }
+  // 빗나감/회피 문구 — 내 공격이 빗나가면 MISS, 상대 공격을 내가 피하면 DODGE. **언어와 상관없이 영문**(타격 숫자와 같은 픽셀 숫자 폰트 'Jacquarda Bastarda 9'로 그린다 — 한글 글리프가 없어서).
+  missText(fx){ return fx.attacker==='player'?'MISS':'DODGE'; }
   // 타격 숫자 크기 — 계단(경/중/강)이 아니라 '한 방이 현재 HP에서 차지하는 비중'에 비례한다(14~38px). 빠른 무기의 잔타격은 작게,
   // 느린 무기의 묵직한 한 방은 크게 떠서 공속 차이가 숫자 크기로도 읽힌다. 치명타는 그 1.4배+6(32~48px).
   hitNumSize(fx){ const base=Math.max(14,Math.min(38,Math.round(14+(fx.share||0)*65))); return fx.crit?Math.max(32,Math.min(48,Math.round(base*1.4+6))):base; }
