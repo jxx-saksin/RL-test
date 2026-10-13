@@ -45,6 +45,8 @@
   @keyframes rlRing{0%{opacity:.95;transform:translate(-50%,-50%) scale(.25)}100%{opacity:0;transform:translate(-50%,-50%) scale(var(--rs,1.6))}}
   @keyframes rlSway{0%{transform:rotate(-1.6deg) scale(1.06) translateX(-2px)}100%{transform:rotate(1.6deg) scale(1.06) translateX(2px)}}
   @keyframes rlDrain{from{width:100%}to{width:0}}
+  @keyframes rlBleedWave{0%,100%{opacity:calc(var(--bo,.5)*.3);background-position:0% 0%,100% 100%}50%{opacity:var(--bo,.5);background-position:60% 45%,40% 55%}}
+  @keyframes rlBNum{0%{opacity:0;transform:translate(-50%,-6px) scale(.8)}18%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,34px) scale(.9)}}
   @keyframes rlLunge{0%{transform:translateY(0)}38%{transform:translateY(var(--lg,0px))}100%{transform:translateY(0)}}
   @keyframes rlPunch{0%,84%{transform:scale(1)}92%{transform:scale(1.22)}100%{transform:scale(1)}}
   @keyframes rlSpin{to{transform:rotate(360deg)}}
@@ -626,7 +628,7 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val83');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const eng = await import('./engine.js?v=val84');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val46');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -1014,6 +1016,24 @@ class Component extends DCLogic {
     //   예전엔 다음 줄이 오면 바로 지웠다 — 줄당 300ms 고정일 땐 티가 안 났지만, 실제 시간 재생(combat_playback_scale)에서는
     //   같은 시각 줄이 140ms 간격으로 붙어 숫자·미스가 뜨자마자 사라졌다(공속 1.5에서 "아무것도 안 뜬다"). 상태이상·도트 줄도 연출을 지우지 않는다.
     // 기절(status 줄의 구조화 메타): 맞은 쪽 카드 연출 + 공속 게이지 노랑·정지. 태그 카드는 쓰지 않는다. 길이는 지연(초) × 재생 배속.
+    // 출혈: status 줄 = 맞은 쪽 카드에 스택 추가(붉게 일렁임 — 스택 수가 세기·속도), dot 줄(who = 피해 입는 쪽) = 틱 숫자.
+    if(ln && ln.type==='status' && ln.status==='bleed'){
+      const tg=ln.who==='player'?'monster':'player';
+      const sc=this.eng.N(this.eng.DATA.config.combat_playback_scale,0), ms=(ln.dur||4)*1000*(sc>0?sc:0.5), mx=this.eng.N((this.eng.byId.status.bleed||{}).MaxStack,3);
+      c.bleeds=c.bleeds||{monster:[],player:[]};
+      c.bleeds[tg]=c.bleeds[tg].filter(e=>e>Date.now()).concat(Date.now()+ms).slice(-mx);
+      setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, ms+40);
+      return;
+    }
+    if(ln && ln.type==='dot' && ln.status==='bleed'){
+      const tg=ln.who; const f=tg==='monster'?'hpM':'hpP', prev=c.res.log[idx-1];
+      const before=prev?prev[f]:(tg==='monster'?c.mProf.maxHp:c.prof.maxHp);
+      c.fxSeq=(c.fxSeq||0)+1;
+      const d={ seq:c.fxSeq, type:'bleed', dot:true, target:tg, dmg:ln.dmg||0, share:before>0?(ln.dmg||0)/before:0, at:Date.now(), rx:0.3+Math.random()*0.4, ry:0.12+Math.random()*0.22 };
+      c.fxs=(c.fxs||[]).filter(x=>Date.now()-x.at<800).concat(d);
+      setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, 820);
+      return;
+    }
     if(ln && ln.type==='status' && ln.status==='stun'){
       const tg=ln.who==='player'?'monster':'player';
       const sc=this.eng.N(this.eng.DATA.config.combat_playback_scale,0), ms=(ln.delay||0)*1000*(sc>0?sc:0.5);
@@ -1063,7 +1083,7 @@ class Component extends DCLogic {
     // 애니메이션이 끝나면 **opacity 1로 되돌아간다** — c.fx를 남겨두면 마지막 타격을 받은 쪽 카드가
     // 34% 붉은 레이어에 덮인 채 굳는다. 승리는 곧장 전리품 화면으로 넘어가 안 보이지만,
     // 사망(dead)은 전투 화면이 그대로 남아 그대로 노출된다(2026-08-31).
-    c.fx=null; c.fxs=[]; c.stuns=null; c.stunFx=null; clearTimeout(this._fxT1); clearTimeout(this._fxT2);
+    c.fx=null; c.fxs=[]; c.stuns=null; c.stunFx=null; c.bleeds=null; clearTimeout(this._fxT1); clearTimeout(this._fxT2);
     this.gs.hp = res.playerHpEnd;
     { const sr=this.storyRaidOn(); if(sr&&sr.r.nodie) this.gs.hp=Math.max(1,this.gs.hp); }   // nodie — 이겨도 0.4처럼 "0"으로 보이면 죽은 것 같다
     // 전투 종료 후 몬스터 등급만큼 스태미너 소모(진입 전이 아니라 종료 후). 도주 성공은 여기 안 옴 = 소모 없음.
@@ -2298,18 +2318,20 @@ class Component extends DCLogic {
     const side=isMonster?'monster':'player';
     const masked=isMonster && !!prof.isUser;   // PvP(콜드데이터) 상대 = 수치 마스킹
     // 카드 효과(빨개짐·흔들림)는 쪽마다 자기 최신 타격 하나 — 반대편 타격이 와도 서로 지우지 않는다(0.5초 창).
-    const fx=(()=>{ const a=((this.combat&&this.combat.fxs)||[]).filter(f=>f.target===side&&Date.now()-f.at<500); return a.length?a[a.length-1]:null; })();
+    const fx=(()=>{ const a=((this.combat&&this.combat.fxs)||[]).filter(f=>!f.dot&&f.target===side&&Date.now()-f.at<500); return a.length?a[a.length-1]:null; })();
     const isHit=!!fx&&(fx.type==='hit'||fx.type==='crit');
+    const bln=((this.combat&&this.combat.bleeds&&this.combat.bleeds[side])||[]).filter(e=>e>Date.now()).length;   // 지금 걸린 출혈 스택 수
     const stn0=(this.combat&&this.combat.stuns&&this.combat.stuns[side])||null, stn=(stn0&&Date.now()<stn0.end)?stn0:null;
     const atk=((this.combat&&this.combat.fxs)||[]).filter(f=>f.attacker===side&&Date.now()-f.at<220).pop();   // 이 카드가 방금 때렸다면 앞으로 내민다
     const nums=((this.combat&&this.combat.fxs)||[]).filter(f=>f.target===side&&Date.now()-f.at<800);
     return h('div',{ref:el=>{ if(el && atk && el._lg!==atk.seq){ el._lg=atk.seq; el.style.setProperty('--lg',(side==='player'?-1:1)*atk.lunge+'px'); el.style.animation='none'; void el.offsetWidth; el.style.animation='rlLunge .16s ease-out'; } },style:{position:'relative'}},
-      h('div',{key:'nums',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9}}, ...nums.map(fx=> h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':'#FF6A5A'),fontSize:fx.type==='miss'?36:this.hitNumSize(fx),textShadow:'0 2px 9px rgba(0,0,0,.75)',animation:(fx.type==='miss'?'rlMiss .7s':((fx.crit||fx.tier===2)?'rlCritPop .66s':'rlDmgFloat .6s'))+' ease-out forwards'}},
+      h('div',{key:'nums',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9}}, ...nums.map(fx=> fx.dot ? h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.rx*100)+'%',top:(fx.ry*100)+'%',zIndex:9,pointerEvents:'none',opacity:0,whiteSpace:'nowrap',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,color:'#B8322D',fontSize:Math.max(12,Math.round(this.hitNumSize(fx)*0.78)),textShadow:'0 2px 8px rgba(0,0,0,.8)',animation:'rlBNum .8s ease-in forwards'}}, '-'+Math.round(fx.dmg)) : h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':'#FF6A5A'),fontSize:fx.type==='miss'?36:this.hitNumSize(fx),textShadow:'0 2px 9px rgba(0,0,0,.75)',animation:(fx.type==='miss'?'rlMiss .7s':((fx.crit||fx.tier===2)?'rlCritPop .66s':'rlDmgFloat .6s'))+' ease-out forwards'}},
         (fx.crit||fx.tier===2)
           ? h('div',{key:'n',style:{lineHeight:1,animation:'rlNumShake .5s ease-out'}}, '-'+fx.dmg)
           : (fx.type==='miss'?'miss':('-'+fx.dmg))))),
       (stn0&&Date.now()-stn0.at<650)? h('div',{key:'ring'+stn0.seq,style:{position:'absolute',left:'50%',top:'38%',width:120,height:120,borderRadius:'50%',border:(stn0.delay>=1.5?4:2)+'px solid #D8BE78',zIndex:9,pointerEvents:'none','--rs':stn0.delay>=1.5?2.6:(stn0.delay>=0.8?2:1.5),animation:'rlRing '+(stn0.delay>=1.5?'.55s':'.4s')+' ease-out forwards'}}):null,
       h('div',{onClick:()=>this.setState({combatSheet:isMonster?'monster':'player'}),ref:el=>{ if(el && stn0 && stn0.delay>=0.8 && el._stn!==stn0.seq){ el._stn=stn0.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHitCrit .42s ease-out'; } if(el && isHit && el._hit!==fx.seq){ el._hit=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation=(fx.tier>=1?'rlHitCrit .42s':'rlHit .3s')+' ease-out'; } },style:{position:'relative',background:isMonster?T.s2:T.s1,border:'1px solid '+T.line,borderRadius:6,overflow:'hidden',cursor:'pointer',transition:'filter .25s',filter:stn?'grayscale(.45) brightness(.92)':'none'}},
+      bln? h('div',{key:'bleedwv',style:{position:'absolute',inset:0,zIndex:3,pointerEvents:'none',backgroundImage:'radial-gradient(ellipse at 30% 40%, rgba(184,50,45,.6), transparent 60%), radial-gradient(ellipse at 70% 65%, rgba(140,28,30,.55), transparent 60%)',backgroundSize:'170% 170%','--bo':bln>=3?0.9:(bln===2?0.7:0.5),animation:'rlBleedWave '+(bln>=3?1.2:(bln===2?1.8:2.4))+'s ease-in-out infinite'}}):null,
       stn? h('div',{key:'stint',style:{position:'absolute',inset:0,zIndex:3,pointerEvents:'none',background:'rgba(216,190,120,.14)'}}):null,
       stn? h('div',{key:'sdr'+stn.seq,style:{position:'absolute',left:0,bottom:0,height:3,zIndex:8,pointerEvents:'none',background:'#D8BE78',animation:'rlDrain '+stn.sec.toFixed(2)+'s linear forwards'}}):null,
       isHit? h('div',{key:'fl'+fx.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:fx.tier===2?'rgba(230,64,52,.5)':(fx.tier===1?'rgba(222,64,52,.42)':'rgba(214,64,52,.34)'),animation:'rlHitFlash '+(fx.tier===2?'.42s':(fx.tier===1?'.36s':'.3s'))+' ease-out forwards'}}):null,

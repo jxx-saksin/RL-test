@@ -1010,7 +1010,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
           const dmgPer = hitBased ? (actor.minAtk + actor.maxAtk) / 2 * N(s?.Value, 0.12) * iv : actor.weaponMaxDmg * N(s?.Value, 0.5);
           foe.bleed.push({ dmg: dmgPer, until: t + dur, nextTick: t + iv, interval: iv });
           if (foe.bleed.length > N(s?.MaxStack, 3)) foe.bleed.shift();
-          push(actor.side, 'status', logTpl('status_bleed', { Target: fnm, DmgPerTick: dmgPer.toFixed(0), Duration: dur }));
+          push(actor.side, 'status', logTpl('status_bleed', { Target: fnm, DmgPerTick: dmgPer.toFixed(0), Duration: dur }), { status: 'bleed', dur });
         } else if (eff === 'stun') {
           const s = byId.status.stun;
           // 지연만 준다(확장_v3 §3.7-11): 대상의 다음 행동 시각을 뒤로 민다. 예정된 공격을 지우지 않는다 —
@@ -1065,7 +1065,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     for (const b of actor.bleed) {
       while (b.nextTick <= t && b.until >= b.nextTick) {
         actor.hp -= b.dmg;
-        push(actor.side, 'dot', logTpl('dot_bleed', { Target: actor.side === 'player' ? ME : actor.name, Damage: b.dmg.toFixed(0), CurrentHP: Math.max(0, actor.hp).toFixed(0) }));
+        push(actor.side, 'dot', logTpl('dot_bleed', { Target: actor.side === 'player' ? ME : actor.name, Damage: b.dmg.toFixed(0), CurrentHP: Math.max(0, actor.hp).toFixed(0) }), { status: 'bleed', dmg: +b.dmg.toFixed(2) });   // dot 줄의 who = 피해를 입는 쪽(victim)
         b.nextTick += b.interval;
         if (actor.hp <= 0) break;
       }
