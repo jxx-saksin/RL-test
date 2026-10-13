@@ -1003,6 +1003,8 @@ class Component extends DCLogic {
     if(this._t) clearTimeout(this._t);
     this._t = setTimeout(()=>this.tick(), 300);
   }
+  // 빗나감/회피 문구 — 내 공격이 빗나가면 '빗나감'(MISS), 상대 공격을 내가 피하면 '회피'(DODGE). 연출은 같고 글자만 갈린다.
+  missText(fx){ const mine=fx.attacker==='player'; return this.en()?(mine?'MISS':'DODGE'):(mine?'빗나감':'회피'); }
   // 타격 숫자 크기 — 계단(경/중/강)이 아니라 '한 방이 현재 HP에서 차지하는 비중'에 비례한다(14~38px). 빠른 무기의 잔타격은 작게,
   // 느린 무기의 묵직한 한 방은 크게 떠서 공속 차이가 숫자 크기로도 읽힌다. 치명타는 그 1.4배+6(32~48px).
   hitNumSize(fx){ const base=Math.max(14,Math.min(38,Math.round(14+(fx.share||0)*65))); return fx.crit?Math.max(32,Math.min(48,Math.round(base*1.4+6))):base; }
@@ -2388,7 +2390,7 @@ class Component extends DCLogic {
       h('div',{key:'nums',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9}}, ...nums.map(fx=> fx.dot ? h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.rx*100)+'%',top:(fx.ry*100)+'%',zIndex:9,pointerEvents:'none',opacity:0,whiteSpace:'nowrap',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,color:'#B8322D',fontSize:Math.max(12,Math.round(this.hitNumSize(fx)*0.78)),textShadow:'0 2px 8px rgba(0,0,0,.8)',animation:'rlBNum .8s ease-in forwards'}}, '-'+Math.round(fx.dmg)) : h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':(fx.weak?'#D79BD0':'#FF6A5A')),fontSize:fx.type==='miss'?36:this.hitNumSize(fx),textShadow:fx.cp?'0 0 10px rgba(255,210,74,.9), 0 2px 9px rgba(0,0,0,.75)':(fx.expo?'0 0 8px #7CA5BB, 0 0 3px #7CA5BB, 0 2px 9px rgba(0,0,0,.75)':'0 2px 9px rgba(0,0,0,.75)'),animation:(fx.type==='miss'?'rlMiss .7s':(fx.cp?(fx.cp.lin>0.3?('rlSlamL '+(0.8+0.7*fx.cp.lin).toFixed(2)+'s'):(fx.cp.big>0.45?'rlSlam .8s':('rlCritPop '+(0.66*(1-0.25*fx.cp.snap)).toFixed(2)+'s'))):((fx.tier===2)?'rlCritPop .66s':'rlDmgFloat .6s')))+' ease-out forwards'}},
         (fx.crit||fx.tier===2)
           ? h('div',{key:'n',style:{lineHeight:1,animation:'rlNumShake .5s ease-out'}}, '-'+fx.dmg)
-          : (fx.type==='miss'?'miss':('-'+fx.dmg))))),
+          : (fx.type==='miss'?this.missText(fx):('-'+fx.dmg))))),
       (stn0&&Date.now()-stn0.at<650)? h('div',{key:'ring'+stn0.seq,style:{position:'absolute',left:'50%',top:'38%',width:120,height:120,borderRadius:'50%',border:(stn0.delay>=1.5?4:2)+'px solid #D8BE78',zIndex:9,pointerEvents:'none','--rs':stn0.delay>=1.5?2.6:(stn0.delay>=0.8?2:1.5),animation:'rlRing '+(stn0.delay>=1.5?'.55s':'.4s')+' ease-out forwards'}}):null,
       h('div',{onClick:()=>this.setState({combatSheet:isMonster?'monster':'player'}),ref:el=>{ if(el && rp0 && Date.now()-rp0.at<350 && el._rup!==rp0.seq){ el._rup=rp0.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHit .3s ease-out'; }
         if(el && fx && fx.type==='miss' && el._ms!==fx.seq){ el._ms=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlDodge .6s ease-out'; }
