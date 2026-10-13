@@ -2140,7 +2140,7 @@ class Component extends DCLogic {
     const nowT = lines[lines.length-1].t||0;
     const apps = lines.filter(ln=>ln.who===applier && ln.type==='status');
     if(!apps.length) return [];
-    if(attr==='bleed'||attr==='rupture'){
+    if(attr==='bleed'||attr==='rupture'||(attr==='pierce'&&(this.eng.byId.status.pierce||{}).EffectType==='damage_taken_up')){
       const dur = this.eng.N((this.eng.byId.status[attr]||{}).Duration, attr==='bleed'?4:3);
       const mx = this.eng.N((this.eng.byId.status[attr]||{}).MaxStack, 8);
       const n = apps.filter(a=>(a.t||0)+dur >= nowT).length;

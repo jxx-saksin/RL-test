@@ -772,6 +772,7 @@ const DEFAULT_TPL = {
   status_bleed: '▶ {Target} 출혈 ({DmgPerTick}/tick, {Duration}s)',
   status_stun: '▶ {Target} 기절 (+{Delay}s 지연)',
   status_rupture: '▶ {Target} 파열 x{Stacks} (공격력↓)',
+  status_pierce: '▶ {Target} 관통 x{Stacks} (받는 피해↑)',
   dot_bleed: '{Target} 출혈 피해 −{Damage} (HP {CurrentHP})',
   stun_skip: '{Target} 기절 — 행동 지연',
   win: '{MonsterName} 처치. ({Elapsed}s)',
@@ -790,6 +791,7 @@ const DEFAULT_TPL_EN = {
   status_bleed: '▶ {Target} bleeding ({DmgPerTick}/tick, {Duration}s)',
   status_stun: '▶ {Target} stunned (+{Delay}s delay)',
   status_rupture: '▶ {Target} rupture x{Stacks} (attack↓)',
+  status_pierce: '▶ {Target} pierced x{Stacks} (damage taken↑)',
   dot_bleed: '{Target} bleed damage −{Damage} (HP {CurrentHP})',
   stun_skip: '{Target} stunned — action delayed',
   win: '{MonsterName} defeated. ({Elapsed}s)',
@@ -814,8 +816,8 @@ export function logTpl(id, vars) {
 // returns { log:[{t,who,type,text}], winner:'player'|'monster'|'timeout', triggers, playerHpEnd }
 export function simulateCombat(pProf, mProf, playerHpStart) {
   const log = [];
-  const A = { ...pProf, hp: playerHpStart != null ? playerHpStart : pProf.maxHp, side: 'player', next: 0, stunEnd: -1, bleed: [], ruptureStacks: 0, ruptureUntil: 0 };
-  const B = { ...mProf, hp: mProf.maxHp, side: 'monster', next: 0, stunEnd: -1, bleed: [], ruptureStacks: 0, ruptureUntil: 0 };
+  const A = { ...pProf, hp: playerHpStart != null ? playerHpStart : pProf.maxHp, side: 'player', next: 0, stunEnd: -1, bleed: [], ruptureStacks: 0, ruptureUntil: 0, exposeStacks: 0, exposeUntil: 0 };
+  const B = { ...mProf, hp: mProf.maxHp, side: 'monster', next: 0, stunEnd: -1, bleed: [], ruptureStacks: 0, ruptureUntil: 0, exposeStacks: 0, exposeUntil: 0 };
   const triggers = { hitsLanded: 0, evades: 0, hitsTaken: 0, critsLanded: 0 };
   const ME = uiT('common_me');
   const limit = mProf.timeLimit;
@@ -826,6 +828,15 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
   function applyBleedTicks(actor, now) {
     actor.bleed = actor.bleed.filter(b => b.until > now);
     // handled via scheduled ticks below (simplified: apply on each actor's turn)
+  }
+  // 관통 — 개편(EffectType damage_taken_up): 발동하면 대상이 받는 피해 +스택×Value. 시트가 아직 옛 값(defense_ignore)이면
+  // 옛 방식(해당 일격 방어 무시)으로 돈다 — 코드를 시트보다 먼저 배포해도 깨지지 않는다.
+  // 스택형 디버프(파열·관통)의 지속 = 시트 Duration × 시전자 무기 간격(초, 0.4~3배 클램프). 기준 간격 1초.
+  // 발동은 타수에 비례하니 지속을 간격에 비례시켜야 가동률이 공속과 무관해진다(시뮬: 고정 3초면 빠른 무기 이득 −5.9%, 간격 비례면 −1.8/−1.9/−2.3%).
+  const durScaled = (base, actor) => base * clamp(1 / (actor === A ? playerSpeed() : actor.atkSpeed), 0.4, 3);
+  const pierceExpose = () => (byId.status.pierce?.EffectType === 'damage_taken_up');
+  function exposeMult(target, now) {
+    return (target.exposeUntil > now && target.exposeStacks > 0) ? 1 + target.exposeStacks * N(byId.status.pierce?.Value, 0.06) : 1;
   }
   function ruptureMult(actor, now) {
     if (actor.ruptureUntil > now && actor.ruptureStacks > 0) {
@@ -869,10 +880,10 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     const isCrit = opts.forceCrit || Math.random() < critChance(actor.critChance, foe.critResist);
     if (isCrit) { dmg *= N(C.crit_damage_mult, 1.5); if (actor.side === 'player') triggers.critsLanded++; }
     let pierceFrac = 0;
-    if (actor.attribute === 'pierce' && !immune(foe, 'pierce') && Math.random() < statusChance(actor.potency, foe.statusResist)) {
+    if (actor.attribute === 'pierce' && !pierceExpose() && !immune(foe, 'pierce') && Math.random() < statusChance(actor.potency, foe.statusResist)) {
       pierceFrac = rand(N(byId.status.pierce?.Value, 0.05), N(byId.status.pierce?.ValueMax, 0.4));
     }
-    let final = defMitigate(dmg, foe.defense, pierceFrac);
+    let final = defMitigate(dmg, foe.defense, pierceFrac) * exposeMult(foe, t);
     if (foe === A) {
       final *= playerDmgTakenMult();   // 부적: 받는 피해 감소 (피격 전 체력 조건)
       // 소모품(§6-7): 징표 배수를 적용한 **뒤에** 플랫 차감. 순서를 뒤집으면 징표가 좋을수록 약이 약해진다.
@@ -888,15 +899,19 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     if (opts.talismanCrit) text += (LANG === 'en' ? '  ⟪Token⟫' : '  ⟪징표⟫');
     push(actor.side, isCrit ? 'crit' : 'hit', text);
 
-    // status application (non-pierce)
-    if (actor.attribute && actor.attribute !== 'pierce' && foe.hp > 0 && !immune(foe, actor.attribute)) {
+    // status application (옛 관통은 위 피해 계산 경로에서 이미 처리됨)
+    if (actor.attribute && (actor.attribute !== 'pierce' || pierceExpose()) && foe.hp > 0 && !immune(foe, actor.attribute)) {
       const sc = statusChance(actor.potency, foe.statusResist);
       if (Math.random() < sc) {
         const eff = actor.attribute;
         if (eff === 'bleed') {
           const s = byId.status.bleed;
-          const dmgPer = actor.weaponMaxDmg * N(s?.Value, 0.5);
           const dur = N(s?.Duration, 4), iv = N(s?.TickInterval, 2);
+          // 개편(ScaleSource attacker_hit): 틱 피해 = 시전자 평균 한 방 × Value × 틱 간격. 한 방 기준이라야 공속과 무관해진다 —
+          // 빠른 무기는 발동이 잦은 대신 한 방이 약하다(시뮬: 처치시간 −7.9/−6.9/−7.0% @공속 0.4/1.0/2.0. dps 기준이면 −3.5/−6.9/−12.9%로 빠른 쪽 편향).
+          // 시트가 옛 값(weapon_max_dmg)이면 옛 식 그대로.
+          const hitBased = s?.ScaleSource === 'attacker_hit';
+          const dmgPer = hitBased ? (actor.minAtk + actor.maxAtk) / 2 * N(s?.Value, 0.12) * iv : actor.weaponMaxDmg * N(s?.Value, 0.5);
           foe.bleed.push({ dmg: dmgPer, until: t + dur, nextTick: t + iv, interval: iv });
           if (foe.bleed.length > N(s?.MaxStack, 3)) foe.bleed.shift();
           push(actor.side, 'status', logTpl('status_bleed', { Target: fnm, DmgPerTick: dmgPer.toFixed(0), Duration: dur }));
@@ -910,10 +925,15 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
             foe.next += delay; foe.stunEnd = foe.next;
             push(actor.side, 'status', logTpl('status_stun', { Target: fnm, Delay: delay.toFixed(1) }));
           }
+        } else if (eff === 'pierce') {
+          const s = byId.status.pierce;
+          foe.exposeStacks = Math.min(N(s?.MaxStack, 3), foe.exposeStacks + 1);
+          foe.exposeUntil = t + durScaled(N(s?.Duration, 3), actor);
+          push(actor.side, 'status', logTpl('status_pierce', { Target: fnm, Stacks: foe.exposeStacks }));
         } else if (eff === 'rupture') {
           const s = byId.status.rupture;
           foe.ruptureStacks = Math.min(N(s?.MaxStack, 3), foe.ruptureStacks + 1);
-          foe.ruptureUntil = t + N(s?.Duration, 3);
+          foe.ruptureUntil = t + durScaled(N(s?.Duration, 3), actor);
           push(actor.side, 'status', logTpl('status_rupture', { Target: fnm, Stacks: foe.ruptureStacks }));
         }
       }
