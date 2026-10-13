@@ -772,6 +772,8 @@ class Component extends DCLogic {
         inst.appraised = true;
       }
       if(verChanged && inst.kind==='weapon') eng.reseedWeaponRolls(inst);
+      // 방어구 Bonus — 버전이 바뀌면 현재 시트 기준으로 다시 굴리고(롤백이면 비워진다), 옛 아이템(필드 없음)은 한 번 굴려 채운다
+      if(inst.kind==='armor' && (verChanged || inst.bonus==null)) eng.rollArmorBonus(inst);
       return inst; };
     gs.bag=gs.bag.map(rebuild); gs.vault=gs.vault.map(rebuild);
     gs.equip=Object.assign({weapon:null,head:null,body:null,artifact1:null,artifact2:null,bag:null}, gs.equip||{});
@@ -4242,13 +4244,13 @@ void main(){
     // 장신구 스탯 행: 라벨=스탯명(힘·민첩·체력·의지) / 값=인스턴스 롤값(+4 초록 · -3 빨강).
     // 옵션이 1개면 1행, 2개면 2행 — 그리드가 stats.length로 잡히므로 줄 수는 자동.
     const accRows=()=>{ const af=this.eng.byId.artifact[inst.id]||{}; const out=[];
-      const row=(krKey,enKey,v)=>{ const kr=af[krKey], en=af[enKey];
+      const row=(krKey,enKey,v,sk)=>{ const kr=af[krKey], en=af[enKey];
         const name=this.en()?(en&&en!=='-'?en:kr):kr;
         if(!kr||kr==='-'||v==null) return;
-        const n=Math.round(this.eng.N(v));
-        out.push([name, (n>=0?'+':'')+n, n<0?'#C4675D':'#83B289']); };
-      row('Stat1_KR','Stat1_EN', inst.stat1!=null?inst.stat1:this.eng.N(af.Value1_Low));
-      row('Stat2_KR','Stat2_EN', inst.stat2!=null?inst.stat2:(af.Stat2&&af.Stat2!=='-'?this.eng.N(af.Value2_Low):null));
+        const n=this.eng.N(v);
+        out.push([name, this.eng.fmtSigned(n, sk), n<0?'#C4675D':'#83B289']); };
+      row('Stat1_KR','Stat1_EN', inst.stat1!=null?inst.stat1:this.eng.N(af.Value1_Low), af.Stat1);
+      row('Stat2_KR','Stat2_EN', inst.stat2!=null?inst.stat2:(af.Stat2&&af.Stat2!=='-'?this.eng.N(af.Value2_Low):null), af.Stat2);
       return out; };
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', ART='rgb(43,46,50)', LO='rgb(111,114,118)', MID='rgb(169,171,175)', HI='rgb(234,235,238)', MUT='rgb(75,77,82)', SUB='rgb(165,172,178)', UNC='rgb(124,165,187)';
     const UNW=this.t('appraise_unappraised');
@@ -5068,6 +5070,7 @@ void main(){
       out.push([this.t('stat_def'), opt(inst,'def')?HID:Number(r.def??N(a.Def_Low)).toFixed(2), col('def')],
         [this.t('stat_evasion'), opt(inst,'evasion')?HID:Number(r.evasion??N(a.Evasion)).toFixed(2)+'%', col('evasion')],
         [this.t('stat_status_resist'), opt(inst,'statusResist')?HID:Number(r.statusResist??N(a.StatusResist)).toFixed(2)+'%', col('statusResist')],
+        ...Object.entries(inst.bonus||{}).map(([k,v])=>{ const b=this.eng.bonusLabel(k); return [this.en()?b.en:b.kr, this.eng.fmtSigned(N(v), null, b.unit), N(v)<0?'#C4675D':'#83B289']; }),
         [this.t('item_material_type'), this.eng.materialLabel(a.Material)||'—'],
         [this.t('item_durability'), this.durTxt(inst), this.durCol(inst,'#EAEBEE')]);
     } else if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]){ const lq=this.eng.byId.liquor[inst.id];
@@ -5077,11 +5080,11 @@ void main(){
     } else if(inst.kind==='artifact'){ const af=this.eng.byId.artifact[inst.id]||{};
       // 카드(lootCardBig)와 같은 형식 — 라벨=스탯명, 값=부호 붙은 롤값, 증가 초록/감소 빨강.
       // 예전엔 라벨이 '효과'고 스탯명이 값 안에 박혀 있어(힘 +3) 카드와 어긋났다.
-      const arow=(krKey,enKey,v)=>{ const kr=af[krKey], en=af[enKey]; if(!kr||kr==='-'||v==null) return;
-        const nm=this.en()?(en&&en!=='-'?en:kr):kr, n=Math.round(N(v));
-        out.push([nm, (n>=0?'+':'')+n, n<0?'#C4675D':'#83B289']); };
-      arow('Stat1_KR','Stat1_EN', inst.stat1!=null?inst.stat1:N(af.Value1_Low));
-      arow('Stat2_KR','Stat2_EN', inst.stat2!=null?inst.stat2:(af.Stat2&&af.Stat2!=='-'?N(af.Value2_Low):null));
+      const arow=(krKey,enKey,v,sk)=>{ const kr=af[krKey], en=af[enKey]; if(!kr||kr==='-'||v==null) return;
+        const nm=this.en()?(en&&en!=='-'?en:kr):kr, n=N(v);
+        out.push([nm, this.eng.fmtSigned(n, sk), n<0?'#C4675D':'#83B289']); };
+      arow('Stat1_KR','Stat1_EN', inst.stat1!=null?inst.stat1:N(af.Value1_Low), af.Stat1);
+      arow('Stat2_KR','Stat2_EN', inst.stat2!=null?inst.stat2:(af.Stat2&&af.Stat2!=='-'?N(af.Value2_Low):null), af.Stat2);
       out.push([this.t('item_slot'), this.t('item_accessory')], [this.t('item_durability'), this.durTxt(inst), this.durCol(inst,'#EAEBEE')]);
     } else if(inst.kind==='bag'){ const bg=this.eng.byId.bag[inst.id]||{};
       out.push([this.en()?'Slots':'슬롯', String(N(bg.Capacity)), 'rgb(131,178,137)']);

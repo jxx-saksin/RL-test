@@ -453,6 +453,7 @@ export function mkInstance(id, qty = 1, opts = {}) {
   // 2) 옵션 롤값 (미감정이어도 내부 작동)
   inst.rolls = {}; for (const k of APPRAISE_OPTS[kind]) inst.rolls[k] = seedOpt(kind, k, w, a);
   inst.maxDur = inst.rolls.maxDur; inst.dur = inst.rolls.maxDur;
+  if (kind === 'armor') rollArmorBonus(inst);
   // 3) 미감정 롤: 수치 옵션마다 독립 · p = clamp(base × zoneMult, 0, 1). ★growthTags는 감정 대상이 아니다.
   const mult = N(opts.unappraisedMult, 1);
   const p = clamp(N(C.unappraised_base_chance, 0.1) * mult, 0, 1);
@@ -481,6 +482,74 @@ export function reseedWeaponRolls(inst){
   inst.dur = clamp(Math.round(inst.maxDur * ratio), 0, inst.maxDur);
   delete inst.apprDelta;
   return true;
+}
+
+// ---------- 방어구 Bonus (확장_v3 §3.7-5) ----------
+// 방어구 시트의 `Bonus` 열 = JSON {"키":[Low,High]}. 개체마다 Low~High를 한 번 굴려 inst.bonus에 담는다(감정 대상 아님 — 항상 공개).
+// 키 → 2차 스탯 매핑은 장신구 sec_* 와 1:1이라 playerProfile의 addStat 한 길로 합산된다. 열이 없거나 '-'면 보너스 없음(무동작).
+export const BONUS_SEC = { hp:'sec_max_hp', crit:'sec_crit_chance', acc:'sec_accuracy', asp:'sec_atk_speed_pct', dmgcut:'sec_dmg_cut_pct',
+  cmult:'sec_crit_mult', hitdmg:'sec_hit_bonus', dmgpct:'sec_dmg_pct', killheal:'sec_kill_heal_pct' };
+const BONUS_KR = { hp:['최대 체력','Max HP',''], crit:['크리티컬 확률','Crit Chance','%'], acc:['적중률','Accuracy','%'], asp:['공격 속도','Attack Speed','%'],
+  dmgcut:['받는 피해 감소','Damage Reduction','%'], cmult:['크리티컬 피해','Crit Damage',''], hitdmg:['추가 타격 피해','Bonus Hit Damage',''],
+  dmgpct:['공격력','Attack','%'], killheal:['처치 시 회복','Heal on Kill','%'] };
+export function bonusLabel(key){ const b = BONUS_KR[key]; return b ? { kr:b[0], en:b[1], unit:b[2] } : { kr:key, en:key, unit:'' }; }
+export function rollArmorBonus(inst){
+  const a = byId.armor[inst && inst.id]; const out = {};
+  try{
+    const def = (a && a.Bonus && a.Bonus !== '-') ? JSON.parse(a.Bonus) : {};
+    for (const [k, rng] of Object.entries(def)){
+      if (!BONUS_SEC[k] || !Array.isArray(rng)) continue;
+      const lo = N(rng[0]), hi = N(rng[1], lo);
+      out[k] = Math.round(rand(Math.min(lo, hi), Math.max(lo, hi)) * 10) / 10;
+    }
+  }catch(_){ /* 깨진 JSON = 보너스 없음 */ }
+  inst.bonus = out;
+  return out;
+}
+
+// ---------- 무기 강화 (확장_v3 §3.7-10) — 도박형 업그레이드 코어 ----------
+// 무기 인스턴스의 inst.enh = { rec:[{stat, m}, ...] } : 강화 이력 스택(길이 = 강화 단계). 비용·시설·UI는 호출 쪽(미정)이고 여기는 '판정'과 '효과'만 있다.
+// 모든 수치는 Config enh_* 로 덮어쓸 수 있다(없으면 아래 기본 = 설계 확정값).
+//  · 성공 확률 enh_p_1..5 = 80/70/50/30/10% · 단계 배율 enh_mult_1..5 = 0.8/1/1.3/4/10
+//  · 실패: 1~3강 시도는 제자리(하락 없음) · enh_drop_from(4)강 이상 시도 실패는 이력 0~enh_drop_max(2)개 균등 하락 — 가장 최근 이력부터 되돌린다(재등반 때 스탯·양을 새로 뽑는다)
+//  · 뽑히는 스탯은 매번 균등 랜덤, 한 번에 오르는 양 = 스탯 기본 폭 × 그 단계 배율
+const ENH_P = [0.8, 0.7, 0.5, 0.3, 0.1], ENH_M = [0.8, 1.0, 1.3, 4.0, 10.0];
+const ENH_STEP = { dmg: 0.15, asp: 0.15, crit: 12, cmult: 0.3, acc: 8, hitdmg: 0.5 };   // 한 방 +15% · 공속 +15% · 크리 +12 · 크리배수 +0.3 · 적중 +8 · 추가타 +0.5 (1배당)
+export const ENH_STATS = Object.keys(ENH_STEP);
+export function enhMaxLevel(){ return Math.max(1, Math.min(5, Math.round(N(C.enh_max_level, 5)))); }
+export function enhLevel(inst){ return (inst && inst.enh && Array.isArray(inst.enh.rec)) ? inst.enh.rec.length : 0; }
+export function enhStep(stat){ return N(C['enh_step_' + stat], ENH_STEP[stat]); }
+export function enhChance(level){ return clamp(N(C['enh_p_' + (level + 1)], ENH_P[level]), 0, 1); }   // level = 현재 단계(0~4) → 다음 단계로 오를 확률
+// 합산 효과 {dmg, asp, crit, cmult, acc, hitdmg} (dmg·asp는 비율, 나머지는 가산)
+export function enhEffects(inst){
+  const out = { dmg: 0, asp: 0, crit: 0, cmult: 0, acc: 0, hitdmg: 0 };
+  if (inst && inst.enh && Array.isArray(inst.enh.rec)) for (const e of inst.enh.rec) if (e && e.stat in out) out[e.stat] += enhStep(e.stat) * N(e.m, 1);
+  return out;
+}
+// 한 번 시도한다(재료 차감은 호출 쪽). 반환: { ok, from, to, entry?, dropped, capped? }
+export function enhanceTry(inst, opts = {}){
+  if (!inst || inst.kind !== 'weapon') return null;
+  const from = enhLevel(inst);
+  if (from >= enhMaxLevel()) return { ok: false, capped: true, from, to: from, dropped: 0 };
+  if (!inst.enh || !Array.isArray(inst.enh.rec)) inst.enh = { rec: [] };
+  const p = clamp(enhChance(from) + N(opts.bonusChance), 0, 1);
+  if (Math.random() < p){
+    const entry = { stat: ENH_STATS[randInt(0, ENH_STATS.length - 1)], m: N(C['enh_mult_' + (from + 1)], ENH_M[from]) };
+    inst.enh.rec.push(entry);
+    return { ok: true, from, to: from + 1, entry, dropped: 0 };
+  }
+  let dropped = 0;
+  if (from + 1 >= Math.round(N(C.enh_drop_from, 4))) dropped = Math.min(from, randInt(0, Math.max(0, Math.round(N(C.enh_drop_max, 2)))));
+  if (dropped > 0 && !opts.protect) inst.enh.rec.splice(inst.enh.rec.length - dropped, dropped); else dropped = 0;
+  return { ok: false, from, to: from - dropped, dropped };
+}
+
+// 부호 붙은 수치 표기 — 정수면 그대로, 소수(크리 피해 0.4 등)는 한 자리. 단위는 키 접미(_pct)나 명시 unit.
+export function fmtSigned(n, statKey, unit){
+  const v = N(n); const u = unit != null ? unit : (/_pct$/.test(String(statKey || '')) ? '%' : '');
+  const r = Math.round(v * 10) / 10;
+  const body = (Math.abs(r) >= 10 || Number.isInteger(r)) ? String(Math.round(r)) : r.toFixed(1);
+  return (v >= 0 ? '+' : '') + body + u;
 }
 
 // working value of an appraisable option (hidden ≠ inactive)
@@ -638,6 +707,7 @@ export function playerProfile(state, staminaZero = false) {
     if (!inst) continue;
     if (inst.sockets) for (const s of inst.sockets) { if (s) addStat(s.target, s.value); }
     if (inst.affixes) for (const af of inst.affixes) addStat(af.target, af.value);
+    if (inst.bonus) for (const [k, v] of Object.entries(inst.bonus)) if (BONUS_SEC[k]) addStat(BONUS_SEC[k], v);   // 방어구 Bonus (무기엔 없음)
   }
   // equipped artifacts contribute Stat1/Stat2 (rolled per instance; may be negative)
   for (const uid of [state.equip.artifact1, state.equip.artifact2]) {
@@ -654,6 +724,7 @@ export function playerProfile(state, staminaZero = false) {
   const sec = deriveSecondary(p);
   // v3: appraisable stats read the per-instance rolled value (works even while hidden)
   const wOpt = k => (w ? instOpt(w, k) : 0);
+  const enh = w ? enhEffects(w) : enhEffects(null);   // 무기 강화 합산(없으면 0)
   const armorOpt = k => (headInst ? instOpt(headInst, k) : 0) + (bodyInst ? instOpt(bodyInst, k) : 0);
   const armorDef = armorOpt('def');
   const armorEva = armorOpt('evasion');
@@ -664,18 +735,23 @@ export function playerProfile(state, staminaZero = false) {
   return {
     name: t('common_me'),
     maxHp: Math.round(sec.sec_max_hp + sa('sec_max_hp')),
-    minAtk: sec.sec_min_atk + (w ? wOpt('minAtk') : 0) + sa('sec_min_atk'),
-    maxAtk: sec.sec_max_atk + (w ? wOpt('maxAtk') : 1) + sa('sec_max_atk'),
+    // 공격력 % (sec_dmg_pct: 방어구 Bonus·장신구·모듈) — 합계에 곱한다. 고정 가산과 달리 공속과 무관하게 공평하다(§3.7-7)
+    minAtk: (sec.sec_min_atk + (w ? wOpt('minAtk') : 0) + sa('sec_min_atk')) * (1 + sa('sec_dmg_pct') / 100 + enh.dmg),
+    maxAtk: (sec.sec_max_atk + (w ? wOpt('maxAtk') : 1) + sa('sec_max_atk')) * (1 + sa('sec_dmg_pct') / 100 + enh.dmg),
     defense: sec.sec_defense + armorDef + sa('sec_defense'),
-    atkSpeed: clamp((w ? wOpt('atkSpeed') || 1 : 1) * speedMult * bf.speedMult, 0.2, 3),   // 버프는 곱한 뒤 clamp — 상한 3은 그대로
-    accuracy: sec.sec_accuracy + (w ? wOpt('accuracy') : 0) + sa('sec_accuracy'),
+    atkSpeed: clamp((w ? (wOpt('atkSpeed') || 1) * (1 + enh.asp) : 1) * speedMult * bf.speedMult * Math.max(0.2, 1 + sa('sec_atk_speed_pct') / 100), 0.2, 3),   // 버프는 곱한 뒤 clamp — 상한 3은 그대로
+    accuracy: sec.sec_accuracy + (w ? wOpt('accuracy') : 0) + sa('sec_accuracy') + enh.acc,
     evasion: sec.sec_evasion + armorEva + sa('sec_evasion'),
-    critChance: sec.sec_crit_chance + (w ? wOpt('critChance') : 0) + sa('sec_crit_chance'),
+    critChance: sec.sec_crit_chance + (w ? wOpt('critChance') : 0) + sa('sec_crit_chance') + enh.crit,
     critResist: sec.sec_crit_resist + sa('sec_crit_resist'),
     statusResist: sec.sec_status_resist + armorSR + sa('sec_status_resist'),
     potency: w ? wOpt('potency') : 0,
     attribute: wd ? wd.Attribute : null,
     weaponMaxDmg: w ? wOpt('maxAtk') : 2,
+    critMultBonus: sa('sec_crit_mult') + enh.cmult,        // 크리 피해 배수에 더해지는 값(장비 합산, 천장 ×4)
+    hitBonus: sa('sec_hit_bonus') + enh.hitdmg,             // 타격당 고정 추가 피해(방어 무시) — 의도적으로 남긴 '빠른 무기' 축
+    dmgCutPct: sa('sec_dmg_cut_pct'),          // 받는 피해 감소 %(상한 60)
+    killHealPct: sa('sec_kill_heal_pct'),      // 처치 시 최대 HP 회복 %
     dmgFlatCut: bf.dmgFlatCut,   // 소모품: 받는 피해 플랫 감소 (simulateCombat.strike에서 차감)
     statusImmune: bf.immune,     // 소모품: 상태이상별 차단 확률(%) — strike의 관통/상태이상 두 경로가 본다
     primAdd,
@@ -878,7 +954,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     const immune = (target, eff) => target === A && A.statusImmune && Math.random() * 100 < N(A.statusImmune[eff], 0);
     let dmg = rand(actor.minAtk, actor.maxAtk) * ruptureMult(actor, t);
     const isCrit = opts.forceCrit || Math.random() < critChance(actor.critChance, foe.critResist);
-    if (isCrit) { dmg *= N(C.crit_damage_mult, 1.5); if (actor.side === 'player') triggers.critsLanded++; }
+    if (isCrit) { dmg *= clamp(N(C.crit_damage_mult, 1.5) + N(actor.critMultBonus), 1, 4); if (actor.side === 'player') triggers.critsLanded++; }
     let pierceFrac = 0;
     if (actor.attribute === 'pierce' && !pierceExpose() && !immune(foe, 'pierce') && Math.random() < statusChance(actor.potency, foe.statusResist)) {
       pierceFrac = rand(N(byId.status.pierce?.Value, 0.05), N(byId.status.pierce?.ValueMax, 0.4));
@@ -891,6 +967,8 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
       const cut = N(A.dmgFlatCut, 0);
       if (cut > 0) final = Math.max(1, final - cut);
     }
+    if (N(actor.hitBonus) > 0) final += N(actor.hitBonus) * exposeMult(foe, t);   // 추가 타격 피해: 방어 무시(약점 노출은 받는다)
+    if (foe === A && N(A.dmgCutPct) > 0) final *= 1 - clamp(N(A.dmgCutPct), 0, 60) / 100;   // 받는 피해 감소 %
     foe.hp -= final;
     if (actor.side === 'player') triggers.hitsLanded++;
     if (foe.side === 'player') triggers.hitsTaken++;
@@ -940,8 +1018,8 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     }
 
     // 부적: 처치 회복 (플레이어가 몬스터 처치 시 — 이번 전투 종료 후 HP로 이월)
-    if (actor === A && foe === B && foe.hp <= 0 && TAL.onKillHeal) {
-      const heal = A.maxHp * TAL.onKillHeal;
+    if (actor === A && foe === B && foe.hp <= 0 && (TAL.onKillHeal || N(A.killHealPct) > 0)) {
+      const heal = A.maxHp * (TAL.onKillHeal + N(A.killHealPct) / 100);
       A.hp = Math.min(A.maxHp, A.hp + heal);
       push('player', 'heal', logTpl('talisman_heal', { Amount: heal.toFixed(0), CurrentHP: Math.round(A.hp) }));
     }
