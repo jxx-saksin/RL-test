@@ -923,18 +923,25 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
   }
 
   // --- 부적(Talisman) 효과 정규화 · 플레이어 A 전용 ---
-  const TAL = { firstCrit: 0, speed: [], dmgTaken: [], onHitExtra: [], onKillHeal: 0 };
+  const TAL = { firstCrit: 0, speed: [], dmgTaken: [], onHitExtra: [], onKillHeal: 0, nth: [], critSpeed: [], foeStatus: [], foeHpMax: [], critAdd: [] };
   for (const e of (pProf.talismans || [])) {
     if (e.trigger === 'combat_start' && e.effect === 'guaranteed_crit') TAL.firstCrit += Math.max(1, e.value || 1);
     else if (e.trigger === 'hp_threshold' && e.effect === 'stat_buff' && e.stat === 'attack_speed') TAL.speed.push({ cmp: e.compare, thr: e.triggerValue, mult: 1 + e.value });
     else if (e.trigger === 'hp_threshold' && e.effect === 'stat_buff' && e.stat === 'damage_taken') TAL.dmgTaken.push({ cmp: e.compare, thr: e.triggerValue, mult: 1 + e.value }); // value 음수 = 감소
     else if (e.trigger === 'on_hit' && e.effect === 'extra_attack') TAL.onHitExtra.push({ chance: e.triggerValue, count: Math.max(1, e.value || 1) });
     else if (e.trigger === 'on_kill' && e.effect === 'heal_maxhp_pct') TAL.onKillHeal += e.value;
+    // --- 신규 트리거(확장_v3 §3.7-8) ---
+    else if (e.trigger === 'nth_hit' && e.effect === 'guaranteed_crit') TAL.nth.push(Math.max(2, Math.round(e.triggerValue || 4)));              // 매 N번째 명중 = 확정 치명타
+    else if (e.trigger === 'on_crit' && e.effect === 'stat_buff' && e.stat === 'attack_speed') TAL.critSpeed.push({ hits: Math.max(1, Math.round(e.triggerValue || 3)), mult: 1 + e.value }); // 치명타 직후 N타 공속↑
+    else if (e.trigger === 'foe_status' && e.effect === 'stat_buff' && e.stat === 'damage_dealt') TAL.foeStatus.push(1 + e.value);              // 상태이상 걸린 적에게 주는 피해↑
+    else if (e.trigger === 'foe_hp_threshold' && e.effect === 'stat_buff' && e.stat === 'max_attack') TAL.foeHpMax.push({ cmp: e.compare, thr: e.triggerValue, add: e.value }); // 적 HP 조건 시 최대공격력↑
+    else if (e.trigger === 'hp_threshold' && e.effect === 'stat_buff' && e.stat === 'crit_chance') TAL.critAdd.push({ cmp: e.compare, thr: e.triggerValue, add: e.value });  // 내 HP 조건 시 크리 수치↑
   }
+  let hitCnt = 0, critBuffLeft = 0, critBuffMult = 1;
   let firstCritLeft = TAL.firstCrit;
   const hpFrac = () => (A.maxHp > 0 ? A.hp / A.maxHp : 0);
   const cmpOk = (cmp, frac, thr) => cmp === 'gte' ? frac >= thr : cmp === 'lte' ? frac <= thr : false;
-  const playerSpeed = () => { let m = 1; for (const s of TAL.speed) if (cmpOk(s.cmp, hpFrac(), s.thr)) m *= s.mult; return A.atkSpeed * m; };
+  const playerSpeed = () => { let m = 1; for (const s of TAL.speed) if (cmpOk(s.cmp, hpFrac(), s.thr)) m *= s.mult; if (critBuffLeft > 0) m *= critBuffMult; return A.atkSpeed * m; };
   const playerDmgTakenMult = () => { let m = 1; for (const d of TAL.dmgTaken) if (cmpOk(d.cmp, hpFrac(), d.thr)) m *= d.mult; return m; };
 
   // 타격 처리(명중→데미지→크리→관통→상태이상). 일반 공격 = opts 없이 호출(기존 동작 동일).
@@ -952,9 +959,19 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     // 상태이상 면역(§6-7) — 플레이어가 맞는 쪽일 때만. ⚠️ 관통은 피해 계산 **전**에 처리되는
     // 별개 경로라, 아래 상태이상 블록만 막으면 더마실(pierce)이 조용히 무효가 된다.
     const immune = (target, eff) => target === A && A.statusImmune && Math.random() * 100 < N(A.statusImmune[eff], 0);
-    let dmg = rand(actor.minAtk, actor.maxAtk) * ruptureMult(actor, t);
-    const isCrit = opts.forceCrit || Math.random() < critChance(actor.critChance, foe.critResist);
-    if (isCrit) { dmg *= clamp(N(C.crit_damage_mult, 1.5) + N(actor.critMultBonus), 1, 4); if (actor.side === 'player') triggers.critsLanded++; }
+    // 징표(플레이어 공격 한정): 적 HP 조건 최대공격력↑ · 상태이상 중인 적 피해↑ · 내 HP 조건 크리↑ · N번째 명중 확정 크리
+    let maxAtk = actor.maxAtk, tDealt = 1, ccAdd = 0, nthCrit = false;
+    if (actor === A) {
+      const foeFrac = foe.maxHp > 0 ? foe.hp / foe.maxHp : 1;
+      for (const x of TAL.foeHpMax) if (cmpOk(x.cmp, foeFrac, x.thr)) maxAtk *= 1 + x.add;
+      if (TAL.foeStatus.length && (foe.stunEnd > t || foe.bleed.some(b => b.until > t) || (foe.ruptureStacks > 0 && foe.ruptureUntil > t) || (foe.exposeStacks > 0 && foe.exposeUntil > t)))
+        for (const m of TAL.foeStatus) tDealt *= m;
+      for (const x of TAL.critAdd) if (cmpOk(x.cmp, hpFrac(), x.thr)) ccAdd += x.add;
+      hitCnt++; nthCrit = TAL.nth.some(n => hitCnt % n === 0);
+    }
+    let dmg = rand(actor.minAtk, Math.max(actor.minAtk, maxAtk)) * ruptureMult(actor, t) * tDealt;
+    const isCrit = opts.forceCrit || nthCrit || Math.random() < critChance(actor.critChance + ccAdd, foe.critResist);
+    if (isCrit) { dmg *= clamp(N(C.crit_damage_mult, 1.5) + N(actor.critMultBonus), 1, 4); if (actor.side === 'player') triggers.critsLanded++; if (actor === A && TAL.critSpeed.length) { for (const c of TAL.critSpeed) { critBuffLeft = Math.max(critBuffLeft, c.hits); critBuffMult = Math.max(critBuffMult === 1 ? 0 : critBuffMult, c.mult); } } }
     let pierceFrac = 0;
     if (actor.attribute === 'pierce' && !pierceExpose() && !immune(foe, 'pierce') && Math.random() < statusChance(actor.potency, foe.statusResist)) {
       pierceFrac = rand(N(byId.status.pierce?.Value, 0.05), N(byId.status.pierce?.ValueMax, 0.4));
@@ -1061,6 +1078,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     strike(actor, foe, opts);
     // 다음 행동 스케줄 (플레이어는 부적 공속 버프 반영)
     actor.next = t + 1 / (actor === A ? playerSpeed() : actor.atkSpeed);
+    if (actor === A && critBuffLeft > 0) { critBuffLeft--; if (critBuffLeft === 0) critBuffMult = 1; }   // 치명타 가속: 크리 직후 N번 스케줄에 적용
   }
 
   let winner = 'timeout';
