@@ -814,8 +814,8 @@ export function logTpl(id, vars) {
 // returns { log:[{t,who,type,text}], winner:'player'|'monster'|'timeout', triggers, playerHpEnd }
 export function simulateCombat(pProf, mProf, playerHpStart) {
   const log = [];
-  const A = { ...pProf, hp: playerHpStart != null ? playerHpStart : pProf.maxHp, side: 'player', next: 0, stunUntil: 0, bleed: [], ruptureStacks: 0, ruptureUntil: 0 };
-  const B = { ...mProf, hp: mProf.maxHp, side: 'monster', next: 0, stunUntil: 0, bleed: [], ruptureStacks: 0, ruptureUntil: 0 };
+  const A = { ...pProf, hp: playerHpStart != null ? playerHpStart : pProf.maxHp, side: 'player', next: 0, stunEnd: -1, bleed: [], ruptureStacks: 0, ruptureUntil: 0 };
+  const B = { ...mProf, hp: mProf.maxHp, side: 'monster', next: 0, stunEnd: -1, bleed: [], ruptureStacks: 0, ruptureUntil: 0 };
   const triggers = { hitsLanded: 0, evades: 0, hitsTaken: 0, critsLanded: 0 };
   const ME = uiT('common_me');
   const limit = mProf.timeLimit;
@@ -902,9 +902,14 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
           push(actor.side, 'status', logTpl('status_bleed', { Target: fnm, DmgPerTick: dmgPer.toFixed(0), Duration: dur }));
         } else if (eff === 'stun') {
           const s = byId.status.stun;
-          const delay = (1 / actor.atkSpeed) * N(s?.Value, 0.5);
-          foe.stunUntil = Math.max(foe.stunUntil, foe.next) + delay;
-          push(actor.side, 'status', logTpl('status_stun', { Target: fnm, Delay: delay.toFixed(1) }));
+          // 지연만 준다(확장_v3 §3.7-11): 대상의 다음 행동 시각을 뒤로 민다. 예정된 공격을 지우지 않는다 —
+          // 옛 구현은 stunUntil로 그 공격을 통째로 스킵하고 한 간격을 더 기다리게 해 연타 기절 무기가 기절 락을 만들었다.
+          // 기절 중(= 밀린 다음 행동 시각 전, 그 시각과 같은 순간 포함)에는 재발동을 무시한다 — 연타해도 지연이 쌓이지 않는다.
+          if (t > foe.stunEnd) {
+            const delay = (1 / actor.atkSpeed) * N(s?.Value, 1.0);
+            foe.next += delay; foe.stunEnd = foe.next;
+            push(actor.side, 'status', logTpl('status_stun', { Target: fnm, Delay: delay.toFixed(1) }));
+          }
         } else if (eff === 'rupture') {
           const s = byId.status.rupture;
           foe.ruptureStacks = Math.min(N(s?.MaxStack, 3), foe.ruptureStacks + 1);
@@ -951,12 +956,6 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     }
     actor.bleed = actor.bleed.filter(b => b.until > t);
     if (actor.hp <= 0) break;
-
-    if (actor.stunUntil > t) { // stunned: skip, reschedule
-      push(actor.side, 'stun', logTpl('stun_skip', { Target: actor.side === 'player' ? ME : actor.name }));
-      actor.next = actor.stunUntil + 1 / (actor === A ? playerSpeed() : actor.atkSpeed);
-      continue;
-    }
 
     // 부적: 첫 스윙 명중+치명 확정 (플레이어 A만 · 1회 소모)
     const opts = { allowExtra: true };
