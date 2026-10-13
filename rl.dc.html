@@ -397,7 +397,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 94;
+const TITLE_VER = 95;
 const TITLE_DATE = '1013';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -643,8 +643,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val86');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val46');
+      const eng = await import('./engine.js?v=val87');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val47');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -715,7 +715,12 @@ class Component extends DCLogic {
       // ⚠️ 일부 탭만 실패했을 땐 캐시를 갱신하지 않는다 — 반쪽 데이터를 캐시에 굳히면
       //    다음 오프라인 부팅에서도 그 탭이 영영 비어 있다.
       this._skippedTabs = data.__skipped || [];
-      if(!this._skippedTabs.length){ try{ localStorage.setItem('rl_sheet_cache_v2', JSON.stringify(rows)); }catch(_){} }
+      // 선택 탭만 스킵된 경우엔 받은 탭만 기존 캐시에 덮어 합친다(스킵된 탭은 옛 캐시 값 유지). 429가 잦아 전 탭 성공이 드물면 캐시가 영영 옛것으로 굳기 때문.
+      try{
+        const fresh=Object.assign({},rows); delete fresh.__skipped;
+        if(!this._skippedTabs.length){ localStorage.setItem('rl_sheet_cache_v2', JSON.stringify(fresh)); }
+        else { const old=localStorage.getItem('rl_sheet_cache_v2'); if(old){ localStorage.setItem('rl_sheet_cache_v2', JSON.stringify(Object.assign(JSON.parse(old),fresh))); } }
+      }catch(_){}
       this.dataSrc = this._skippedTabs.length ? 'live-partial' : 'live'; return 'live';
     }catch(e){
       console.warn('live sheet fetch failed, falling back', e);
@@ -766,7 +771,10 @@ class Component extends DCLogic {
     const eng=this.eng, gs=o.gs;
     // 밸런스 버전 마이그레이션 — 세이브에 찍힌 버전과 현재 시트(Config.balance_ver)가 다르면(올라갈 때도, 롤백으로 내려갈 때도)
     // 무기 롤을 현재 범위로 다시 굴리고 HP는 비율을 보존한다. 옛 세이브에는 필드가 없으므로 1(개편 이전)로 본다.
-    const curVer=eng.balanceVer(), verChanged=eng.N(gs.balanceVer,1)!==curVer;
+    // ⚠️ 시트를 못 받아 '캐시'로 부팅한 날(구글 429)엔 판정하지 않는다 — 캐시는 전 탭이 성공할 때만 갱신돼 리워크 이전 것이 남아 있을 수 있고,
+    // 그 데이터엔 balance_ver·Bonus 열이 없어 "버전이 내려갔다"로 오판 → 방어구 Bonus가 {}로 덮이고 무기 롤이 옛 범위로 재시드된 채 저장된다(2026-10-13).
+    const trusted=this.dataSrc!=='cache';
+    const curVer=eng.balanceVer(), verChanged=trusted && eng.N(gs.balanceVer,1)!==curVer;
     const prevMaxHp=eng.N(gs.maxHp,0), prevHp=eng.N(gs.hp,prevMaxHp);
     // 방어: 현재 시트에 없는 id 인스턴스 제거 → 빈 장착 슬롯 null
     const known=(inst)=> !!(inst && inst.id && (eng.anyItem(inst.id) || (eng.byId.liquor&&eng.byId.liquor[inst.id]) || (eng.byId.module&&eng.byId.module[inst.id]) || (eng.byId.usb&&eng.byId.usb[inst.id])));
@@ -796,7 +804,7 @@ class Component extends DCLogic {
       }
       if(verChanged && inst.kind==='weapon') eng.reseedWeaponRolls(inst);
       // 방어구 Bonus — 버전이 바뀌면 현재 시트 기준으로 다시 굴리고(롤백이면 비워진다), 옛 아이템(필드 없음)은 한 번 굴려 채운다
-      if(inst.kind==='armor' && (verChanged || inst.bonus==null)) eng.rollArmorBonus(inst);
+      if(inst.kind==='armor' && trusted && (verChanged || inst.bonus==null)) eng.rollArmorBonus(inst);
       return inst; };
     gs.bag=gs.bag.map(rebuild); gs.vault=gs.vault.map(rebuild);
     gs.equip=Object.assign({weapon:null,head:null,body:null,artifact1:null,artifact2:null,bag:null}, gs.equip||{});
@@ -849,7 +857,7 @@ class Component extends DCLogic {
     gs.maxHp=full.maxHp;
     gs.hp=(verChanged && prevMaxHp>0) ? Math.max(0,Math.min(full.maxHp,Math.round(full.maxHp*Math.max(0,Math.min(1,prevHp/prevMaxHp)))))
       : Math.max(0,Math.min(eng.N(gs.hp,full.maxHp),full.maxHp));
-    gs.balanceVer=curVer;
+    if(trusted) gs.balanceVer=curVer;   // 캐시 부팅이면 세이브에 찍힌 버전을 그대로 둔다 — 다음 정상 부팅에서 제대로 판정
     gs.sta=Math.max(0,Math.min(eng.N(gs.sta,this.staMax),this.staMax));
   }
   exportSaveCode(){

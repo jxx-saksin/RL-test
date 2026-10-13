@@ -60,6 +60,17 @@ async function fetchT(url, opts){
   finally { clearTimeout(t); }
 }
 
+// 429/5xx는 잠깐 쉬었다 다시 시도한다(최대 3번). 36탭을 한꺼번에 요청해 구글이 조일 때, 한 탭만 막혀도 통째로 캐시 폴백되던 것을 줄인다.
+async function fetchRetry(url, opts){
+  let r;
+  for (let n = 0; n < 3; n++){
+    r = await fetchT(url, opts);
+    if (r.ok || !(r.status === 429 || r.status >= 500)) return r;
+    await new Promise(res => setTimeout(res, 400 * (n + 1) + Math.random() * 400));
+  }
+  return r;
+}
+
 // Discover the name->gid map live (so added/renamed tabs still work); fall back to GIDS.
 export async function fetchGidMap(id = SHEET_ID) {
   try {
@@ -89,7 +100,7 @@ export async function fetchAllTabs(id = SHEET_ID) {
     const gid = gidMap[tab];
     if (gid == null) { skipped.push(tab); return; }
     try {
-      const r = await fetchT(tabUrl(id, gid), { mode: 'cors', cache: 'no-store' });
+      const r = await fetchRetry(tabUrl(id, gid), { mode: 'cors', cache: 'no-store' });
       if (!r.ok) throw new Error(tab + ' HTTP ' + r.status);
       out[tab] = parseCSV(await r.text());
     } catch (e) {
