@@ -983,6 +983,9 @@ class Component extends DCLogic {
     if(this._t) clearTimeout(this._t);
     this._t = setTimeout(()=>this.tick(), 300);
   }
+  // 타격 숫자 크기 — 계단(경/중/강)이 아니라 '한 방이 현재 HP에서 차지하는 비중'에 비례한다(14~38px). 빠른 무기의 잔타격은 작게,
+  // 느린 무기의 묵직한 한 방은 크게 떠서 공속 차이가 숫자 크기로도 읽힌다. 치명타는 그 1.4배+6(32~48px).
+  hitNumSize(fx){ const base=Math.max(14,Math.min(38,Math.round(14+(fx.share||0)*65))); return fx.crit?Math.max(32,Math.min(48,Math.round(base*1.4+6))):base; }
   // 다음 로그 줄까지의 대기(ms). Config.combat_playback_scale > 0 이면 로그의 실제 시간차(t)를 그대로 재생한다 —
   // 공속 0.4 무기는 2.5초에 한 번, 2.0 무기는 0.5초에 한 번 보인다(확장_v3 §3.7-9). 값이 없거나 0이면 옛 고정 300ms/줄.
   // 같은 시각의 줄(상태이상·도트 직후)은 최소 140ms로 읽히게 붙이고, 한 줄 최대 3.5초로 상한.
@@ -1018,11 +1021,11 @@ class Component extends DCLogic {
     c.fxSeq=(c.fxSeq||0)+1;
     // 타격감 3단계(확장_v3 §3.7-9): 이 한 방이 맞은 쪽 현재 HP에서 차지하는 비중 — 경(~15%) tier0 / 중(15~35%) tier1 / 강(35%~ 또는 치명타) tier2.
     // 느린 무기의 묵직한 한 방·보스의 큰 일격이 같은 규칙으로 크게 보인다. 킬링 블로우도 비중이 크면 자연히 강.
-    let tier=0;
+    let tier=0, share=0;
     if(ln.type==='hit' || ln.type==='crit'){
       const f = target==='monster' ? 'hpM' : 'hpP', prev=c.res.log[idx-1];
       const hpBefore = prev ? prev[f] : (target==='monster' ? c.mProf.maxHp : c.prof.maxHp);
-      const share = hpBefore>0 ? dmg/hpBefore : 1;
+      share = hpBefore>0 ? dmg/hpBefore : 1;
       tier = (ln.type==='crit' || share>=0.35) ? 2 : (share>=0.15 ? 1 : 0);
     }
     // 공격하는 쪽 앞으로 내밀기(lunge): 무기 간격이 길수록 크게(느린 무기 = 묵직하게, 빠른 무기 = 작게). 미스도 공격이다.
@@ -1031,7 +1034,7 @@ class Component extends DCLogic {
     const lunge=Math.max(6,Math.min(16,Math.round(5+5/Math.max(0.2,atkSpd||1))));
     // 처치 일격: 몬스터 카드에 흰 번쩍임 + 재생을 잠깐 멈춘다(combatDelay).
     const kill=(ln.type==='hit'||ln.type==='crit') && target==='monster' && ln.hpM<=0;
-    c.fx={ seq:c.fxSeq, type:ln.type, target, attacker:atkSide, lunge, kill, dmg, crit:ln.type==='crit', tier, rx:0.18+Math.random()*0.64, ry:0.06+Math.random()*0.14, at:Date.now() };
+    c.fx={ seq:c.fxSeq, type:ln.type, target, attacker:atkSide, lunge, kill, dmg, share, crit:ln.type==='crit', tier, rx:0.18+Math.random()*0.64, ry:0.06+Math.random()*0.14, at:Date.now() };
     // 숫자는 겹쳐 떠도 된다(양쪽 카드 · 연타). 만료된 것만 거른다. 카드 효과(플래시·흔들림)는 최신 하나(c.fx)만.
     c.fxs=(c.fxs||[]).filter(f=>Date.now()-f.at<800).concat(c.fx);
     const seq=c.fx.seq;
@@ -2286,7 +2289,7 @@ class Component extends DCLogic {
     const atk=((this.combat&&this.combat.fxs)||[]).filter(f=>f.attacker===side&&Date.now()-f.at<220).pop();   // 이 카드가 방금 때렸다면 앞으로 내민다
     const nums=((this.combat&&this.combat.fxs)||[]).filter(f=>f.target===side&&Date.now()-f.at<800);
     return h('div',{ref:el=>{ if(el && atk && el._lg!==atk.seq){ el._lg=atk.seq; el.style.setProperty('--lg',(side==='player'?-1:1)*atk.lunge+'px'); el.style.animation='none'; void el.offsetWidth; el.style.animation='rlLunge .16s ease-out'; } },style:{position:'relative'}},
-      h('div',{key:'nums',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9}}, ...nums.map(fx=> h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':'#FF6A5A'),fontSize:fx.type==='miss'?36:(fx.crit?45:(fx.tier===2?38:(fx.tier===1?28:24))),textShadow:'0 2px 9px rgba(0,0,0,.75)',animation:(fx.type==='miss'?'rlMiss .7s':((fx.crit||fx.tier===2)?'rlCritPop .66s':'rlDmgFloat .6s'))+' ease-out forwards'}},
+      h('div',{key:'nums',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9}}, ...nums.map(fx=> h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':'#FF6A5A'),fontSize:fx.type==='miss'?36:this.hitNumSize(fx),textShadow:'0 2px 9px rgba(0,0,0,.75)',animation:(fx.type==='miss'?'rlMiss .7s':((fx.crit||fx.tier===2)?'rlCritPop .66s':'rlDmgFloat .6s'))+' ease-out forwards'}},
         (fx.crit||fx.tier===2)
           ? h('div',{key:'n',style:{lineHeight:1,animation:'rlNumShake .5s ease-out'}}, '-'+fx.dmg)
           : (fx.type==='miss'?'miss':('-'+fx.dmg))))),
