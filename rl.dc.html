@@ -977,14 +977,26 @@ class Component extends DCLogic {
       if(enc===1) this.tutoOpen('cmb_flee1');
       else if(enc>=TUTO_BOSS_ENC) this.tutoOpen('cmb_boss1'); }
     this.forceUpdate();
-    if(this._t) clearInterval(this._t);
-    this._t = setInterval(()=>this.tick(), 300);
+    if(this._t) clearTimeout(this._t);
+    this._t = setTimeout(()=>this.tick(), 300);
   }
+  // 다음 로그 줄까지의 대기(ms). Config.combat_playback_scale > 0 이면 로그의 실제 시간차(t)를 그대로 재생한다 —
+  // 공속 0.4 무기는 2.5초에 한 번, 2.0 무기는 0.5초에 한 번 보인다(확장_v3 §3.7-9). 값이 없거나 0이면 옛 고정 300ms/줄.
+  // 같은 시각의 줄(상태이상·도트 직후)은 최소 140ms로 읽히게 붙이고, 한 줄 최대 3.5초로 상한.
+  combatDelay(c){
+    const sc=this.eng.N(this.eng.DATA.config.combat_playback_scale,0);
+    if(!(sc>0)) return 300;
+    const L=c.res.log, i=c.revealed, a=L[i-1], b=L[i];
+    if(!b) return 300;
+    return Math.max(140, Math.min(3500, Math.max(0,(b.t||0)-(a?(a.t||0):0))*1000*sc));
+  }
+  // setTimeout 체인 — 줄마다 대기가 달라서 setInterval을 쓰지 않는다. 정리하는 쪽(clearInterval)은 타이머 id를 공유하므로 그대로 동작한다.
   tick(){
     const c=this.combat;
-    if(this.state.tuto) return;   // ★튜토리얼 팝업이 떠 있는 동안은 로그를 멈춘다 — 읽는 사이 전투가 끝나버린다
-    if(c.revealed < c.res.log.length){ c.revealed++; this.setCombatFx(c); this.forceUpdate(); }
-    else { clearInterval(this._t); this._t=null; this.finishCombat(); }
+    if(!c){ this._t=null; return; }
+    if(this.state.tuto){ this._t=setTimeout(()=>this.tick(), 300); return; }   // ★튜토리얼 팝업이 떠 있는 동안은 로그를 멈춘다 — 읽는 사이 전투가 끝나버린다
+    if(c.revealed < c.res.log.length){ c.revealed++; this.setCombatFx(c); this.forceUpdate(); this._t=setTimeout(()=>this.tick(), this.combatDelay(c)); }
+    else { this._t=null; this.finishCombat(); }
   }
   setCombatFx(c){
     const idx=c.revealed-1, ln=c.res.log[idx];
@@ -997,8 +1009,17 @@ class Component extends DCLogic {
       dmg = Math.max(0, Math.round(before - ln[f]));
     }
     c.fxSeq=(c.fxSeq||0)+1;
-    c.fx={ seq:c.fxSeq, type:ln.type, target, dmg, crit:ln.type==='crit', rx:0.18+Math.random()*0.64, ry:0.06+Math.random()*0.14 };
-    if(typeof navigator!=='undefined' && navigator.vibrate){ try{ if(ln.type==='crit') navigator.vibrate([0,80,45,90]); else if(ln.type==='hit') navigator.vibrate(50); }catch(e){} }
+    // 타격감 3단계(확장_v3 §3.7-9): 이 한 방이 맞은 쪽 현재 HP에서 차지하는 비중 — 경(~15%) tier0 / 중(15~35%) tier1 / 강(35%~ 또는 치명타) tier2.
+    // 느린 무기의 묵직한 한 방·보스의 큰 일격이 같은 규칙으로 크게 보인다. 킬링 블로우도 비중이 크면 자연히 강.
+    let tier=0;
+    if(ln.type==='hit' || ln.type==='crit'){
+      const f = target==='monster' ? 'hpM' : 'hpP', prev=c.res.log[idx-1];
+      const hpBefore = prev ? prev[f] : (target==='monster' ? c.mProf.maxHp : c.prof.maxHp);
+      const share = hpBefore>0 ? dmg/hpBefore : 1;
+      tier = (ln.type==='crit' || share>=0.35) ? 2 : (share>=0.15 ? 1 : 0);
+    }
+    c.fx={ seq:c.fxSeq, type:ln.type, target, dmg, crit:ln.type==='crit', tier, rx:0.18+Math.random()*0.64, ry:0.06+Math.random()*0.14 };
+    if(typeof navigator!=='undefined' && navigator.vibrate){ try{ if(tier===2) navigator.vibrate([0,80,45,90]); else if(tier===1) navigator.vibrate(70); else if(ln.type==='hit') navigator.vibrate(50); }catch(e){} }
   }
   finishCombat(){
     const c=this.combat, res=c.res;
@@ -2174,7 +2195,7 @@ class Component extends DCLogic {
     const attrCol = AT(prof.attribute)?((ATTR[prof.attribute]&&ATTR[prof.attribute].c)||T.hi):null;
     const rows=[
       [this.t('stat_atk'), Math.round(prof.minAtk)+'~'+Math.round(prof.maxAtk), null, this.t('stat_def'), String(Math.round(prof.defense)), null],
-      [this.t('stat_atk_speed'), (prof.atkSpeed!=null?prof.atkSpeed:1).toFixed(1), null, this.t('stat_accuracy'), accV, null],
+      [this.t('stat_atk_speed'), (prof.atkSpeed!=null?prof.atkSpeed:1).toFixed(2), null, this.t('stat_accuracy'), accV, null],
       [this.t('stat_evasion'), evaV, null, this.t('stat_crit_chance'), critV, null],
       [this.t('stat_crit_resist'), Math.round(prof.critResist||0)+'%', null, this.t('stat_status_resist'), Math.round(prof.statusResist||0)+'%', null],
       [this.t('status_effect'), AT(prof.attribute)?this.t('status_'+prof.attribute):this.t('common_none'), attrCol, this.t('item_material_type'), this.eng.materialLabel(md&&md.Material)||'—', null],
@@ -2243,14 +2264,14 @@ class Component extends DCLogic {
     const fx=(this.combat&&this.combat.fx&&this.combat.fx.target===side)?this.combat.fx:null;
     const isHit=!!fx&&(fx.type==='hit'||fx.type==='crit');
     return h('div',{style:{position:'relative'}},
-      fx? h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':'#FF6A5A'),fontSize:fx.type==='miss'?36:(fx.crit?45:20),textShadow:'0 2px 9px rgba(0,0,0,.75)',animation:(fx.type==='miss'?'rlMiss .7s':(fx.crit?'rlCritPop .66s':'rlDmgFloat .6s'))+' ease-out forwards'}},
-        fx.crit
+      fx? h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':'#FF6A5A'),fontSize:fx.type==='miss'?36:(fx.crit?45:(fx.tier===2?38:(fx.tier===1?28:20))),textShadow:'0 2px 9px rgba(0,0,0,.75)',animation:(fx.type==='miss'?'rlMiss .7s':((fx.crit||fx.tier===2)?'rlCritPop .66s':'rlDmgFloat .6s'))+' ease-out forwards'}},
+        (fx.crit||fx.tier===2)
           ? h('div',{key:'n',style:{lineHeight:1,animation:'rlNumShake .5s ease-out'}}, '-'+fx.dmg)
           : (fx.type==='miss'?'miss':('-'+fx.dmg))) : null,
-      h('div',{onClick:()=>this.setState({combatSheet:isMonster?'monster':'player'}),ref:el=>{ if(el && isHit && el._hit!==fx.seq){ el._hit=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation=(fx.crit?'rlHitCrit .42s':'rlHit .3s')+' ease-out'; } },style:{position:'relative',background:isMonster?T.s2:T.s1,border:'1px solid '+T.line,borderRadius:6,overflow:'hidden',cursor:'pointer'}},
-      isHit? h('div',{key:'fl'+fx.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:fx.crit?'rgba(230,64,52,.5)':'rgba(214,64,52,.34)',animation:'rlHitFlash '+(fx.crit?'.42s':'.3s')+' ease-out'}}):null,
-      (fx&&fx.crit)? h('div',{key:'brd'+fx.seq,style:{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 1px #FFFFFF',animation:'rlBorderFlash .42s ease-out'}}):null,
-      (fx&&fx.crit)? h('div',{key:'ig'+fx.seq,style:{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 36px 4px rgba(255,255,255,0.5)',animation:'rlInnerGlow .22s ease-out'}}):null,
+      h('div',{onClick:()=>this.setState({combatSheet:isMonster?'monster':'player'}),ref:el=>{ if(el && isHit && el._hit!==fx.seq){ el._hit=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation=(fx.tier>=1?'rlHitCrit .42s':'rlHit .3s')+' ease-out'; } },style:{position:'relative',background:isMonster?T.s2:T.s1,border:'1px solid '+T.line,borderRadius:6,overflow:'hidden',cursor:'pointer'}},
+      isHit? h('div',{key:'fl'+fx.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:fx.tier===2?'rgba(230,64,52,.5)':(fx.tier===1?'rgba(222,64,52,.42)':'rgba(214,64,52,.34)'),animation:'rlHitFlash '+(fx.tier===2?'.42s':(fx.tier===1?'.36s':'.3s'))+' ease-out'}}):null,
+      (fx&&fx.tier===2)? h('div',{key:'brd'+fx.seq,style:{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 1px #FFFFFF',animation:'rlBorderFlash .42s ease-out'}}):null,
+      (fx&&fx.tier===2)? h('div',{key:'ig'+fx.seq,style:{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 36px 4px rgba(255,255,255,0.5)',animation:'rlInnerGlow .22s ease-out'}}):null,
       // 덮개는 아트웍 영역에만. 플레이어 카드는 아트가 없어 카드 전체가 그 자리를 대신한다.
       deadNow? h('div',{key:'dth',style:{position:'absolute',top:0,left:0,right:0,height:isMonster?114:'100%',zIndex:7,pointerEvents:'none',background:'rgba(255,0,4,0.10)'}}):null,
       // 아이콘은 가로 중앙 · 세로는 몬스터=아트 블록 중앙(114/2), 플레이어=아트가 없어 카드 중앙.
@@ -2318,12 +2339,12 @@ class Component extends DCLogic {
     const dead=c.phase==='dead';
     const fx=c.fx;
     const hw=this.hpWarnTier(); if(hw){ this._hpWarnAmp=hw.amp; this._hpWarnOp=hw.op; }
-    return h('div',{ref:el=>{ if(el && fx && fx.crit && el._shk!==fx.seq){ el._shk=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlShakeScreen .34s ease-out'; } },style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}},
+    return h('div',{ref:el=>{ if(el && fx && fx.tier===2 && el._shk!==fx.seq){ el._shk=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlShakeScreen .34s ease-out'; } },style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}},
       // 저스태미너 경보 — 이번 전투가 탈진시키면 화면 전체 호박색(PrismaticBurst, 전투 중에만)
       (c.phase==='fighting'&&this.staWarn())?h('canvas',{key:'stawarn',ref:el=>this.mountStaWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:4,mixBlendMode:'screen',opacity:0.37}}):null,
       // 저체력 경보 — 적색 Aurora(상단). 30%↓부터, 20·10%로 amplitude·투명도 강해짐
       hw?h('canvas',{key:'hpwarn',ref:el=>this.mountHpWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:5,mixBlendMode:'plus-lighter',opacity:hw.op,transition:'opacity .6s ease-out'}}):null,
-      (fx&&fx.crit)?h('div',{key:'vig'+fx.seq,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,boxShadow:'inset 0 0 80px 24px rgba(200,44,40,.6)',animation:'rlVignette .4s ease-out'}}):null,
+      (fx&&fx.tier===2)?h('div',{key:'vig'+fx.seq,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,boxShadow:'inset 0 0 80px 24px rgba(200,44,40,.6)',animation:'rlVignette .4s ease-out'}}):null,
       // 사망 = 상단 적색 그라데이션만. (구 death-overlay.webp는 우리 아트가 아니라 삭제 — 2026-09-10)
       // 색은 적색이 아니라 하우스 니어블랙(#0A0B0E)이다 — 구 #3E0018은 H337° 마젠타라 팔레트에 없던 색이었다.
       dead?h('div',{style:{position:'absolute',top:0,left:0,right:0,height:'65%',pointerEvents:'none',zIndex:5}},
@@ -2847,7 +2868,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     const stats=[
       [this.t('stat_atk'), Math.round(m.minAtk)+'~'+Math.round(m.maxAtk), HI],
       [this.t('stat_def'), String(Math.round(m.defense)), HI],
-      [this.t('stat_atk_speed'), (m.atkSpeed!=null?m.atkSpeed:1).toFixed(1), HI],
+      [this.t('stat_atk_speed'), (m.atkSpeed!=null?m.atkSpeed:1).toFixed(2), HI],
       [this.t('stat_accuracy'), String(Math.round(m.accuracy||0)), HI],
       [this.t('stat_evasion'), Math.round(m.evasion||0)+'%', HI],
       [this.t('stat_crit_chance'), Math.round(m.critChance||0)+'%', HI],
