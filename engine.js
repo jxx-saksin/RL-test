@@ -1026,7 +1026,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
           const s = byId.status.pierce;
           foe.exposeStacks = Math.min(N(s?.MaxStack, 3), foe.exposeStacks + 1);
           foe.exposeUntil = t + durScaled(N(s?.Duration, 3), actor);
-          push(actor.side, 'status', logTpl('status_pierce', { Target: fnm, Stacks: foe.exposeStacks }));
+          push(actor.side, 'status', logTpl('status_pierce', { Target: fnm, Stacks: foe.exposeStacks }), { status: 'pierce', stacks: foe.exposeStacks, dur: +(foe.exposeUntil - t).toFixed(2) });
         } else if (eff === 'rupture') {
           const s = byId.status.rupture;
           foe.ruptureStacks = Math.min(N(s?.MaxStack, 3), foe.ruptureStacks + 1);

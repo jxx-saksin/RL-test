@@ -629,7 +629,7 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val85');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const eng = await import('./engine.js?v=val86');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val46');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -1028,6 +1028,16 @@ class Component extends DCLogic {
       setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, 400);
       return;
     }
+    // 관통(약점 노출): 노출된 카드에 청회색 덮개·테두리 맥동(스택=진하기), 발동 순간 푸른 번쩍임. 노출 중인 카드를 때리면 숫자에 푸른 빛 + 카드 테두리 번쩍. (조준선 아이콘 없음)
+    if(ln && ln.type==='status' && ln.status==='pierce'){
+      const tg=ln.who==='player'?'monster':'player';
+      const sc=this.eng.N(this.eng.DATA.config.combat_playback_scale,0), ms=(ln.dur||3)*1000*(sc>0?sc:0.5);
+      c.fxSeq=(c.fxSeq||0)+1;
+      c.pierces=c.pierces||{}; c.pierces[tg]={ seq:c.fxSeq, at:Date.now(), end:Date.now()+ms, n:ln.stacks||1 };
+      setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, ms+40);
+      setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, 400);
+      return;
+    }
     if(ln && ln.type==='status' && ln.status==='bleed'){
       const tg=ln.who==='player'?'monster':'player';
       const sc=this.eng.N(this.eng.DATA.config.combat_playback_scale,0), ms=(ln.dur||4)*1000*(sc>0?sc:0.5), mx=this.eng.N((this.eng.byId.status.bleed||{}).MaxStack,3);
@@ -1079,7 +1089,7 @@ class Component extends DCLogic {
     const lunge=Math.max(6,Math.min(16,Math.round(5+5/Math.max(0.2,atkSpd||1))));
     // 처치 일격: 몬스터 카드에 흰 번쩍임 + 재생을 잠깐 멈춘다(combatDelay).
     const kill=(ln.type==='hit'||ln.type==='crit') && target==='monster' && ln.hpM<=0;
-    c.fx={ seq:c.fxSeq, type:ln.type, target, attacker:atkSide, lunge, kill, dmg, share, weak:!!ln.rup, crit:ln.type==='crit', tier, rx:0.18+Math.random()*0.64, ry:0.06+Math.random()*0.14, at:Date.now() };
+    c.fx={ seq:c.fxSeq, type:ln.type, target, attacker:atkSide, lunge, kill, dmg, share, weak:!!ln.rup, expo:!!(c.pierces&&c.pierces[target]&&Date.now()<c.pierces[target].end), crit:ln.type==='crit', tier, rx:0.18+Math.random()*0.64, ry:0.06+Math.random()*0.14, at:Date.now() };
     // 숫자는 겹쳐 떠도 된다(양쪽 카드 · 연타). 만료된 것만 거른다. 카드 효과(플래시·흔들림)는 최신 하나(c.fx)만.
     c.fxs=(c.fxs||[]).filter(f=>Date.now()-f.at<800).concat(c.fx);
     const seq=c.fx.seq;
@@ -1094,7 +1104,7 @@ class Component extends DCLogic {
     // 애니메이션이 끝나면 **opacity 1로 되돌아간다** — c.fx를 남겨두면 마지막 타격을 받은 쪽 카드가
     // 34% 붉은 레이어에 덮인 채 굳는다. 승리는 곧장 전리품 화면으로 넘어가 안 보이지만,
     // 사망(dead)은 전투 화면이 그대로 남아 그대로 노출된다(2026-08-31).
-    c.fx=null; c.fxs=[]; c.stuns=null; c.stunFx=null; c.bleeds=null; c.ruptures=null; clearTimeout(this._fxT1); clearTimeout(this._fxT2);
+    c.fx=null; c.fxs=[]; c.stuns=null; c.stunFx=null; c.bleeds=null; c.ruptures=null; c.pierces=null; clearTimeout(this._fxT1); clearTimeout(this._fxT2);
     this.gs.hp = res.playerHpEnd;
     { const sr=this.storyRaidOn(); if(sr&&sr.r.nodie) this.gs.hp=Math.max(1,this.gs.hp); }   // nodie — 이겨도 0.4처럼 "0"으로 보이면 죽은 것 같다
     // 전투 종료 후 몬스터 등급만큼 스태미너 소모(진입 전이 아니라 종료 후). 도주 성공은 여기 안 옴 = 소모 없음.
@@ -2294,13 +2304,23 @@ class Component extends DCLogic {
     const eff=this.combatEff(prof,cur,isPlayer);
     const cell=(k,v,cc)=>h('div',{style:{flex:1,display:'flex',justifyContent:'space-between',gap:8,minWidth:0}}, h('span',{style:{color:T.lo}},k), h('span',{style:{color:masked?T.mid:(cc||vc),letterSpacing:masked?'.06em':'normal'}},v));
     // 증가=녹색 · 감소=빨강 (아이템 카드와 같은 관례 BUF/DBF). 셀이 하나뿐이라 징표 버프도 같은 색을 쓴다.
-    const spdCol=(!masked&&eff.spdUp)?BUF:(!masked&&eff.spdDown)?DBF:null;
+    let spdCol=(!masked&&eff.spdUp)?BUF:(!masked&&eff.spdDown)?DBF:null;
     // ⚠️ 받는 피해 감소는 방어력 '숫자'를 바꾸지 않는다 — 방어 계산이 끝난 뒤에 깎이는 값이라
     //    숫자를 건드리면 거짓말이 된다. 색만 켜고, 무엇 때문인지는 [데감] 칩이 말한다.
-    const defCol=(!masked&&eff.dmgDown)?BUF:(!masked&&eff.dmgUp)?DBF:null;
+    let defCol=(!masked&&eff.dmgDown)?BUF:(!masked&&eff.dmgUp)?DBF:null;
+    // 디버프가 실제로 바꾸는 수치는 값과 색을 같이 바꾼다 — 기절 = 공속 0(노랑) · 파열 = 공격력 감소(보라) · 관통 = 방어 약화(청회색).
+    //   (위 받는 피해 감소와 달리 이쪽은 계산에 실제로 들어가는 값이라 숫자를 건드려도 거짓말이 아니다.)
+    const side=isPlayer?'player':'monster', c=this.combat, now=Date.now(), C=this.eng.DATA.config, N=this.eng.N, SE=this.eng.byId.status||{};
+    let atkTxt=Math.round(prof.minAtk)+'~'+Math.round(prof.maxAtk), atkCol=null, spdTxt=eff.spd.toFixed(2), defTxt=String(Math.round(prof.defense));
+    const stz=c&&c.stuns&&c.stuns[side], rpz=c&&c.ruptures&&c.ruptures[side], pxz=c&&c.pierces&&c.pierces[side];
+    if(!masked){
+      if(stz && now<stz.end){ spdTxt=(0).toFixed(2); spdCol='#D8BE78'; }
+      if(rpz && now<rpz.end){ const rs=SE.rupture||{}, red=Math.min(0.7, N(rs.Value,0.1)+N(rs.PerStack,0.05)*(rpz.n-1)); atkTxt=Math.round(prof.minAtk*(1-red))+'~'+Math.round(prof.maxAtk*(1-red)); atkCol='#B27EAD'; }
+      if(pxz && now<pxz.end){ const K=N(C.defense_constant,50), m=1+N((SE.pierce||{}).Value,0.15)*pxz.n; defTxt=String(Math.round((K+prof.defense)/m-K)); defCol='#7CA5BB'; }
+    }
     return h('div',{style:{display:'flex',flexDirection:'column',gap:6,fontFamily:T.mono,fontSize:11}},
-      h('div',{style:{display:'flex',gap:18}}, cell(this.t('stat_atk'), V(Math.round(prof.minAtk)+'~'+Math.round(prof.maxAtk))), cell(this.t('stat_def'), V(String(Math.round(prof.defense))), defCol)),
-      h('div',{style:{display:'flex',gap:18}}, cell(this.t('stat_atk_speed'), V(eff.spd.toFixed(1)), spdCol), cell(this.t('stat_evasion'), V(Math.round(prof.evasion||0)+'%')))); }
+      h('div',{style:{display:'flex',gap:18}}, cell(this.t('stat_atk'), V(atkTxt), atkCol), cell(this.t('stat_def'), V(defTxt), defCol)),
+      h('div',{style:{display:'flex',gap:18}}, cell(this.t('stat_atk_speed'), V(spdTxt), spdCol), cell(this.t('stat_evasion'), V(Math.round(prof.evasion||0)+'%')))); }
   // 전투 중 활성 버프 칩 — 출혈·관통 상태이상 칩과 같은 자리·같은 모양(plainChip). 플레이어 전용.
   buffChips(){
     const bs=(this.gs&&this.gs.buffs)||[]; if(!bs.length) return [];
@@ -2332,18 +2352,22 @@ class Component extends DCLogic {
     const fx=(()=>{ const a=((this.combat&&this.combat.fxs)||[]).filter(f=>!f.dot&&f.target===side&&Date.now()-f.at<500); return a.length?a[a.length-1]:null; })();
     const isHit=!!fx&&(fx.type==='hit'||fx.type==='crit');
     const bln=((this.combat&&this.combat.bleeds&&this.combat.bleeds[side])||[]).filter(e=>e>Date.now()).length;   // 지금 걸린 출혈 스택 수
+    const px0=(this.combat&&this.combat.pierces&&this.combat.pierces[side])||null, pxn=(px0&&Date.now()<px0.end)?px0.n:0;   // 관통(노출) 스택
     const rp0=(this.combat&&this.combat.ruptures&&this.combat.ruptures[side])||null, rpn=(rp0&&Date.now()<rp0.end)?rp0.n:0;   // 파열 스택(걸린 동안)
     const stn0=(this.combat&&this.combat.stuns&&this.combat.stuns[side])||null, stn=(stn0&&Date.now()<stn0.end)?stn0:null;
     const atk=((this.combat&&this.combat.fxs)||[]).filter(f=>f.attacker===side&&Date.now()-f.at<220).pop();   // 이 카드가 방금 때렸다면 앞으로 내민다
     const nums=((this.combat&&this.combat.fxs)||[]).filter(f=>f.target===side&&Date.now()-f.at<800);
     return h('div',{ref:el=>{ if(el && atk && el._lg!==atk.seq){ el._lg=atk.seq; el.style.setProperty('--lg',(side==='player'?-1:1)*atk.lunge+'px'); el.style.animation='none'; void el.offsetWidth; el.style.animation='rlLunge .16s ease-out'; } },style:{position:'relative'}},
-      h('div',{key:'nums',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9}}, ...nums.map(fx=> fx.dot ? h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.rx*100)+'%',top:(fx.ry*100)+'%',zIndex:9,pointerEvents:'none',opacity:0,whiteSpace:'nowrap',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,color:'#B8322D',fontSize:Math.max(12,Math.round(this.hitNumSize(fx)*0.78)),textShadow:'0 2px 8px rgba(0,0,0,.8)',animation:'rlBNum .8s ease-in forwards'}}, '-'+Math.round(fx.dmg)) : h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':(fx.weak?'#D79BD0':'#FF6A5A')),fontSize:fx.type==='miss'?36:this.hitNumSize(fx),textShadow:'0 2px 9px rgba(0,0,0,.75)',animation:(fx.type==='miss'?'rlMiss .7s':((fx.crit||fx.tier===2)?'rlCritPop .66s':'rlDmgFloat .6s'))+' ease-out forwards'}},
+      h('div',{key:'nums',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9}}, ...nums.map(fx=> fx.dot ? h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.rx*100)+'%',top:(fx.ry*100)+'%',zIndex:9,pointerEvents:'none',opacity:0,whiteSpace:'nowrap',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,color:'#B8322D',fontSize:Math.max(12,Math.round(this.hitNumSize(fx)*0.78)),textShadow:'0 2px 8px rgba(0,0,0,.8)',animation:'rlBNum .8s ease-in forwards'}}, '-'+Math.round(fx.dmg)) : h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':(fx.weak?'#D79BD0':'#FF6A5A')),fontSize:fx.type==='miss'?36:this.hitNumSize(fx),textShadow:fx.expo?'0 0 8px #7CA5BB, 0 0 3px #7CA5BB, 0 2px 9px rgba(0,0,0,.75)':'0 2px 9px rgba(0,0,0,.75)',animation:(fx.type==='miss'?'rlMiss .7s':((fx.crit||fx.tier===2)?'rlCritPop .66s':'rlDmgFloat .6s'))+' ease-out forwards'}},
         (fx.crit||fx.tier===2)
           ? h('div',{key:'n',style:{lineHeight:1,animation:'rlNumShake .5s ease-out'}}, '-'+fx.dmg)
           : (fx.type==='miss'?'miss':('-'+fx.dmg))))),
       (stn0&&Date.now()-stn0.at<650)? h('div',{key:'ring'+stn0.seq,style:{position:'absolute',left:'50%',top:'38%',width:120,height:120,borderRadius:'50%',border:(stn0.delay>=1.5?4:2)+'px solid #D8BE78',zIndex:9,pointerEvents:'none','--rs':stn0.delay>=1.5?2.6:(stn0.delay>=0.8?2:1.5),animation:'rlRing '+(stn0.delay>=1.5?'.55s':'.4s')+' ease-out forwards'}}):null,
       h('div',{onClick:()=>this.setState({combatSheet:isMonster?'monster':'player'}),ref:el=>{ if(el && rp0 && Date.now()-rp0.at<350 && el._rup!==rp0.seq){ el._rup=rp0.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHit .3s ease-out'; }
         if(el && stn0 && stn0.delay>=0.8 && el._stn!==stn0.seq){ el._stn=stn0.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHitCrit .42s ease-out'; } if(el && isHit && el._hit!==fx.seq){ el._hit=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation=(fx.tier>=1?'rlHitCrit .42s':'rlHit .3s')+' ease-out'; } },style:{position:'relative',background:isMonster?T.s2:T.s1,border:'1px solid '+T.line,borderRadius:6,overflow:'hidden',cursor:'pointer',transition:'filter .25s',filter:stn?'grayscale(.45) brightness(.92)':'none'}},
+      pxn? h('div',{key:'prcwv',style:{position:'absolute',inset:0,zIndex:3,pointerEvents:'none',background:'rgba(124,165,187,.15)',boxShadow:'inset 0 0 0 1px rgba(124,165,187,.65), inset 0 0 20px 2px rgba(124,165,187,.3)','--ro':pxn>=3?1:(pxn===2?0.85:0.65),animation:'rlRp 2.2s ease-in-out infinite'}}):null,
+      (px0&&Date.now()-px0.at<350)? h('div',{key:'prcfl'+px0.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:'rgba(124,165,187,.42)',animation:'rlHitFlash .3s ease-out forwards'}}):null,
+      (fx&&fx.expo&&isHit)? h('div',{key:'prcx'+fx.seq,style:{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 2px #7CA5BB',animation:'rlHitFlash .3s ease-out forwards'}}):null,
       rpn? h('div',{key:'rupwv',style:{position:'absolute',inset:0,zIndex:3,pointerEvents:'none',background:'rgba(178,126,173,.16)',boxShadow:'inset 0 0 0 1px rgba(178,126,173,.6), inset 0 0 20px 2px rgba(178,126,173,.3)','--ro':rpn>=3?1:(rpn===2?0.85:0.65),animation:'rlRp 2.2s ease-in-out infinite'}}):null,
       (rp0&&Date.now()-rp0.at<350)? h('div',{key:'rupfl'+rp0.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:'rgba(178,126,173,.5)',animation:'rlHitFlash .32s ease-out forwards'}}):null,
       bln? h('div',{key:'bleedwv',style:{position:'absolute',inset:0,zIndex:3,pointerEvents:'none',backgroundImage:'radial-gradient(ellipse at 30% 40%, rgba(184,50,45,.6), transparent 60%), radial-gradient(ellipse at 70% 65%, rgba(140,28,30,.55), transparent 60%)',backgroundSize:'170% 170%','--bo':bln>=3?0.9:(bln===2?0.7:0.5),animation:'rlBleedWave '+(bln>=3?1.2:(bln===2?1.8:2.4))+'s ease-in-out infinite'}}):null,
@@ -2370,7 +2394,7 @@ class Component extends DCLogic {
           AT(prof.attribute)?this.statusChip(prof.attribute):null),
         h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
           h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99}}, h('div',{ref:el=>{ if(el && isHit && el._hp!==fx.seq){ el._hp=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHpGlow .5s ease-out'; } },style:{width:pct+'%',height:'100%',background:T.hp,borderRadius:99,transition:'width .3s ease-out'}})),
-          h('span',{style:{fontFamily:T.mono,fontSize:10,color:pen?'#CB6D62':T.mid,minWidth:56,textAlign:'right',letterSpacing:masked?'.06em':'normal'}}, masked?'???':(Math.round(cur)+'/'+prof.maxHp))),
+          h('span',{style:{fontFamily:T.mono,fontSize:10,color:bln?'#B8322D':(pen?'#CB6D62':T.mid),minWidth:56,textAlign:'right',letterSpacing:masked?'.06em':'normal'}}, masked?'???':(Math.round(cur)+'/'+prof.maxHp))),
         this.combatStats(prof,pen,masked,cur,!isMonster))));
   }
   combatElapsed(){ const c=this.combat; if(!c||!c.res) return 0; const r=c.res.log.slice(0,c.revealed); const last=r[r.length-1]; return last?last.t:0; }
