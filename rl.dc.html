@@ -1028,6 +1028,7 @@ class Component extends DCLogic {
     c.fxs=(c.fxs||[]).filter(f=>Date.now()-f.at<800).concat(c.fx);
     const seq=c.fx.seq;
     clearTimeout(this._fxT1); this._fxT1=setTimeout(()=>{ if(this.combat===c && c.fx && c.fx.seq===seq){ c.fx=null; this.forceUpdate(); } }, 460);   // 플래시류는 fill-mode가 없어 끝나면 되살아난다 — 제때 걷는다
+    setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, 520);   // 카드 효과 창(0.5s)이 닫힐 때 한 번 다시 그린다
     clearTimeout(this._fxT2); this._fxT2=setTimeout(()=>{ if(this.combat===c){ c.fxs=(c.fxs||[]).filter(f=>Date.now()-f.at<800); this.forceUpdate(); } }, 820);
     if(typeof navigator!=='undefined' && navigator.vibrate){ try{ if(tier===2) navigator.vibrate([0,80,45,90]); else if(tier===1) navigator.vibrate(70); else if(ln.type==='hit') navigator.vibrate(50); }catch(e){} }
   }
@@ -2271,7 +2272,8 @@ class Component extends DCLogic {
     const deadNow = isMonster ? (cur<=0) : (cur<=0 || (this.combat && this.combat.phase==='dead'));
     const side=isMonster?'monster':'player';
     const masked=isMonster && !!prof.isUser;   // PvP(콜드데이터) 상대 = 수치 마스킹
-    const fx=(this.combat&&this.combat.fx&&this.combat.fx.target===side)?this.combat.fx:null;
+    // 카드 효과(빨개짐·흔들림)는 쪽마다 자기 최신 타격 하나 — 반대편 타격이 와도 서로 지우지 않는다(0.5초 창).
+    const fx=(()=>{ const a=((this.combat&&this.combat.fxs)||[]).filter(f=>f.target===side&&Date.now()-f.at<500); return a.length?a[a.length-1]:null; })();
     const isHit=!!fx&&(fx.type==='hit'||fx.type==='crit');
     const nums=((this.combat&&this.combat.fxs)||[]).filter(f=>f.target===side&&Date.now()-f.at<800);
     return h('div',{style:{position:'relative'}},
@@ -2280,9 +2282,9 @@ class Component extends DCLogic {
           ? h('div',{key:'n',style:{lineHeight:1,animation:'rlNumShake .5s ease-out'}}, '-'+fx.dmg)
           : (fx.type==='miss'?'miss':('-'+fx.dmg))))),
       h('div',{onClick:()=>this.setState({combatSheet:isMonster?'monster':'player'}),ref:el=>{ if(el && isHit && el._hit!==fx.seq){ el._hit=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation=(fx.tier>=1?'rlHitCrit .42s':'rlHit .3s')+' ease-out'; } },style:{position:'relative',background:isMonster?T.s2:T.s1,border:'1px solid '+T.line,borderRadius:6,overflow:'hidden',cursor:'pointer'}},
-      isHit? h('div',{key:'fl'+fx.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:fx.tier===2?'rgba(230,64,52,.5)':(fx.tier===1?'rgba(222,64,52,.42)':'rgba(214,64,52,.34)'),animation:'rlHitFlash '+(fx.tier===2?'.42s':(fx.tier===1?'.36s':'.3s'))+' ease-out'}}):null,
-      (fx&&fx.tier===2)? h('div',{key:'brd'+fx.seq,style:{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 1px #FFFFFF',animation:'rlBorderFlash .42s ease-out'}}):null,
-      (fx&&fx.tier===2)? h('div',{key:'ig'+fx.seq,style:{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 36px 4px rgba(255,255,255,0.5)',animation:'rlInnerGlow .22s ease-out'}}):null,
+      isHit? h('div',{key:'fl'+fx.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:fx.tier===2?'rgba(230,64,52,.5)':(fx.tier===1?'rgba(222,64,52,.42)':'rgba(214,64,52,.34)'),animation:'rlHitFlash '+(fx.tier===2?'.42s':(fx.tier===1?'.36s':'.3s'))+' ease-out forwards'}}):null,
+      (fx&&fx.tier===2)? h('div',{key:'brd'+fx.seq,style:{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 1px #FFFFFF',animation:'rlBorderFlash .42s ease-out forwards'}}):null,
+      (fx&&fx.tier===2)? h('div',{key:'ig'+fx.seq,style:{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 36px 4px rgba(255,255,255,0.5)',animation:'rlInnerGlow .22s ease-out forwards'}}):null,
       // 덮개는 아트웍 영역에만. 플레이어 카드는 아트가 없어 카드 전체가 그 자리를 대신한다.
       deadNow? h('div',{key:'dth',style:{position:'absolute',top:0,left:0,right:0,height:isMonster?114:'100%',zIndex:7,pointerEvents:'none',background:'rgba(255,0,4,0.10)'}}):null,
       // 아이콘은 가로 중앙 · 세로는 몬스터=아트 블록 중앙(114/2), 플레이어=아트가 없어 카드 중앙.
@@ -2317,12 +2319,13 @@ class Component extends DCLogic {
     const lim=c.mProf.timeLimit||20; const rem=Math.max(0,lim-this.combatElapsed());
     const mmss=Math.floor(rem/60)+':'+String(Math.floor(rem%60)).padStart(2,'0');
     const fist=(spd)=>h('div',{style:{animation:animate?('rlPunch '+(1/Math.max(0.1,spd)).toFixed(2)+'s linear infinite'):'none',flex:'0 0 auto'}}, icDuel(16));
+    // 왼쪽 = 유저, 오른쪽 = 몬스터 (카드 배치와 같은 방향). 유저 게이지는 왼쪽에서, 몬스터 게이지는 오른쪽 끝에서 차오른다.
     return h('div',{style:{display:'flex',alignItems:'center',gap:7,padding:'15px 0'}},
-      fist(mSpd),
-      h('div',{style:{flex:1,height:5,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{key:animate?'ma':'ms',style:{height:'100%',background:T.dur,width:animate?undefined:'0%',animation:animate?('rlCharge '+mdur+'s linear infinite'):'none'}})),
+      fist(pSpd),
+      h('div',{style:{flex:1,height:5,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{key:animate?'pa':'ps',style:{height:'100%',background:T.dur,width:animate?undefined:'0%',animation:animate?('rlCharge '+pdur+'s linear infinite'):'none'}})),
       h('div',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:11,color:T.warn,border:'1px solid '+T.line2,borderRadius:3,padding:'3px 9px',minWidth:52,textAlign:'center'}}, mmss),
-      h('div',{style:{flex:1,height:5,background:T.s3,borderRadius:99,overflow:'hidden',display:'flex',justifyContent:'flex-end'}}, h('div',{key:animate?'pa':'ps',style:{height:'100%',background:T.dur,width:animate?undefined:'0%',animation:animate?('rlCharge '+pdur+'s linear infinite'):'none'}})),
-      fist(pSpd));
+      h('div',{style:{flex:1,height:5,background:T.s3,borderRadius:99,overflow:'hidden',display:'flex',justifyContent:'flex-end'}}, h('div',{key:animate?'ma':'ms',style:{height:'100%',background:T.dur,width:animate?undefined:'0%',animation:animate?('rlCharge '+mdur+'s linear infinite'):'none'}})),
+      fist(mSpd));
   }
   logColor(ln){
     if(ln.type==='crit') return T.stun;
@@ -2355,7 +2358,7 @@ class Component extends DCLogic {
       (c.phase==='fighting'&&this.staWarn())?h('canvas',{key:'stawarn',ref:el=>this.mountStaWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:4,mixBlendMode:'screen',opacity:0.37}}):null,
       // 저체력 경보 — 적색 Aurora(상단). 30%↓부터, 20·10%로 amplitude·투명도 강해짐
       hw?h('canvas',{key:'hpwarn',ref:el=>this.mountHpWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:5,mixBlendMode:'plus-lighter',opacity:hw.op,transition:'opacity .6s ease-out'}}):null,
-      (fx&&fx.tier===2)?h('div',{key:'vig'+fx.seq,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,boxShadow:'inset 0 0 80px 24px rgba(200,44,40,.6)',animation:'rlVignette .4s ease-out'}}):null,
+      (fx&&fx.tier===2)?h('div',{key:'vig'+fx.seq,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,boxShadow:'inset 0 0 80px 24px rgba(200,44,40,.6)',animation:'rlVignette .4s ease-out forwards'}}):null,
       // 사망 = 상단 적색 그라데이션만. (구 death-overlay.webp는 우리 아트가 아니라 삭제 — 2026-09-10)
       // 색은 적색이 아니라 하우스 니어블랙(#0A0B0E)이다 — 구 #3E0018은 H337° 마젠타라 팔레트에 없던 색이었다.
       dead?h('div',{style:{position:'absolute',top:0,left:0,right:0,height:'65%',pointerEvents:'none',zIndex:5}},
