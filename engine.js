@@ -1231,13 +1231,24 @@ export function growthMultiplier(state, stat) {
 }
 export function growthReq(level) { return N(C.growth_A, 5) * Math.pow(N(C.growth_r, 1.35), level - 1); }
 const POINT_PER = { str: 1, dex: 2, vit: 1.5, will: 4 };
+// 힘·의지는 '내가 때린 횟수'가 트리거라 타수 많은 빠른 무기가 성장도 몇 배 빠르다(확장_v3 §3.7-12).
+// 한 판 포인트를 무기 공속과 무관하게 맞추려고 1타당 포인트에 (기준 공속 ÷ 장착 무기 공속)을 곱한다.
+// 무기 롤의 atkSpeed만 본다 — DEX 보정·버프까지 넣으면 민첩을 올릴수록 힘이 덜 크는 역설이 생긴다.
+// Config.growth_as_ref가 없거나 0이면 보정 없음(코드를 시트보다 먼저 배포해도 무동작). 맨손 = 기준 공속 → ×1.
+export function growthSpeedFactor(state) {
+  const ref = N(C.growth_as_ref, 0); if (ref <= 0) return 1;
+  const wuid = state.equip && state.equip.weapon; const inst = wuid ? instById(state, wuid) : null;
+  const as = inst ? instOpt(inst, 'atkSpeed') : 0;
+  return as > 0 ? clamp(ref / as, 0.5, 5) : 1;
+}
 export function applyGrowth(state, triggers) {
   const map = { str: triggers.hitsLanded, dex: triggers.evades, vit: triggers.hitsTaken, will: triggers.critsLanded };
   const ups = [];
+  const speedF = growthSpeedFactor(state);
   for (const stat of ['str', 'dex', 'vit', 'will']) {
     const n = map[stat]; if (!n) continue;
     const g = state.growth[stat];
-    g.points += n * POINT_PER[stat] * growthMultiplier(state, stat);
+    g.points += n * POINT_PER[stat] * growthMultiplier(state, stat) * ((stat === 'str' || stat === 'will') ? speedF : 1);
     let leveled = 0;
     while (g.points >= growthReq(g.level)) { g.points -= growthReq(g.level); g.level++; leveled++; }
     if (leveled) { state.primary[stat] = g.level; ups.push({ stat, to: g.level, by: leveled }); }
