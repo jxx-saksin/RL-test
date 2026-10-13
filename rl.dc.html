@@ -45,6 +45,17 @@
   @keyframes rlRing{0%{opacity:.95;transform:translate(-50%,-50%) scale(.25)}100%{opacity:0;transform:translate(-50%,-50%) scale(var(--rs,1.6))}}
   @keyframes rlSway{0%{transform:rotate(-1.6deg) scale(1.06) translateX(-2px)}100%{transform:rotate(1.6deg) scale(1.06) translateX(2px)}}
   @keyframes rlDrain{from{width:100%}to{width:0}}
+  /* --- 크리티컬(한 방 비중 s로 방향이 갈린다: 큰 한 방=흔들림·여운 / 작은 한 방=번쩍임) --- */
+  @keyframes rlKick{0%{transform:translate(0,0)}9%{transform:translate(calc(var(--sa)*-11px),calc(var(--sa)*3px))}22%{transform:translate(calc(var(--sa)*10px),calc(var(--sa)*-3px))}37%{transform:translate(calc(var(--sa)*-8px),calc(var(--sa)*2px))}54%{transform:translate(calc(var(--sa)*6px),calc(var(--sa)*-1px))}74%{transform:translate(calc(var(--sa)*-3px),0)}100%{transform:translate(0,0)}}
+  @keyframes rlKickL{0%{transform:translate(0,0)}5%{transform:translate(calc(var(--sa)*-11px),calc(var(--sa)*3px))}12%{transform:translate(calc(var(--sa)*10px),calc(var(--sa)*-3px))}19%{transform:translate(calc(var(--sa)*-8px),calc(var(--sa)*2px))}27%{transform:translate(calc(var(--sa)*6.5px),calc(var(--sa)*-1.5px))}36%{transform:translate(calc(var(--sa)*-5px),calc(var(--sa)*1px))}46%{transform:translate(calc(var(--sa)*4px),calc(var(--sa)*-1px))}58%{transform:translate(calc(var(--sa)*-3px),0)}71%{transform:translate(calc(var(--sa)*2px),0)}85%{transform:translate(calc(var(--sa)*-1px),0)}100%{transform:translate(0,0)}}
+  @keyframes rlQuake{0%{transform:translate(0,0)}8%{transform:translate(calc(var(--sa)*-6px),calc(var(--sa)*4px))}20%{transform:translate(calc(var(--sa)*6px),calc(var(--sa)*-4px))}34%{transform:translate(calc(var(--sa)*-5px),calc(var(--sa)*3px))}50%{transform:translate(calc(var(--sa)*4px),calc(var(--sa)*-2px))}70%{transform:translate(calc(var(--sa)*-2px),calc(var(--sa)*1px))}100%{transform:translate(0,0)}}
+  @keyframes rlQuakeL{0%{transform:translate(0,0)}5%{transform:translate(calc(var(--sa)*-6px),calc(var(--sa)*4px))}12%{transform:translate(calc(var(--sa)*6px),calc(var(--sa)*-4px))}20%{transform:translate(calc(var(--sa)*-5px),calc(var(--sa)*3px))}30%{transform:translate(calc(var(--sa)*4.5px),calc(var(--sa)*-2.5px))}42%{transform:translate(calc(var(--sa)*-3.5px),calc(var(--sa)*2px))}55%{transform:translate(calc(var(--sa)*2.5px),calc(var(--sa)*-1px))}70%{transform:translate(calc(var(--sa)*-1.5px),calc(var(--sa)*1px))}85%{transform:translate(calc(var(--sa)*.8px),0)}100%{transform:translate(0,0)}}
+  @keyframes rlFlashS{0%{opacity:0}6%{opacity:var(--fp,.8)}100%{opacity:0}}
+  @keyframes rlSlam{0%{opacity:0;transform:translate(-50%,-10px) scale(2.3)}16%{opacity:1;transform:translate(-50%,0) scale(1.05)}36%{opacity:1;transform:translate(-50%,-8px) scale(1.12)}100%{opacity:0;transform:translate(-50%,-44px) scale(1)}}
+  @keyframes rlSlamL{0%{opacity:0;transform:translate(-50%,-10px) scale(2.4)}9%{opacity:1;transform:translate(-50%,0) scale(1.05)}20%{opacity:1;transform:translate(-50%,-6px) scale(1.14)}55%{opacity:1;transform:translate(-50%,-14px) scale(1.06)}100%{opacity:0;transform:translate(-50%,-48px) scale(1)}}
+  @keyframes rlSweep{0%{background-position:130% 0}100%{background-position:-30% 0}}
+  @keyframes rlRingG{0%{opacity:.95;transform:translate(-50%,-50%) scale(.2)}100%{opacity:0;transform:translate(-50%,-50%) scale(2.2)}}
+  @keyframes rlGhost{from{width:var(--gf)}to{width:var(--gt)}}
   @keyframes rlRp{0%,100%{opacity:calc(var(--ro,.6)*.7)}50%{opacity:var(--ro,.6)}}
   @keyframes rlBleedWave{0%,100%{opacity:calc(var(--bo,.5)*.3);background-position:0% 0%,100% 100%}50%{opacity:var(--bo,.5);background-position:60% 45%,40% 55%}}
   @keyframes rlBNum{0%{opacity:0;transform:translate(-50%,-6px) scale(.8)}18%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,34px) scale(.9)}}
@@ -1051,7 +1062,7 @@ class Component extends DCLogic {
       const before=prev?prev[f]:(tg==='monster'?c.mProf.maxHp:c.prof.maxHp);
       c.fxSeq=(c.fxSeq||0)+1;
       const d={ seq:c.fxSeq, type:'bleed', dot:true, target:tg, dmg:ln.dmg||0, share:before>0?(ln.dmg||0)/before:0, at:Date.now(), rx:0.3+Math.random()*0.4, ry:0.12+Math.random()*0.22 };
-      c.fxs=(c.fxs||[]).filter(x=>Date.now()-x.at<800).concat(d);
+      c.fxs=(c.fxs||[]).filter(x=>Date.now()-x.at<(x.life||800)).concat(d);
       setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, 820);
       return;
     }
@@ -1089,13 +1100,25 @@ class Component extends DCLogic {
     const lunge=Math.max(6,Math.min(16,Math.round(5+5/Math.max(0.2,atkSpd||1))));
     // 처치 일격: 몬스터 카드에 흰 번쩍임 + 재생을 잠깐 멈춘다(combatDelay).
     const kill=(ln.type==='hit'||ln.type==='crit') && target==='monster' && ln.hpM<=0;
-    c.fx={ seq:c.fxSeq, type:ln.type, target, attacker:atkSide, lunge, kill, dmg, share, weak:!!ln.rup, expo:!!(c.pierces&&c.pierces[target]&&Date.now()<c.pierces[target].end), crit:ln.type==='crit', tier, rx:0.18+Math.random()*0.64, ry:0.06+Math.random()*0.14, at:Date.now() };
+    // 크리티컬 파라미터 — 한 방 비중 s: 큰 한 방(느린 무기)은 흔들림·여운, 작은 한 방(빠른 무기)은 번쩍임을 짧고 날카롭게.
+    let cp=null;
+    if(ln.type==='crit'){ const s2=Math.min(1,share), big=Math.min(1,s2*2.5), lin=Math.max(0,Math.min(1,(s2-0.12)/0.28)), snap=Math.max(0,1-s2/0.12);
+      cp={ s:s2, amp:Math.min(2.6,0.8+3.2*s2), fp:Math.max(0.35,0.85-1.6*s2), big, lin, snap, k:1-0.3*snap }; }
+    c.fx={ seq:c.fxSeq, type:ln.type, target, attacker:atkSide, lunge, kill, dmg, share, cp, life:cp?(cp.lin>0.3?(0.8+0.7*cp.lin)*1000+100:900):800, win:cp?Math.max(500,(0.4+0.9*cp.lin)*1000*cp.k+100):500, weak:!!ln.rup, expo:!!(c.pierces&&c.pierces[target]&&Date.now()<c.pierces[target].end), crit:ln.type==='crit', tier, rx:0.18+Math.random()*0.64, ry:0.06+Math.random()*0.14, at:Date.now() };
     // 숫자는 겹쳐 떠도 된다(양쪽 카드 · 연타). 만료된 것만 거른다. 카드 효과(플래시·흔들림)는 최신 하나(c.fx)만.
-    c.fxs=(c.fxs||[]).filter(f=>Date.now()-f.at<800).concat(c.fx);
+    c.fxs=(c.fxs||[]).filter(f=>Date.now()-f.at<(f.life||800)).concat(c.fx);
+    if(cp){
+      // 화면 흔들림·비네트는 c.fx(0.46s에 걷힘)보다 오래 간다 → 별도 기록. HP 바 잔상(여운이 있는 크리만).
+      c.critFx={ seq:c.fxSeq, at:Date.now(), cp, target, life:(0.5+0.7*cp.lin)*1000+100 };
+      if(cp.lin>0){ const hf=target==='monster'?'hpM':'hpP', mx=(target==='monster'?c.mProf.maxHp:c.prof.maxHp)||1, pv=c.res.log[idx-1], bf=pv?pv[hf]:mx;
+        c.ghost=c.ghost||{}; c.ghost[target]={ seq:c.fxSeq, from:Math.max(0,Math.min(100,bf/mx*100)), to:Math.max(0,Math.min(100,ln[hf]/mx*100)), at:Date.now(), life:(0.25+0.5+0.9*cp.lin)*1000+150 }; }
+      const lifeMax=Math.max(c.fx.life,c.fx.win,c.critFx.life,cp.lin>0?c.ghost[target].life:0);
+      setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, lifeMax+40);
+    }
     const seq=c.fx.seq;
     clearTimeout(this._fxT1); this._fxT1=setTimeout(()=>{ if(this.combat===c && c.fx && c.fx.seq===seq){ c.fx=null; this.forceUpdate(); } }, 460);   // 플래시류는 fill-mode가 없어 끝나면 되살아난다 — 제때 걷는다
     setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, 520);   // 카드 효과 창(0.5s)이 닫힐 때 한 번 다시 그린다
-    clearTimeout(this._fxT2); this._fxT2=setTimeout(()=>{ if(this.combat===c){ c.fxs=(c.fxs||[]).filter(f=>Date.now()-f.at<800); this.forceUpdate(); } }, 820);
+    clearTimeout(this._fxT2); this._fxT2=setTimeout(()=>{ if(this.combat===c){ c.fxs=(c.fxs||[]).filter(f=>Date.now()-f.at<(f.life||800)); this.forceUpdate(); } }, 820);
     if(typeof navigator!=='undefined' && navigator.vibrate){ try{ if(tier===2) navigator.vibrate([0,80,45,90]); else if(tier===1) navigator.vibrate(70); else if(ln.type==='hit') navigator.vibrate(50); }catch(e){} }
   }
   finishCombat(){
@@ -1104,7 +1127,7 @@ class Component extends DCLogic {
     // 애니메이션이 끝나면 **opacity 1로 되돌아간다** — c.fx를 남겨두면 마지막 타격을 받은 쪽 카드가
     // 34% 붉은 레이어에 덮인 채 굳는다. 승리는 곧장 전리품 화면으로 넘어가 안 보이지만,
     // 사망(dead)은 전투 화면이 그대로 남아 그대로 노출된다(2026-08-31).
-    c.fx=null; c.fxs=[]; c.stuns=null; c.stunFx=null; c.bleeds=null; c.ruptures=null; c.pierces=null; clearTimeout(this._fxT1); clearTimeout(this._fxT2);
+    c.fx=null; c.fxs=[]; c.stuns=null; c.stunFx=null; c.bleeds=null; c.ruptures=null; c.pierces=null; c.critFx=null; c.ghost=null; clearTimeout(this._fxT1); clearTimeout(this._fxT2);
     this.gs.hp = res.playerHpEnd;
     { const sr=this.storyRaidOn(); if(sr&&sr.r.nodie) this.gs.hp=Math.max(1,this.gs.hp); }   // nodie — 이겨도 0.4처럼 "0"으로 보이면 죽은 것 같다
     // 전투 종료 후 몬스터 등급만큼 스태미너 소모(진입 전이 아니라 종료 후). 도주 성공은 여기 안 옴 = 소모 없음.
@@ -2349,22 +2372,22 @@ class Component extends DCLogic {
     const side=isMonster?'monster':'player';
     const masked=isMonster && !!prof.isUser;   // PvP(콜드데이터) 상대 = 수치 마스킹
     // 카드 효과(빨개짐·흔들림)는 쪽마다 자기 최신 타격 하나 — 반대편 타격이 와도 서로 지우지 않는다(0.5초 창).
-    const fx=(()=>{ const a=((this.combat&&this.combat.fxs)||[]).filter(f=>!f.dot&&f.target===side&&Date.now()-f.at<500); return a.length?a[a.length-1]:null; })();
+    const fx=(()=>{ const a=((this.combat&&this.combat.fxs)||[]).filter(f=>!f.dot&&f.target===side&&Date.now()-f.at<(f.win||500)); return a.length?a[a.length-1]:null; })();
     const isHit=!!fx&&(fx.type==='hit'||fx.type==='crit');
     const bln=((this.combat&&this.combat.bleeds&&this.combat.bleeds[side])||[]).filter(e=>e>Date.now()).length;   // 지금 걸린 출혈 스택 수
     const px0=(this.combat&&this.combat.pierces&&this.combat.pierces[side])||null, pxn=(px0&&Date.now()<px0.end)?px0.n:0;   // 관통(노출) 스택
     const rp0=(this.combat&&this.combat.ruptures&&this.combat.ruptures[side])||null, rpn=(rp0&&Date.now()<rp0.end)?rp0.n:0;   // 파열 스택(걸린 동안)
     const stn0=(this.combat&&this.combat.stuns&&this.combat.stuns[side])||null, stn=(stn0&&Date.now()<stn0.end)?stn0:null;
     const atk=((this.combat&&this.combat.fxs)||[]).filter(f=>f.attacker===side&&Date.now()-f.at<220).pop();   // 이 카드가 방금 때렸다면 앞으로 내민다
-    const nums=((this.combat&&this.combat.fxs)||[]).filter(f=>f.target===side&&Date.now()-f.at<800);
+    const nums=((this.combat&&this.combat.fxs)||[]).filter(f=>f.target===side&&Date.now()-f.at<(f.life||800));
     return h('div',{ref:el=>{ if(el && atk && el._lg!==atk.seq){ el._lg=atk.seq; el.style.setProperty('--lg',(side==='player'?-1:1)*atk.lunge+'px'); el.style.animation='none'; void el.offsetWidth; el.style.animation='rlLunge .16s ease-out'; } },style:{position:'relative'}},
-      h('div',{key:'nums',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9}}, ...nums.map(fx=> fx.dot ? h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.rx*100)+'%',top:(fx.ry*100)+'%',zIndex:9,pointerEvents:'none',opacity:0,whiteSpace:'nowrap',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,color:'#B8322D',fontSize:Math.max(12,Math.round(this.hitNumSize(fx)*0.78)),textShadow:'0 2px 8px rgba(0,0,0,.8)',animation:'rlBNum .8s ease-in forwards'}}, '-'+Math.round(fx.dmg)) : h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':(fx.weak?'#D79BD0':'#FF6A5A')),fontSize:fx.type==='miss'?36:this.hitNumSize(fx),textShadow:fx.expo?'0 0 8px #7CA5BB, 0 0 3px #7CA5BB, 0 2px 9px rgba(0,0,0,.75)':'0 2px 9px rgba(0,0,0,.75)',animation:(fx.type==='miss'?'rlMiss .7s':((fx.crit||fx.tier===2)?'rlCritPop .66s':'rlDmgFloat .6s'))+' ease-out forwards'}},
+      h('div',{key:'nums',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9}}, ...nums.map(fx=> fx.dot ? h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.rx*100)+'%',top:(fx.ry*100)+'%',zIndex:9,pointerEvents:'none',opacity:0,whiteSpace:'nowrap',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,color:'#B8322D',fontSize:Math.max(12,Math.round(this.hitNumSize(fx)*0.78)),textShadow:'0 2px 8px rgba(0,0,0,.8)',animation:'rlBNum .8s ease-in forwards'}}, '-'+Math.round(fx.dmg)) : h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':(fx.weak?'#D79BD0':'#FF6A5A')),fontSize:fx.type==='miss'?36:this.hitNumSize(fx),textShadow:fx.cp?'0 0 10px rgba(255,210,74,.9), 0 2px 9px rgba(0,0,0,.75)':(fx.expo?'0 0 8px #7CA5BB, 0 0 3px #7CA5BB, 0 2px 9px rgba(0,0,0,.75)':'0 2px 9px rgba(0,0,0,.75)'),animation:(fx.type==='miss'?'rlMiss .7s':(fx.cp?(fx.cp.lin>0.3?('rlSlamL '+(0.8+0.7*fx.cp.lin).toFixed(2)+'s'):(fx.cp.big>0.45?'rlSlam .8s':('rlCritPop '+(0.66*(1-0.25*fx.cp.snap)).toFixed(2)+'s'))):((fx.tier===2)?'rlCritPop .66s':'rlDmgFloat .6s')))+' ease-out forwards'}},
         (fx.crit||fx.tier===2)
           ? h('div',{key:'n',style:{lineHeight:1,animation:'rlNumShake .5s ease-out'}}, '-'+fx.dmg)
           : (fx.type==='miss'?'miss':('-'+fx.dmg))))),
       (stn0&&Date.now()-stn0.at<650)? h('div',{key:'ring'+stn0.seq,style:{position:'absolute',left:'50%',top:'38%',width:120,height:120,borderRadius:'50%',border:(stn0.delay>=1.5?4:2)+'px solid #D8BE78',zIndex:9,pointerEvents:'none','--rs':stn0.delay>=1.5?2.6:(stn0.delay>=0.8?2:1.5),animation:'rlRing '+(stn0.delay>=1.5?'.55s':'.4s')+' ease-out forwards'}}):null,
       h('div',{onClick:()=>this.setState({combatSheet:isMonster?'monster':'player'}),ref:el=>{ if(el && rp0 && Date.now()-rp0.at<350 && el._rup!==rp0.seq){ el._rup=rp0.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHit .3s ease-out'; }
-        if(el && stn0 && stn0.delay>=0.8 && el._stn!==stn0.seq){ el._stn=stn0.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHitCrit .42s ease-out'; } if(el && isHit && el._hit!==fx.seq){ el._hit=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation=(fx.tier>=1?'rlHitCrit .42s':'rlHit .3s')+' ease-out'; } },style:{position:'relative',background:isMonster?T.s2:T.s1,border:'1px solid '+T.line,borderRadius:6,overflow:'hidden',cursor:'pointer',transition:'filter .25s',filter:stn?'grayscale(.45) brightness(.92)':'none'}},
+        if(el && stn0 && stn0.delay>=0.8 && el._stn!==stn0.seq){ el._stn=stn0.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHitCrit .42s ease-out'; } if(el && isHit && el._hit!==fx.seq){ el._hit=fx.seq; el.style.animation='none'; void el.offsetWidth; if(fx.cp){ el.style.setProperty('--sa',fx.cp.amp); el.style.animation=(fx.cp.lin>0?'rlKickL ':'rlKick ')+(((0.36+0.28*fx.cp.big)*fx.cp.k)+0.7*fx.cp.lin).toFixed(2)+'s ease-out'; } else el.style.animation=(fx.tier>=1?'rlHitCrit .42s':'rlHit .3s')+' ease-out'; } },style:{position:'relative',background:isMonster?T.s2:T.s1,border:'1px solid '+T.line,borderRadius:6,overflow:'hidden',cursor:'pointer',transition:'filter .25s',filter:stn?'grayscale(.45) brightness(.92)':'none'}},
       pxn? h('div',{key:'prcwv',style:{position:'absolute',inset:0,zIndex:3,pointerEvents:'none',background:'rgba(124,165,187,.15)',boxShadow:'inset 0 0 0 1px rgba(124,165,187,.65), inset 0 0 20px 2px rgba(124,165,187,.3)','--ro':pxn>=3?1:(pxn===2?0.85:0.65),animation:'rlRp 2.2s ease-in-out infinite'}}):null,
       (px0&&Date.now()-px0.at<350)? h('div',{key:'prcfl'+px0.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:'rgba(124,165,187,.42)',animation:'rlHitFlash .3s ease-out forwards'}}):null,
       (fx&&fx.expo&&isHit)? h('div',{key:'prcx'+fx.seq,style:{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 2px #7CA5BB',animation:'rlHitFlash .3s ease-out forwards'}}):null,
@@ -2373,10 +2396,15 @@ class Component extends DCLogic {
       bln? h('div',{key:'bleedwv',style:{position:'absolute',inset:0,zIndex:3,pointerEvents:'none',backgroundImage:'radial-gradient(ellipse at 30% 40%, rgba(184,50,45,.6), transparent 60%), radial-gradient(ellipse at 70% 65%, rgba(140,28,30,.55), transparent 60%)',backgroundSize:'170% 170%','--bo':bln>=3?0.9:(bln===2?0.7:0.5),animation:'rlBleedWave '+(bln>=3?1.2:(bln===2?1.8:2.4))+'s ease-in-out infinite'}}):null,
       stn? h('div',{key:'stint',style:{position:'absolute',inset:0,zIndex:3,pointerEvents:'none',background:'rgba(216,190,120,.14)'}}):null,
       stn? h('div',{key:'sdr'+stn.seq,style:{position:'absolute',left:0,bottom:0,height:3,zIndex:8,pointerEvents:'none',background:'#D8BE78',animation:'rlDrain '+stn.sec.toFixed(2)+'s linear forwards'}}):null,
-      isHit? h('div',{key:'fl'+fx.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:fx.tier===2?'rgba(230,64,52,.5)':(fx.tier===1?'rgba(222,64,52,.42)':'rgba(214,64,52,.34)'),animation:'rlHitFlash '+(fx.tier===2?'.42s':(fx.tier===1?'.36s':'.3s'))+' ease-out forwards'}}):null,
+      (isHit&&!fx.cp)? h('div',{key:'fl'+fx.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:fx.tier===2?'rgba(230,64,52,.5)':(fx.tier===1?'rgba(222,64,52,.42)':'rgba(214,64,52,.34)'),animation:'rlHitFlash '+(fx.tier===2?'.42s':(fx.tier===1?'.36s':'.3s'))+' ease-out forwards'}}):null,
       (fx&&fx.kill)? h('div',{key:'kill'+fx.seq,style:{position:'absolute',inset:0,zIndex:7,pointerEvents:'none',background:'rgba(255,255,255,.62)',animation:'rlHitFlash .34s ease-out forwards'}}):null,
-      (fx&&fx.tier===2)? h('div',{key:'brd'+fx.seq,style:{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 1px #FFFFFF',animation:'rlBorderFlash .42s ease-out forwards'}}):null,
-      (fx&&fx.tier===2)? h('div',{key:'ig'+fx.seq,style:{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 36px 4px rgba(255,255,255,0.5)',animation:'rlInnerGlow .22s ease-out forwards'}}):null,
+      (fx&&fx.cp)? h('div',{key:'cfl'+fx.seq,style:{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',background:'rgba(255,246,210,.9)','--fp':fx.cp.fp,opacity:0,animation:'rlFlashS '+(((0.16+0.16*fx.cp.big)*fx.cp.k).toFixed(2))+'s ease-out forwards'}}):null,
+      (fx&&fx.cp)? h('div',{key:'cre'+fx.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:'rgba(230,64,52,'+(0.2+0.3*fx.cp.big).toFixed(2)+')',animation:'rlHitFlash '+(((0.4+0.9*fx.cp.lin)*fx.cp.k).toFixed(2))+'s ease-out forwards'}}):null,
+      (fx&&fx.cp)? h('div',{key:'cgd'+fx.seq,style:{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 2px #FFD24A, inset 0 0 28px 4px rgba(255,210,74,.55)',animation:'rlHitFlash '+(((0.4+0.9*fx.cp.lin)*fx.cp.k).toFixed(2))+'s ease-out forwards'}}):null,
+      (fx&&fx.cp&&fx.cp.s<0.22)? h('div',{key:'csw'+fx.seq,style:{position:'absolute',inset:0,zIndex:7,pointerEvents:'none',backgroundImage:'linear-gradient(105deg, transparent 38%, rgba(255,255,255,.95) 50%, transparent 62%)',backgroundSize:'260% 100%',opacity:(0.55+0.45*(1-fx.cp.s/0.22)).toFixed(2),animation:'rlSweep '+((0.3*fx.cp.k).toFixed(2))+'s ease-out forwards'}}):null,
+      (fx&&fx.cp&&fx.cp.s<0.22)? h('div',{key:'crg'+fx.seq,style:{position:'absolute',left:(25+(fx.rx*50))+'%',top:'45%',width:110,height:110,borderRadius:'50%',border:'2px solid #FFD24A',zIndex:7,pointerEvents:'none',animation:'rlRingG '+((0.4*fx.cp.k).toFixed(2))+'s ease-out forwards'}}):null,
+      (fx&&fx.tier===2&&!fx.cp)? h('div',{key:'brd'+fx.seq,style:{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 1px #FFFFFF',animation:'rlBorderFlash .42s ease-out forwards'}}):null,
+      (fx&&fx.tier===2&&!fx.cp)? h('div',{key:'ig'+fx.seq,style:{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 36px 4px rgba(255,255,255,0.5)',animation:'rlInnerGlow .22s ease-out forwards'}}):null,
       // 덮개는 아트웍 영역에만. 플레이어 카드는 아트가 없어 카드 전체가 그 자리를 대신한다.
       deadNow? h('div',{key:'dth',style:{position:'absolute',top:0,left:0,right:0,height:isMonster?114:'100%',zIndex:7,pointerEvents:'none',background:'rgba(255,0,4,0.10)'}}):null,
       // 아이콘은 가로 중앙 · 세로는 몬스터=아트 블록 중앙(114/2), 플레이어=아트가 없어 카드 중앙.
@@ -2393,7 +2421,7 @@ class Component extends DCLogic {
           warn? this.plainChip(this.en()?'FATIGUED':'탈진','#C19E6F','rlBreath 2.6s ease-in-out infinite'):null,
           AT(prof.attribute)?this.statusChip(prof.attribute):null),
         h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:8}},
-          h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99}}, h('div',{ref:el=>{ if(el && isHit && el._hp!==fx.seq){ el._hp=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHpGlow .5s ease-out'; } },style:{width:pct+'%',height:'100%',background:T.hp,borderRadius:99,transition:'width .3s ease-out'}})),
+          h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,position:'relative'}}, ((gh0)=>gh0?h('div',{key:'ghost'+gh0.seq,style:{position:'absolute',left:0,top:0,height:'100%',width:gh0.from+'%','--gf':gh0.from+'%','--gt':gh0.to+'%',background:'rgba(255,236,200,.7)',borderRadius:99,animation:'rlGhost '+(0.5+0.9*Math.min(1,(gh0.life/1000-0.9)/0.9)).toFixed(2)+'s ease-out .25s both'}}):null)((this.combat&&this.combat.ghost&&this.combat.ghost[isMonster?'monster':'player']&&Date.now()-this.combat.ghost[isMonster?'monster':'player'].at<this.combat.ghost[isMonster?'monster':'player'].life)?this.combat.ghost[isMonster?'monster':'player']:null), h('div',{ref:el=>{ if(el && isHit && el._hp!==fx.seq){ el._hp=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHpGlow .5s ease-out'; } },style:{position:'relative',width:pct+'%',height:'100%',background:T.hp,borderRadius:99,transition:'width .3s ease-out'}})),
           h('span',{style:{fontFamily:T.mono,fontSize:10,color:bln?'#B8322D':(pen?'#CB6D62':T.mid),minWidth:56,textAlign:'right',letterSpacing:masked?'.06em':'normal'}}, masked?'???':(Math.round(cur)+'/'+prof.maxHp))),
         this.combatStats(prof,pen,masked,cur,!isMonster))));
   }
@@ -2449,7 +2477,8 @@ class Component extends DCLogic {
     const dead=c.phase==='dead';
     const fx=c.fx;
     const hw=this.hpWarnTier(); if(hw){ this._hpWarnAmp=hw.amp; this._hpWarnOp=hw.op; }
-    return h('div',{ref:el=>{ if(el && fx && fx.tier===2 && el._shk!==fx.seq){ el._shk=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlShakeScreen .34s ease-out'; }
+    return h('div',{ref:el=>{ if(el && fx && fx.tier===2 && !fx.cp && el._shk!==fx.seq){ el._shk=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlShakeScreen .34s ease-out'; }
+      const cf=c.critFx; if(el && cf && cf.cp.s>=0.12 && Date.now()-cf.at<700 && el._shk3!==cf.seq){ el._shk3=cf.seq; el.style.setProperty('--sa',Math.min(2.4,0.5+3*cf.cp.s)); el.style.animation='none'; void el.offsetWidth; el.style.animation=(cf.cp.lin>0?'rlQuakeL ':'rlQuake ')+(0.3+0.3*cf.cp.big+0.6*cf.cp.lin).toFixed(2)+'s ease-out'; }
       const sf=c.stunFx; if(el && sf && sf.big && Date.now()-sf.at<700 && el._shk2!==sf.seq){ el._shk2=sf.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlShakeScreen .34s ease-out'; } },style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}},
       // 저스태미너 경보 — 이번 전투가 탈진시키면 화면 전체 호박색(PrismaticBurst, 전투 중에만)
       (c.phase==='fighting'&&this.staWarn())?h('canvas',{key:'stawarn',ref:el=>this.mountStaWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:4,mixBlendMode:'screen',opacity:0.37}}):null,
@@ -2457,7 +2486,8 @@ class Component extends DCLogic {
       hw?h('canvas',{key:'hpwarn',ref:el=>this.mountHpWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:5,mixBlendMode:'plus-lighter',opacity:hw.op,transition:'opacity .6s ease-out'}}):null,
       (c.stunFx&&c.stunFx.big&&Date.now()-c.stunFx.at<700)?h('div',{key:'svig'+c.stunFx.seq,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,boxShadow:'inset 0 0 80px 22px rgba(216,190,120,.5)',animation:'rlVignette .5s ease-out forwards'}}):null,
       // 화면 가장자리 붉은 비네트 = 내가 맞았을 때만(중 약하게 · 강 세게). 내가 때릴 땐 없다 — 맞는 쪽이 누구인지 한눈에 갈리게.
-      (fx&&fx.target==='player'&&fx.tier>=1)?h('div',{key:'vig'+fx.seq,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,boxShadow:fx.tier===2?'inset 0 0 80px 24px rgba(200,44,40,.6)':'inset 0 0 60px 12px rgba(200,44,40,.28)',animation:'rlVignette .4s ease-out forwards'}}):null,
+      (c.critFx&&c.critFx.cp.s>=0.3&&Date.now()-c.critFx.at<c.critFx.life)?h('div',{key:'cvig'+c.critFx.seq,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,boxShadow:'inset 0 0 80px 22px rgba(200,44,40,.45)',animation:'rlVignette '+(0.5+0.7*c.critFx.cp.lin).toFixed(2)+'s ease-out forwards'}}):null,
+      (fx&&(!fx.cp||fx.cp.s<0.3)&&fx.target==='player'&&fx.tier>=1)?h('div',{key:'vig'+fx.seq,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,boxShadow:(fx.tier===2&&!fx.cp)?'inset 0 0 80px 24px rgba(200,44,40,.6)':'inset 0 0 60px 12px rgba(200,44,40,.28)',animation:'rlVignette .4s ease-out forwards'}}):null,
       // 사망 = 상단 적색 그라데이션만. (구 death-overlay.webp는 우리 아트가 아니라 삭제 — 2026-09-10)
       // 색은 적색이 아니라 하우스 니어블랙(#0A0B0E)이다 — 구 #3E0018은 H337° 마젠타라 팔레트에 없던 색이었다.
       dead?h('div',{style:{position:'absolute',top:0,left:0,right:0,height:'65%',pointerEvents:'none',zIndex:5}},
