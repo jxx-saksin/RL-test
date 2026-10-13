@@ -970,7 +970,8 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
       for (const x of TAL.critAdd) if (cmpOk(x.cmp, hpFrac(), x.thr)) ccAdd += x.add;
       hitCnt++; nthCrit = TAL.nth.some(n => hitCnt % n === 0);
     }
-    let dmg = rand(actor.minAtk, Math.max(actor.minAtk, maxAtk)) * ruptureMult(actor, t) * tDealt;
+    const rupM = ruptureMult(actor, t);   // 파열 중이면 < 1 (공격자의 공격력 감소)
+    let dmg = rand(actor.minAtk, Math.max(actor.minAtk, maxAtk)) * rupM * tDealt;
     const isCrit = opts.forceCrit || nthCrit || Math.random() < critChance(actor.critChance + ccAdd, foe.critResist);
     if (isCrit) { dmg *= clamp(N(C.crit_damage_mult, 1.5) + N(actor.critMultBonus), 1, 4); if (actor.side === 'player') triggers.critsLanded++; if (actor === A && TAL.critSpeed.length) { for (const c of TAL.critSpeed) { critBuffLeft = Math.max(critBuffLeft, c.hits); critBuffMult = Math.max(critBuffMult === 1 ? 0 : critBuffMult, c.mult); } } }
     let pierceFrac = 0;
@@ -993,7 +994,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     let text = logTpl(isCrit ? 'crit' : 'hit', { Attacker: nm, Target: fnm, Damage: final.toFixed(0), TargetHP: Math.max(0, foe.hp).toFixed(0), TargetMaxHP: foe.maxHp });
     if (pierceFrac > 0) text += logTpl('pierce_suffix', { PiercePct: (pierceFrac * 100).toFixed(0) });
     if (opts.talismanCrit) text += (LANG === 'en' ? '  ⟪Token⟫' : '  ⟪징표⟫');
-    push(actor.side, isCrit ? 'crit' : 'hit', text);
+    push(actor.side, isCrit ? 'crit' : 'hit', text, rupM < 1 ? { rup: +(1 - rupM).toFixed(2) } : undefined);   // rup = 약화율(연출: 약해진 타격 숫자 색)
 
     // status application (옛 관통은 위 피해 계산 경로에서 이미 처리됨)
     if (actor.attribute && (actor.attribute !== 'pierce' || pierceExpose()) && foe.hp > 0 && !immune(foe, actor.attribute)) {
@@ -1030,7 +1031,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
           const s = byId.status.rupture;
           foe.ruptureStacks = Math.min(N(s?.MaxStack, 3), foe.ruptureStacks + 1);
           foe.ruptureUntil = t + durScaled(N(s?.Duration, 3), actor);
-          push(actor.side, 'status', logTpl('status_rupture', { Target: fnm, Stacks: foe.ruptureStacks }));
+          push(actor.side, 'status', logTpl('status_rupture', { Target: fnm, Stacks: foe.ruptureStacks }), { status: 'rupture', stacks: foe.ruptureStacks, dur: +(foe.ruptureUntil - t).toFixed(2) });
         }
       }
     }
