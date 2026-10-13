@@ -464,6 +464,25 @@ export function mkInstance(id, qty = 1, opts = {}) {
   return inst;
 }
 
+// ---------- 밸런스 버전 (세이브 마이그레이션) ----------
+// 전투 스케일 개편(공속·숫자 3배)처럼 시트의 무기 범위/HP 스케일이 통째로 바뀌는 배치는
+// Config.balance_ver를 올려 알린다. 시트에 키가 없으면 1(개편 이전). 세이브에는 gs.balanceVer로 찍힌다.
+export function balanceVer(){ return Math.max(1, Math.round(N(C.balance_ver, 1))); }
+// 무기 인스턴스의 롤값을 현재 시트 범위로 다시 굴린다(올라갈 때도 되돌릴 때도 같다).
+// 소켓·성장태그·감정 가림(unappraised)·현재 내구도 **비율**은 보존한다 — 갖고 있던 물건이 바뀌면 안 되는 부분만 새로 맞춘다.
+// 감정으로 흔들린 수치(apprDelta)는 옛 범위 기준이라 버린다. 미감정 옵션은 가림이 유지돼 감정 때 새 값에서 흔들린다.
+export function reseedWeaponRolls(inst){
+  const w = inst && byId.weapon[inst.id];
+  if (!w || !inst.rolls) return false;
+  const oldMax = Math.max(1, Math.round(N(inst.maxDur, 1)));
+  const ratio = clamp(N(inst.dur) / oldMax, 0, 1);
+  for (const k of APPRAISE_OPTS.weapon) inst.rolls[k] = seedOpt('weapon', k, w, null);
+  inst.maxDur = Math.max(1, Math.round(inst.rolls.maxDur));
+  inst.dur = clamp(Math.round(inst.maxDur * ratio), 0, inst.maxDur);
+  delete inst.apprDelta;
+  return true;
+}
+
 // working value of an appraisable option (hidden ≠ inactive)
 export function instOpt(inst, key){ return (inst && inst.rolls && inst.rolls[key] != null) ? inst.rolls[key] : 0; }
 export function isHidden(inst, key){ return !!(inst && inst.unappraised && inst.unappraised.includes(key)); }
