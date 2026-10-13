@@ -42,6 +42,9 @@
   @keyframes rlGlowSilver{0%,100%{box-shadow:0 0 6px rgba(206,212,220,0.06),inset 0 0 10px rgba(206,212,220,0.02),0 14px 44px rgba(0,0,0,.5)}50%{box-shadow:0 0 16px rgba(206,212,220,0.14),inset 0 0 18px rgba(206,212,220,0.045),0 14px 44px rgba(0,0,0,.5)}}
   @keyframes rlToastOut{from{opacity:1}to{opacity:0}}
   @keyframes rlCharge{from{width:0}to{width:100%}}
+  @keyframes rlRing{0%{opacity:.95;transform:translate(-50%,-50%) scale(.25)}100%{opacity:0;transform:translate(-50%,-50%) scale(var(--rs,1.6))}}
+  @keyframes rlSway{0%{transform:rotate(-1.6deg) scale(1.06) translateX(-2px)}100%{transform:rotate(1.6deg) scale(1.06) translateX(2px)}}
+  @keyframes rlDrain{from{width:100%}to{width:0}}
   @keyframes rlLunge{0%{transform:translateY(0)}38%{transform:translateY(var(--lg,0px))}100%{transform:translateY(0)}}
   @keyframes rlPunch{0%,84%{transform:scale(1)}92%{transform:scale(1.22)}100%{transform:scale(1)}}
   @keyframes rlSpin{to{transform:rotate(360deg)}}
@@ -623,7 +626,7 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val82');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const eng = await import('./engine.js?v=val83');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val46');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -1010,6 +1013,17 @@ class Component extends DCLogic {
     // ★타격 연출은 '다음 로그 줄'이 아니라 자기 길이(숫자 ~0.7s · 카드 효과 ~0.45s)만큼 산다.
     //   예전엔 다음 줄이 오면 바로 지웠다 — 줄당 300ms 고정일 땐 티가 안 났지만, 실제 시간 재생(combat_playback_scale)에서는
     //   같은 시각 줄이 140ms 간격으로 붙어 숫자·미스가 뜨자마자 사라졌다(공속 1.5에서 "아무것도 안 뜬다"). 상태이상·도트 줄도 연출을 지우지 않는다.
+    // 기절(status 줄의 구조화 메타): 맞은 쪽 카드 연출 + 공속 게이지 노랑·정지. 태그 카드는 쓰지 않는다. 길이는 지연(초) × 재생 배속.
+    if(ln && ln.type==='status' && ln.status==='stun'){
+      const tg=ln.who==='player'?'monster':'player';
+      const sc=this.eng.N(this.eng.DATA.config.combat_playback_scale,0), ms=(ln.delay||0)*1000*(sc>0?sc:0.5);
+      c.fxSeq=(c.fxSeq||0)+1; const seq=c.fxSeq;
+      c.stuns=c.stuns||{}; c.stuns[tg]={ seq, at:Date.now(), end:Date.now()+ms, sec:ms/1000, delay:ln.delay||0 };
+      c.stunFx={ seq, at:Date.now(), big:(ln.delay||0)>=1.5, mid:(ln.delay||0)>=0.8, target:tg };
+      setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, ms+40);   // 기절이 끝나면 게이지·덮개를 풀어 다시 그린다
+      setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, 720);     // 링·비네트 창(0.7s)이 닫힐 때
+      return;
+    }
     if(!ln || (ln.type!=='hit' && ln.type!=='crit' && ln.type!=='miss')) return;
     const target = ln.who==='player' ? 'monster' : 'player';   // 공격자 반대편이 피격
     let dmg=0;
@@ -1049,7 +1063,7 @@ class Component extends DCLogic {
     // 애니메이션이 끝나면 **opacity 1로 되돌아간다** — c.fx를 남겨두면 마지막 타격을 받은 쪽 카드가
     // 34% 붉은 레이어에 덮인 채 굳는다. 승리는 곧장 전리품 화면으로 넘어가 안 보이지만,
     // 사망(dead)은 전투 화면이 그대로 남아 그대로 노출된다(2026-08-31).
-    c.fx=null; c.fxs=[]; clearTimeout(this._fxT1); clearTimeout(this._fxT2);
+    c.fx=null; c.fxs=[]; c.stuns=null; c.stunFx=null; clearTimeout(this._fxT1); clearTimeout(this._fxT2);
     this.gs.hp = res.playerHpEnd;
     { const sr=this.storyRaidOn(); if(sr&&sr.r.nodie) this.gs.hp=Math.max(1,this.gs.hp); }   // nodie — 이겨도 0.4처럼 "0"으로 보이면 죽은 것 같다
     // 전투 종료 후 몬스터 등급만큼 스태미너 소모(진입 전이 아니라 종료 후). 도주 성공은 여기 안 옴 = 소모 없음.
@@ -2286,6 +2300,7 @@ class Component extends DCLogic {
     // 카드 효과(빨개짐·흔들림)는 쪽마다 자기 최신 타격 하나 — 반대편 타격이 와도 서로 지우지 않는다(0.5초 창).
     const fx=(()=>{ const a=((this.combat&&this.combat.fxs)||[]).filter(f=>f.target===side&&Date.now()-f.at<500); return a.length?a[a.length-1]:null; })();
     const isHit=!!fx&&(fx.type==='hit'||fx.type==='crit');
+    const stn0=(this.combat&&this.combat.stuns&&this.combat.stuns[side])||null, stn=(stn0&&Date.now()<stn0.end)?stn0:null;
     const atk=((this.combat&&this.combat.fxs)||[]).filter(f=>f.attacker===side&&Date.now()-f.at<220).pop();   // 이 카드가 방금 때렸다면 앞으로 내민다
     const nums=((this.combat&&this.combat.fxs)||[]).filter(f=>f.target===side&&Date.now()-f.at<800);
     return h('div',{ref:el=>{ if(el && atk && el._lg!==atk.seq){ el._lg=atk.seq; el.style.setProperty('--lg',(side==='player'?-1:1)*atk.lunge+'px'); el.style.animation='none'; void el.offsetWidth; el.style.animation='rlLunge .16s ease-out'; } },style:{position:'relative'}},
@@ -2293,7 +2308,10 @@ class Component extends DCLogic {
         (fx.crit||fx.tier===2)
           ? h('div',{key:'n',style:{lineHeight:1,animation:'rlNumShake .5s ease-out'}}, '-'+fx.dmg)
           : (fx.type==='miss'?'miss':('-'+fx.dmg))))),
-      h('div',{onClick:()=>this.setState({combatSheet:isMonster?'monster':'player'}),ref:el=>{ if(el && isHit && el._hit!==fx.seq){ el._hit=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation=(fx.tier>=1?'rlHitCrit .42s':'rlHit .3s')+' ease-out'; } },style:{position:'relative',background:isMonster?T.s2:T.s1,border:'1px solid '+T.line,borderRadius:6,overflow:'hidden',cursor:'pointer'}},
+      (stn0&&Date.now()-stn0.at<650)? h('div',{key:'ring'+stn0.seq,style:{position:'absolute',left:'50%',top:'38%',width:120,height:120,borderRadius:'50%',border:(stn0.delay>=1.5?4:2)+'px solid #D8BE78',zIndex:9,pointerEvents:'none','--rs':stn0.delay>=1.5?2.6:(stn0.delay>=0.8?2:1.5),animation:'rlRing '+(stn0.delay>=1.5?'.55s':'.4s')+' ease-out forwards'}}):null,
+      h('div',{onClick:()=>this.setState({combatSheet:isMonster?'monster':'player'}),ref:el=>{ if(el && stn0 && stn0.delay>=0.8 && el._stn!==stn0.seq){ el._stn=stn0.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHitCrit .42s ease-out'; } if(el && isHit && el._hit!==fx.seq){ el._hit=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation=(fx.tier>=1?'rlHitCrit .42s':'rlHit .3s')+' ease-out'; } },style:{position:'relative',background:isMonster?T.s2:T.s1,border:'1px solid '+T.line,borderRadius:6,overflow:'hidden',cursor:'pointer',transition:'filter .25s',filter:stn?'grayscale(.45) brightness(.92)':'none'}},
+      stn? h('div',{key:'stint',style:{position:'absolute',inset:0,zIndex:3,pointerEvents:'none',background:'rgba(216,190,120,.14)'}}):null,
+      stn? h('div',{key:'sdr'+stn.seq,style:{position:'absolute',left:0,bottom:0,height:3,zIndex:8,pointerEvents:'none',background:'#D8BE78',animation:'rlDrain '+stn.sec.toFixed(2)+'s linear forwards'}}):null,
       isHit? h('div',{key:'fl'+fx.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:fx.tier===2?'rgba(230,64,52,.5)':(fx.tier===1?'rgba(222,64,52,.42)':'rgba(214,64,52,.34)'),animation:'rlHitFlash '+(fx.tier===2?'.42s':(fx.tier===1?'.36s':'.3s'))+' ease-out forwards'}}):null,
       (fx&&fx.kill)? h('div',{key:'kill'+fx.seq,style:{position:'absolute',inset:0,zIndex:7,pointerEvents:'none',background:'rgba(255,255,255,.62)',animation:'rlHitFlash .34s ease-out forwards'}}):null,
       (fx&&fx.tier===2)? h('div',{key:'brd'+fx.seq,style:{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 1px #FFFFFF',animation:'rlBorderFlash .42s ease-out forwards'}}):null,
@@ -2303,7 +2321,7 @@ class Component extends DCLogic {
       // 아이콘은 가로 중앙 · 세로는 몬스터=아트 블록 중앙(114/2), 플레이어=아트가 없어 카드 중앙.
       deadNow? h('div',{key:'dthi',style:{position:'absolute',left:'50%',top:isMonster?57:'50%',transform:'translate(-50%,-50%)',zIndex:8,pointerEvents:'none'}}, icDeath(30,'#E1E1E1')):null,
       isMonster? h('div',{style:{position:'relative',height:114,overflow:'hidden',background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
-        (!prof.isUser)?h('img',{src:'assets/art/monsters/'+prof.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}):null,
+        (!prof.isUser)?h('img',{src:'assets/art/monsters/'+prof.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',transformOrigin:'50% 100%',animation:stn?'rlSway .4s ease-in-out infinite alternate':'none'}}):null,
         h('div',{style:{position:'absolute',left:12,bottom:8,fontFamily:T.mono,fontSize:9,color:prof.isUser?T.sato:T.faint,letterSpacing:'.1em'}}, prof.isUser?this.t('kicker_userdata'):((md.Category||'')+''+this.t('kicker_dot_monsters'))), prof.grade?h('div',{style:{position:'absolute',right:10,top:10,height:15,boxSizing:'border-box',display:'flex',alignItems:'center',fontFamily:T.mono,fontSize:9,letterSpacing:'.1em',color:T.hi,background:'rgba(10,11,14,0.55)',borderRadius:3,padding:'0 8px'}}, prof.grade):null) : null,
       h('div',{style:{padding:'11px 13px'}},
         h('div',{style:{display:'flex',alignItems:'center',gap:7,marginBottom:8}},
@@ -2331,13 +2349,16 @@ class Component extends DCLogic {
     const mdur=(1/Math.max(0.1,mSpd)).toFixed(2), pdur=(1/Math.max(0.1,pSpd)).toFixed(2);
     const lim=c.mProf.timeLimit||20; const rem=Math.max(0,lim-this.combatElapsed());
     const mmss=Math.floor(rem/60)+':'+String(Math.floor(rem%60)).padStart(2,'0');
+    // 기절 중인 쪽 게이지는 노랑으로 멈춘다(지연 = 다음 행동이 밀림). 끝나면 setCombatFx의 타이머가 다시 그려 풀어준다.
+    const stn=(side)=>{ const z=c.stuns&&c.stuns[side]; return !!(z && Date.now()<z.end); };
+    const gSty=(side,dur)=>({height:'100%',background:stn(side)?'#D8BE78':T.dur,width:animate?undefined:'0%',animation:animate?('rlCharge '+dur+'s linear infinite'):'none',animationPlayState:stn(side)?'paused':'running'});
     const fist=(spd)=>h('div',{style:{animation:animate?('rlPunch '+(1/Math.max(0.1,spd)).toFixed(2)+'s linear infinite'):'none',flex:'0 0 auto'}}, icDuel(16));
     // 왼쪽 = 유저, 오른쪽 = 몬스터 (카드 배치와 같은 방향). 유저 게이지는 왼쪽에서, 몬스터 게이지는 오른쪽 끝에서 차오른다.
     return h('div',{style:{display:'flex',alignItems:'center',gap:7,padding:'15px 0'}},
       fist(pSpd),
-      h('div',{style:{flex:1,height:5,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{key:animate?'pa':'ps',style:{height:'100%',background:T.dur,width:animate?undefined:'0%',animation:animate?('rlCharge '+pdur+'s linear infinite'):'none'}})),
+      h('div',{style:{flex:1,height:5,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{key:animate?'pa':'ps',style:gSty('player',pdur)})),
       h('div',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:11,color:T.warn,border:'1px solid '+T.line2,borderRadius:3,padding:'3px 9px',minWidth:52,textAlign:'center'}}, mmss),
-      h('div',{style:{flex:1,height:5,background:T.s3,borderRadius:99,overflow:'hidden',display:'flex',justifyContent:'flex-end'}}, h('div',{key:animate?'ma':'ms',style:{height:'100%',background:T.dur,width:animate?undefined:'0%',animation:animate?('rlCharge '+mdur+'s linear infinite'):'none'}})),
+      h('div',{style:{flex:1,height:5,background:T.s3,borderRadius:99,overflow:'hidden',display:'flex',justifyContent:'flex-end'}}, h('div',{key:animate?'ma':'ms',style:gSty('monster',mdur)})),
       fist(mSpd));
   }
   logColor(ln){
@@ -2366,11 +2387,13 @@ class Component extends DCLogic {
     const dead=c.phase==='dead';
     const fx=c.fx;
     const hw=this.hpWarnTier(); if(hw){ this._hpWarnAmp=hw.amp; this._hpWarnOp=hw.op; }
-    return h('div',{ref:el=>{ if(el && fx && fx.tier===2 && el._shk!==fx.seq){ el._shk=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlShakeScreen .34s ease-out'; } },style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}},
+    return h('div',{ref:el=>{ if(el && fx && fx.tier===2 && el._shk!==fx.seq){ el._shk=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlShakeScreen .34s ease-out'; }
+      const sf=c.stunFx; if(el && sf && sf.big && Date.now()-sf.at<700 && el._shk2!==sf.seq){ el._shk2=sf.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlShakeScreen .34s ease-out'; } },style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}},
       // 저스태미너 경보 — 이번 전투가 탈진시키면 화면 전체 호박색(PrismaticBurst, 전투 중에만)
       (c.phase==='fighting'&&this.staWarn())?h('canvas',{key:'stawarn',ref:el=>this.mountStaWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:4,mixBlendMode:'screen',opacity:0.37}}):null,
       // 저체력 경보 — 적색 Aurora(상단). 30%↓부터, 20·10%로 amplitude·투명도 강해짐
       hw?h('canvas',{key:'hpwarn',ref:el=>this.mountHpWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:5,mixBlendMode:'plus-lighter',opacity:hw.op,transition:'opacity .6s ease-out'}}):null,
+      (c.stunFx&&c.stunFx.big&&Date.now()-c.stunFx.at<700)?h('div',{key:'svig'+c.stunFx.seq,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,boxShadow:'inset 0 0 80px 22px rgba(216,190,120,.5)',animation:'rlVignette .5s ease-out forwards'}}):null,
       // 화면 가장자리 붉은 비네트 = 내가 맞았을 때만(중 약하게 · 강 세게). 내가 때릴 땐 없다 — 맞는 쪽이 누구인지 한눈에 갈리게.
       (fx&&fx.target==='player'&&fx.tier>=1)?h('div',{key:'vig'+fx.seq,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,boxShadow:fx.tier===2?'inset 0 0 80px 24px rgba(200,44,40,.6)':'inset 0 0 60px 12px rgba(200,44,40,.28)',animation:'rlVignette .4s ease-out forwards'}}):null,
       // 사망 = 상단 적색 그라데이션만. (구 death-overlay.webp는 우리 아트가 아니라 삭제 — 2026-09-10)

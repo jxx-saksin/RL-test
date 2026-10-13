@@ -898,7 +898,8 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
   const ME = uiT('common_me');
   const limit = mProf.timeLimit;
   let t = 0, guard = 0;
-  const push = (who, type, text) => log.push({ t: +t.toFixed(1), who, type, text, hpP: Math.max(0, Math.round(A.hp)), hpM: Math.max(0, Math.round(B.hp)) });
+  // extra = 연출용 메타(예: 기절 {status:'stun', delay}) — 화면이 로그 텍스트를 파싱하지 않고 구조화된 값을 읽는다.
+  const push = (who, type, text, extra) => log.push({ t: +t.toFixed(1), who, type, text, hpP: Math.max(0, Math.round(A.hp)), hpM: Math.max(0, Math.round(B.hp)), ...(extra || {}) });
   push('sys', 'start', logTpl('start', { MonsterName: mProf.name, Grade: mProf.grade, TimeLimit: limit }));
 
   function applyBleedTicks(actor, now) {
@@ -1018,7 +1019,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
           if (t > foe.stunEnd) {
             const delay = (1 / actor.atkSpeed) * N(s?.Value, 1.0);
             foe.next += delay; foe.stunEnd = foe.next;
-            push(actor.side, 'status', logTpl('status_stun', { Target: fnm, Delay: delay.toFixed(1) }));
+            push(actor.side, 'status', logTpl('status_stun', { Target: fnm, Delay: delay.toFixed(1) }), { status: 'stun', delay: +delay.toFixed(2) });
           }
         } else if (eff === 'pierce') {
           const s = byId.status.pierce;
