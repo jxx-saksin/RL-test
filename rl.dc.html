@@ -397,7 +397,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 95;
+const TITLE_VER = 96;
 const TITLE_DATE = '1013';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -1333,6 +1333,7 @@ class Component extends DCLogic {
   }
   services(v){ const list=String((v&&(v.Services_EN||v.Services))||'').split(',').map(s=>s.trim()).filter(Boolean); if(v&&v.ShopID==='shop_canteen'&&!list.includes('Feed')&&!list.includes('Distribute')) list.push('Feed'); return list; }
   tx(row,base){ return this.eng?this.eng.tr(row,base):''; }
+  tOr(k,fb){ const v=this.t(k); return (v==null||v===k)?fb:v; }   // 시트·번들에 아직 없는 문구용 폴백
   t(k){ if(this.eng) return this.eng.t(k); const f=BOOT_T[k]; return f?(this.en()?f[1]:f[0]):k; }
   en(){ return !!this.eng && this.eng.LANG==='en'; }
   isPvpZone(z){ if(!z) return false; const v=String(z.IsPvP==null?'':z.IsPvP).trim().toLowerCase(); return v==='1'||v==='true'||v==='y'||v==='yes'; }
@@ -1828,6 +1829,8 @@ class Component extends DCLogic {
   zoneLine(z){ return this.eng.pick(z,'Tagline') || this.eng.pick(z,'LootFocus'); }
   catChip(txt,on){ const G='rgb(131,178,137)'; return h('span',{style:{display:'inline-flex',alignItems:'center',gap:5,borderRadius:4,background:'rgb(33,35,39)',border:'1px solid '+(on?G:'rgb(54,56,60)'),padding:'3px 7px',boxSizing:'border-box'}}, h('span',{style:{width:5,height:5,borderRadius:999,background:on?G:'rgb(111,114,118)'}}), h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:on?G:'rgb(169,171,175)',whiteSpace:'nowrap',textTransform:'uppercase'}}, this.eng.t(txt))); }
   subTag(txt){ return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgb(33,35,39)',border:'1px solid rgb(54,56,60)',padding:'3px 7px',boxSizing:'border-box',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:'rgb(169,171,175)',whiteSpace:'nowrap',textTransform:'uppercase'}}, this.eng.t(txt)); }
+  // 착용중 태그 — 목록 줄(소지품·금고·감정·수리·판매) 위쪽 칩 줄에 항상 붙는 초록 표시. 줄 오른쪽의 [착용]/[해제] 버튼은 폐지(카드에서 한다).
+  eqTag(){ const G='rgb(131,178,137)'; return h('span',{key:'eqt',style:{display:'inline-flex',alignItems:'center',flex:'0 0 auto',borderRadius:4,background:'rgb(33,35,39)',border:'1px solid rgba(131,178,137,0.45)',padding:'3px 7px',boxSizing:'border-box',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:G,whiteSpace:'nowrap'}}, this.en()?'EQUIPPED':'착용중'); }
   unappTag(){ return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgb(33,35,39)',border:'1px solid rgb(118,131,243)',padding:'3px 7px',boxSizing:'border-box',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:'rgb(118,131,243)',whiteSpace:'nowrap',textTransform:'uppercase'}}, this.t('appraise_unappraised')); }
   header(){
     const g=this.gs;
@@ -2426,7 +2429,8 @@ class Component extends DCLogic {
       deadNow? h('div',{key:'dthi',style:{position:'absolute',left:'50%',top:isMonster?57:'50%',transform:'translate(-50%,-50%)',zIndex:8,pointerEvents:'none'}}, icDeath(30,'#E1E1E1')):null,
       isMonster? h('div',{style:{position:'relative',height:114,overflow:'hidden',background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
         (!prof.isUser)?h('img',{src:'assets/art/monsters/'+prof.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',transformOrigin:'50% 100%',animation:stn?'rlSway .4s ease-in-out infinite alternate':'none'}}):null,
-        h('div',{style:{position:'absolute',left:12,bottom:8,fontFamily:T.mono,fontSize:9,color:prof.isUser?T.sato:T.faint,letterSpacing:'.1em'}}, prof.isUser?this.t('kicker_userdata'):((md.Category||'')+''+this.t('kicker_dot_monsters'))), prof.grade?h('div',{style:{position:'absolute',right:10,top:10,height:15,boxSizing:'border-box',display:'flex',alignItems:'center',fontFamily:T.mono,fontSize:9,letterSpacing:'.1em',color:T.hi,background:'rgba(10,11,14,0.55)',borderRadius:3,padding:'0 8px'}}, prof.grade):null) : null,
+        h('div',{style:{position:'absolute',left:12,bottom:8,fontFamily:T.mono,fontSize:9,color:prof.isUser?T.sato:T.faint,letterSpacing:'.1em'}}, prof.isUser?this.t('kicker_userdata'):((md.Category||'')+''+this.t('kicker_dot_monsters'))), prof.grade?(()=>{ const gcol=GRADECOL[String(prof.grade).toLowerCase()]||'rgb(234,235,238)'; return h('div',{key:'gtag',style:{position:'absolute',right:10,top:10,zIndex:4,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid '+(gcol==='rgb(234,235,238)'?'rgba(222,222,222,0.18)':gcol),display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'4px 8px',animation:'rlLvlPop .5s cubic-bezier(.2,.8,.2,1)'}},
+          h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',marginRight:'-1.33px',color:gcol,whiteSpace:'nowrap'}}, String(prof.grade).toUpperCase())); })():null) : null,
       h('div',{style:{padding:'11px 13px'}},
         h('div',{style:{display:'flex',alignItems:'center',gap:7,marginBottom:8}},
           h('span',{style:{fontFamily:T.sans,fontSize:13,fontWeight:500,color:T.hi,flex:'0 1 auto',minWidth:0,maxWidth:'55%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, isMonster?prof.name:this.t('common_me')),
@@ -5197,12 +5201,12 @@ void main(){
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,alignSelf:'stretch'}},
         h('div',{style:{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',minWidth:0}},
           this.catChip(catOf(inst),equipped),
+          equipped?this.eqTag():null,
           (inst.unappraised&&inst.unappraised.length)?this.unappTag():null,
           AT(attr)?this.subTag('status_'+attr):null,
           ...this.growthChips(inst),
           st==='destroyed'?this.subTag(this.t('item_destroyed')):null),
-        equippable?h('button',{onClick:(e)=>{e.stopPropagation();this.toggleEquip(inst);},
-          style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,cursor:'pointer',whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',color:'rgb(169,171,175)'}}, equipped?(this.en()?'Unequip':'해제'):(this.en()?'Equip':'착용')):(ms>=2?this.qtyChip(inst,ms):null)),
+        (!equippable&&ms>=2)?this.qtyChip(inst,ms):null),
       h('div',{style:{display:'flex',alignItems:'center',gap:8,alignSelf:'stretch',flexWrap:'wrap',marginTop:8}},
         h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:400,color:T.hi}}, name),
         (inst.sockets&&inst.sockets.length)?this.socketBars(inst):null),
@@ -5234,22 +5238,29 @@ void main(){
     const opt=(inst2,k)=>this.eng.isHidden(inst2,k);
     // 감정 상태별 색: 미감정 #7683F3 · 증가 #83B289 · 감소 #C4675D · 기본 #EAEBEE
     const col=(k)=>{ if(this.eng.isHidden(inst,k)) return '#7683F3'; const d=inst.apprDelta&&inst.apprDelta[k]; return d>0?'#83B289':d<0?'#C4675D':'#EAEBEE'; };
+    // 모듈(소켓) 옵션 — 장비 수치에 합산해 초록으로 보인다. 합산할 줄이 없는 항목(힘·민첩·체력·최대 체력 등)은 초록 줄로 덧붙인다.
+    const MG='#83B289', modSum={}, modLbl={};
+    (inst.sockets||[]).forEach(sk=>{ if(!sk||!sk.target) return; modSum[sk.target]=(modSum[sk.target]||0)+N(sk.value); const mdr=this.eng.byId.module&&this.eng.byId.module[sk.moduleId]; if(mdr&&!modLbl[sk.target]) modLbl[sk.target]=this.eng.tr(mdr,'TargetStat'); });
+    const modUsed=new Set(), mod=(k)=>{ const v=modSum[k]; if(!v) return 0; modUsed.add(k); return v; };
+    const modRows=()=>Object.keys(modSum).filter(k=>!modUsed.has(k)&&modSum[k]).map(k=>[modLbl[k]||k, '+'+Math.round(modSum[k]*100)/100+((/^sec_(crit_chance|accuracy|status_resist)$/.test(k))?'%':''), MG]);
     if(inst.kind==='weapon'){ const w=this.eng.byId.weapon[inst.id]||{}; const r=inst.rolls||{};
       const atkHidden=opt(inst,'minAtk')||opt(inst,'maxAtk');
-      const atk=atkHidden?HID:(Number(r.minAtk??N(w.MinAtk_Low)).toFixed(2)+'–'+Number(r.maxAtk??N(w.MaxAtk_High)).toFixed(2));
-      const atkCol=atkHidden?'#7683F3':(()=>{ const d=(inst.apprDelta&&((inst.apprDelta.minAtk||0)+(inst.apprDelta.maxAtk||0)))||0; return d>0?'#83B289':d<0?'#C4675D':'#EAEBEE'; })();
+      const dm=atkHidden?0:mod('sec_dmg_pct'), am=1+dm/100;
+      const atk=atkHidden?HID:(Number((r.minAtk??N(w.MinAtk_Low))*am).toFixed(2)+'–'+Number((r.maxAtk??N(w.MaxAtk_High))*am).toFixed(2));
+      const atkCol=atkHidden?'#7683F3':dm?MG:(()=>{ const d=(inst.apprDelta&&((inst.apprDelta.minAtk||0)+(inst.apprDelta.maxAtk||0)))||0; return d>0?'#83B289':d<0?'#C4675D':'#EAEBEE'; })();
       out.push([this.t('stat_atk'), atk, atkCol],
         [this.t('stat_atk_speed'), opt(inst,'atkSpeed')?HID:Number(r.atkSpeed??N(w.AttackSpeed)).toFixed(2), col('atkSpeed')],
-        [this.t('stat_accuracy'), opt(inst,'accuracy')?HID:Number(r.accuracy??N(w.Accuracy)).toFixed(2)+'%', col('accuracy')],
-        [this.t('combat_crit'), opt(inst,'critChance')?HID:Number(r.critChance??N(w.CritChance)).toFixed(2)+'%', col('critChance')]);
+        [this.t('stat_accuracy'), opt(inst,'accuracy')?HID:Number((r.accuracy??N(w.Accuracy))+mod('sec_accuracy')).toFixed(2)+'%', modSum.sec_accuracy&&!opt(inst,'accuracy')?MG:col('accuracy')],
+        [this.t('combat_crit'), opt(inst,'critChance')?HID:Number((r.critChance??N(w.CritChance))+mod('sec_crit_chance')).toFixed(2)+'%', modSum.sec_crit_chance&&!opt(inst,'critChance')?MG:col('critChance')]);
       if(AT(w.Attribute)){ out.push([this.t('status_effect'), this.t('status_'+w.Attribute)], [this.t('stat_potency'), opt(inst,'potency')?HID:Number(r.potency??N(w.Potency)).toFixed(2), col('potency')]); }
-      out.push([this.t('item_material_type'), this.eng.materialLabel(w.Material)||'—'],
+      out.push(...modRows(), [this.t('item_material_type'), this.eng.materialLabel(w.Material)||'—'],
         [this.t('item_durability'), this.durTxt(inst), this.durCol(inst,'#EAEBEE')]);
     } else if(inst.kind==='armor'){ const a=this.eng.byId.armor[inst.id]||{}; const r=inst.rolls||{};
-      out.push([this.t('stat_def'), opt(inst,'def')?HID:Number(r.def??N(a.Def_Low)).toFixed(2), col('def')],
+      out.push([this.t('stat_def'), opt(inst,'def')?HID:Number((r.def??N(a.Def_Low))+mod('sec_defense')).toFixed(2), modSum.sec_defense&&!opt(inst,'def')?MG:col('def')],
         [this.t('stat_evasion'), opt(inst,'evasion')?HID:Number(r.evasion??N(a.Evasion)).toFixed(2)+'%', col('evasion')],
-        [this.t('stat_status_resist'), opt(inst,'statusResist')?HID:Number(r.statusResist??N(a.StatusResist)).toFixed(2)+'%', col('statusResist')],
+        [this.t('stat_status_resist'), opt(inst,'statusResist')?HID:Number((r.statusResist??N(a.StatusResist))+mod('sec_status_resist')).toFixed(2)+'%', modSum.sec_status_resist&&!opt(inst,'statusResist')?MG:col('statusResist')],
         ...Object.entries(inst.bonus||{}).map(([k,v])=>{ const b=this.eng.bonusLabel(k); return [this.en()?b.en:b.kr, this.eng.fmtSigned(N(v), null, b.unit), N(v)<0?'#C4675D':'#83B289']; }),
+        ...modRows(),
         [this.t('item_material_type'), this.eng.materialLabel(a.Material)||'—'],
         [this.t('item_durability'), this.durTxt(inst), this.durCol(inst,'#EAEBEE')]);
     } else if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]){ const lq=this.eng.byId.liquor[inst.id];
@@ -5630,7 +5641,7 @@ void main(){
     return h('div',{key:inst.uid,'data-guide':'rep-row-'+i,onClick:()=>this.setState({repairSel:inst.uid}),
       style:{flexShrink:0,height:104,boxSizing:'border-box',padding:'9px 16px 0',cursor:'pointer',borderBottom:'1px solid '+T.line}},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:20}},
-        this.catChip(CATKR[src.Category]||src.Category||'', eqp),
+        h('div',{style:{display:'flex',alignItems:'center',gap:6}}, this.catChip(CATKR[src.Category]||src.Category||'', eqp), eqp?this.eqTag():null),
         gtags.length? this.shopPill(GKR[gtags[0]]||gtags[0],'rgb(169,171,175)') : null),
       h('div',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',color:'#EAEBEE',marginTop:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:13,marginTop:5}},
@@ -6342,7 +6353,7 @@ void main(){
       this.commsPending()? h('span',{key:'d',style:{position:'absolute',left:38.4,top:1,width:5,height:5,borderRadius:'50%',background:'#2FBF71',animation:'rlCommsDot 2.4s ease-in-out infinite'}}) : null);
   }
   // 기본 탭 = 임무(열 때마다).
-  openComms(){ this.go('comms'); this.setState({commsTab:'mission',commsPick:null,commsOpen:null}); }
+  openComms(){ this.go('comms'); this.setState({commsTab:'mission',commsPick:null,commsOpen:null,commsSecOpen:null}); }
   // 레이아웃 실측(screen-comms-story-empty · screen-comms-news): 헤더 90 · 탭 y90~137 · ● 라벨은 탭/앞 행 아래 29.5 ·
   //   라벨→첫 행 5.5 · 임무 카드 x18~384 y190~262 r8. 행은 상점 행(shopRow)을 그대로 쓴다 — **기존 화면 우선**(사용자 2026-10-08).
   //   하단 닫기 박스도 목업(좌우 10.5·테두리) 대신 퀘스트 화면의 하단 박스와 같은 규격.
@@ -6419,11 +6430,18 @@ void main(){
     const out=[this.commsSec('csec',this.t('comms_sec_story'))];
     out.push(cur? this.commsStoryCard(cur,'cur',false,8)
                 : this.commsEmpty('cem',this.t('comms_story_empty'),this.t('comms_story_empty_sub'),8));
-    { const gl=this.commsGeneral(); if(gl.length) out.push(this.commsSec('cgen',this.t('comms_sec_general')), ...gl.map(x=>this.commsGeneralRow(x))); }   /* 일반 임무(시설 · 챕터3) — 스토리와 지난 스토리 사이 */
+    const gall=this.commsGeneral(), gl=gall.filter(x=>!x.done), gdone=gall.filter(x=>x.done);
+    if(gl.length) out.push(this.commsSec('cgen',this.t('comms_sec_general')), ...gl.map(x=>this.commsGeneralRow(x)));   /* 일반 임무(시설 · 챕터3) — 진행 중만. 끝난 건 아래 '지난 임무' */
+    // 지난 스토리·지난 임무 = 아코디언(기본 접힘). 구역 제목을 눌러 펼친다.
+    const so=this.state.commsSecOpen||{}, tog=(k)=>()=>this.setState({commsSecOpen:Object.assign({},so,{[k]:!so[k]})});
     if(past.length){
-      out.push(this.commsSec('cpast',this.t('comms_sec_story_past')));
-      const open=this.state.commsOpen;
-      past.forEach((c,i)=>out.push(open===c.no? this.commsStoryCard(c,'p'+c.no,true,i?12:8) : this.commsPastRow(c,i?12:8)));
+      out.push(this.commsSecAcc('cpast',this.t('comms_sec_story_past'),past.length,!!so.story,tog('story')));
+      if(so.story){ const open=this.state.commsOpen;
+        past.forEach((c,i)=>out.push(open===c.no? this.commsStoryCard(c,'p'+c.no,true,i?12:8) : this.commsPastRow(c,i?12:8))); }
+    }
+    if(gdone.length){
+      out.push(this.commsSecAcc('cpastm',this.tOr('comms_sec_missions_past',this.en()?'Past Missions':'지난 임무'),gdone.length,!!so.mis,tog('mis')));
+      if(so.mis) out.push(...gdone.map(x=>this.commsGeneralRow(x)));
     }
     return out;
   }
@@ -6553,6 +6571,15 @@ void main(){
     this.openVendor(vid); this.openQuest(); this.openQuestSheet(q.QuestID); }
   // ● 구역 라벨 — 점 x18~23 #A9ABAF · 글자 x27.5 sans10 #6F7276 · 줄 높이 10 · 위 29.5 / 아래 5.5
   //   ⚠️아래 5.5는 margin이 아니라 padding — 다음 카드의 margin-top과 **겹쳐서(collapse)** 간격이 5px 줄었었다.
+  // 아코디언 구역 라벨 — commsSec와 같은 모양 + 우측 개수 · 갈매기(storyDest의 목업 패스를 돌려 쓴다: 접힘=아래, 펼침=위)
+  commsSecAcc(key,txt,n,open,onClick){
+    return h('div',{key:key,onClick,style:{display:'flex',alignItems:'center',gap:4.5,height:10,padding:'0 0 5.5px',boxSizing:'content-box',margin:'29.5px 18px 0',cursor:'pointer'}},
+      h('span',{key:'d',style:{flex:'0 0 auto',width:5,height:5,borderRadius:'50%',background:'#A9ABAF'}}),
+      h('span',{key:'t',style:{fontFamily:T.sans,fontSize:10,lineHeight:'10px',color:'#6F7276'}}, txt),
+      h('span',{key:'n',style:{flex:1,fontFamily:T.mono,fontSize:10,lineHeight:'10px',color:'#6F7276'}}, n),
+      h('svg',{key:'i',width:6.2,height:12.8,viewBox:'357.5 421.5 6.2 12.8',fill:'none',style:{display:'block',flex:'0 0 auto',transform:open?'rotate(-90deg)':'rotate(90deg)',transition:'transform .18s'}},
+        h('path',{fillRule:'evenodd',clipRule:'evenodd',fill:'#A9ABAF',d:'M357.809 421.744C358.061 421.528 358.44 421.558 358.655 421.809L363.455 427.409C363.648 427.634 363.648 427.965 363.455 428.19L358.655 433.79C358.44 434.042 358.061 434.071 357.809 433.855C357.558 433.64 357.528 433.261 357.744 433.009L362.209 427.8L357.744 422.59C357.528 422.338 357.558 421.96 357.809 421.744Z'})));
+  }
   commsSec(key,txt){
     return h('div',{key:key,style:{display:'flex',alignItems:'center',gap:4.5,height:10,padding:'0 0 5.5px',boxSizing:'content-box',margin:'29.5px 18px 0'}},
       h('span',{key:'d',style:{flex:'0 0 auto',width:5,height:5,borderRadius:'50%',background:'#A9ABAF'}}),
@@ -7439,6 +7466,7 @@ void main(){
       style:{flexShrink:0,height:104,boxSizing:'border-box',padding:'17px 16px 0',cursor:'pointer',borderBottom:'1px solid '+T.line}},
       h('div',{style:{height:20,display:'flex',alignItems:'center',gap:6}},
         this.catChip(this.catKey(src.Category||''),this.isEquipped(inst.uid)),
+        this.isEquipped(inst.uid)?this.eqTag():null,
         AT(src.Attribute)? this.shopPill(this.t('status_'+src.Attribute),'rgb(169,171,175)') : null,
         gtags.length? this.shopPill(GKR[gtags[0]]||gtags[0],'rgb(169,171,175)') : null),
       h('div',{style:{display:'flex',alignItems:'center',gap:8,marginTop:8}},
@@ -8814,7 +8842,7 @@ void main(){
   }
   shopRow(o){ return h('div',{key:o.key,'data-guide':o.guide||null,onClick:o.disabled?null:o.onClick,style:{display:'flex',flexDirection:'column',gap:8,padding:'16px 18px',borderBottom:'1px solid rgb(54,56,60)',cursor:o.disabled?'default':'pointer',opacity:(o.disabled||o.dim)?0.5:1}},
       h('div',{style:{display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8}},
-        this.catChip(o.cat,!!o.on),
+        o.eqTag?h('div',{style:{display:'flex',alignItems:'center',gap:6,minWidth:0}}, this.catChip(o.cat,!!o.on), this.eqTag()):this.catChip(o.cat,!!o.on),
         h('div',{style:{display:'flex',flexDirection:'row',gap:4,alignItems:'center',flexShrink:0}}, o.priceLabel!=null?this.shopPill(o.priceLabel,o.priceColor):null, o.countLabel!=null?this.shopPill(o.countLabel,'rgb(169,171,175)'):null, o.right||null)),
       h('div',{style:{display:'flex',flexDirection:'column',gap:4}},
         h('div',{style:{fontFamily:T.sans,fontSize:14,color:'rgb(234,235,238)'}}, o.name),
@@ -8877,8 +8905,8 @@ void main(){
   vendorSell(v){
     const groups=this.sellGroups(v);
     return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px',display:'flex',flexDirection:'column'}},
-      groups.length? groups.map(g=>{ const inst=g.rep; const eq=this.isEquipped(inst.uid); const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]; const md=this.eng.byId.module&&this.eng.byId.module[inst.id]; const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id]; const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
-        return this.shopRow({key:g.uids[0],guide:'sell-'+inst.id,cat,name:this.itemLabel(inst),desc:this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'',priceLabel:'SELL '+g.price.toLocaleString(),priceColor:'rgb(204,162,110)',countLabel:(this.en()?'Owned ':'소지 ')+String(g.total).padStart(2,'0'),onClick:()=>this.openSell(g),dim:eq}); })
+      groups.length? groups.map(g=>{ const inst=g.rep; const eq=this.isEquipped(inst.uid); const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]; const md=this.eng.byId.module&&this.eng.byId.module[inst.id]; const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id]; const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||(this.eng.byId.bag&&this.eng.byId.bag[inst.id])||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
+        return this.shopRow({key:g.uids[0],guide:'sell-'+inst.id,cat,name:this.itemLabel(inst),desc:this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'',priceLabel:'SELL '+g.price.toLocaleString(),priceColor:'rgb(204,162,110)',countLabel:(this.en()?'Owned ':'소지 ')+String(g.total).padStart(2,'0'),onClick:()=>this.openSell(g),dim:eq,eqTag:eq}); })
         : this.emptyRow(this.en()?'No items to sell.':'판매 가능한 아이템이 없습니다.'));
   }
   healCost(){ if(this.storyFreeOnce('heal')) return 0; return Math.max(0, Math.ceil((this.gs.maxHp - this.gs.hp) * this.eng.N(this.eng.DATA.config.heal_cost_per_hp, 2))); }
