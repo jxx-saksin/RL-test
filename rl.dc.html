@@ -17,7 +17,7 @@
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jacquarda+Bastarda+9&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Diphylleia&family=Turret+Road:wght@800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jacquarda+Bastarda+9&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Diphylleia&family=Big+Shoulders+Display:wght@800&display=swap" rel="stylesheet">
 <style>
   /* 타이틀급 전용 폰트(2026-10-15) — 210 지상낙원(Monotype · 유료). ⚠️로컬 파일을 직접 서빙하는 건 개발용이다:
      Monotype Create+Deploy는 웹 사용을 Monotype 호스팅으로만 허용한다(셀프 호스팅 금지). 이 파일은 커밋·배포 금지
@@ -236,8 +236,8 @@ const T = {
   dur:'oklch(0.740 0.012 250)', bleed:'oklch(0.640 0.120 28)', stun:'oklch(0.800 0.090 88)',
   pierce:'oklch(0.700 0.055 232)', rupture:'oklch(0.660 0.090 330)',
   mono:"'IBM Plex Mono',monospace", sans:"'IBM Plex Sans KR',sans-serif",
-  npc:"'Diphylleia','IBM Plex Sans KR',serif",
-  title:"'210 Jisangnagwon','IBM Plex Sans KR',sans-serif"   // NPC 대사·교신(무전) 전용 — 디필레이아(400 단일 · OFL · 2026-10-15 함렛에서 교체)
+  npc:"'Diphylleia','IBM Plex Sans KR',serif",   // NPC 대사·교신(무전) 전용 — 디필레이아(400 단일 · OFL · 2026-10-15 함렛에서 교체)
+  title:"'210 Jisangnagwon','IBM Plex Sans KR',sans-serif"   // 타이틀급 KR — 실제로는 구운 글자 이미지(ttx)가 그린다. 이 값은 이미지가 없을 때의 폴백(웹폰트 없음 → IBM Plex)
 };
 // 스탯 증감 색 — 아이템 카드와 같은 관례. 전투 화면의 버프 표시(공속·받는 피해)도 이걸 쓴다.
 // (2026-08-31 이전엔 공속 증가만 파랑 #7CA5BB였다 — 소모품 버프가 붙으면서 카드 쪽으로 통일했다.)
@@ -449,7 +449,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 98;
+const TITLE_VER = 99;
 const TITLE_DATE = '1015';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -1913,8 +1913,8 @@ class Component extends DCLogic {
   // 화면 헤더 — svg/header-default.svg 기준(402 스테이지). 높이 90 고정 · 좌우 24 · 하단 헤어라인.
   // 키커/타이틀/재화칩은 절대배치 = SVG 좌표 그대로(키커 cap 27, 타이틀 글리프 45.7~60, 칩 y24~51).
   // opts.hairline===false → 하단 헤어라인 없음(전투 화면: 배경 아트가 헤더 바로 아래에서 시작한다)
-  // 타이틀급 글자 폰트 — KR = 210 지상낙원(400) · EN = Turret Road ExtraBold(800). 사용자가 스크린샷으로 지정한 곳만 쓴다(menu-font-decision).
-  titleF(){ return this.en()? {fontFamily:"'Turret Road',"+T.sans,fontWeight:800} : {fontFamily:T.title,fontWeight:400}; }
+  // 타이틀급 글자 폰트 — KR = 210 지상낙원(400 · 구운 이미지 ttx) · EN = Big Shoulders Display ExtraBold(800 · OFL · 10-15 Turret Road에서 교체). 사용자가 스크린샷으로 지정한 곳만 쓴다(menu-font-decision).
+  titleF(){ return this.en()? {fontFamily:"'Big Shoulders Display',"+T.sans,fontWeight:800} : {fontFamily:T.title,fontWeight:400}; }
   // ===== 타이틀급 한글 = 구운 글자 이미지 (2026-10-15) =====
   // 지상낙원은 웹 셀프 호스팅이 금지라 otf를 못 올린다 → tools/bake-title-text.py가 단어마다 흰 글자를 아틀라스로 굽고,
   // 여기서 단어를 이어 붙여 CSS 마스크로 깐다(바탕 = currentColor → 호출부의 color가 그대로 먹는다).
