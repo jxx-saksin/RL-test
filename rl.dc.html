@@ -45,6 +45,7 @@
   @keyframes rlPrism{from{background-position:0 0}to{background-position:60px 0}}
   @keyframes rlPrismShine{0%{transform:translateX(-130%)}45%,100%{transform:translateX(140%)}}
   @keyframes rlGlowGold{0%,100%{box-shadow:0 0 6px rgba(214,178,112,0.08),inset 0 0 10px rgba(214,178,112,0.025),0 14px 44px rgba(0,0,0,.5)}50%{box-shadow:0 0 16px rgba(214,178,112,0.17),inset 0 0 18px rgba(214,178,112,0.055),0 14px 44px rgba(0,0,0,.5)}}
+  @keyframes rlGlowVar{0%,100%{box-shadow:0 0 6px rgba(var(--gc),0.08),inset 0 0 10px rgba(var(--gc),0.025),0 14px 44px rgba(0,0,0,.5)}50%{box-shadow:0 0 16px rgba(var(--gc),0.17),inset 0 0 18px rgba(var(--gc),0.055),0 14px 44px rgba(0,0,0,.5)}}   /* 강화 재료 = 귀중품 rlGlowGold와 같은 호흡, 색만 --gc(재료색 r,g,b) */
   @keyframes rlGlowSilver{0%,100%{box-shadow:0 0 6px rgba(206,212,220,0.06),inset 0 0 10px rgba(206,212,220,0.02),0 14px 44px rgba(0,0,0,.5)}50%{box-shadow:0 0 16px rgba(206,212,220,0.14),inset 0 0 18px rgba(206,212,220,0.045),0 14px 44px rgba(0,0,0,.5)}}
   @keyframes rlToastOut{from{opacity:1}to{opacity:0}}
   @keyframes rlCharge{from{width:0}to{width:100%}}
@@ -449,7 +450,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 99;
+const TITLE_VER = 100;
 const TITLE_DATE = '1015';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -699,6 +700,7 @@ class Component extends DCLogic {
     try{
       const eng = await import('./engine.js?v=val88');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val48');
+      import('./hitfx.js?v=hfx1').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -1187,6 +1189,15 @@ class Component extends DCLogic {
     clearTimeout(this._fxT1); this._fxT1=setTimeout(()=>{ if(this.combat===c && c.fx && c.fx.seq===seq){ c.fx=null; this.forceUpdate(); } }, 460);   // 플래시류는 fill-mode가 없어 끝나면 되살아난다 — 제때 걷는다
     setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, 520);   // 카드 효과 창(0.5s)이 닫힐 때 한 번 다시 그린다
     clearTimeout(this._fxT2); this._fxT2=setTimeout(()=>{ if(this.combat===c){ c.fxs=(c.fxs||[]).filter(f=>Date.now()-f.at<(f.life||800)); this.forceUpdate(); } }, 820);
+    // 파티클 레이어(hitfx.js) — 기존 연출(숫자·플래시·흔들림·크리 노랑) 위에 얹는다. 분류: 기계/유기체(짐승·인간·내 카드·PvP)/감염체.
+    //   파티클 단계는 크리 여부와 무관하게 한 방 비중만 본다(크리 표현은 기존 노랑 연출 그대로). 처치 일격은 최소 중단계.
+    if(this.hfx && (ln.type==='hit'||ln.type==='crit')){ try{
+      const el=this._cardEl&&this._cardEl[target];
+      if(el && el.isConnected){
+        const r=el.getBoundingClientRect(), isM=target==='monster', artH=isM?Math.min(114,r.height):r.height;
+        const cat=isM?String(((this.eng.byId.monster[(c.mProf||{}).id])||{}).Category||''):'';
+        this.hfx.burst({ x:r.left+r.width*(0.25+Math.random()*0.5), y:r.top+artH*(0.2+Math.random()*0.55), type:cat==='Machine'?0:(cat==='Infected'?2:1), tier:Math.max(kill?1:0, share>=0.35?2:(share>=0.15?1:0)) });
+      } }catch(e){} }
     if(typeof navigator!=='undefined' && navigator.vibrate){ try{ if(tier===2) navigator.vibrate([0,80,45,90]); else if(tier===1) navigator.vibrate(70); else if(ln.type==='hit') navigator.vibrate(50); }catch(e){} }
   }
   finishCombat(){
@@ -1443,6 +1454,12 @@ class Component extends DCLogic {
   vaultCap(){ return this.eng.vaultCap? this.eng.vaultCap(this.gs) : 40; }
   vaultUsed(){ return this.gs.vault.filter(x=>!this.isQuestId(x.id)).length; }   // 퀘스트 전용 아이템(Category=Quest)은 칸을 차지하지 않는다(사용자 2026-10-12)
   isQuestId(id){ return String(((this.eng.byId.item||{})[id]||{}).Category||'')==='Quest'; }
+  // 강화 재료 카드 색 = 재료 소재 색(확장_v3 §3.7-10b 표 · 아트 기준) — 귀중품의 금빛 자리를 대신한다(10-15).
+  //   무기 속성: 압전 노랑 · 사파이어 적색 · 다이아 은청 · 빙정 청록 · 형상기억 회백 / 방어구 재질: 아라미드 주황 · 그래핀 연두 · 실리카 보라
+  enhMatColor(id){ const k=String(id||'').replace(/^enh_[wa][12]_/,'');
+    const M={stun:['#F2C230','#F3E2A6'],bleed:['#D8423A','#EDB3AC'],pierce:['#8FB6D9','#D5E4F1'],rupture:['#3CC6C0','#B4E9E5'],none:['#C9CCD1','#ECEEF1'],
+      fabric:['#F08A2C','#F5C9A0'],synth:['#8FD14F','#D3EDB5'],metal:['#A27BE0','#D7C6F3']};
+    const c=M[k]||M.none; return {c:c[0], t:c[1], rgb:[1,3,5].map(i=>parseInt(c[0].substr(i,2),16)).join(',')}; }
   isEnhMatId(id){ return String(((this.eng.byId.item||{})[id]||{}).Category||'')==='Enhance'; }   // 강화 재료(Item.Category=Enhance) — 아트가 카드 대부분을 차지하는 틀(퀘스트 아이템 카드와 같은 342x442) · ID 접두로 판정하지 않는다(인계 메모)
   vaultRoom(){ return Math.max(0, this.vaultCap()-this.vaultUsed()); }
   // id를 qty개 넣을 때 **새로 생기는 칸 수**. 기존 묶음의 빈자리부터 채우므로 0일 수도 있다.
@@ -2490,7 +2507,8 @@ class Component extends DCLogic {
     const stn0=(this.combat&&this.combat.stuns&&this.combat.stuns[side])||null, stn=(stn0&&Date.now()<stn0.end)?stn0:null;
     const atk=((this.combat&&this.combat.fxs)||[]).filter(f=>f.attacker===side&&Date.now()-f.at<220).pop();   // 이 카드가 방금 때렸다면 앞으로 내민다
     const nums=((this.combat&&this.combat.fxs)||[]).filter(f=>f.target===side&&Date.now()-f.at<(f.life||800));
-    return h('div',{ref:el=>{ if(el && atk && el._lg!==atk.seq){ el._lg=atk.seq; el.style.setProperty('--lg',(side==='player'?-1:1)*atk.lunge+'px'); el.style.animation='none'; void el.offsetWidth; el.style.animation='rlLunge .16s ease-out'; } },style:{position:'relative'}},
+    return h('div',{ref:el=>{ if(el){ (this._cardEl=this._cardEl||{})[side]=el; }   // 타격 파티클(hitfx)이 이 카드 위치를 읽는다
+      if(el && atk && el._lg!==atk.seq){ el._lg=atk.seq; el.style.setProperty('--lg',(side==='player'?-1:1)*atk.lunge+'px'); el.style.animation='none'; void el.offsetWidth; el.style.animation='rlLunge .16s ease-out'; } },style:{position:'relative'}},
       h('div',{key:'afs',style:{position:'absolute',inset:0,pointerEvents:'none'}}, ...((fx&&fx.type==='miss')?[[14,0],[-22,0.06]].map(([ax,dl],i)=>h('div',{key:'af'+i+'_'+fx.seq,style:{position:'absolute',inset:0,border:'1px solid rgba(234,235,238,.5)',background:'rgba(234,235,238,.07)',borderRadius:6,pointerEvents:'none','--ax':ax+'px',opacity:0,animation:'rlAfter .4s ease-out '+dl+'s both'}})):[])),
       h('div',{key:'nums',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9}}, ...nums.map(fx=> fx.dot ? h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.rx*100)+'%',top:(fx.ry*100)+'%',zIndex:9,pointerEvents:'none',opacity:0,whiteSpace:'nowrap',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,color:'#B8322D',fontSize:Math.max(12,Math.round(this.hitNumSize(fx)*0.78)),textShadow:'0 2px 8px rgba(0,0,0,.8)',animation:'rlBNum .8s ease-in forwards'}}, '-'+Math.round(fx.dmg)) : h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:(fx.type==='miss'?50:(fx.rx!=null?fx.rx*100:50))+'%',top:(fx.type==='miss'?40:(fx.ry!=null?fx.ry*100:12))+'%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:fx.type==='miss'?'#EAEBEE':(fx.crit?'#FFD24A':(fx.weak?'#D79BD0':'#FF6A5A')),fontSize:fx.type==='miss'?36:this.hitNumSize(fx),textShadow:fx.cp?'0 0 10px rgba(255,210,74,.9), 0 2px 9px rgba(0,0,0,.75)':(fx.expo?'0 0 8px #7CA5BB, 0 0 3px #7CA5BB, 0 2px 9px rgba(0,0,0,.75)':'0 2px 9px rgba(0,0,0,.75)'),animation:(fx.type==='miss'?'rlMiss .7s':(fx.cp?(fx.cp.lin>0.3?('rlSlamL '+(0.8+0.7*fx.cp.lin).toFixed(2)+'s'):(fx.cp.big>0.45?'rlSlam .8s':('rlCritPop '+(0.66*(1-0.25*fx.cp.snap)).toFixed(2)+'s'))):((fx.tier===2)?'rlCritPop .66s':'rlDmgFloat .6s')))+' ease-out forwards'}},
         (fx.crit||fx.tier===2)
@@ -2868,7 +2886,7 @@ class Component extends DCLogic {
     size(); raf=requestAnimationFrame(loop);
   }
   // 귀중품 카드 이펙트 — Scanner(세로 스윕 밴드) raw WebGL2 · 아트 위 lighten · 사용자 확정값 2026-10-12 · detach 시 정지+컨텍스트 회수
-  mountValScan(canvas){
+  mountValScan(canvas,cols){   // cols = [주색, 보조색, 하이라이트] — 없으면 귀중품 금빛
     if(!canvas || canvas._vsc) return; canvas._vsc=true;
     let gl; try{ gl=canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:true,antialias:false}); }catch(_){}
     if(!gl){ canvas._vsc=false; return; }
@@ -2882,7 +2900,7 @@ class Component extends DCLogic {
     const hx=c=>[parseInt(c.slice(1,3),16)/255,parseInt(c.slice(3,5),16)/255,parseInt(c.slice(5,7),16)/255];
     const C={speed:0.69,sweepSpeed:0.27,sweepWidth:1.65,sweepFalloff:1.1,scale:1.05,frequency:2.55,ripple:0.41,bandDensity:5,lineSharpness:3.3,glow:0.44,colorSpread:0.75,brightness:1,contrast:1.11,softness:3.5,vignette:0.61,opacity:0.65};
     for(const k in C) f('u'+k[0].toUpperCase()+k.slice(1),C[k]);
-    f('uDirection',0); gl.uniform3fv(u('uColor1'),hx('#FF8800')); gl.uniform3fv(u('uColor2'),hx('#E5C3A4')); gl.uniform3fv(u('uColor3'),hx('#FFFFFF'));
+    f('uDirection',0); const SC=cols||['#FF8800','#E5C3A4','#FFFFFF']; gl.uniform3fv(u('uColor1'),hx(SC[0])); gl.uniform3fv(u('uColor2'),hx(SC[1])); gl.uniform3fv(u('uColor3'),hx(SC[2]));
     let raf=null; const t0=performance.now();
     const dprW=()=>Math.round((canvas.clientWidth||342)*Math.min(window.devicePixelRatio||1,2));
     const size=()=>{const dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.max(1,Math.round((canvas.clientWidth||342)*dpr));canvas.height=Math.max(1,Math.round((canvas.clientHeight||190)*dpr));gl.viewport(0,0,canvas.width,canvas.height);gl.uniform2f(u('iResolution'),canvas.width,canvas.height);};
@@ -4469,10 +4487,12 @@ void main(){
   questCardBig(inst,fixed,opt){
     const it=this.eng.byId.item[inst.id]||{}; const o=opt||{};
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', SUB='#A5ACB2', HI='#EAEBEE', MUT='#4B4D52';
-    return h('div',{style:{position:'relative',width:342,height:fixed?this.lootCardH(inst):'100%',boxSizing:'border-box',background:C1,border:'1px solid rgba(206,212,220,0.23)',borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlGlowSilver 4.8s ease-in-out infinite'}},
+    const em=this.isEnhMatId(inst.id)? this.enhMatColor(inst.id) : null;   // 강화 재료 = 귀중품과 같은 효과(테두리·호흡 빛·스캐너), 색만 재료색
+    return h('div',{style:{position:'relative',width:342,height:fixed?this.lootCardH(inst):'100%',boxSizing:'border-box',background:C1,border:'1px solid '+(em?'rgba('+em.rgb+',0.28)':'rgba(206,212,220,0.23)'),...(em?{'--gc':em.rgb}:{}),borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:em?'rlGlowVar 4.8s ease-in-out infinite':'rlGlowSilver 4.8s ease-in-out infinite'}},
       h('div',{style:{position:'relative',height:316,flexShrink:0,overflow:'hidden',background:'#0F1013'}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
         h('img',{key:'qart',draggable:false,src:'assets/art/items/'+inst.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',pointerEvents:'none',WebkitUserDrag:'none'}}),
+        em? h('canvas',{key:'escan'+inst.id,ref:el=>this.mountValScan(el,[em.c,em.t,'#FFFFFF']),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',mixBlendMode:'lighten'}}) : null,   // 귀중품 Scanner와 같은 셰이더 · 재료색
         o.tunnel===false? null : h('canvas',{key:'qtun',ref:el=>this.mountQuestTunnel(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',mixBlendMode:'lighten'}}),
         h('div',{style:{position:'absolute',left:0,right:0,bottom:0,height:80,background:'linear-gradient(180deg, rgba(24,25,29,0) 0%, #18191D 100%)'}}),
         h('div',{style:{position:'absolute',left:17,right:17,bottom:12,display:'flex',alignItems:'center',justifyContent:'space-between'}},
@@ -7715,6 +7735,7 @@ void main(){
     const n=Math.min(5,this.eng.enhLevel(inst)); if(n>=5) return {color:'#FFFFFF',k:1,prism:1};
     if(n>0) return {color:({1:'#E2E4E8',2:'#F2F5F9',3:'#E8B97F',4:'#F28B7C'})[n],k:1,prism:0};
     if(this.eng.byId.valuable&&this.eng.byId.valuable[inst.id]) return {color:'#E3C48A',k:0.9,prism:0};
+    if(this.isEnhMatId(inst.id)) return {color:this.enhMatColor(inst.id).t,k:0.9,prism:0};   // 강화 재료 = 귀중품과 같은 세기 · 재료색(밝은 쪽)
     return {color:'#A9ABAF',k:0.55,prism:0}; }
   mountShine(canvas,spec){
     if(!canvas) return; canvas._spec=spec; if(canvas._sh) return;
