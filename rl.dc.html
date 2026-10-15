@@ -22,7 +22,7 @@
   /* 타이틀급 전용 폰트(2026-10-15) — 210 지상낙원(Monotype · 유료). ⚠️로컬 파일을 직접 서빙하는 건 개발용이다:
      Monotype Create+Deploy는 웹 사용을 Monotype 호스팅으로만 허용한다(셀프 호스팅 금지). 이 파일은 커밋·배포 금지
      (prototype/.git/info/exclude) — 배포 전에 Monotype 웹 프로젝트의 호스팅 CSS로 이 블록을 바꾼다. 파일이 없으면 IBM Plex로 떨어진다. */
-  @font-face{font-family:'210 Jisangnagwon';src:url('assets/fonts/210JisangnagwonRegular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap;ascent-override:90%;descent-override:10%}
+  /* 210 지상낙원 = @font-face 없음(웹 셀프 호스팅 금지) → 타이틀급 한글은 구운 글자 이미지(ttx · tools/bake-title-text.py) */
   /* ↑ 세로 정렬 보정: 이 폰트의 한글 글리프는 기준선~0.79em에 몰려 있는데 메트릭은 ascent 0.79/descent 0.21이라
      줄 상자 안에서 글자가 위로 ~0.11em 떠 보였다(24px에서 2.7px). 위아래 여백을 같게 맞춘 값이다(2026-10-15 실측). */
   html,body{margin:0;padding:0;background:oklch(0.120 0.005 264);}
@@ -202,6 +202,10 @@
   .rlGlitch::before,.rlGlitch::after{content:attr(data-t);position:absolute;left:0;top:0;width:100%;overflow:hidden;white-space:inherit;pointer-events:none;clip-path:inset(0 0 100% 0)}
   .rlGlitch::before{color:rgba(196,103,93,.8);animation:rlGSlA 5.3s steps(1) infinite;animation-delay:inherit}
   .rlGlitch::after{color:rgba(124,165,187,.8);animation:rlGSlB 6.7s steps(1) infinite;animation-delay:inherit}
+  .rlGlitchI::before,.rlGlitchI::after{display:none}
+  .rlGI{position:absolute;left:0;top:0;pointer-events:none;clip-path:inset(0 0 100% 0)}
+  .rlGIA{color:rgba(196,103,93,.8);animation:rlGSlA 5.3s steps(1) infinite;animation-delay:inherit}
+  .rlGIB{color:rgba(124,165,187,.8);animation:rlGSlB 6.7s steps(1) infinite;animation-delay:inherit}
   @keyframes rlGJit{0%{transform:none;opacity:1}2%{transform:translateX(-3px)}2.6%{transform:translateX(2px)}3.2%{transform:none}58%{transform:none;opacity:1}58.6%{transform:translateX(4px);opacity:.55}59.2%{transform:translateX(-2px)}59.8%{transform:none;opacity:1}}
   @keyframes rlGSlA{0%{clip-path:inset(0 0 100% 0);transform:none}20%{clip-path:inset(15% 0 55% 0);transform:translateX(-6px)}21%{clip-path:inset(60% 0 10% 0);transform:translateX(4px)}22%{clip-path:inset(0 0 100% 0);transform:none}70%{clip-path:inset(35% 0 40% 0);transform:translateX(7px)}71.5%{clip-path:inset(0 0 100% 0);transform:none}}
   @keyframes rlGSlB{0%{clip-path:inset(0 0 100% 0);transform:none}35%{clip-path:inset(50% 0 20% 0);transform:translateX(5px)}36%{clip-path:inset(10% 0 70% 0);transform:translateX(-7px)}37.2%{clip-path:inset(0 0 100% 0);transform:none}85%{clip-path:inset(65% 0 5% 0);transform:translateX(-4px)}86.2%{clip-path:inset(0 0 100% 0);transform:none}}
@@ -281,7 +285,7 @@ const ENH_FIBERS = { glowColor:'#2f5bff', lineColor:'', speed:0.07, scale:3.7, r
 // 강화 뒷면 흔들림 5종(키프레임 · 길이 · 감속) — 강화마다 무작위로 하나
 // 길이 1.5~3.5초(2026-10-15) — 스캔 대기는 흔들림이 끝날 때까지 늘어난다(enFxStart).
 const ENH_SHAKES = { wild:['rlEnhShakeWild','2.2s','linear'], soft:['rlEnhShakeSoft','3.5s','ease-in-out'], double:['rlEnhShakeDouble','2.6s','linear'], tremor:['rlEnhShakeTremor','3s','linear'], jolt:['rlEnhShakeJolt','1.5s','linear'] };
-const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Valuable:'귀중품', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Enhance:'강화 재료', Data:'데이터', DataTech:'데이터', Trade:'거래소', Blueprint:'디스크' };
+const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Valuable:'귀중품', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Enhance:'강화', Data:'데이터', DataTech:'데이터', Trade:'거래소', Blueprint:'디스크' };
 // 몬스터 아트 보유 목록 — 레이드 로딩 배경 랜덤 픽 판정용(assets/art/monsters/*.webp). 아트 추가 시 갱신.
 // 존 배경 아트 경로. ★같은 파일명으로 **교체된** 아트는 여기에 ?v=를 적어 브라우저 캐시를 끊는다
 // (배포 시 index V만 올리면 html/js만 갱신되고 이미지는 옛 것이 남는다 — 2026-09-15 mall·houses 교체).
@@ -445,7 +449,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 97;
+const TITLE_VER = 98;
 const TITLE_DATE = '1015';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -700,6 +704,7 @@ class Component extends DCLogic {
       eng.setLang(savedLang); this.lang=savedLang;
       window.addEventListener('pointerdown', ()=>this.hideToast(), true);  // 토스트: 아무 데나 터치 → 즉시 소멸
       this._dataPromise = this.loadData().catch(()=>{}); // 데이터는 스플래시 대기 중 백그라운드 로드
+      this.loadTT();                                       // 타이틀급 한글 글자 이미지 목록(실패해도 글자로 폴백)
       this.setState({ ready:false, splash:true });        // "탭하여 시작" 스플래시
     }catch(e){ console.error('engine load failed', e); this.setState({ ready:true, err:String(e) }); }
   }
@@ -1910,9 +1915,38 @@ class Component extends DCLogic {
   // opts.hairline===false → 하단 헤어라인 없음(전투 화면: 배경 아트가 헤더 바로 아래에서 시작한다)
   // 타이틀급 글자 폰트 — KR = 210 지상낙원(400) · EN = Turret Road ExtraBold(800). 사용자가 스크린샷으로 지정한 곳만 쓴다(menu-font-decision).
   titleF(){ return this.en()? {fontFamily:"'Turret Road',"+T.sans,fontWeight:800} : {fontFamily:T.title,fontWeight:400}; }
+  // ===== 타이틀급 한글 = 구운 글자 이미지 (2026-10-15) =====
+  // 지상낙원은 웹 셀프 호스팅이 금지라 otf를 못 올린다 → tools/bake-title-text.py가 단어마다 흰 글자를 아틀라스로 굽고,
+  // 여기서 단어를 이어 붙여 CSS 마스크로 깐다(바탕 = currentColor → 호출부의 color가 그대로 먹는다).
+  // 목록에 없는 단어가 하나라도 있으면 문구 통째로 글자(IBM Plex) 폴백 — 시트에 새 이름이 생기면 다시 굽는다.
+  // 줄 상자: 이미지 높이 = fs(예전 @font-face ascent 90%·descent 10%와 같은 1em) · lh = 호출부 line-height(px, 생략 = fs).
+  async loadTT(){ try{ const r=await fetch('data/title-atlas.json',{cache:'no-cache'}); if(!r.ok) return; const tt=await r.json();
+    Object.values(tt.tiers).forEach(t=>t.pages.forEach(p=>{ const u='assets/title/'+p.f+'?v='+tt.v; p.url="url('"+u+"')"; const im=new Image(); im.src=u; }));
+    this._tt=tt; this.setState({ttV:tt.v}); }catch(_){ } }
+  ttRun(text,fs,lh){ const tt=this._tt; if(!tt||this.en()||typeof text!=='string'||!text.trim()) return null;
+    const S=tt.tiers.S, L=tt.tiers.L, big=fs>18&&L;
+    const pick=(w)=>(big&&L.m[w])?[L,L.m[w]]:(S.m[w]?[S,S.m[w]]:null);
+    const parts=[];   // [tier, entry] 또는 ' '(띄어쓰기)
+    for(const w of text.split(' ')){
+      if(parts.length) parts.push(' ');
+      if(!w) continue;
+      const one=pick(w); if(one){ parts.push(one); continue; }
+      if(/^[0-9×+]+$/.test(w)&&[...w].every(c=>S.m[c])){ [...w].forEach(c=>parts.push([S,S.m[c]])); continue; }   // ×3 · 숫자는 글자 단위로 붙여 쓴다
+      return null; }
+    const sp=S.space*fs/S.h; let gap=0; const kids=[];
+    parts.forEach((pt,i)=>{ if(pt===' '){ gap+=sp; return; }
+      const t=pt[0], e=pt[1], k=fs/t.h, pg=t.pages[e[0]], sz=(pg.w*k)+'px '+(pg.h*k)+'px', ps=(-e[1]*k)+'px '+(-e[2]*k)+'px';
+      kids.push(h('span',{key:i,style:{display:'block',flex:'0 0 auto',width:e[3]*k,height:fs,marginLeft:kids.length?gap:0,background:'currentColor',
+        WebkitMaskImage:pg.url,maskImage:pg.url,WebkitMaskSize:sz,maskSize:sz,WebkitMaskPosition:ps,maskPosition:ps,WebkitMaskRepeat:'no-repeat',maskRepeat:'no-repeat'}}));
+      gap=0; });
+    if(!kids.length) return null;
+    const L0=(lh==null?fs:lh);
+    return h('span',{role:'img','aria-label':text,style:{display:'inline-flex',verticalAlign:'top',height:fs,marginTop:(L0-fs)/2,whiteSpace:'nowrap',lineHeight:0}}, ...kids); }
+  // 글자 자리에 넣는다 — 이미지가 있으면 이미지, 없으면 원문 그대로(호출부의 titleF 폰트로 그려진다).
+  ttx(text,fs,lh){ return this.ttRun(text,fs,lh)||text; }
   screenTitle(kicker,title,right,opts){ return h('div',{style:{position:'relative',height:90,flex:'0 0 auto',boxSizing:'border-box',borderBottom:(opts&&opts.hairline===false)?'none':'1px solid #36383C'}},
     h('div',{style:{position:'absolute',left:24,top:25,right:right?150:24,fontFamily:T.mono,fontSize:10,lineHeight:'10px',letterSpacing:'.14em',color:(opts&&opts.kickerColor)||'#4B4D52',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.eng.t(kicker)),
-    h('div',{style:{position:'absolute',left:24,top:44,right:right?150:24,...this.titleF(),fontSize:16,lineHeight:'16px',color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.eng.t(title)),
+    h('div',{style:{position:'absolute',left:24,top:44,right:right?150:24,...this.titleF(),fontSize:16,lineHeight:'16px',color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.ttx(this.eng.t(title),16)),
     right?h('div',{style:{position:'absolute',right:24,top:24,height:27,display:'flex',alignItems:'center'}}, right):null); }
 
   // ===== 전투 화면 공통 (svg/screen-battle-*.svg · screen-loot-*.svg · 402x828) =====
@@ -2045,7 +2079,7 @@ class Component extends DCLogic {
       h('button',{onClick:onBack,'data-guide':'shop-back',style:{position:'absolute',left:18,top:24,width:28,height:28,padding:0,borderRadius:8,border:'none',background:'rgba(10,11,14,0.6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
         h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'#EAEBEE',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}, h('path',{key:'p',d:'M14.5 5l-7 7 7 7'}))),
       h('div',{style:{position:'absolute',right:19,top:25,height:27,display:'flex',alignItems:'center'}}, this.currencyChips()),
-      h('div',{style:{position:'absolute',left:24,top:62,...this.titleF(),fontSize:16,lineHeight:'16px',color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap'}}, title));
+      h('div',{style:{position:'absolute',left:24,top:62,...this.titleF(),fontSize:16,lineHeight:'16px',color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap'}}, this.ttx(title,16)));
   }
   // 전투 화면 헤더 — 본체는 screenTitle과 동일 규격이지만 배경 위에 올라가므로 #111315 불투명 판을 깐다.
   battleHeader(kicker,title,right,opts){
@@ -2163,7 +2197,7 @@ class Component extends DCLogic {
             h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#A9ABAF'}}, this.en()?'No access':'접근 금지')),
           // 하단 줄 — 아트 위 · 이름(왼쪽)과 잡 아이콘(오른쪽)의 세로 중심 = 카드 바닥에서 36(시안 실측)
           h('div',{style:{position:'absolute',left:0,right:0,bottom:0,height:72,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 17px 0 17px'}},
-            h('span',{style:{...this.titleF(),fontSize:36,lineHeight:'36px',color:this.hideoutOpen()?'#EAEBEE':'#6F7276'}}, this.t('hide_title')),
+            h('span',{style:{...this.titleF(),fontSize:36,lineHeight:'36px',color:this.hideoutOpen()?'#EAEBEE':'#6F7276'}}, this.ttx(this.t('hide_title'),36)),
             this.hideoutOpen()? this.hideJobIcons() : null,
             this.hideoutOpen()? null : !this.storyHideOpen()
               ? h('span',{style:{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',padding:'0 9px',borderRadius:6,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.35)',fontFamily:T.sans,fontSize:12,color:'#A9ABAF',whiteSpace:'nowrap'}}, this.t('shop_locked'))   // 온보딩 잠김 = 상점 행과 같은 [잠김]
@@ -2182,7 +2216,7 @@ class Component extends DCLogic {
               h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(17,19,21,0.20) 0%, rgba(17,19,21,0.94) 100%)'}}),
               // ★우측 여백 16 = 보더 1 + 패딩 15. 좌측은 17(목업 텍스트 x33.6 = 16+1+17)로 비대칭이 맞다.
               h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 15px 0 17px'}},
-                h('span',{style:{...this.titleF(),fontSize:24,lineHeight:'24px',color:open?'#EAEBEE':'#6F7276',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.shopName(v.ShopID,v)),
+                h('span',{style:{...this.titleF(),fontSize:24,lineHeight:'24px',color:open?'#EAEBEE':'#6F7276',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.ttx(this.shopName(v.ShopID,v),24)),
                 // 우측 슬롯 — 신규/진행중/완료 칩 3종(개수 포함). 목업 screen-shop-list-v2.svg.
                 // ★Quest 서비스가 없는 상점(온라인 키오스크)은 통째로 숨긴다 — 0/0/0 회색 칩 3개는 거짓 정보다(사용자 결정).
                 open
@@ -2226,7 +2260,7 @@ class Component extends DCLogic {
             h('div',{style:{position:'absolute',inset:0,borderRadius:8,background:sc.locked?'linear-gradient(180deg, rgba(24,25,29,.55), rgba(24,25,29,.92))':'linear-gradient(180deg, rgba(24,25,29,0) 0%, rgb(24,25,29) 100%)'}}),
             h('div',{style:{position:'absolute',left:16,right:16,bottom:16}},
               h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:6}},
-                h('span',{style:{...this.titleF(),fontSize:32,lineHeight:'32px',color:sc.locked?T.mid:T.hi}}, sc.name),   // 도시 카드 이름 32(2026-10-15)
+                h('span',{style:{...this.titleF(),fontSize:32,lineHeight:'32px',color:sc.locked?T.mid:T.hi}}, this.ttx(sc.name,32)),   // 도시 카드 이름 32(2026-10-15)
                 sc.locked?this.chip(this.t('zone_locked'),T.faint):(active?this.chip(this.t('common_selected'),T.good):null)),
               h('div',{style:{fontFamily:T.mono,fontSize:10.5,color:'#b5b5b5',lineHeight:1.35}}, sc.locked?this.t('zone_sealed_msg'):this.cityDesc(i))),
             sc.locked?h('div',{style:{position:'absolute',top:12,right:12}}, icLock(16,T.faint)):null); })),
@@ -2239,7 +2273,7 @@ class Component extends DCLogic {
           return h('div',{key:z.ZoneID,'data-guide':'zone-'+z.ZoneID,onClick:off?null:()=>this.setState({modalZone:z}),
             style:{padding:'16px 0',borderTop:i>0?'1px solid '+T.line:'none',cursor:off?'default':'pointer',opacity:(off&&!zl)?0.35:1,display:'flex',flexDirection:'column',gap:4}},
             h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}},
-              h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'18px',color:zl?'#6F7276':T.hi}}, zl? this.glitchText(this.tx(z,'ZoneName'),i) : this.tx(z,'ZoneName')),
+              h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'18px',color:zl?'#6F7276':T.hi}}, zl? this.glitchText(this.tx(z,'ZoneName'),i,18) : this.ttx(this.tx(z,'ZoneName'),18)),
               h('div',{style:{display:'flex',gap:4,alignItems:'center',flexShrink:0}},
                 zl? this.figPill(this.t('common_locked'),'#6F7276') : null,
                 (!zl&&this.isPvpZone(z))?this.figPill('PVP','rgb(196,103,93)'):null,
@@ -2249,7 +2283,10 @@ class Component extends DCLogic {
     );
   }
   // 잠금 존 글리치 글자(.rlGlitch) — data-t = 복제용 원문 · 행(seed)마다 시작 시점을 흩어 동시에 튀지 않게 한다.
-  glitchText(txt,seed){ return h('span',{className:'rlGlitch','data-t':txt,style:{animationDelay:(-((seed*2.37)%6.2)).toFixed(2)+'s'}}, txt); }
+  glitchText(txt,seed,fs,lh){ const dl=(-((seed*2.37)%6.2)).toFixed(2)+'s';
+    const run=fs?this.ttRun(txt,fs,lh):null;   // 구운 글자면 ::before/::after(글자 복제) 대신 실제 사본 2벌에 같은 띠 애니메이션
+    if(run) return h('span',{className:'rlGlitch rlGlitchI',style:{animationDelay:dl}}, run, h('span',{className:'rlGI rlGIA'}, this.ttRun(txt,fs,lh)), h('span',{className:'rlGI rlGIB'}, this.ttRun(txt,fs,lh)));
+    return h('span',{className:'rlGlitch','data-t':txt,style:{animationDelay:dl}}, txt); }
   zoneBar(label,val,max,pct,color){ return h('div',null,
     h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:6}}, h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.5px',color:'rgb(111,114,118)'}},label), h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.5px',color:'rgb(169,171,175)'}}, val+' / '+max)),
     h('div',{style:{height:6,borderRadius:1,background:'rgb(43,46,50)',overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:color}}))); }
@@ -2279,7 +2316,7 @@ class Component extends DCLogic {
         h('div',{style:{height:104,borderRadius:8,background:'url('+zoneArt(z.ZoneID)+') 50% 35% / cover no-repeat, #111315'}}),   // 아트 없는 존은 단색 — 옛 zone-banner 폴백 제거(2026-09-08)
         h('div',{style:{display:'flex',flexDirection:'column',gap:8}},
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}},
-            h('span',{style:{...this.titleF(),fontSize:24,lineHeight:'24px',color:T.hi}}, this.tx(z,'ZoneName')),   // 존 팝업 이름 24(2026-10-15)
+            h('span',{style:{...this.titleF(),fontSize:24,lineHeight:'24px',color:T.hi}}, this.ttx(this.tx(z,'ZoneName'),24)),   // 존 팝업 이름 24(2026-10-15)
             h('div',{style:{display:'flex',gap:4,alignItems:'center',flexShrink:0}}, this.isPvpZone(z)?this.figPill('PVP','rgb(196,103,93)'):null, hidden?this.figPill('LOCKED','rgb(204,162,110)'):null)),
           h('span',{style:{fontFamily:T.sans,fontSize:12,color:'rgb(111,114,118)',lineHeight:1.5}}, this.tx(z,'Description')||((this.t('frag_loot_tendency')+' ')+this.zoneLine(z)))),
         h('div',{style:{display:'flex',flexDirection:'column',gap:12}},
@@ -2490,7 +2527,7 @@ class Component extends DCLogic {
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',marginRight:'-1.33px',color:gcol,whiteSpace:'nowrap'}}, String(prof.grade).toUpperCase())); })():null) : null,
       h('div',{style:{padding:'11px 13px'}},
         h('div',{style:{display:'flex',alignItems:'center',gap:7,marginBottom:8}},
-          h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'18px',color:T.hi,flex:'0 1 auto',minWidth:0,maxWidth:'55%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, isMonster?prof.name:this.t('common_me')),
+          h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'18px',color:T.hi,flex:'0 1 auto',minWidth:0,maxWidth:'55%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, this.ttx(isMonster?prof.name:this.t('common_me'),18)),
           h('div',{style:{flex:1}}),
           ...this.statusIcons(isMonster?'monster':'player'),
           ...(isMonster?[]:this.buffChips()),
@@ -3123,7 +3160,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
         h('span',{style:{position:'absolute',right:15,bottom:15,zIndex:4,fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:SUB,whiteSpace:'nowrap'}}, 'STA −'+m.staminaCost+' · '+this.t('combat_time_limit')+' '+m.timeLimit+'s')),
       // BODY 214
       h('div',{style:{height:245,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
-        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, m.name)),   // 몬스터 카드 이름 = 타이틀 폰트 18(2026-10-15)
+        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.ttx(m.name,18,20.4))),   // 몬스터 카드 이름 = 타이틀 폰트 18(2026-10-15)
         h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('stat_hp')),
           h('div',{style:{height:6,flexGrow:1,borderRadius:999,overflow:'hidden',background:ART}}, h('div',{style:{height:6,borderRadius:999,background:HPC,width:'100%'}})),
@@ -3173,7 +3210,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:HI,whiteSpace:'nowrap'}}, 'USER')),
         h('span',{style:{position:'absolute',left:14,bottom:14,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, this.t('common_me'))),
       h('div',{style:{minHeight:245,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
-        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.t('common_me'))),   // 플레이어 상세 카드 = 몬스터 카드와 같은 18
+        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.ttx(this.t('common_me'),18,20.4))),   // 플레이어 상세 카드 = 몬스터 카드와 같은 18
         h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('stat_hp')),
           h('div',{style:{height:6,flexGrow:1,borderRadius:999,overflow:'hidden',background:ART}}, h('div',{style:{height:6,borderRadius:999,background:HPC,width:pct+'%'}})),
@@ -3194,7 +3231,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     const rows = isM
       ? [[this.t('stat_atk'),Math.round(prof.minAtk)+'–'+Math.round(prof.maxAtk)],[this.t('stat_def'),String(Math.round(prof.defense))],[this.t('stat_atk_speed'),prof.atkSpeed.toFixed(2)],[this.t('stat_crit_resist'),Math.round(prof.critResist)],[this.t('stat_status_resist'),Math.round(prof.statusResist)],[this.t('stat_potency'),Math.round(prof.potency)],[this.t('item_material_type'), this.eng.materialLabel(md.Material)||'—'],[this.t('combat_time_limit'), prof.timeLimit+'s']]
       : [[this.t('stat_atk'),Math.round(prof.minAtk)+'–'+Math.round(prof.maxAtk)],[this.t('stat_def'),String(Math.round(prof.defense))],[this.t('stat_atk_speed'),prof.atkSpeed.toFixed(2)],[this.t('stat_accuracy'),Math.round(prof.accuracy)+'%'],[this.t('stat_evasion'),Math.round(prof.evasion)+'%'],[this.t('stat_crit_chance'),Math.round(prof.critChance)+'%'],[this.t('stat_crit_resist'),Math.round(prof.critResist)+'%'],[this.t('stat_status_resist'),Math.round(prof.statusResist)+'%']];
-    const card = this.tiltCard(isM? (c.pvp? this.userFront(prof) : this.monsterFront(prof,true,true)) : this.playerFront(prof,true));   // 전투 중 상세 카드도 자이로 기울기
+    const card = this.tiltCard(isM? (c.pvp? this.userFront(prof) : this.monsterFront(prof,true,true)) : this.playerFront(prof,true));   // 전투 중 상세 카드도 테두리 빛 순환
     // 두고 온 전리품 되찾기 — 몬스터 카드에만. 전투 중에는 보이되 **비활성**(기능의 존재를 알린다).
     // 버튼은 카드에 붙이지 않고 **하단 박스 표준**을 그대로 쓴다(전리품 리빌 화면과 같은 규격).
     const lootOn=(c.phase==='won' && (c.lootLeft||[]).length>0);
@@ -3342,7 +3379,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
         h('div',{style:{position:'absolute',left:0,bottom:0,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgb(24,25,29) 100%)'}}),
         h('span',{style:{position:'absolute',left:15,bottom:13,fontFamily:T.mono,fontSize:10,letterSpacing:'0.8px',color:col}}, ok?(this.en()?'SUCCESS':'성공'):(this.en()?'FAILED':'실패'))),
       h('div',{style:{padding:'13px 15px',display:'flex',flexDirection:'column'}},
-        h('div',{style:{...this.titleF(),fontSize:17,lineHeight:'20.4px',color:'rgb(234,235,238)'}}, ok?(this.en()?'Escaped':'도주 성공'):(this.en()?'Escape Failed':'도주 실패')),
+        h('div',{style:{...this.titleF(),fontSize:17,lineHeight:'20.4px',color:'rgb(234,235,238)'}}, this.ttx(ok?(this.en()?'Escaped':'도주 성공'):(this.en()?'Escape Failed':'도주 실패'),17,20.4)),
         h('div',{style:{padding:'8px 0',fontFamily:T.mono,fontSize:10.5,color:'rgb(75,77,82)'}}, ok?(this.en()?'Slip away with what you carry.':'가진 것을 들고 빠져나간다.'):(this.en()?'Combat is imminent, brace yourself.':'곧 전투에 돌입한다, 준비하자.'))));
   }
   fleeCardScreen(){
@@ -3384,7 +3421,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
             h('div',{style:{position:'absolute',left:0,bottom:0,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgb(24,25,29) 100%)'}}),
             h('span',{style:{position:'absolute',left:15,bottom:13,fontFamily:T.mono,fontSize:10,letterSpacing:'0.8px',color:col}}, ok?(this.en()?'SUCCESS':'성공'):(this.en()?'FAILED':'실패'))),
           h('div',{style:{padding:'13px 15px',display:'flex',flexDirection:'column'}},
-            h('div',{style:{...this.titleF(),fontSize:17,lineHeight:'20.4px',color:'rgb(234,235,238)'}}, title),   // 액션 카드(도주 성공·실패) 제목 = 타이틀 폰트
+            h('div',{style:{...this.titleF(),fontSize:17,lineHeight:'20.4px',color:'rgb(234,235,238)'}}, this.ttx(title,17,20.4)),   // 액션 카드(도주 성공·실패) 제목 = 타이틀 폰트
             h('div',{style:{padding:'8px 0',fontFamily:T.mono,fontSize:10.5,color:'rgb(75,77,82)'}}, sub)))),
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
         h('div',{style:{background:'rgb(24,25,29)',borderRadius:16,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:24,display:'flex',flexDirection:'column',gap:16}},
@@ -3587,7 +3624,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
         h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         h('span',{style:{position:'absolute',left:15,bottom:13,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, this.t('search_failed_cat'))),
       h('div',{style:{height:64,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
-        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{...this.titleF(),fontSize:17,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.t('search_failed_title'))),
+        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{...this.titleF(),fontSize:17,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.ttx(this.t('search_failed_title'),17,20.4))),
         h('div',{style:{height:30,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'8px 0',display:'flex',alignItems:'center'}}, h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:MUT,whiteSpace:'nowrap'}}, this.t('search_failed_desc')))),
       h('div',{style:{width:340,height:60,flexShrink:0,boxSizing:'border-box',borderRight:'1px solid '+LN,borderBottom:'1px solid '+LN,borderLeft:'1px solid '+LN}}));
   }
@@ -3601,7 +3638,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
         h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         h('span',{style:{position:'absolute',left:15,bottom:13,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:GOOD,whiteSpace:'nowrap'}}, this.t('kicker_escape'))),
       h('div',{style:{height:64,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
-        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{...this.titleF(),fontSize:17,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.t('combat_flee_success'))),
+        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{...this.titleF(),fontSize:17,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.ttx(this.t('combat_flee_success'),17,20.4))),
         h('div',{style:{height:30,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'8px 0',display:'flex',alignItems:'center'}}, h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:MUT,whiteSpace:'nowrap'}}, this.t('combat_escaped')))),
       h('div',{style:{width:340,height:60,flexShrink:0,boxSizing:'border-box',borderRight:'1px solid '+LN,borderBottom:'1px solid '+LN,borderLeft:'1px solid '+LN}}));
   }
@@ -4392,7 +4429,7 @@ void main(){
           h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:SUB}}, 'UPLOAD · '+mins+' MIN'))),
       h('div',{style:{alignSelf:'stretch',flexGrow:1,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start',minHeight:0}},
         h('div',{style:{minHeight:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}},
-          h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:HI}}, this.itemLabel(inst)+((inst.qty||1)>1?' ×'+inst.qty:''))),   // USB 데이터 카드 이름도 상세 카드와 같은 타이틀 폰트
+          h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:HI}}, this.ttx(this.itemLabel(inst)+((inst.qty||1)>1?' ×'+inst.qty:''),18,20.4))),   // USB 데이터 카드 이름도 상세 카드와 같은 타이틀 폰트
         desc?h('div',{style:{alignSelf:'stretch',flexShrink:0,padding:'8px 0 2px',fontFamily:T.sans,fontSize:12.5,lineHeight:1.5,color:SUB}}, desc):null,
         h('div',{style:{height:28,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'15px 0',display:'flex',alignItems:'flex-start'}}, h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:MUT}}, 'EFFECT')),
         h('div',{style:{alignSelf:'stretch',flexShrink:0}}, ...rows.map((st,i)=>cell(st[0],st[1],i))),
@@ -4425,7 +4462,7 @@ void main(){
           h('span',{style:{fontFamily:T.sans,fontSize:10.5,color:SUB}}, this.t('item_disk')),
           h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.08em',color:SUB}}, 'INSTALL '+mins+'MIN'))),
       h('div',{style:{padding:'17px 17px 0',display:'flex',flexDirection:'column',gap:12}},
-        h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20px',color:HI}}, this.itemLabel(inst)),
+        h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20px',color:HI}}, this.ttx(this.itemLabel(inst),18,20)),
         h('span',{style:{fontFamily:T.sans,fontSize:12,lineHeight:1.6,color:MUT}}, this.tx(bp,'Description'))));
   }
   // 퀘스트 아이템 카드 = 해금·설명서 카드 틀(아트 316 · 72%) + 아트 위 LightTunnel(mountQuestTunnel) — 사용자 2026-10-12 "아트 비중이 더 커야"
@@ -4442,7 +4479,7 @@ void main(){
           h('span',{style:{fontFamily:T.sans,fontSize:10.5,color:SUB}}, o.cat||this.t('item_questitem')),
           h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.08em',color:SUB}}, 'MAX STACK '+this.maxStack(inst.id)))),
       h('div',{style:{padding:'17px 17px 0',display:'flex',flexDirection:'column',gap:12}},
-        h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20px',color:HI}}, this.itemLabel(inst)),
+        h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20px',color:HI}}, this.ttx(this.itemLabel(inst),18,20)),
         h('span',{style:{fontFamily:T.sans,fontSize:12,lineHeight:1.6,color:MUT}}, this.tx(it,'Description'))));
   }
   // 키카드 카드 = 프레임/텍스트 없이 아트 풀블리드(assets/art/cards/<id>.webp). 정보는 인벤 분류로 충분.
@@ -4469,7 +4506,7 @@ void main(){
     if(this.isKeycard(inst)) return this.keycardBig(inst,fixed);
     if(this.isBlueprint(inst)) return this.blueprintBig(inst,fixed);
     if(this.isQuestId(inst.id)&&mask!=='?') return this.questCardBig(inst,fixed);
-    if(this.isEnhMatId(inst.id)&&mask!=='?') return this.questCardBig(inst,fixed,{cat:this.en()?'Enhancement Material':'강화 재료',tunnel:false});
+    if(this.isEnhMatId(inst.id)&&mask!=='?') return this.questCardBig(inst,fixed,{cat:this.en()?'Enhance':'강화',tunnel:false});
     const artP=fixed?{height:190,flexShrink:0}:{flex:'1 1 auto',minHeight:60};
     // 미감정 라벨도 미리보기에선 가린다 — 제작 전엔 '무엇이 감정 대상인지'조차 알 수 없다.
     // 제작 미리보기(mask==='?')는 **값을 전부** 가린다 — maskNum은 숫자만 바꾸므로
@@ -4550,7 +4587,7 @@ void main(){
         h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center'}},
           h('span',{style:{display:'inline-flex',alignItems:'center',gap:8,minWidth:0}},
             h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap',display:'inline-block',
-              animation:(this._statFx&&this._statFx.uid===inst.uid&&this._statFx.rolling)?'rlEnhJit .18s steps(1) infinite':'none'}}, this.itemLabel(inst)+((inst.qty||1)>1?' ×'+inst.qty:'')),   // 상세 카드 이름 = 타이틀 폰트 18 · 강화 굴림 중엔 태그와 함께 떨린다
+              animation:(this._statFx&&this._statFx.uid===inst.uid&&this._statFx.rolling)?'rlEnhJit .18s steps(1) infinite':'none'}}, this.ttx(this.itemLabel(inst)+((inst.qty||1)>1?' ×'+inst.qty:''),18,20.4)),   // 상세 카드 이름 = 타이틀 폰트 18 · 강화 굴림 중엔 태그와 함께 떨린다
             mask==='?'? null : this.enhTag(inst,true))),   // 강화 단계 [+N] — 0강은 없음
         (!(isGear||isAcc)&&desc)?h('div',{style:{alignSelf:'stretch',flexShrink:0,padding:'8px 0 2px',fontFamily:T.sans,fontSize:12.5,lineHeight:1.5,color:SUB}}, desc):null,
         (isGear||isAcc)?h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
@@ -4578,7 +4615,7 @@ void main(){
       (isGear||isAcc)?h('div',{style:{alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'3px 15px 16px',display:'flex',alignItems:'flex-start'}},
         h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:1.5,color:desc?SUB:MUT,maxWidth:'100%'}}, desc||this.t('item_desc_label'))):null);
   }
-  catKey(cat){ const map={Weapon:'item_slot_weapon',Head:'item_head',Body:'item_body',Medicine:'item_medicine',Food:'item_food',Junk:'item_junk',Valuable:'item_quest',Quest:'item_questitem',Key:'item_key',Accessory:'item_accessory',Talisman:'item_talisman',Bag:'item_bag',USB:'usb_decode',Material:'item_material_type',Blueprint:'item_disk'}; if(cat==='Enhance') return this.en()?'Enhancement':'강화 재료';   // UIString 행 없음 — 원문이 그대로 통과한다
+  catKey(cat){ const map={Weapon:'item_slot_weapon',Head:'item_head',Body:'item_body',Medicine:'item_medicine',Food:'item_food',Junk:'item_junk',Valuable:'item_quest',Quest:'item_questitem',Key:'item_key',Accessory:'item_accessory',Talisman:'item_talisman',Bag:'item_bag',USB:'usb_decode',Material:'item_material_type',Blueprint:'item_disk'}; if(cat==='Enhance') return this.en()?'Enhance':'강화';   // UIString 행 없음 — 원문이 그대로 통과한다
     return map[cat]||cat; }
 
   // ===== 루팅 관리 화면 (프리뷰 · 임시 디버그 진입) =====
@@ -5042,7 +5079,7 @@ void main(){
     const seg=this.state.seg, filter=this.state.filter;
     this.tutoTick(seg);   // 튜토리얼 팝업 — 탭이 바뀐 첫 렌더에서만 걸린다(다음 틱 실행)
     const list=(seg==='vault'?this.gs.vault:this.gs.bag);
-    const cats=[['전체','common_all'],['무기','item_weapon'],['방어구','item_armor_body'],['가방','item_bag'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['징표','item_talisman'],['술','item_liquor'],['모듈','item_module'],['데이터','item_data'],['귀중품','item_quest']];
+    const cats=[['전체','common_all'],['무기','item_weapon'],['방어구','item_armor_body'],['가방','item_bag'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['징표','item_talisman'],['술','item_liquor'],['모듈','item_module'],['강화','item_enhance'],['데이터','item_data'],['귀중품','item_quest']];
     cats.push(['퀘스트','item_questitem']);   // 퀘스트 전용 아이템(챕터3 1번 · 칸 수에 안 셈)
     const catOf=(inst)=>{ if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]) return '술'; if(this.eng.byId.module&&this.eng.byId.module[inst.id]) return '모듈'; if(this.eng.byId.usb&&this.eng.byId.usb[inst.id]) return '데이터'; const s=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||(this.eng.byId.bag&&this.eng.byId.bag[inst.id]); if(!s) return ''; return CATKR[s.Category]||s.Category; };
     // ★'방어구' 칩 하나가 투구·갑옷을 함께 담는다. 예전 '갑옷' 칩은 Body만 잡아
@@ -5061,7 +5098,7 @@ void main(){
       // 소지품=슬롯 3섹션(belongings) · 금고=필터칩+리스트(기존)
       seg==='bag'? this.belongings(catOf) : h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
         h('div',{style:{display:'flex',gap:6,padding:'12px 18px',overflowX:'auto',flex:'0 0 auto'}},
-          ...cats.map(([id,lk])=>h('button',{key:id,'data-guide':'vcat-'+id,onClick:()=>this.setState({filter:id}),style:{flex:'0 0 auto',background:filter===id?'rgb(43,46,50)':'transparent',border:'1px solid '+(filter===id?'rgb(74,77,83)':'rgb(54,56,60)'),color:filter===id?'rgb(234,235,238)':'rgb(111,114,118)',fontFamily:T.mono,fontSize:11,padding:'5px 11px',borderRadius:999,cursor:'pointer',whiteSpace:'nowrap'}},this.t(lk)))),
+          ...cats.map(([id,lk])=>h('button',{key:id,'data-guide':'vcat-'+id,onClick:()=>this.setState({filter:id}),style:{flex:'0 0 auto',background:filter===id?'rgb(43,46,50)':'transparent',border:'1px solid '+(filter===id?'rgb(74,77,83)':'rgb(54,56,60)'),color:filter===id?'rgb(234,235,238)':'rgb(111,114,118)',fontFamily:T.mono,fontSize:11,padding:'5px 11px',borderRadius:999,cursor:'pointer',whiteSpace:'nowrap'}},lk==='item_enhance'?this.tOr(lk,this.en()?'Enhance':'강화'):this.t(lk)))),   // item_enhance = UIString 행 없음 → 폴백
         // 당겨서 정리 — 클리퍼(overflow:hidden) 안에서 리스트만 내려가고 그 위로 힌트가 드러난다.
         h('div',Object.assign({style:{flex:1,position:'relative',overflow:'hidden',overscrollBehavior:'contain',userSelect:'none',WebkitUserSelect:'none',WebkitTouchCallout:'none'}}, this.vtHandlers()),
           h('div',{key:'vthint',ref:el=>{this._vtHint=el;},style:{position:'absolute',left:0,right:0,top:0,height:90,
@@ -5529,7 +5566,7 @@ void main(){
       h('div',{style:{flex:1,margin:'16px 16px 16px',background:'#18191D',border:'1px solid #36383C',borderRadius:8,overflowY:'auto',padding:'14px 14px 110px'}},
         h('div',{style:{height:104,borderRadius:8,overflow:'hidden',marginBottom:16,background:'linear-gradient(180deg, oklch(0.30 0.01 264) 0%, oklch(0.19 0.008 264) 100%)'}}),
         h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:3}},
-          h('span',{style:{...this.titleF(),fontSize:17,color:T.hi}}, this.en()?'Player':'플레이어'),
+          h('span',{style:{...this.titleF(),fontSize:17,color:T.hi}}, this.ttx(this.en()?'Player':'플레이어',17)),
           h('span',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,cursor:'pointer'}}, this.en()?'Edit':'수정')),
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.08em',color:T.faint,marginBottom:16}}, 'UUID:129038712374'),
         h('div',{style:{display:'flex',flexDirection:'column',gap:12,marginBottom:18}}, this.bar(this.t('stat_hp'),g.hp,g.maxHp,T.hp), this.bar(this.t('stat_stamina'),g.sta,this.staMax,T.sta)),
@@ -5542,7 +5579,7 @@ void main(){
             const gtb=this.eng.growthMultiplier(g,k)-this.eng.N(this.eng.DATA.config.growth_tag_mult_base,0.5);   // 표기 규약 = 위 GROWTH_CHIP 주석
             return h('div',{key:k},
               h('div',{onClick:()=>this.setState({statPop:k}),style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,cursor:'pointer'}},
-                h('div',{style:{display:'inline-flex',alignItems:'center',gap:5,...this.titleF(),fontSize:14,color:T.hi}}, kr,
+                h('div',{style:{display:'inline-flex',alignItems:'center',gap:5,...this.titleF(),fontSize:14,color:T.hi}}, this.ttx(kr,14),
                   h('img',{src:'assets/art/ui/ic_popup_info.webp',width:14,height:14,alt:'',style:{flexShrink:0,display:'block'}})),   // 누르면 statPopSheet — 2차 능력치 설명
                 gtb>0.001?h('span',{style:{fontFamily:T.mono,fontSize:11,color:'#7683F3',background:'#212327',borderRadius:4,padding:'3px 8px',lineHeight:'100%'}}, 'X'+(1+gtb).toFixed(1)):null),   // ★표시만 1.0 기준이다 — GROWTH_CHIP 참조
               h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:6}},
@@ -7040,7 +7077,7 @@ void main(){
         const x=this.eng.mkInstance(c.id,1); x.qty=1; x.locked=false; this._cardPopInst=x; }
       card=this.lootCardBig(this._cardPopInst,'fit');
     }
-    if(card) card=this.tiltCard(card, c.t==='m'? null : this._cardPopInst);   // 정보 카드 팝업도 자이로 기울기
+    if(card) card=this.tiltCard(card, c.t==='m'? null : this._cardPopInst);   // 정보 카드 팝업도 테두리 빛 순환
     if(!card) return null;
     const close=()=>this.setState({cardPop:null});
     return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.82)',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',zIndex:36,animation:'rlFade .18s',cursor:'pointer'}},
@@ -7301,7 +7338,7 @@ void main(){
       h('div',{style:{position:'absolute',inset:0,backgroundImage:'linear-gradient(180deg,rgba(17,19,21,0.45) 0%,rgba(17,19,21,0.10) 40%,rgba(17,19,21,0.93) 100%), url('+art+')',backgroundSize:'cover',backgroundPosition:'center 42%',filter:fOpen?'none':'grayscale(1)'}}),
       h('div',{style:{position:'relative',height:'100%',boxSizing:'border-box',padding:'12px 17px 8.5px 17px',display:'flex',flexDirection:'column'}},
         h('div',{style:{display:'flex',alignItems:'flex-start',justifyContent:'space-between'}},
-          h('span',{style:{marginLeft:1,...this.titleF(),fontSize:24,color:fOpen?'#EAEBEE':'#6F7276',lineHeight:'24px'}}, nm),   // 시설 카드 이름 24(2026-10-15)
+          h('span',{style:{marginLeft:1,...this.titleF(),fontSize:24,color:fOpen?'#EAEBEE':'#6F7276',lineHeight:'24px'}}, this.ttx(nm,24)),   // 시설 카드 이름 24(2026-10-15)
           h('div',{style:{marginTop:-4.5,marginRight:-1}}, badge)),
         h('div',{style:{flex:1}}),
         body));
@@ -7417,7 +7454,7 @@ void main(){
       h('button',{onClick:onBack,'data-guide':'shop-back',style:{position:'absolute',left:18,top:24,width:28,height:28,padding:0,borderRadius:8,border:'none',background:'rgba(10,11,14,0.6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
         h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'#EAEBEE',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}, h('path',{key:'p',d:'M14.5 5l-7 7 7 7'}))),
       h('div',{style:{position:'absolute',right:19,top:25,height:27,display:'flex',alignItems:'center'}}, this.storageChips()),
-      h('div',{style:{position:'absolute',left:24,top:62,...this.titleF(),fontSize:16,lineHeight:'16px',color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap'}}, title));
+      h('div',{style:{position:'absolute',left:24,top:62,...this.titleF(),fontSize:16,lineHeight:'16px',color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap'}}, this.ttx(title,16)));
   }
   // ===== 업그레이드 시트 (svg/screen-hideout-general-upgrade1~4.svg) =====
   // 목업 실측(패널 x16 w370 · 1px #36383C · #18191D):
@@ -7671,9 +7708,9 @@ void main(){
   enhName(inst,label){ const lab=label!=null?label:this.itemLabel(inst); if(!inst||!this.eng.enhLevel(inst)) return lab;
     return h('span',{style:{display:'inline-flex',alignItems:'center',gap:6,maxWidth:'100%',verticalAlign:'middle'}},
       h('span',{style:{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0}}, lab), this.enhTag(inst)); }
-  // ===== 상세 카드 테두리 반사광 (SpecularButton 이식 · 2026-10-15) — 자이로로 카드가 기울면 기운 쪽 테두리에 빛 한 줄기(+맞은편 약하게)가 맺힌다.
+  // ===== 상세 카드 테두리 반사광 (SpecularButton 이식 · 2026-10-15) — 약 2초마다 테두리 한 곳에서 빛 한 줄기(+맞은편 약하게)가 켜져 테두리를 따라 미끄러지다 꺼진다.
   //   색 = 카드 테두리 색: 강화 +1~+4 단계 색 · +5 무지개(테두리를 따라 색이 흐름) · 귀중품 금빛 · 그 외(일반·미강화) 은은한 회색.
-  //   기울기가 없으면(PC·권한 거부) 그리지 않는다. 원본의 마우스 추적·누름 번쩍임·바닥 헤어라인은 뺐다. ★DOM 이탈 시 컨텍스트 회수(tiltReg 루프가 처리).
+  //   (처음엔 자이로 기울기를 따라 맺혔다 — 10-15 사용자 지시로 기울기 효과 삭제 → 시간 기반 순환.) ★DOM 이탈 시 컨텍스트 회수(tiltReg 루프가 처리).
   shineSpec(inst){ if(!inst) return {color:'#A9ABAF',k:0.55,prism:0};
     const n=Math.min(5,this.eng.enhLevel(inst)); if(n>=5) return {color:'#FFFFFF',k:1,prism:1};
     if(n>0) return {color:({1:'#E2E4E8',2:'#F2F5F9',3:'#E8B97F',4:'#F28B7C'})[n],k:1,prism:0};
@@ -7698,39 +7735,35 @@ void main(){
     let W=0,H=0,ratio=1;
     const resize=()=>{ const host=canvas.parentElement; if(!host) return; const w=host.offsetWidth, h=host.offsetHeight; if(w===W&&h===H) return; W=w; H=h; ratio=Math.min(window.devicePixelRatio||1,3);
       canvas.width=Math.max(1,Math.round((W+PAD*2)*ratio)); canvas.height=Math.max(1,Math.round((H+PAD*2)*ratio)); canvas.style.width=(W+PAD*2)+'px'; canvas.style.height=(H+PAD*2)+'px'; };
-    canvas._sh={ gl, draw:(tx,ty)=>{ resize(); if(!W||!H) return; const sp=canvas._spec||{color:'#A9ABAF',k:0.55,prism:0};
-      const m=Math.min(1,Math.hypot(tx,ty)); gl.viewport(0,0,canvas.width,canvas.height); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
-      if(m<0.03) return;   // 기울지 않았으면 안 보인다(PC·권한 거부 포함)
+    canvas._sh={ gl, draw:(spot,env)=>{ resize(); if(!W||!H) return; const sp=canvas._spec||{color:'#A9ABAF',k:0.55,prism:0};
+      gl.viewport(0,0,canvas.width,canvas.height); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
+      if(env<0.01) return;   // 쉬는 구간 = 안 보인다
       const sx=canvas.width/(W+PAD*2), sy=canvas.height/(H+PAD*2), hx=W/2, hy=H/2;
-      // 빛 위치 = 관찰자 쪽으로 다가온 테두리(rotateX(-y)면 위쪽 · rotateY(+x)면 왼쪽)
-      const dx=-tx/m, dy=ty/m, spot=loopPos(dx*hx*1.4, dy*hy*1.4, hx, hy, R);
       gl.useProgram(prog);
       gl.uniform2f(U.uCenter,(PAD+hx)*sx,(PAD+hy)*sy); gl.uniform2f(U.uHalf,hx*sx,hy*sy); gl.uniform1f(U.uRadius,R*sx); gl.uniform1f(U.uPx,ratio);
-      gl.uniform1f(U.uSpot,spot); gl.uniform2f(U.uEntry,dx*hx*0.65*sx,dy*hy*0.65*sy);
-      gl.uniform3fv(U.uLineColor,rgb(sp.color)); gl.uniform1f(U.uIntensity,sp.k*(0.35+0.65*Math.min(1,m*1.6))); gl.uniform1i(U.uPrism,sp.prism?1:0);
+      gl.uniform1f(U.uSpot,wrap(spot)); gl.uniform2f(U.uEntry,1e5,1e5);   // 안쪽 웅덩이 빛은 끈다(기울기 방향이 없으므로)
+      gl.uniform3fv(U.uLineColor,rgb(sp.color)); gl.uniform1f(U.uIntensity,sp.k*env); gl.uniform1i(U.uPrism,sp.prism?1:0);
       gl.uniform2f(U.uWindow,10/360,34/360+0.0001); gl.uniform1f(U.uThickness,1.2); gl.uniform1f(U.uGlow,1);
       gl.bindVertexArray(vao); gl.drawArrays(gl.TRIANGLES,0,3); gl.bindVertexArray(null); },
       free:()=>{ try{ const e=gl.getExtension('WEBGL_lose_context'); if(e) e.loseContext(); }catch(_){} canvas._sh=null; } };
   }
-  // ===== 상세 카드 자이로 기울기 (2026-10-15) — 상세 카드 팝업이 열려 있는 동안 폰 기울기를 따라 카드가 살짝(최대 ±6°) 기운다.
-  //   권한은 타이틀 시작(requestGyroPerm)에서 이미 받는다 → 여기선 요청하지 않는다. 이벤트가 안 오면(PC·거부) 가만히 둔다.
-  //   기준각 = 카드가 열린 뒤 첫 이벤트(어떻게 들고 있든 처음엔 똑바로). 래퍼만 기울인다(카드 내부 3D·filter 금지 규칙 유지).
-  //   ★명령형 transform이라 노드 재사용 함정(dc-imperative-style-leak) 방지: data-tilt가 사라지거나 DOM에서 빠진 노드는 transform을 비우고 놓는다.
+  // ===== 상세 카드 테두리 빛 순환 (2026-10-15) — 상세 카드 팝업이 열려 있는 동안 SHINE_CYCLE마다 빛 한 줄기가 테두리를 따라 지나간다.
+  //   ★자이로 기울기(카드가 따라 기울던 것)는 10-15 사용자 지시로 삭제. 이름(tiltCard/tiltReg)은 호출부 11곳 유지용.
+  //   주기(CYC 2초)마다 시작 위치를 무작위로 바꾸고, 켜지는 구간(ON 1.1초) 동안 둘레의 TRAVEL(32%)만큼 미끄러지며 사인 곡선으로 켜졌다 꺼진다.
   tiltCard(node,inst){ const spec=this.shineSpec(inst);
-    return h('div',{key:'tilt','data-tilt':'1',ref:el=>this.tiltReg(el),style:{position:'relative',transformOrigin:'50% 50%',willChange:'transform'}}, node,
+    return h('div',{key:'tilt','data-tilt':'1',ref:el=>this.tiltReg(el),style:{position:'relative'}}, node,
       h('canvas',{key:'shine','data-shine':'1',ref:c=>this.mountShine(c,spec),style:{position:'absolute',left:-24,top:-24,pointerEvents:'none',zIndex:9}})); }
-  tiltReg(el){ if(!el) return; const S=this._tilt||(this._tilt={els:new Set(),raf:0,cur:{x:0,y:0},tgt:{x:0,y:0},base:null,h:null});
-    if(S.els.has(el)) return; S.els.add(el);
-    if(!S.h){ S.base=null; S.h=(e)=>{ const g=e.gamma, b=e.beta; if(g==null||b==null) return; if(!S.base) S.base={g,b};
-        S.tgt.x=Math.max(-1,Math.min(1,(g-S.base.g)/20)); S.tgt.y=Math.max(-1,Math.min(1,(b-S.base.b)/20)); };
-      try{ window.addEventListener('deviceorientation',S.h,true); }catch(_){} }
-    if(!S.raf){ const MAX=6, loop=()=>{ S.raf=0;
+  tiltReg(el){ if(!el) return; const S=this._tilt||(this._tilt={els:new Set(),raf:0});
+    if(S.els.has(el)) return; S.els.add(el); el._t0=performance.now(); el._s0=Math.random();
+    if(!S.raf){ const CYC=2000, ON=1100, TRAVEL=0.32, loop=()=>{ S.raf=0;
         for(const e of [...S.els]){ if(!e.isConnected||e.getAttribute('data-tilt')!=='1'){ e.style.transform=''; const c=e.querySelector&&e.querySelector('canvas[data-shine]'); if(c&&c._sh&&!c.isConnected) c._sh.free(); S.els.delete(e); } }
-        if(!S.els.size){ try{ window.removeEventListener('deviceorientation',S.h,true); }catch(_){} S.h=null; S.base=null; S.cur={x:0,y:0}; S.tgt={x:0,y:0}; return; }
-        S.cur.x+=(S.tgt.x-S.cur.x)*0.12; S.cur.y+=(S.tgt.y-S.cur.y)*0.12;
-        const tf=(Math.abs(S.cur.x)<0.002&&Math.abs(S.cur.y)<0.002)? '' : 'perspective(900px) rotateX('+(-S.cur.y*MAX).toFixed(2)+'deg) rotateY('+(S.cur.x*MAX).toFixed(2)+'deg)';
-        for(const e of S.els){ if(e.style.transform!==tf) e.style.transform=tf; const c=e.lastElementChild; if(c&&c._sh&&(S._lx!==S.cur.x||S._ly!==S.cur.y||!c._drawn)){ c._sh.draw(S.cur.x,S.cur.y); c._drawn=1; } }
-        S._lx=S.cur.x; S._ly=S.cur.y;
+        if(!S.els.size) return;
+        const now=performance.now();
+        for(const e of S.els){ const c=e.lastElementChild; if(!c||!c._sh) continue;
+          const t=now-e._t0, k=Math.floor(t/CYC), f=(t%CYC)/ON;
+          if(e._k!==k){ e._k=k; e._s0=Math.random(); }   // 주기마다 새 위치
+          if(f>=1){ if(e._lit){ c._sh.draw(0,0); e._lit=0; } continue; }
+          const env=Math.sin(Math.PI*f); c._sh.draw(e._s0+TRAVEL*(1-Math.pow(1-f,2)), env); e._lit=1; }
         S.raf=requestAnimationFrame(loop); };
       S.raf=requestAnimationFrame(loop); } }
   // 연출 중 '보여줄' 단계 — 확정 전엔 강화 전 단계(카드 이펙트·태그가 결과를 미리 흘리지 않게)
@@ -7813,7 +7846,7 @@ void main(){
       h('span',{style:{fontFamily:T.sans,fontSize:13,color:B.MID}}, l), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col||B.HI}}, v));
     const body=[ B.kicker(this.en()?'ENHANCE':'강화'),
       h('div',{key:'n',style:{height:20,marginTop:8,display:'flex',alignItems:'center',gap:8}},
-        h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20px',color:B.HI,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
+        h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20px',color:B.HI,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.ttx(this.itemLabel(inst),18,20)),
         this.enhTagOne(lv+1,true)),   // 도전할 단계 태그(문구 대신)
       h('div',{key:'pr',style:{marginTop:16}},
         rowR(this.en()?'Success chance':'성공 확률', p+'%', 'p'),
@@ -8044,7 +8077,7 @@ void main(){
     const close=()=>{ this.enFxClear(); this.setState({enFx:null,enRes:null,enSel:null,enSheet:null}); };   // [닫기] = 강화 아이템 목록으로(2026-10-15)
     const body=[ B.kicker(this.en()?'RESULT':'강화 결과'),
       h('div',{key:'n',style:{height:20,marginTop:8,display:'flex',alignItems:'center',gap:8}},
-        h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20px',color:B.HI,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
+        h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20px',color:B.HI,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.ttx(this.itemLabel(inst),18,20)),
         this.enhTagOne(r.to||0,true)),   // 결과 단계 태그(0강이면 없음)
       h('div',{key:'rows',style:{marginTop:16}}, ...(keys.length? keys.map((k,i)=>{ const a=A.get(k), z=Z.get(k), up=nums(z)>=nums(a);
           return h('div',{key:k,style:{height:36,display:'flex',alignItems:'center',justifyContent:'space-between',borderTop:i?('1px solid '+B.LN):'none'}},
@@ -9417,8 +9450,8 @@ void main(){
         if(it.tail) Object.assign(st,{display:'flex',alignItems:'center',justifyContent:'center',gap:8});
         const pr={key:it.k,disabled:dis,onClick:dis?null:()=>onPick(it.k),style:st,'data-guide':it.guide||null};
         return it.tail
-          ? h('button',pr, h('span',{key:'l'}, it.label), h('span',{key:'t',style:{display:'flex'}}, it.tail))
-          : h('button',pr, it.label);
+          ? h('button',pr, h('span',{key:'l'}, this.ttx(it.label,16)), h('span',{key:'t',style:{display:'flex'}}, it.tail))
+          : h('button',pr, this.ttx(it.label,16));
       }));
   }
   shopRow(o){ return h('div',{key:o.key,'data-guide':o.guide||null,onClick:o.disabled?null:o.onClick,style:{display:'flex',flexDirection:'column',gap:8,padding:'16px 18px',borderBottom:'1px solid rgb(54,56,60)',cursor:o.disabled?'default':'pointer',opacity:(o.disabled||o.dim)?0.5:1}},
