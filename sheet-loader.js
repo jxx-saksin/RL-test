@@ -3,7 +3,7 @@
 // the same structure as the bundled data/game-data.js. CORS-enabled via the
 // gviz endpoint (works for link-shared sheets).
 
-import { DATA as BUNDLE } from './data/game-data.js?v=val40';
+import { DATA as BUNDLE } from './data/game-data.js?v=val41';
 
 // 탭 이름 → shape() 결과 필드. 선택 탭이 실패했을 때 번들 값으로 메꾸는 데 쓴다.
 const TAB_FIELD = { Config:'config', PrimaryStat:'primaryStats', SecondaryStat:'secondaryStats',
@@ -141,7 +141,7 @@ export function shape(rowsByTab) {
     weaponAttributes: toObjs(rowsByTab.WeaponAttribute).filter(r => String(r.AttributeID || '').trim()),
     weapons: pfx(toObjs(rowsByTab.Weapon), 'WeaponID', 'weapon_'),
     armor: pfx(toObjs(rowsByTab.Armor), 'ArmorID', 'armor_'),
-    items: pfx(toObjs(rowsByTab.Item), 'ItemID', 'item_'),
+    items: toObjs(rowsByTab.Item).filter(r => /^(item_|enh_)/.test(String(r.ItemID || ''))),   // 강화 재료(enh_*)도 Item 탭 행이다(2026-10-15 — item_만 받아 16종이 통째로 빠졌다)
     valuables: pfx(toObjs(rowsByTab.Valuable || []), 'ValuableID', 'item_'),
     monsters: pfx(toObjs(rowsByTab.Monster), 'MonsterID', 'monster_'),
     cities: pfx(toObjs(rowsByTab.City), 'CityID', 'city_'),

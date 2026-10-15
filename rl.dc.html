@@ -17,8 +17,14 @@
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jacquarda+Bastarda+9&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jacquarda+Bastarda+9&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Diphylleia&family=Turret+Road:wght@800&display=swap" rel="stylesheet">
 <style>
+  /* 타이틀급 전용 폰트(2026-10-15) — 210 지상낙원(Monotype · 유료). ⚠️로컬 파일을 직접 서빙하는 건 개발용이다:
+     Monotype Create+Deploy는 웹 사용을 Monotype 호스팅으로만 허용한다(셀프 호스팅 금지). 이 파일은 커밋·배포 금지
+     (prototype/.git/info/exclude) — 배포 전에 Monotype 웹 프로젝트의 호스팅 CSS로 이 블록을 바꾼다. 파일이 없으면 IBM Plex로 떨어진다. */
+  @font-face{font-family:'210 Jisangnagwon';src:url('assets/fonts/210JisangnagwonRegular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap;ascent-override:90%;descent-override:10%}
+  /* ↑ 세로 정렬 보정: 이 폰트의 한글 글리프는 기준선~0.79em에 몰려 있는데 메트릭은 ascent 0.79/descent 0.21이라
+     줄 상자 안에서 글자가 위로 ~0.11em 떠 보였다(24px에서 2.7px). 위아래 여백을 같게 맞춘 값이다(2026-10-15 실측). */
   html,body{margin:0;padding:0;background:oklch(0.120 0.005 264);}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   ::-webkit-scrollbar{width:0;height:0;}
@@ -164,6 +170,41 @@
   @keyframes rlColon{0%,49%{opacity:1}50%,100%{opacity:0}}
   /* 카드 삽입 직후 LCD 'LOADING' — 밝은 초록↔어두운 초록으로 점멸(1.5초 동안) */
   @keyframes rlLoadBlink{0%,49%{color:#30D322}50%,100%{color:#096E00}}
+  /* 레이드 존 목록 — 잠금 존 글리치(B안 슬라이스 · 2026-10-15). 글자가 가끔 좌우로 튀고, 빨강·파랑 가로 띠 잔상이 순간 지나간다.
+     .rlGlitch[data-t] = 원문을 ::before/::after로 복제해 clip-path 띠만 보인다. 주기를 길게 잡아 '가끔'만 나오게 한다
+     (흔들림 6.2s · 띠 5.3s/6.7s — 서로 맞지 않는 주기라 겹치는 타이밍이 매번 다르다). 행마다 animation-delay를 달리 준다. */
+  /* 강화 카드 이펙트·연출(2026-10-15 확정 · 메모리 enhancement-materials-concept) */
+  @property --rlA{syntax:'<angle>';inherits:false;initial-value:0deg}
+  @keyframes rlEnhSpin{to{--rlA:360deg}}
+  .rlEnhRing{position:absolute;inset:0;border-radius:7px;padding:1px;pointer-events:none;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+  .rlEnhTRing{position:absolute;inset:0;border-radius:4px;padding:1px;pointer-events:none;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+  .rlEnhSpin1{background:conic-gradient(from var(--rlA),rgba(204,162,110,0) 0deg,rgba(204,162,110,0) 250deg,rgba(255,214,150,.95) 330deg,rgba(204,162,110,0) 360deg);animation:rlEnhSpin 3.2s linear infinite}
+  .rlEnhSpinR{background:conic-gradient(from var(--rlA),rgba(196,103,93,0) 0deg,rgba(255,140,120,1) 40deg,rgba(196,103,93,0) 90deg,rgba(196,103,93,0) 180deg,rgba(255,140,120,1) 220deg,rgba(196,103,93,0) 270deg);animation:rlEnhSpin 2.4s linear infinite}
+  .rlEnhPrism{background:conic-gradient(from var(--rlA),#F4B3CB,#F3D7A2,#BFEFCB,#A6D9F3,#C8B3F2,#F4B3CB);animation:rlEnhSpin 3s linear infinite}
+  .rlEnhPText{background:linear-gradient(90deg,#F4B3CB 0px,#F3D7A2 12px,#BFEFCB 24px,#A6D9F3 36px,#C8B3F2 48px,#F4B3CB 60px);background-size:60px 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:rlPrism 4s linear infinite}
+  @keyframes rlEnhSweep{0%,55%{left:-60%}85%,100%{left:120%}}
+  @keyframes rlEnhSpark{0%{opacity:0;transform:translateY(0)}15%{opacity:.9}100%{opacity:0;transform:translateY(-120px)}}
+  /* +5 바깥 무지개 빛 — 카드 틀이 overflow:hidden이라 바깥 층을 못 띄운다 → 그림자 색을 무지개로 돌린다 */
+  @keyframes rlEnhPrismShadow{0%{box-shadow:0 14px 44px rgba(0,0,0,.5),0 0 18px 1px rgba(244,179,203,.45)}20%{box-shadow:0 14px 44px rgba(0,0,0,.5),0 0 24px 3px rgba(243,215,162,.55)}40%{box-shadow:0 14px 44px rgba(0,0,0,.5),0 0 18px 1px rgba(191,239,203,.45)}60%{box-shadow:0 14px 44px rgba(0,0,0,.5),0 0 24px 3px rgba(166,217,243,.55)}80%{box-shadow:0 14px 44px rgba(0,0,0,.5),0 0 18px 1px rgba(200,179,242,.45)}100%{box-shadow:0 14px 44px rgba(0,0,0,.5),0 0 18px 1px rgba(244,179,203,.45)}}
+  /* [+N] 태그 교체 글리치 — 옛 값이 떨리며 사라지고 새 값이 겹쳐 자리 잡는다(1회) */
+  @keyframes rlEnhGOut{0%{opacity:1;transform:none}10%{transform:translateX(-3px);text-shadow:2px 0 rgba(196,103,93,.8),-2px 0 rgba(124,165,187,.8)}20%{opacity:.4;transform:translateX(2px)}35%{opacity:.9;transform:translateX(-1px)}50%{opacity:.2;transform:translateX(3px)}65%{opacity:.6}80%,100%{opacity:0}}
+  @keyframes rlEnhGIn{0%{opacity:0}10%{opacity:.5;transform:translateX(3px);text-shadow:-2px 0 rgba(196,103,93,.8),2px 0 rgba(124,165,187,.8)}25%{opacity:.1}40%{opacity:.8;transform:translateX(-2px)}55%{opacity:.3;transform:translateX(1px)}70%{opacity:1;transform:translateX(-1px)}85%,100%{opacity:1;transform:none;text-shadow:none}}
+  @keyframes rlEnhScan{from{top:-60px}to{top:100%}}
+  @keyframes rlEnhShake{0%{transform:translateX(0)}12%{transform:translateX(-7px)}26%{transform:translateX(6px)}40%{transform:translateX(-5px)}54%{transform:translateX(4px)}68%{transform:translateX(-2px)}82%{transform:translateX(1px)}100%{transform:translateX(0)}}
+  /* 뒷면 흔들림 5종 — 강화마다 하나를 무작위로 고른다(enFxStart · ENH_SHAKES) */
+  @keyframes rlEnhShakeWild{0.0%{transform:none}3.0%{transform:scale(1.070)}7.4%{transform:translate(-20.0px,7.0px) rotate(-4.50deg) scale(1.050)}10.9%{transform:translate(18.5px,-3.9px) rotate(4.16deg) scale(1.046)}14.3%{transform:translate(-17.4px,3.6px) rotate(-3.90deg) scale(1.043)}17.8%{transform:translate(16.4px,-5.7px) rotate(3.68deg) scale(1.040)}21.2%{transform:translate(-15.4px,3.2px) rotate(-3.46deg) scale(1.038)}24.6%{transform:translate(14.5px,-3.0px) rotate(3.26deg) scale(1.035)}28.1%{transform:translate(-13.7px,4.8px) rotate(-3.07deg) scale(1.033)}31.5%{transform:translate(12.9px,-2.7px) rotate(2.88deg) scale(1.031)}35.0%{transform:translate(-12.1px,2.5px) rotate(-2.70deg) scale(1.029)}38.4%{transform:translate(11.3px,-3.9px) rotate(2.52deg) scale(1.026)}41.8%{transform:translate(-10.5px,2.2px) rotate(-2.34deg) scale(1.024)}45.3%{transform:translate(9.7px,-2.0px) rotate(2.17deg) scale(1.022)}48.7%{transform:translate(-9.0px,3.1px) rotate(-2.00deg) scale(1.020)}52.2%{transform:translate(8.3px,-1.7px) rotate(1.84deg) scale(1.018)}55.6%{transform:translate(-7.6px,1.6px) rotate(-1.68deg) scale(1.016)}59.0%{transform:translate(6.9px,-2.4px) rotate(1.52deg) scale(1.014)}62.5%{transform:translate(-6.2px,1.3px) rotate(-1.36deg) scale(1.013)}65.9%{transform:translate(5.5px,-1.1px) rotate(1.20deg) scale(1.011)}69.4%{transform:translate(-4.8px,1.7px) rotate(-1.05deg) scale(1.009)}72.8%{transform:translate(4.1px,-0.9px) rotate(0.90deg) scale(1.007)}76.2%{transform:translate(-3.5px,0.7px) rotate(-0.74deg) scale(1.005)}79.7%{transform:translate(2.8px,-1.0px) rotate(0.59deg) scale(1.004)}83.1%{transform:translate(-2.1px,0.4px) rotate(-0.45deg)}86.6%{transform:translate(1.5px,-0.3px) rotate(0.30deg)}100.0%{transform:none}}
+  @keyframes rlEnhShakeSoft{0.0%{transform:none}7.5%{transform:translate(-2.0px,0.0px)}12.9%{transform:translate(2.3px,-0.1px) rotate(0.07deg)}18.4%{transform:translate(-2.7px,0.1px) rotate(-0.13deg)}23.8%{transform:translate(3.0px,-0.3px) rotate(0.20deg)}29.3%{transform:translate(-3.3px,0.3px) rotate(-0.27deg)}34.7%{transform:translate(3.7px,-0.3px) rotate(0.33deg)}40.2%{transform:translate(-4.0px,0.7px) rotate(-0.40deg)}45.6%{transform:translate(4.3px,-0.5px) rotate(0.47deg)}51.1%{transform:translate(-4.7px,0.5px) rotate(-0.53deg)}56.5%{transform:translate(5.0px,-1.0px) rotate(0.60deg)}63.8%{transform:translate(-6.0px,1.0px) rotate(-0.80deg)}65.6%{transform:translate(6.7px,-0.8px) rotate(0.99deg) scale(1.002)}67.5%{transform:translate(-7.3px,1.0px) rotate(-1.18deg) scale(1.004)}69.3%{transform:translate(8.0px,-2.0px) rotate(1.37deg) scale(1.007)}71.1%{transform:translate(-8.7px,1.4px) rotate(-1.56deg) scale(1.009)}72.9%{transform:translate(9.3px,-1.6px) rotate(1.74deg) scale(1.011)}74.7%{transform:translate(-10.0px,3.0px) rotate(-1.93deg) scale(1.013)}76.5%{transform:translate(10.7px,-2.0px) rotate(2.12deg) scale(1.016)}78.4%{transform:translate(-11.3px,2.2px) rotate(-2.31deg) scale(1.018)}80.2%{transform:translate(12.0px,-4.0px) rotate(2.50deg) scale(1.020)}84.0%{transform:translate(-22.0px,6.0px) rotate(-5.00deg) scale(1.080)}87.0%{transform:translate(14.0px,-4.0px) rotate(3.20deg) scale(1.030)}90.0%{transform:translate(-7.0px,2.0px) rotate(-1.50deg) scale(1.010)}93.0%{transform:translate(3.0px,0.0px) rotate(0.60deg)}96.0%{transform:none}100.0%{transform:none}}
+  @keyframes rlEnhShakeDouble{0.0%{transform:none}2.0%{transform:translate(0.0px,-6.0px) scale(0.950)}5.0%{transform:translate(0.0px,8.0px) scale(1.070)}7.0%{transform:translate(-14.0px,4.0px) rotate(-3.50deg) scale(1.040)}10.0%{transform:translate(-12.0px,4.0px) rotate(-3.00deg) scale(1.030)}12.0%{transform:translate(10.6px,-2.1px) rotate(2.61deg) scale(1.026)}14.0%{transform:translate(-9.1px,1.8px) rotate(-2.23deg) scale(1.021)}16.0%{transform:translate(7.7px,-2.5px) rotate(1.84deg) scale(1.017)}18.0%{transform:translate(-6.3px,1.2px) rotate(-1.46deg) scale(1.013)}20.0%{transform:translate(4.9px,-0.9px) rotate(1.07deg) scale(1.009)}22.0%{transform:translate(-3.4px,1.0px) rotate(-0.69deg) scale(1.004)}24.0%{transform:translate(2.0px,-0.3px) rotate(0.30deg)}30.0%{transform:none}46.0%{transform:none}48.0%{transform:translate(0.0px,-6.0px) scale(0.950)}51.0%{transform:translate(0.0px,8.0px) scale(1.070)}53.0%{transform:translate(-14.0px,4.0px) rotate(-3.50deg) scale(1.040)}56.0%{transform:translate(-12.0px,4.0px) rotate(-3.00deg) scale(1.030)}58.0%{transform:translate(10.6px,-2.1px) rotate(2.61deg) scale(1.026)}60.0%{transform:translate(-9.1px,1.8px) rotate(-2.23deg) scale(1.021)}62.0%{transform:translate(7.7px,-2.5px) rotate(1.84deg) scale(1.017)}64.0%{transform:translate(-6.3px,1.2px) rotate(-1.46deg) scale(1.013)}66.0%{transform:translate(4.9px,-0.9px) rotate(1.07deg) scale(1.009)}68.0%{transform:translate(-3.4px,1.0px) rotate(-0.69deg) scale(1.004)}70.0%{transform:translate(2.0px,-0.3px) rotate(0.30deg)}100.0%{transform:none}}
+  @keyframes rlEnhShakeTremor{0.0%{transform:none}3.0%{transform:translate(-1.0px,0.3px)}4.9%{transform:translate(1.0px,-0.2px)}6.9%{transform:translate(-1.1px,0.2px)}8.9%{transform:translate(1.1px,-0.3px) rotate(0.03deg)}10.9%{transform:translate(-1.2px,0.2px) rotate(-0.04deg)}12.8%{transform:translate(1.2px,-0.2px) rotate(0.06deg)}14.8%{transform:translate(-1.3px,0.4px) rotate(-0.08deg)}16.8%{transform:translate(1.4px,-0.3px) rotate(0.10deg)}18.7%{transform:translate(-1.5px,0.3px) rotate(-0.12deg)}20.7%{transform:translate(1.6px,-0.5px) rotate(0.15deg)}22.7%{transform:translate(-1.7px,0.3px) rotate(-0.18deg)}24.7%{transform:translate(1.9px,-0.4px) rotate(0.21deg)}26.6%{transform:translate(-2.0px,0.6px) rotate(-0.24deg)}28.6%{transform:translate(2.1px,-0.4px) rotate(0.27deg) scale(1.002)}30.6%{transform:translate(-2.3px,0.4px) rotate(-0.30deg) scale(1.003)}32.5%{transform:translate(2.4px,-0.8px) rotate(0.34deg) scale(1.003)}34.5%{transform:translate(-2.6px,0.5px) rotate(-0.38deg) scale(1.003)}36.5%{transform:translate(2.7px,-0.5px) rotate(0.42deg) scale(1.003)}38.5%{transform:translate(-2.9px,0.9px) rotate(-0.45deg) scale(1.004)}40.4%{transform:translate(3.1px,-0.6px) rotate(0.50deg) scale(1.004)}42.4%{transform:translate(-3.2px,0.6px) rotate(-0.54deg) scale(1.004)}44.4%{transform:translate(3.4px,-1.1px) rotate(0.58deg) scale(1.005)}46.3%{transform:translate(-3.6px,0.7px) rotate(-0.63deg) scale(1.005)}48.3%{transform:translate(3.8px,-0.8px) rotate(0.67deg) scale(1.006)}50.3%{transform:translate(-4.0px,1.3px) rotate(-0.72deg) scale(1.006)}52.3%{transform:translate(4.2px,-0.8px) rotate(0.77deg) scale(1.006)}54.2%{transform:translate(-4.4px,0.9px) rotate(-0.82deg) scale(1.007)}56.2%{transform:translate(4.6px,-1.5px) rotate(0.87deg) scale(1.007)}58.2%{transform:translate(-4.8px,1.0px) rotate(-0.92deg) scale(1.008)}60.1%{transform:translate(5.1px,-1.0px) rotate(0.98deg) scale(1.008)}62.1%{transform:translate(-5.3px,1.8px) rotate(-1.03deg) scale(1.009)}64.1%{transform:translate(5.5px,-1.1px) rotate(1.09deg) scale(1.009)}66.1%{transform:translate(-5.8px,1.2px) rotate(-1.14deg) scale(1.010)}68.0%{transform:translate(6.0px,-2.0px) rotate(1.20deg) scale(1.010)}72.2%{transform:translate(-14.0px,4.0px) rotate(-3.50deg) scale(1.040)}74.4%{transform:translate(12.6px,-2.2px) rotate(3.12deg) scale(1.035)}76.6%{transform:translate(-11.2px,1.9px) rotate(-2.75deg) scale(1.030)}78.8%{transform:translate(9.9px,-2.9px) rotate(2.38deg) scale(1.025)}81.0%{transform:translate(-8.5px,1.5px) rotate(-2.00deg) scale(1.020)}83.2%{transform:translate(7.1px,-1.3px) rotate(1.62deg) scale(1.015)}85.4%{transform:translate(-5.8px,1.8px) rotate(-1.25deg) scale(1.010)}87.6%{transform:translate(4.4px,-0.8px) rotate(0.88deg) scale(1.005)}89.8%{transform:translate(-3.0px,0.6px) rotate(-0.50deg)}100.0%{transform:none}}
+  @keyframes rlEnhShakeJolt{0.0%{transform:none}4.0%{transform:translate(-24.0px,5.0px) rotate(-6.00deg) scale(1.090)}9.0%{transform:translate(16.0px,-3.0px) rotate(3.50deg) scale(1.040)}14.0%{transform:translate(-9.0px,2.0px) rotate(-2.00deg) scale(1.020)}19.0%{transform:translate(5.0px,-1.0px) rotate(1.00deg) scale(1.010)}25.0%{transform:none}58.0%{transform:none}62.0%{transform:translate(-8.0px,2.0px) rotate(-1.60deg) scale(1.020)}67.0%{transform:translate(5.0px,-1.0px) rotate(1.00deg)}72.0%{transform:none}86.0%{transform:none}89.0%{transform:translate(-3.0px,0.0px) rotate(-0.50deg)}92.0%{transform:none}100.0%{transform:none}}
+  @keyframes rlEnhJit{0%{transform:none;text-shadow:none}20%{transform:translateX(-2px);text-shadow:2px 0 rgba(196,103,93,.85),-2px 0 rgba(124,165,187,.85)}40%{transform:translateX(2px)}60%{transform:translateX(-1px);opacity:.6}80%{transform:translateX(1px);opacity:1}100%{transform:none}}
+  .rlGlitch{position:relative;display:inline-block;animation:rlGJit 6.2s steps(1) infinite}
+  .rlGlitch::before,.rlGlitch::after{content:attr(data-t);position:absolute;left:0;top:0;width:100%;overflow:hidden;white-space:inherit;pointer-events:none;clip-path:inset(0 0 100% 0)}
+  .rlGlitch::before{color:rgba(196,103,93,.8);animation:rlGSlA 5.3s steps(1) infinite;animation-delay:inherit}
+  .rlGlitch::after{color:rgba(124,165,187,.8);animation:rlGSlB 6.7s steps(1) infinite;animation-delay:inherit}
+  @keyframes rlGJit{0%{transform:none;opacity:1}2%{transform:translateX(-3px)}2.6%{transform:translateX(2px)}3.2%{transform:none}58%{transform:none;opacity:1}58.6%{transform:translateX(4px);opacity:.55}59.2%{transform:translateX(-2px)}59.8%{transform:none;opacity:1}}
+  @keyframes rlGSlA{0%{clip-path:inset(0 0 100% 0);transform:none}20%{clip-path:inset(15% 0 55% 0);transform:translateX(-6px)}21%{clip-path:inset(60% 0 10% 0);transform:translateX(4px)}22%{clip-path:inset(0 0 100% 0);transform:none}70%{clip-path:inset(35% 0 40% 0);transform:translateX(7px)}71.5%{clip-path:inset(0 0 100% 0);transform:none}}
+  @keyframes rlGSlB{0%{clip-path:inset(0 0 100% 0);transform:none}35%{clip-path:inset(50% 0 20% 0);transform:translateX(5px)}36%{clip-path:inset(10% 0 70% 0);transform:translateX(-7px)}37.2%{clip-path:inset(0 0 100% 0);transform:none}85%{clip-path:inset(65% 0 5% 0);transform:translateX(-4px)}86.2%{clip-path:inset(0 0 100% 0);transform:none}}
 </style>
 </helmet>
 <template id="__bundler_thumbnail">
@@ -190,7 +231,9 @@ const T = {
   hp:'oklch(0.580 0.100 25)', sta:'oklch(0.720 0.075 74)', growth:'oklch(0.660 0.045 264)',
   dur:'oklch(0.740 0.012 250)', bleed:'oklch(0.640 0.120 28)', stun:'oklch(0.800 0.090 88)',
   pierce:'oklch(0.700 0.055 232)', rupture:'oklch(0.660 0.090 330)',
-  mono:"'IBM Plex Mono',monospace", sans:"'IBM Plex Sans KR',sans-serif"
+  mono:"'IBM Plex Mono',monospace", sans:"'IBM Plex Sans KR',sans-serif",
+  npc:"'Diphylleia','IBM Plex Sans KR',serif",
+  title:"'210 Jisangnagwon','IBM Plex Sans KR',sans-serif"   // NPC 대사·교신(무전) 전용 — 디필레이아(400 단일 · OFL · 2026-10-15 함렛에서 교체)
 };
 // 스탯 증감 색 — 아이템 카드와 같은 관례. 전투 화면의 버프 표시(공속·받는 피해)도 이걸 쓴다.
 // (2026-08-31 이전엔 공속 증가만 파랑 #7CA5BB였다 — 소모품 버프가 붙으면서 카드 쪽으로 통일했다.)
@@ -233,7 +276,12 @@ const HAGGLE_TPL = {
 // 몬스터 등급 색 — 카드 리빌(monsterFront)과 퀘스트 목표 칩이 같은 표를 쓴다.
 const GRADECOL = { common:'rgb(234,235,238)', rare:'#83B289', unique:'#7CA5BB', special:'#B27EAD', boss:'#D6BB79' };
 const gradeColOf = (g) => GRADECOL[String(g||'').toLowerCase()] || GRADECOL.common;
-const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Valuable:'귀중품', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Data:'데이터', DataTech:'데이터', Trade:'거래소', Blueprint:'디스크' };
+// 강화 연출 배경(Ghost Fibers) 값 — 위젯에서 고른 값을 여기만 바꾼다(2026-10-15 · 원본 기본값에서 시작)
+const ENH_FIBERS = { glowColor:'#2f5bff', lineColor:'', speed:0.07, scale:3.7, rotation:0, rotationSpeed:1, layers:7, waves:0.027, twist:0.2, threads:1, spread:0.6, thickness:0.2, glow:0.6, brightness:1.4, vignette:0.8, grain:0.03 };   // 위젯 확정값(10-15) · glowColor는 연출 중 강화 단계 색으로 덮인다(enhFibersColor)
+// 강화 뒷면 흔들림 5종(키프레임 · 길이 · 감속) — 강화마다 무작위로 하나
+// 길이 1.5~3.5초(2026-10-15) — 스캔 대기는 흔들림이 끝날 때까지 늘어난다(enFxStart).
+const ENH_SHAKES = { wild:['rlEnhShakeWild','2.2s','linear'], soft:['rlEnhShakeSoft','3.5s','ease-in-out'], double:['rlEnhShakeDouble','2.6s','linear'], tremor:['rlEnhShakeTremor','3s','linear'], jolt:['rlEnhShakeJolt','1.5s','linear'] };
+const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Medicine:'약품', Food:'음식', Junk:'정크', Valuable:'귀중품', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Enhance:'강화 재료', Data:'데이터', DataTech:'데이터', Trade:'거래소', Blueprint:'디스크' };
 // 몬스터 아트 보유 목록 — 레이드 로딩 배경 랜덤 픽 판정용(assets/art/monsters/*.webp). 아트 추가 시 갱신.
 // 존 배경 아트 경로. ★같은 파일명으로 **교체된** 아트는 여기에 ?v=를 적어 브라우저 캐시를 끊는다
 // (배포 시 index V만 올리면 html/js만 갱신되고 이미지는 옛 것이 남는다 — 2026-09-15 mall·houses 교체).
@@ -397,8 +445,8 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 96;
-const TITLE_DATE = '1013';
+const TITLE_VER = 97;
+const TITLE_DATE = '1015';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -478,6 +526,8 @@ const HIDE_TUTO = { repair:'rs_rep1', module:'rs_mod1', craft:'wb_craft1',
 const TUTO_ART_V = { 'wb_craft1-2':'?v=2', 'rs_rep1-2':'?v=2' };
 
 const PATCH_NOTES = [
+  { ver:97, date:'15/Oct', lines:[
+    ['강화 시스템 추가.','Enhancement system added.'] ] },
   { ver:93, date:'13/Oct', lines:[
     ['몬스터, 아이템 밸런스 리워크.','Monster and item balance rework.'] ] },
   { ver:89, date:'12/Oct', lines:[
@@ -643,8 +693,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val87');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val47');
+      const eng = await import('./engine.js?v=val88');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val48');
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -1011,8 +1061,8 @@ class Component extends DCLogic {
     if(this._t) clearTimeout(this._t);
     this._t = setTimeout(()=>this.tick(), 300);
   }
-  // 빗나감/회피 문구 — 내 공격이 빗나가면 MISS, 상대 공격을 내가 피하면 DODGE. **언어와 상관없이 영문**(타격 숫자와 같은 픽셀 숫자 폰트 'Jacquarda Bastarda 9'로 그린다 — 한글 글리프가 없어서).
-  missText(fx){ return fx.attacker==='player'?'MISS':'DODGE'; }
+  // 빗나감/회피 문구 — 내 공격이 빗나가면 miss, 상대 공격을 내가 피하면 dodge(소문자). **언어와 상관없이 영문**(타격 숫자와 같은 픽셀 숫자 폰트 'Jacquarda Bastarda 9'로 그린다 — 한글 글리프가 없어서).
+  missText(fx){ return fx.attacker==='player'?'miss':'dodge'; }   // 소문자 표기(2026-10-15 사용자)
   // 타격 숫자 크기 — 계단(경/중/강)이 아니라 '한 방이 현재 HP에서 차지하는 비중'에 비례한다(14~38px). 빠른 무기의 잔타격은 작게,
   // 느린 무기의 묵직한 한 방은 크게 떠서 공속 차이가 숫자 크기로도 읽힌다. 치명타는 그 1.4배+6(32~48px).
   hitNumSize(fx){ const base=Math.max(14,Math.min(38,Math.round(14+(fx.share||0)*65))); return fx.crit?Math.max(32,Math.min(48,Math.round(base*1.4+6))):base; }
@@ -1388,6 +1438,7 @@ class Component extends DCLogic {
   vaultCap(){ return this.eng.vaultCap? this.eng.vaultCap(this.gs) : 40; }
   vaultUsed(){ return this.gs.vault.filter(x=>!this.isQuestId(x.id)).length; }   // 퀘스트 전용 아이템(Category=Quest)은 칸을 차지하지 않는다(사용자 2026-10-12)
   isQuestId(id){ return String(((this.eng.byId.item||{})[id]||{}).Category||'')==='Quest'; }
+  isEnhMatId(id){ return String(((this.eng.byId.item||{})[id]||{}).Category||'')==='Enhance'; }   // 강화 재료(Item.Category=Enhance) — 아트가 카드 대부분을 차지하는 틀(퀘스트 아이템 카드와 같은 342x442) · ID 접두로 판정하지 않는다(인계 메모)
   vaultRoom(){ return Math.max(0, this.vaultCap()-this.vaultUsed()); }
   // id를 qty개 넣을 때 **새로 생기는 칸 수**. 기존 묶음의 빈자리부터 채우므로 0일 수도 있다.
   vaultSlotsNeeded(id,qty){
@@ -1857,9 +1908,11 @@ class Component extends DCLogic {
   // 화면 헤더 — svg/header-default.svg 기준(402 스테이지). 높이 90 고정 · 좌우 24 · 하단 헤어라인.
   // 키커/타이틀/재화칩은 절대배치 = SVG 좌표 그대로(키커 cap 27, 타이틀 글리프 45.7~60, 칩 y24~51).
   // opts.hairline===false → 하단 헤어라인 없음(전투 화면: 배경 아트가 헤더 바로 아래에서 시작한다)
+  // 타이틀급 글자 폰트 — KR = 210 지상낙원(400) · EN = Turret Road ExtraBold(800). 사용자가 스크린샷으로 지정한 곳만 쓴다(menu-font-decision).
+  titleF(){ return this.en()? {fontFamily:"'Turret Road',"+T.sans,fontWeight:800} : {fontFamily:T.title,fontWeight:400}; }
   screenTitle(kicker,title,right,opts){ return h('div',{style:{position:'relative',height:90,flex:'0 0 auto',boxSizing:'border-box',borderBottom:(opts&&opts.hairline===false)?'none':'1px solid #36383C'}},
     h('div',{style:{position:'absolute',left:24,top:25,right:right?150:24,fontFamily:T.mono,fontSize:10,lineHeight:'10px',letterSpacing:'.14em',color:(opts&&opts.kickerColor)||'#4B4D52',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.eng.t(kicker)),
-    h('div',{style:{position:'absolute',left:24,top:44,right:right?150:24,fontFamily:T.sans,fontSize:16,lineHeight:'16px',fontWeight:400,color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.eng.t(title)),
+    h('div',{style:{position:'absolute',left:24,top:44,right:right?150:24,...this.titleF(),fontSize:16,lineHeight:'16px',color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.eng.t(title)),
     right?h('div',{style:{position:'absolute',right:24,top:24,height:27,display:'flex',alignItems:'center'}}, right):null); }
 
   // ===== 전투 화면 공통 (svg/screen-battle-*.svg · screen-loot-*.svg · 402x828) =====
@@ -1992,7 +2045,7 @@ class Component extends DCLogic {
       h('button',{onClick:onBack,'data-guide':'shop-back',style:{position:'absolute',left:18,top:24,width:28,height:28,padding:0,borderRadius:8,border:'none',background:'rgba(10,11,14,0.6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
         h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'#EAEBEE',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}, h('path',{key:'p',d:'M14.5 5l-7 7 7 7'}))),
       h('div',{style:{position:'absolute',right:19,top:25,height:27,display:'flex',alignItems:'center'}}, this.currencyChips()),
-      h('div',{style:{position:'absolute',left:24,top:62,fontFamily:T.sans,fontSize:16,lineHeight:'16px',fontWeight:400,color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap'}}, title));
+      h('div',{style:{position:'absolute',left:24,top:62,...this.titleF(),fontSize:16,lineHeight:'16px',color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap'}}, title));
   }
   // 전투 화면 헤더 — 본체는 screenTitle과 동일 규격이지만 배경 위에 올라가므로 #111315 불투명 판을 깐다.
   battleHeader(kicker,title,right,opts){
@@ -2073,14 +2126,15 @@ class Component extends DCLogic {
     else if(s==='disa') body=this.disaScreen();
     else if(s==='rsrep') body=this.rsRepairScreen();
     else if(s==='rsmod') body=this.rsModuleScreen();
+    else if(s==='rsenh') body=this.rsEnhanceScreen();
     else if(s==='settings') body=this.settings();
     else if(s==='lootmanage') body=this.lootManage();
     else if(s==='sortieLoad') body=this.sortieLoadScreen();
     else if(s==='returnheal') body=this.returnHeal();
     else if(s==='pass') body=this.passScreen();
     else if(s==='tap') body=this.tapScreen();
-    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap' && s!=='hideout' && s!=='hideFac' && s!=='disk' && s!=='diskInsert' && s!=='decode' && s!=='craft' && s!=='disa' && s!=='rsrep' && s!=='rsmod' && s!=='quest' && s!=='comms';
-    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null, this.state.tuto?this.tutoOverlay():null, this.state.wake?this.wakeOverlay():null, this.state.langPick?this.langPickOverlay():null, this.storyGuideOverlay(), this.radioOverlay());
+    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='equipment' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap' && s!=='hideout' && s!=='hideFac' && s!=='disk' && s!=='diskInsert' && s!=='decode' && s!=='craft' && s!=='disa' && s!=='rsrep' && s!=='rsmod' && s!=='rsenh' && s!=='quest' && s!=='comms';
+    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.equipCard?this.equipCardModal():null, this.state.useOpen?this.useSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null, this.state.statPop?this.statPopSheet():null, this.state.tuto?this.tutoOverlay():null, this.state.wake?this.wakeOverlay():null, this.state.langPick?this.langPickOverlay():null, this.storyGuideOverlay(), this.radioOverlay());
   }
 
   // ---- safehouse ----
@@ -2098,17 +2152,18 @@ class Component extends DCLogic {
       // iOS WebKit이 padding-bottom을 스크롤 범위(scrollHeight)에 넣지 않는다(Chromium은 넣는다).
       // 아이폰에서만 스크롤이 안 생기고 마지막 행이 내비에 걸치던 원인. 마지막 자식 스페이서로 줘야 한다.
       h('div',{style:{padding:'16px 16px 0',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:8}},
-        // 아지트 — svg/screen-shop-list.svg. 370x191(아트 151 + 하단 띠 40) · 현재 잠금.
+        // 아지트 — 370x193 풀아트 카드(2026-10-15 사용자 시안: 하단 띠 폐지 · 아트가 카드 전체 · 이름 36px + 잡 아이콘이 아트 위 하단 한 줄).
         h('div',{onClick:this.hideoutOpen()?()=>this.go('hideout'):null,style:{position:'relative',flexShrink:0,height:193,boxSizing:'border-box',border:'1px solid #36383C',borderRadius:8,overflow:'hidden',background:'#111315',marginBottom:6,cursor:this.hideoutOpen()?'pointer':'default'}},
-          h('div',{style:{position:'absolute',left:0,right:0,top:0,height:151,backgroundImage:'url(assets/art/shop/'+(this.hideoutOpen()?'hide_open':'hide_locked')+'.webp)',backgroundSize:'cover',backgroundPosition:'center 45%',filter:this.storyHideOpen()?'none':'grayscale(1)'}}),
-          h('div',{style:{position:'absolute',left:0,right:0,top:0,height:151,background:'linear-gradient(180deg, rgba(17,19,21,0.94) 0%, rgba(17,19,21,0) 70.7%)'}}),
-          // 잠금 밴드 (svg y196~257 = 카드 기준 90~151) — 오픈되면 걷힌다
-          (this.hideoutOpen()||!this.storyHideOpen())? null : h('div',{style:{position:'absolute',left:0,right:0,top:90,height:61,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',gap:10}},
+          h('div',{style:{position:'absolute',inset:0,backgroundImage:'url(assets/art/shop/'+(this.hideoutOpen()?'hide_open':'hide_locked')+'.webp)',backgroundSize:'cover',backgroundPosition:'center 45%',filter:this.storyHideOpen()?'none':'grayscale(1)'}}),
+          // 하단 페이드 — 아트 위에 올린 이름·아이콘이 읽히게(위쪽은 아트 그대로)
+          h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(17,19,21,0) 42%, rgba(17,19,21,0.82) 100%)'}}),
+          // 잠금 밴드 — 이름 줄 위 아트 가운데쯤(카드 기준 52~113). 오픈되면 걷힌다
+          (this.hideoutOpen()||!this.storyHideOpen())? null : h('div',{style:{position:'absolute',left:0,right:0,top:52,height:61,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',gap:10}},
             this.icAlert('hex',20,'#A9ABAF'),
             h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#A9ABAF'}}, this.en()?'No access':'접근 금지')),
-          // 하단 띠 (svg y257~297)
-          h('div',{style:{position:'absolute',left:0,right:0,top:151,height:40,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 15px 0 17px'}},
-            h('span',{style:{fontFamily:T.sans,fontSize:16,fontWeight:500,color:this.hideoutOpen()?'#EAEBEE':'#6F7276'}}, this.t('hide_title')),
+          // 하단 줄 — 아트 위 · 이름(왼쪽)과 잡 아이콘(오른쪽)의 세로 중심 = 카드 바닥에서 36(시안 실측)
+          h('div',{style:{position:'absolute',left:0,right:0,bottom:0,height:72,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 17px 0 17px'}},
+            h('span',{style:{...this.titleF(),fontSize:36,lineHeight:'36px',color:this.hideoutOpen()?'#EAEBEE':'#6F7276'}}, this.t('hide_title')),
             this.hideoutOpen()? this.hideJobIcons() : null,
             this.hideoutOpen()? null : !this.storyHideOpen()
               ? h('span',{style:{display:'inline-flex',alignItems:'center',height:24,boxSizing:'border-box',padding:'0 9px',borderRadius:6,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.35)',fontFamily:T.sans,fontSize:12,color:'#A9ABAF',whiteSpace:'nowrap'}}, this.t('shop_locked'))   // 온보딩 잠김 = 상점 행과 같은 [잠김]
@@ -2127,7 +2182,7 @@ class Component extends DCLogic {
               h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, rgba(17,19,21,0.20) 0%, rgba(17,19,21,0.94) 100%)'}}),
               // ★우측 여백 16 = 보더 1 + 패딩 15. 좌측은 17(목업 텍스트 x33.6 = 16+1+17)로 비대칭이 맞다.
               h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 15px 0 17px'}},
-                h('span',{style:{fontFamily:T.sans,fontSize:16,fontWeight:500,color:open?'#EAEBEE':'#6F7276',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.shopName(v.ShopID,v)),
+                h('span',{style:{...this.titleF(),fontSize:24,lineHeight:'24px',color:open?'#EAEBEE':'#6F7276',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.shopName(v.ShopID,v)),
                 // 우측 슬롯 — 신규/진행중/완료 칩 3종(개수 포함). 목업 screen-shop-list-v2.svg.
                 // ★Quest 서비스가 없는 상점(온라인 키오스크)은 통째로 숨긴다 — 0/0/0 회색 칩 3개는 거짓 정보다(사용자 결정).
                 open
@@ -2171,7 +2226,7 @@ class Component extends DCLogic {
             h('div',{style:{position:'absolute',inset:0,borderRadius:8,background:sc.locked?'linear-gradient(180deg, rgba(24,25,29,.55), rgba(24,25,29,.92))':'linear-gradient(180deg, rgba(24,25,29,0) 0%, rgb(24,25,29) 100%)'}}),
             h('div',{style:{position:'absolute',left:16,right:16,bottom:16}},
               h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:6}},
-                h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:600,color:sc.locked?T.mid:T.hi}}, sc.name),
+                h('span',{style:{...this.titleF(),fontSize:32,lineHeight:'32px',color:sc.locked?T.mid:T.hi}}, sc.name),   // 도시 카드 이름 32(2026-10-15)
                 sc.locked?this.chip(this.t('zone_locked'),T.faint):(active?this.chip(this.t('common_selected'),T.good):null)),
               h('div',{style:{fontFamily:T.mono,fontSize:10.5,color:'#b5b5b5',lineHeight:1.35}}, sc.locked?this.t('zone_sealed_msg'):this.cityDesc(i))),
             sc.locked?h('div',{style:{position:'absolute',top:12,right:12}}, icLock(16,T.faint)):null); })),
@@ -2184,15 +2239,17 @@ class Component extends DCLogic {
           return h('div',{key:z.ZoneID,'data-guide':'zone-'+z.ZoneID,onClick:off?null:()=>this.setState({modalZone:z}),
             style:{padding:'16px 0',borderTop:i>0?'1px solid '+T.line:'none',cursor:off?'default':'pointer',opacity:(off&&!zl)?0.35:1,display:'flex',flexDirection:'column',gap:4}},
             h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}},
-              h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:500,color:zl?'#6F7276':T.hi}}, this.tx(z,'ZoneName')),
+              h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'18px',color:zl?'#6F7276':T.hi}}, zl? this.glitchText(this.tx(z,'ZoneName'),i) : this.tx(z,'ZoneName')),
               h('div',{style:{display:'flex',gap:4,alignItems:'center',flexShrink:0}},
                 zl? this.figPill(this.t('common_locked'),'#6F7276') : null,
                 (!zl&&this.isPvpZone(z))?this.figPill('PVP','rgb(196,103,93)'):null,
                 (!zl&&hidden)?this.figPill('LOCKED','rgb(204,162,110)'):null)),
-            h('span',{style:{fontFamily:T.sans,fontSize:12,color:zl?'#4B4D52':T.lo}}, this.zoneLine(z)));
+            h('span',{style:{fontFamily:T.sans,fontSize:12,color:zl?'#4B4D52':T.lo}}, zl? this.glitchText(this.zoneLine(z),i+0.5) : this.zoneLine(z)));
         }) : h('div',{style:{padding:'40px 18px',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, this.t('zone_none_enterable')))
     );
   }
+  // 잠금 존 글리치 글자(.rlGlitch) — data-t = 복제용 원문 · 행(seed)마다 시작 시점을 흩어 동시에 튀지 않게 한다.
+  glitchText(txt,seed){ return h('span',{className:'rlGlitch','data-t':txt,style:{animationDelay:(-((seed*2.37)%6.2)).toFixed(2)+'s'}}, txt); }
   zoneBar(label,val,max,pct,color){ return h('div',null,
     h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:6}}, h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.5px',color:'rgb(111,114,118)'}},label), h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.5px',color:'rgb(169,171,175)'}}, val+' / '+max)),
     h('div',{style:{height:6,borderRadius:1,background:'rgb(43,46,50)',overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:color}}))); }
@@ -2222,7 +2279,7 @@ class Component extends DCLogic {
         h('div',{style:{height:104,borderRadius:8,background:'url('+zoneArt(z.ZoneID)+') 50% 35% / cover no-repeat, #111315'}}),   // 아트 없는 존은 단색 — 옛 zone-banner 폴백 제거(2026-09-08)
         h('div',{style:{display:'flex',flexDirection:'column',gap:8}},
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}},
-            h('span',{style:{fontFamily:T.sans,fontSize:15,fontWeight:500,color:T.hi}}, this.tx(z,'ZoneName')),
+            h('span',{style:{...this.titleF(),fontSize:24,lineHeight:'24px',color:T.hi}}, this.tx(z,'ZoneName')),   // 존 팝업 이름 24(2026-10-15)
             h('div',{style:{display:'flex',gap:4,alignItems:'center',flexShrink:0}}, this.isPvpZone(z)?this.figPill('PVP','rgb(196,103,93)'):null, hidden?this.figPill('LOCKED','rgb(204,162,110)'):null)),
           h('span',{style:{fontFamily:T.sans,fontSize:12,color:'rgb(111,114,118)',lineHeight:1.5}}, this.tx(z,'Description')||((this.t('frag_loot_tendency')+' ')+this.zoneLine(z)))),
         h('div',{style:{display:'flex',flexDirection:'column',gap:12}},
@@ -2433,7 +2490,7 @@ class Component extends DCLogic {
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',marginRight:'-1.33px',color:gcol,whiteSpace:'nowrap'}}, String(prof.grade).toUpperCase())); })():null) : null,
       h('div',{style:{padding:'11px 13px'}},
         h('div',{style:{display:'flex',alignItems:'center',gap:7,marginBottom:8}},
-          h('span',{style:{fontFamily:T.sans,fontSize:13,fontWeight:500,color:T.hi,flex:'0 1 auto',minWidth:0,maxWidth:'55%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, isMonster?prof.name:this.t('common_me')),
+          h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'18px',color:T.hi,flex:'0 1 auto',minWidth:0,maxWidth:'55%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, isMonster?prof.name:this.t('common_me')),
           h('div',{style:{flex:1}}),
           ...this.statusIcons(isMonster?'monster':'player'),
           ...(isMonster?[]:this.buffChips()),
@@ -3066,7 +3123,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
         h('span',{style:{position:'absolute',right:15,bottom:15,zIndex:4,fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:SUB,whiteSpace:'nowrap'}}, 'STA −'+m.staminaCost+' · '+this.t('combat_time_limit')+' '+m.timeLimit+'s')),
       // BODY 214
       h('div',{style:{height:245,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
-        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0}}, h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, m.name)),
+        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, m.name)),   // 몬스터 카드 이름 = 타이틀 폰트 18(2026-10-15)
         h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('stat_hp')),
           h('div',{style:{height:6,flexGrow:1,borderRadius:999,overflow:'hidden',background:ART}}, h('div',{style:{height:6,borderRadius:999,background:HPC,width:'100%'}})),
@@ -3116,7 +3173,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:HI,whiteSpace:'nowrap'}}, 'USER')),
         h('span',{style:{position:'absolute',left:14,bottom:14,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, this.t('common_me'))),
       h('div',{style:{minHeight:245,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
-        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0}}, h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.t('common_me'))),
+        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.t('common_me'))),   // 플레이어 상세 카드 = 몬스터 카드와 같은 18
         h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('stat_hp')),
           h('div',{style:{height:6,flexGrow:1,borderRadius:999,overflow:'hidden',background:ART}}, h('div',{style:{height:6,borderRadius:999,background:HPC,width:pct+'%'}})),
@@ -3137,7 +3194,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     const rows = isM
       ? [[this.t('stat_atk'),Math.round(prof.minAtk)+'–'+Math.round(prof.maxAtk)],[this.t('stat_def'),String(Math.round(prof.defense))],[this.t('stat_atk_speed'),prof.atkSpeed.toFixed(2)],[this.t('stat_crit_resist'),Math.round(prof.critResist)],[this.t('stat_status_resist'),Math.round(prof.statusResist)],[this.t('stat_potency'),Math.round(prof.potency)],[this.t('item_material_type'), this.eng.materialLabel(md.Material)||'—'],[this.t('combat_time_limit'), prof.timeLimit+'s']]
       : [[this.t('stat_atk'),Math.round(prof.minAtk)+'–'+Math.round(prof.maxAtk)],[this.t('stat_def'),String(Math.round(prof.defense))],[this.t('stat_atk_speed'),prof.atkSpeed.toFixed(2)],[this.t('stat_accuracy'),Math.round(prof.accuracy)+'%'],[this.t('stat_evasion'),Math.round(prof.evasion)+'%'],[this.t('stat_crit_chance'),Math.round(prof.critChance)+'%'],[this.t('stat_crit_resist'),Math.round(prof.critResist)+'%'],[this.t('stat_status_resist'),Math.round(prof.statusResist)+'%']];
-    const card = isM? (c.pvp? this.userFront(prof) : this.monsterFront(prof,true,true)) : this.playerFront(prof,true);
+    const card = this.tiltCard(isM? (c.pvp? this.userFront(prof) : this.monsterFront(prof,true,true)) : this.playerFront(prof,true));   // 전투 중 상세 카드도 자이로 기울기
     // 두고 온 전리품 되찾기 — 몬스터 카드에만. 전투 중에는 보이되 **비활성**(기능의 존재를 알린다).
     // 버튼은 카드에 붙이지 않고 **하단 박스 표준**을 그대로 쓴다(전리품 리빌 화면과 같은 규격).
     const lootOn=(c.phase==='won' && (c.lootLeft||[]).length>0);
@@ -3285,7 +3342,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
         h('div',{style:{position:'absolute',left:0,bottom:0,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgb(24,25,29) 100%)'}}),
         h('span',{style:{position:'absolute',left:15,bottom:13,fontFamily:T.mono,fontSize:10,letterSpacing:'0.8px',color:col}}, ok?(this.en()?'SUCCESS':'성공'):(this.en()?'FAILED':'실패'))),
       h('div',{style:{padding:'13px 15px',display:'flex',flexDirection:'column'}},
-        h('div',{style:{fontFamily:T.sans,fontSize:17,fontWeight:600,lineHeight:'20.4px',color:'rgb(234,235,238)'}}, ok?(this.en()?'Escaped':'도주 성공'):(this.en()?'Escape Failed':'도주 실패')),
+        h('div',{style:{...this.titleF(),fontSize:17,lineHeight:'20.4px',color:'rgb(234,235,238)'}}, ok?(this.en()?'Escaped':'도주 성공'):(this.en()?'Escape Failed':'도주 실패')),
         h('div',{style:{padding:'8px 0',fontFamily:T.mono,fontSize:10.5,color:'rgb(75,77,82)'}}, ok?(this.en()?'Slip away with what you carry.':'가진 것을 들고 빠져나간다.'):(this.en()?'Combat is imminent, brace yourself.':'곧 전투에 돌입한다, 준비하자.'))));
   }
   fleeCardScreen(){
@@ -3327,7 +3384,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
             h('div',{style:{position:'absolute',left:0,bottom:0,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgb(24,25,29) 100%)'}}),
             h('span',{style:{position:'absolute',left:15,bottom:13,fontFamily:T.mono,fontSize:10,letterSpacing:'0.8px',color:col}}, ok?(this.en()?'SUCCESS':'성공'):(this.en()?'FAILED':'실패'))),
           h('div',{style:{padding:'13px 15px',display:'flex',flexDirection:'column'}},
-            h('div',{style:{fontFamily:T.sans,fontSize:17,fontWeight:600,lineHeight:'20.4px',color:'rgb(234,235,238)'}}, title),
+            h('div',{style:{...this.titleF(),fontSize:17,lineHeight:'20.4px',color:'rgb(234,235,238)'}}, title),   // 액션 카드(도주 성공·실패) 제목 = 타이틀 폰트
             h('div',{style:{padding:'8px 0',fontFamily:T.mono,fontSize:10.5,color:'rgb(75,77,82)'}}, sub)))),
       h('div',{style:{flex:'0 0 auto',padding:'0 16px 26px'}},
         h('div',{style:{background:'rgb(24,25,29)',borderRadius:16,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:24,display:'flex',flexDirection:'column',gap:16}},
@@ -3530,7 +3587,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
         h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         h('span',{style:{position:'absolute',left:15,bottom:13,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, this.t('search_failed_cat'))),
       h('div',{style:{height:64,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
-        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.t('search_failed_title'))),
+        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{...this.titleF(),fontSize:17,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.t('search_failed_title'))),
         h('div',{style:{height:30,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'8px 0',display:'flex',alignItems:'center'}}, h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:MUT,whiteSpace:'nowrap'}}, this.t('search_failed_desc')))),
       h('div',{style:{width:340,height:60,flexShrink:0,boxSizing:'border-box',borderRight:'1px solid '+LN,borderBottom:'1px solid '+LN,borderLeft:'1px solid '+LN}}));
   }
@@ -3544,7 +3601,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
         h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         h('span',{style:{position:'absolute',left:15,bottom:13,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:GOOD,whiteSpace:'nowrap'}}, this.t('kicker_escape'))),
       h('div',{style:{height:64,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
-        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.t('combat_flee_success'))),
+        h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{...this.titleF(),fontSize:17,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.t('combat_flee_success'))),
         h('div',{style:{height:30,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'8px 0',display:'flex',alignItems:'center'}}, h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:MUT,whiteSpace:'nowrap'}}, this.t('combat_escaped')))),
       h('div',{style:{width:340,height:60,flexShrink:0,boxSizing:'border-box',borderRight:'1px solid '+LN,borderBottom:'1px solid '+LN,borderLeft:'1px solid '+LN}}));
   }
@@ -3704,7 +3761,7 @@ void main(){
     const u=this.usb;
     return h('div',{style:{background:T.s1,border:'1px solid '+T.line,borderRadius:6,padding:'13px 15px',marginBottom:16}},
       h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.12em',color:T.faint,marginBottom:7}}, this.t('vendor_park_label')),
-      h('div',{style:{fontFamily:T.sans,fontSize:14,color:T.hi,lineHeight:1.65,whiteSpace:'pre-wrap',wordBreak:'keep-all',overflowWrap:'anywhere'}}, '"'+(u.line||'')+'"'));
+      h('div',{style:{fontFamily:T.npc,fontWeight:400,fontSize:14,color:T.hi,lineHeight:1.65,whiteSpace:'pre-wrap',wordBreak:'keep-all',overflowWrap:'anywhere'}}, '"'+(u.line||'')+'"'));   // NPC 대사(박 USB) = T.npc
   }
   vendorLoad(v){
     const u=this.usb||(this.usb={stage:'intro',row:null,line:this.eng.usbLine('intro',null)});
@@ -4278,7 +4335,7 @@ void main(){
   lootCardH(inst){
     const isGear=inst.kind==='weapon'||inst.kind==='armor';
     if(this.isKeycard(inst)) return 442;   // 키카드 = 아트 풀블리드(카드=아트웍). SVG 원본 비율 342:442
-    if(this.isQuestId(inst.id)) return 442;   // 퀘스트 아이템 = 해금 카드 틀(342x442)
+    if(this.isQuestId(inst.id)||this.isEnhMatId(inst.id)) return 442;   // 퀘스트 아이템·강화 재료 = 아트 큰 틀(342x442)
     if(this.isBlueprint(inst)) return 442;  // 도면 카드도 342x442 고정 — 스탯 행이 없어 가변 높이가 필요 없다
     const FLOOR=460;   // 소켓 없는 무기 카드 기준 (아트190 + 스탯3행 + 설명) — 모든 카드 최소 높이
     if(!isGear) return FLOOR;
@@ -4335,7 +4392,7 @@ void main(){
           h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:SUB}}, 'UPLOAD · '+mins+' MIN'))),
       h('div',{style:{alignSelf:'stretch',flexGrow:1,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start',minHeight:0}},
         h('div',{style:{minHeight:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}},
-          h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:600,lineHeight:'20.4px',color:HI}}, this.itemLabel(inst)+((inst.qty||1)>1?' ×'+inst.qty:''))),
+          h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:HI}}, this.itemLabel(inst)+((inst.qty||1)>1?' ×'+inst.qty:''))),   // USB 데이터 카드 이름도 상세 카드와 같은 타이틀 폰트
         desc?h('div',{style:{alignSelf:'stretch',flexShrink:0,padding:'8px 0 2px',fontFamily:T.sans,fontSize:12.5,lineHeight:1.5,color:SUB}}, desc):null,
         h('div',{style:{height:28,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'15px 0',display:'flex',alignItems:'flex-start'}}, h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:MUT}}, 'EFFECT')),
         h('div',{style:{alignSelf:'stretch',flexShrink:0}}, ...rows.map((st,i)=>cell(st[0],st[1],i))),
@@ -4368,24 +4425,24 @@ void main(){
           h('span',{style:{fontFamily:T.sans,fontSize:10.5,color:SUB}}, this.t('item_disk')),
           h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.08em',color:SUB}}, 'INSTALL '+mins+'MIN'))),
       h('div',{style:{padding:'17px 17px 0',display:'flex',flexDirection:'column',gap:12}},
-        h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20px',color:HI}}, this.itemLabel(inst)),
+        h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20px',color:HI}}, this.itemLabel(inst)),
         h('span',{style:{fontFamily:T.sans,fontSize:12,lineHeight:1.6,color:MUT}}, this.tx(bp,'Description'))));
   }
   // 퀘스트 아이템 카드 = 해금·설명서 카드 틀(아트 316 · 72%) + 아트 위 LightTunnel(mountQuestTunnel) — 사용자 2026-10-12 "아트 비중이 더 커야"
-  questCardBig(inst,fixed){
-    const it=this.eng.byId.item[inst.id]||{};
+  questCardBig(inst,fixed,opt){
+    const it=this.eng.byId.item[inst.id]||{}; const o=opt||{};
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', SUB='#A5ACB2', HI='#EAEBEE', MUT='#4B4D52';
     return h('div',{style:{position:'relative',width:342,height:fixed?this.lootCardH(inst):'100%',boxSizing:'border-box',background:C1,border:'1px solid rgba(206,212,220,0.23)',borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlGlowSilver 4.8s ease-in-out infinite'}},
       h('div',{style:{position:'relative',height:316,flexShrink:0,overflow:'hidden',background:'#0F1013'}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
         h('img',{key:'qart',draggable:false,src:'assets/art/items/'+inst.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',pointerEvents:'none',WebkitUserDrag:'none'}}),
-        h('canvas',{key:'qtun',ref:el=>this.mountQuestTunnel(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',mixBlendMode:'lighten'}}),
+        o.tunnel===false? null : h('canvas',{key:'qtun',ref:el=>this.mountQuestTunnel(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',mixBlendMode:'lighten'}}),
         h('div',{style:{position:'absolute',left:0,right:0,bottom:0,height:80,background:'linear-gradient(180deg, rgba(24,25,29,0) 0%, #18191D 100%)'}}),
         h('div',{style:{position:'absolute',left:17,right:17,bottom:12,display:'flex',alignItems:'center',justifyContent:'space-between'}},
-          h('span',{style:{fontFamily:T.sans,fontSize:10.5,color:SUB}}, this.t('item_questitem')),
+          h('span',{style:{fontFamily:T.sans,fontSize:10.5,color:SUB}}, o.cat||this.t('item_questitem')),
           h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.08em',color:SUB}}, 'MAX STACK '+this.maxStack(inst.id)))),
       h('div',{style:{padding:'17px 17px 0',display:'flex',flexDirection:'column',gap:12}},
-        h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20px',color:HI}}, this.itemLabel(inst)),
+        h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20px',color:HI}}, this.itemLabel(inst)),
         h('span',{style:{fontFamily:T.sans,fontSize:12,lineHeight:1.6,color:MUT}}, this.tx(it,'Description'))));
   }
   // 키카드 카드 = 프레임/텍스트 없이 아트 풀블리드(assets/art/cards/<id>.webp). 정보는 인벤 분류로 충분.
@@ -4412,6 +4469,7 @@ void main(){
     if(this.isKeycard(inst)) return this.keycardBig(inst,fixed);
     if(this.isBlueprint(inst)) return this.blueprintBig(inst,fixed);
     if(this.isQuestId(inst.id)&&mask!=='?') return this.questCardBig(inst,fixed);
+    if(this.isEnhMatId(inst.id)&&mask!=='?') return this.questCardBig(inst,fixed,{cat:this.en()?'Enhancement Material':'강화 재료',tunnel:false});
     const artP=fixed?{height:190,flexShrink:0}:{flex:'1 1 auto',minHeight:60};
     // 미감정 라벨도 미리보기에선 가린다 — 제작 전엔 '무엇이 감정 대상인지'조차 알 수 없다.
     // 제작 미리보기(mask==='?')는 **값을 전부** 가린다 — maskNum은 숫자만 바꾸므로
@@ -4446,7 +4504,7 @@ void main(){
     const val=this.eng.byId.valuable&&this.eng.byId.valuable[inst.id];
     // 귀중품 가치는 흥정 전까지 완전 숨김(미감정 원칙) — 흥정 후에만 확정값 노출
     const allStats=val?[[this.en()?'Value':'가치', (inst.value!=null? Math.round(this.eng.N(inst.value)).toLocaleString() : (this.en()?'Unknown':'알 수 없음')), (inst.value!=null&&inst.valueUp===false)?'#C4675D':'#83B289']]:usb?[[this.t('usb_permanent_growth'),this.eng.substUsbTokens('{STAT}',usb)],[this.t('combat_time_limit'),this.eng.N(usb.UploadMinutes,1)+(this.en()?'m':'분')]]:(isBag?[[this.en()?'Slots':'슬롯',String(this.eng.N(s.Capacity)),'#83B289']]:(isAcc?accRows():((isGear||liq||md||s.Category==='Medicine'||s.Category==='Food')?this.itemDetailStats(inst):[])));
-    const stats=allStats.filter(([k])=>k!==this.t('item_durability'));
+    const stats=this.enhStatFx(inst, allStats.filter(([k])=>k!==this.t('item_durability')));   // 강화 연출 중이면 바뀐 줄만 카운트(enhStatFx)
     const desc=this.tx(s,'Description')||(inst.kind==='talisman'&&(this.tx(s,'EffectDesc')||s.EffectDesc_KR))||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||(usb&&this.tx(usb,'Description'))||(md&&this.t(String(md.Tag)==='weapon'?'module_fits_weapon':'module_fits_armor'))||'';
     // ★소켓 개수는 **제작 순간에 굴려진다**(engine.mkInstance: randInt(0,SocketMax)).
     //   제작 미리보기(mask==='?')가 굴린 값은 결과물과 무관하므로 보여주면 거짓말이 된다
@@ -4461,7 +4519,8 @@ void main(){
       h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:col||(v===UNW?UNC:HI),textAlign:'right',whiteSpace:'nowrap'}}, v));
     const secLabel=(t)=>h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:MUT}}, t);
     const nRows=Math.max(1,Math.ceil(stats.length/2));
-    return h('div',{style:{width:342,height:fixed==='fit'?'auto':(fixed?this.lootCardH(inst):'100%'),minHeight:fixed==='fit'?460:'auto',boxSizing:'border-box',background:C1,border:'1px solid '+(val?'rgba(214,178,112,0.28)':LN),borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:val?'rlGlowGold 4.8s ease-in-out infinite':'none'}},
+    return h('div',{style:{width:342,height:fixed==='fit'?'auto':(fixed?this.lootCardH(inst):'100%'),minHeight:fixed==='fit'?460:'auto',boxSizing:'border-box',background:C1,border:'1px solid '+(val?'rgba(214,178,112,0.28)':LN),borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',position:'relative',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:val?'rlGlowGold 4.8s ease-in-out infinite':((mask!=='?'&&this.enhShownLevel(inst)>=5)?'rlEnhPrismShadow 3s linear infinite':'none')}},
+      ...(mask==='?'? [] : this.enhFxLayers(inst)),   // 강화 단계 카드 이펙트(맨 앞에 두되 zIndex로 위에 올린다)
       // ART 190
       h('div',{style:{position:'relative',...artP,alignSelf:'stretch',background:md?C1:ART}},
         md?null:h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
@@ -4489,7 +4548,10 @@ void main(){
       // BODY
       h('div',{style:{alignSelf:'stretch',flexGrow:1,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start',minHeight:0}},
         h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center'}},
-          h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:500,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.itemLabel(inst)+((inst.qty||1)>1?' ×'+inst.qty:''))),
+          h('span',{style:{display:'inline-flex',alignItems:'center',gap:8,minWidth:0}},
+            h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap',display:'inline-block',
+              animation:(this._statFx&&this._statFx.uid===inst.uid&&this._statFx.rolling)?'rlEnhJit .18s steps(1) infinite':'none'}}, this.itemLabel(inst)+((inst.qty||1)>1?' ×'+inst.qty:'')),   // 상세 카드 이름 = 타이틀 폰트 18 · 강화 굴림 중엔 태그와 함께 떨린다
+            mask==='?'? null : this.enhTag(inst,true))),   // 강화 단계 [+N] — 0강은 없음
         (!(isGear||isAcc)&&desc)?h('div',{style:{alignSelf:'stretch',flexShrink:0,padding:'8px 0 2px',fontFamily:T.sans,fontSize:12.5,lineHeight:1.5,color:SUB}}, desc):null,
         (isGear||isAcc)?h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('item_durability')),
@@ -4516,7 +4578,8 @@ void main(){
       (isGear||isAcc)?h('div',{style:{alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'3px 15px 16px',display:'flex',alignItems:'flex-start'}},
         h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:1.5,color:desc?SUB:MUT,maxWidth:'100%'}}, desc||this.t('item_desc_label'))):null);
   }
-  catKey(cat){ const map={Weapon:'item_slot_weapon',Head:'item_head',Body:'item_body',Medicine:'item_medicine',Food:'item_food',Junk:'item_junk',Valuable:'item_quest',Quest:'item_questitem',Key:'item_key',Accessory:'item_accessory',Talisman:'item_talisman',Bag:'item_bag',USB:'usb_decode',Material:'item_material_type',Blueprint:'item_disk'}; return map[cat]||cat; }
+  catKey(cat){ const map={Weapon:'item_slot_weapon',Head:'item_head',Body:'item_body',Medicine:'item_medicine',Food:'item_food',Junk:'item_junk',Valuable:'item_quest',Quest:'item_questitem',Key:'item_key',Accessory:'item_accessory',Talisman:'item_talisman',Bag:'item_bag',USB:'usb_decode',Material:'item_material_type',Blueprint:'item_disk'}; if(cat==='Enhance') return this.en()?'Enhancement':'강화 재료';   // UIString 행 없음 — 원문이 그대로 통과한다
+    return map[cat]||cat; }
 
   // ===== 루팅 관리 화면 (프리뷰 · 임시 디버그 진입) =====
   // 모델: lm={view:'field'|'bag', focus, field:[], bag:[]}. 주머니=가방 카드의 locked 플래그(최대 2). 스택=가방에서 같은 id 병합(qty).
@@ -5057,7 +5120,7 @@ void main(){
         this.catChip(catOf(inst),false),
         ms>=2?this.qtyChip(inst,ms):null),
       h('div',{'data-invname':'1',style:{marginTop:8}},
-        h('span',{style:{fontFamily:T.sans,fontSize:14,color:T.hi}}, this.itemLabel(inst))),
+        h('span',{style:{fontFamily:T.sans,fontSize:14,color:T.hi}}, this.enhName(inst))),
       desc?h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,marginTop:4,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, desc):null);
   }
   invEmptySlot(sec,idx){
@@ -5087,7 +5150,7 @@ void main(){
           st==='destroyed'?this.subTag(this.t('item_destroyed')):null),
         growth.length?h('div',{style:{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',justifyContent:'flex-end',flexShrink:0}}, ...growth):null),
       // 아이템명
-      h('div',{style:{fontFamily:T.sans,fontSize:14,color:T.hi,marginTop:8}}, this.itemLabel(inst)),
+      h('div',{style:{fontFamily:T.sans,fontSize:14,color:T.hi,marginTop:8}}, this.enhName(inst)),
       // 내구도(라벨+값+게이지)
       hasDur?h('div',{style:{marginTop:8}},
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
@@ -5208,7 +5271,7 @@ void main(){
           st==='destroyed'?this.subTag(this.t('item_destroyed')):null),
         (!equippable&&ms>=2)?this.qtyChip(inst,ms):null),
       h('div',{style:{display:'flex',alignItems:'center',gap:8,alignSelf:'stretch',flexWrap:'wrap',marginTop:8}},
-        h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:400,color:T.hi}}, name),
+        h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:400,color:T.hi}}, this.enhName(inst,name)),
         (inst.sockets&&inst.sockets.length)?this.socketBars(inst):null),
       desc?h('div',{style:{alignSelf:'stretch',marginTop:4}}, h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:1,WebkitBoxOrient:'vertical',overflow:'hidden',textOverflow:'ellipsis'}}, desc)):null);
   }
@@ -5245,21 +5308,27 @@ void main(){
     const modRows=()=>Object.keys(modSum).filter(k=>!modUsed.has(k)&&modSum[k]).map(k=>[modLbl[k]||k, '+'+Math.round(modSum[k]*100)/100+((/^sec_(crit_chance|accuracy|status_resist)$/.test(k))?'%':''), MG]);
     if(inst.kind==='weapon'){ const w=this.eng.byId.weapon[inst.id]||{}; const r=inst.rolls||{};
       const atkHidden=opt(inst,'minAtk')||opt(inst,'maxAtk');
-      const dm=atkHidden?0:mod('sec_dmg_pct'), am=1+dm/100;
+      // 강화 효과(engine.enhEffects)도 모듈처럼 수치에 합산해 초록으로 보인다 — 줄이 없는 항목(크리 피해·추가 타격)은 초록 줄로 덧붙인다.
+      const en=this.eng.enhEffects(inst);
+      const dm=atkHidden?0:mod('sec_dmg_pct'), am=1+dm/100+(atkHidden?0:en.dmg);
       const atk=atkHidden?HID:(Number((r.minAtk??N(w.MinAtk_Low))*am).toFixed(2)+'–'+Number((r.maxAtk??N(w.MaxAtk_High))*am).toFixed(2));
-      const atkCol=atkHidden?'#7683F3':dm?MG:(()=>{ const d=(inst.apprDelta&&((inst.apprDelta.minAtk||0)+(inst.apprDelta.maxAtk||0)))||0; return d>0?'#83B289':d<0?'#C4675D':'#EAEBEE'; })();
+      const atkCol=atkHidden?'#7683F3':(dm||en.dmg)?MG:(()=>{ const d=(inst.apprDelta&&((inst.apprDelta.minAtk||0)+(inst.apprDelta.maxAtk||0)))||0; return d>0?'#83B289':d<0?'#C4675D':'#EAEBEE'; })();
       out.push([this.t('stat_atk'), atk, atkCol],
-        [this.t('stat_atk_speed'), opt(inst,'atkSpeed')?HID:Number(r.atkSpeed??N(w.AttackSpeed)).toFixed(2), col('atkSpeed')],
-        [this.t('stat_accuracy'), opt(inst,'accuracy')?HID:Number((r.accuracy??N(w.Accuracy))+mod('sec_accuracy')).toFixed(2)+'%', modSum.sec_accuracy&&!opt(inst,'accuracy')?MG:col('accuracy')],
-        [this.t('combat_crit'), opt(inst,'critChance')?HID:Number((r.critChance??N(w.CritChance))+mod('sec_crit_chance')).toFixed(2)+'%', modSum.sec_crit_chance&&!opt(inst,'critChance')?MG:col('critChance')]);
+        [this.t('stat_atk_speed'), opt(inst,'atkSpeed')?HID:Number((r.atkSpeed??N(w.AttackSpeed))*(1+en.asp)).toFixed(2), (en.asp&&!opt(inst,'atkSpeed'))?MG:col('atkSpeed')],
+        [this.t('stat_accuracy'), opt(inst,'accuracy')?HID:Number((r.accuracy??N(w.Accuracy))+mod('sec_accuracy')+en.acc).toFixed(2)+'%', (modSum.sec_accuracy||en.acc)&&!opt(inst,'accuracy')?MG:col('accuracy')],
+        [this.t('combat_crit'), opt(inst,'critChance')?HID:Number((r.critChance??N(w.CritChance))+mod('sec_crit_chance')+en.crit).toFixed(2)+'%', (modSum.sec_crit_chance||en.crit)&&!opt(inst,'critChance')?MG:col('critChance')]);
       if(AT(w.Attribute)){ out.push([this.t('status_effect'), this.t('status_'+w.Attribute)], [this.t('stat_potency'), opt(inst,'potency')?HID:Number(r.potency??N(w.Potency)).toFixed(2), col('potency')]); }
+      if(en.cmult) out.push([this.enhStatLabel('cmult'), this.enhStatVal('cmult',en.cmult), MG]);
+      if(en.hitdmg) out.push([this.enhStatLabel('hitdmg'), this.enhStatVal('hitdmg',en.hitdmg), MG]);
       out.push(...modRows(), [this.t('item_material_type'), this.eng.materialLabel(w.Material)||'—'],
         [this.t('item_durability'), this.durTxt(inst), this.durCol(inst,'#EAEBEE')]);
     } else if(inst.kind==='armor'){ const a=this.eng.byId.armor[inst.id]||{}; const r=inst.rolls||{};
-      out.push([this.t('stat_def'), opt(inst,'def')?HID:Number((r.def??N(a.Def_Low))+mod('sec_defense')).toFixed(2), modSum.sec_defense&&!opt(inst,'def')?MG:col('def')],
-        [this.t('stat_evasion'), opt(inst,'evasion')?HID:Number(r.evasion??N(a.Evasion)).toFixed(2)+'%', col('evasion')],
-        [this.t('stat_status_resist'), opt(inst,'statusResist')?HID:Number((r.statusResist??N(a.StatusResist))+mod('sec_status_resist')).toFixed(2)+'%', modSum.sec_status_resist&&!opt(inst,'statusResist')?MG:col('statusResist')],
-        ...Object.entries(inst.bonus||{}).map(([k,v])=>{ const b=this.eng.bonusLabel(k); return [this.en()?b.en:b.kr, this.eng.fmtSigned(N(v), null, b.unit), N(v)<0?'#C4675D':'#83B289']; }),
+      const en=this.eng.enhEffects(inst);   // 방어구 강화 — 방어·회피·저항은 그 줄에 합산, 최대 체력·피해 감소는 Bonus 줄에 합치거나 새 줄
+      const bon=Object.assign({}, inst.bonus||{}); if(en.hp) bon.hp=N(bon.hp)+en.hp; if(en.dmgcut) bon.dmgcut=N(bon.dmgcut)+en.dmgcut;
+      out.push([this.t('stat_def'), opt(inst,'def')?HID:Number((r.def??N(a.Def_Low))+mod('sec_defense')+en.def).toFixed(2), (modSum.sec_defense||en.def)&&!opt(inst,'def')?MG:col('def')],
+        [this.t('stat_evasion'), opt(inst,'evasion')?HID:Number((r.evasion??N(a.Evasion))+en.eva).toFixed(2)+'%', (en.eva&&!opt(inst,'evasion'))?MG:col('evasion')],
+        [this.t('stat_status_resist'), opt(inst,'statusResist')?HID:Number((r.statusResist??N(a.StatusResist))+mod('sec_status_resist')+en.res).toFixed(2)+'%', (modSum.sec_status_resist||en.res)&&!opt(inst,'statusResist')?MG:col('statusResist')],
+        ...Object.entries(bon).map(([k,v])=>{ const b=this.eng.bonusLabel(k); return [this.en()?b.en:b.kr, this.eng.fmtSigned(Math.round(N(v)*100)/100, null, b.unit), N(v)<0?'#C4675D':'#83B289']; }),
         ...modRows(),
         [this.t('item_material_type'), this.eng.materialLabel(a.Material)||'—'],
         [this.t('item_durability'), this.durTxt(inst), this.durCol(inst,'#EAEBEE')]);
@@ -5352,7 +5421,7 @@ void main(){
               h('div',{style:{position:'relative',minHeight:cmpH,transformStyle:'preserve-3d',WebkitTransformStyle:'preserve-3d',transition:'transform .45s cubic-bezier(.2,.8,.2,1)',transform:peek?'rotateY(180deg)':'none'}},
                 h('div',{style:{backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',visibility:peek?'hidden':'visible',transition:'visibility 0s linear .225s'}}, this.lootCardBig({...inst,qty:1},'fit')),
                 h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',visibility:peek?'visible':'hidden',transition:'visibility 0s linear .225s'}}, this.lootCardBig({...counterpart,qty:1},'fit'))))
-          : this.lootCardBig({...inst,qty:1},'fit'))),
+          : this.tiltCard(this.lootCardBig({...inst,qty:1},'fit'),inst))),
       // 위로 올려 닫기 힌트 — 액션 박스에서 16px 위(위 화살표 바운스 + 텍스트). absolute라 카드 중앙정렬에 영향 없음.
       h('div',{style:{position:'absolute',left:0,right:0,bottom:16,padding:'0 16px',pointerEvents:'none'}},
         this.lmChevron('up'),
@@ -5380,7 +5449,7 @@ void main(){
     const close=held? ()=>{} : ()=>this.setState({apr:{}});
     return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...inst,qty:1},'fit'))),
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.tiltCard(this.lootCardBig({...inst,qty:1},'fit'),inst))),
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
         h('div',{style:{display:'flex',gap:8}},
           this.fbtn(this.en()?'Appraise':'감정받기','#eaebee',()=>this.setState({apr:{itemUid:inst.uid,liq:[]}}),true),
@@ -5400,7 +5469,7 @@ void main(){
     const total=price*q;
     return h('div',{onClick:()=>this.setState({buySel:null,buyQty:1}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...inst,qty:1},'fit'))),
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.tiltCard(this.lootCardBig({...inst,qty:1},'fit'),inst))),
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}},
           h('span',{style:{fontFamily:T.sans,fontSize:10,color:'#a9abaf'}}, this.en()?'Qty':'수량'),
@@ -5422,7 +5491,7 @@ void main(){
     const total=price*q;
     return h('div',{onClick:()=>this.setState({sellSel:null,sellQty:1}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...rep,qty:1},'fit'))),
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.tiltCard(this.lootCardBig({...rep,qty:1},'fit'),rep))),
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 16px',background:'#18191d',border:'1px solid #36383c',borderRadius:24,padding:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}},
           h('span',{style:{fontFamily:T.sans,fontSize:10,color:'#a9abaf'}}, this.en()?'Qty':'수량'),
@@ -5460,7 +5529,7 @@ void main(){
       h('div',{style:{flex:1,margin:'16px 16px 16px',background:'#18191D',border:'1px solid #36383C',borderRadius:8,overflowY:'auto',padding:'14px 14px 110px'}},
         h('div',{style:{height:104,borderRadius:8,overflow:'hidden',marginBottom:16,background:'linear-gradient(180deg, oklch(0.30 0.01 264) 0%, oklch(0.19 0.008 264) 100%)'}}),
         h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:3}},
-          h('span',{style:{fontFamily:T.sans,fontSize:17,fontWeight:600,color:T.hi}}, this.en()?'Player':'플레이어'),
+          h('span',{style:{...this.titleF(),fontSize:17,color:T.hi}}, this.en()?'Player':'플레이어'),
           h('span',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,cursor:'pointer'}}, this.en()?'Edit':'수정')),
         h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.08em',color:T.faint,marginBottom:16}}, 'UUID:129038712374'),
         h('div',{style:{display:'flex',flexDirection:'column',gap:12,marginBottom:18}}, this.bar(this.t('stat_hp'),g.hp,g.maxHp,T.hp), this.bar(this.t('stat_stamina'),g.sta,this.staMax,T.sta)),
@@ -5472,8 +5541,9 @@ void main(){
           ...prim.map(([k,kr])=>{ const pv=this.eng.growthPct(g,k); const bo=bonus[k]||0;
             const gtb=this.eng.growthMultiplier(g,k)-this.eng.N(this.eng.DATA.config.growth_tag_mult_base,0.5);   // 표기 규약 = 위 GROWTH_CHIP 주석
             return h('div',{key:k},
-              h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}},
-                h('div',{style:{fontFamily:T.sans,fontSize:14,fontWeight:600,color:T.hi}}, kr),
+              h('div',{onClick:()=>this.setState({statPop:k}),style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,cursor:'pointer'}},
+                h('div',{style:{display:'inline-flex',alignItems:'center',gap:5,...this.titleF(),fontSize:14,color:T.hi}}, kr,
+                  h('img',{src:'assets/art/ui/ic_popup_info.webp',width:14,height:14,alt:'',style:{flexShrink:0,display:'block'}})),   // 누르면 statPopSheet — 2차 능력치 설명
                 gtb>0.001?h('span',{style:{fontFamily:T.mono,fontSize:11,color:'#7683F3',background:'#212327',borderRadius:4,padding:'3px 8px',lineHeight:'100%'}}, 'X'+(1+gtb).toFixed(1)):null),   // ★표시만 1.0 기준이다 — GROWTH_CHIP 참조
               h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:6}},
                 h('div',{style:{display:'flex',alignItems:'baseline',gap:6}},
@@ -5512,7 +5582,7 @@ void main(){
               h('div',{style:{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}},
                 AT(attr)?gpill(this.t('status_'+attr),ATTR[attr].c):null,
                 ...gtags.map(tg=>gpill(ABBR[tg]||tg)))),
-            h('div',{style:{fontFamily:T.sans,fontSize:16,fontWeight:500,color:T.hi}}, this.itemLabel(inst)),
+            h('div',{style:{fontFamily:T.sans,fontSize:16,fontWeight:500,color:T.hi}}, this.enhName(inst)),
             inst.kind==='bag'
               ? h('div',{style:{display:'flex',alignItems:'center',gap:10}},
                   h('span',{style:{fontFamily:T.mono,fontSize:10,color:T.lo,flex:'0 0 auto',letterSpacing:'.04em'}}, this.en()?'Slots':'슬롯'),
@@ -5533,7 +5603,7 @@ void main(){
     const close=()=>this.setState({equipCard:null});
     return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:30,animation:'rlFade .18s'}},
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px 16px 8px',overflow:'hidden'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...inst,qty:1},'fit'))),
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.tiltCard(this.lootCardBig({...inst,qty:1},'fit'),inst))),
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',padding:'0 16px 26px'}},
         h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24}},
           h('button',{onClick:close,style:{width:'100%',height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_confirm')))));
@@ -5643,7 +5713,7 @@ void main(){
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:20}},
         h('div',{style:{display:'flex',alignItems:'center',gap:6}}, this.catChip(CATKR[src.Category]||src.Category||'', eqp), eqp?this.eqTag():null),
         gtags.length? this.shopPill(GKR[gtags[0]]||gtags[0],'rgb(169,171,175)') : null),
-      h('div',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',color:'#EAEBEE',marginTop:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
+      h('div',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',color:'#EAEBEE',marginTop:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.enhName(inst)),
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:13,marginTop:5}},
         h('span',{style:{fontFamily:T.sans,fontSize:11,lineHeight:'13px',color:'#6F7276'}}, this.t('item_durability')),
         h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'13px',color:'#A9ABAF'}}, this.durTxt(inst,' / '))),
@@ -5812,7 +5882,7 @@ void main(){
       rule(true), rule(false),
       // 남은 글자는 투명으로 미리 깔아 둔다 — 가운데 정렬이 타이핑 중에 흔들리지 않게
       h('div',{key:'tx',style:{position:'absolute',inset:0,padding:'0 16px',display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center',
-        fontFamily:T.sans,fontSize:14,lineHeight:'19px',color:'#EAEBEE',wordBreak:'keep-all'}},
+        fontFamily:T.npc,fontWeight:400,fontSize:14,lineHeight:'19px',color:'#EAEBEE',wordBreak:'keep-all'}},   // NPC 대사 = 디필레이아(T.npc · 2026-10-15)
         h('span',null, h('span',{key:'a'}, chars.slice(0,k).join('')), h('span',{key:'b',style:{visibility:'hidden'}}, chars.slice(k).join('')))));
   }
   // ===== 스토리 퀘스트 — 진행 상태 (확장_v3 §3.6 「스토리 퀘스트 스키마」 · StoryQuest 탭) =====
@@ -6719,7 +6789,7 @@ void main(){
   // window.__Q = 진행도 주입·상태 확인용 디버그 핸들(감지 훅이 붙기 전까지 이걸로 검증한다)
   openQuest(){ window.__Q=this; this.qSync(); this.setState({screen:'quest',qTab:'daily',qSel:null,qGive:false,qRew:null,qOpen:[],qFocus:0,cardPop:null}); }
   openQuestSheet(id){ const r=this.qRec(id);
-    if(r&&r.s==='rw'){ this.setState({qSel:id,qGive:false,qRew:id,qOpen:[],qFocus:0});
+    if(r&&r.s==='rw'){ this.setState({qSel:id,qGive:false,qRew:id,qOpen:[],qFocus:0,qClaim:null});
       this.sfxDealIn((r.rw||[]).length); this.qRevealAll(); return; }
     this.setState({qSel:id,qGive:false,qRew:null}); }
   closeQuestSheet(){ this.setState({qSel:null,qGive:false}); }
@@ -6970,6 +7040,7 @@ void main(){
         const x=this.eng.mkInstance(c.id,1); x.qty=1; x.locked=false; this._cardPopInst=x; }
       card=this.lootCardBig(this._cardPopInst,'fit');
     }
+    if(card) card=this.tiltCard(card, c.t==='m'? null : this._cardPopInst);   // 정보 카드 팝업도 자이로 기울기
     if(!card) return null;
     const close=()=>this.setState({cardPop:null});
     return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.82)',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',zIndex:36,animation:'rlFade .18s',cursor:'pointer'}},
@@ -7018,7 +7089,7 @@ void main(){
       this.gs.pass=Math.min(cap, this.eng.N(this.gs.pass,0)+rw.pass); this.savePass(); }
     const insts=ids.map(id=>{ const x=this.eng.mkInstance(id,1); x.qty=1; x.locked=false; return x; });
     this.qSet(q.QuestID,{s:'rw', rw:insts});
-    this.setState({qRew:q.QuestID,qOpen:[],qFocus:0});
+    this.setState({qRew:q.QuestID,qOpen:[],qFocus:0,qClaim:null});
     this.sfxDealIn(insts.length); if(rw.sato) this.sfx('got_sato');   // 딜링과 동시(사토 보상이 있을 때만)
     this.qRevealAll();
   }
@@ -7026,7 +7097,7 @@ void main(){
   qRewInsts(){ const r=this.qRec(this.state.qRew); return (r&&Array.isArray(r.rw))?r.rw:[]; }
   qIsOpen(i){ const a=this.state.qOpen; return Array.isArray(a)&&a.indexOf(i)>=0; }
   // 직접 뒤집는 조작은 없다 — 시트가 뜨면 자동으로 하나씩 열린다. 탭은 '건너뛰기'.
-  qTapCard(i){ const n=this.qRewInsts().length;
+  qTapCard(i){ const n=this.qRewInsts().length; if(this.state.qClaim) return;
     if(this._qrT || (this.state.qOpen||[]).length<n){ this.qRevealSkip(); return; }
     this.setState({qFocus:i}); }
   // 전투 귀환(startLootReveal)·분해와 같은 연출 — 첫 장부터 700ms 간격으로 자동 공개
@@ -7047,9 +7118,32 @@ void main(){
     const n=this.qRewInsts().length, a=[]; for(let i=0;i<n;i++) a.push(i);
     if((this.state.qOpen||[]).length<n) this.sfxFlip();   // 건너뛰기는 한 번만
     this.setState({qOpen:a}); }
+  // [전부 수령] 연출 — 왼쪽부터 한 장씩: (안 열렸으면) 자동으로 뒤집고 → 아래로 떨어지며 사라진다 → 다음 장. 끝나면 qStoreAll.
+  //   금고 칸 검사를 먼저 한다 — 연출 다 보여주고 '칸 부족'으로 되돌리지 않기 위해.
+  //   진행 중엔 버튼·탭·스와이프를 막는다(qClaim). 떨어진 카드 = qClaim.gone(인덱스) → 카드 style이 아래로 이동+투명.
+  qClaimAll(){
+    if(this.state.qClaim) return;
+    const insts=this.qRewInsts(), n=insts.length; if(!n) return;
+    if(this.vaultSlotsForInsts(insts) > this.vaultRoom()){ this.vaultFullMsg(); return; }
+    if(this._qrT){ clearTimeout(this._qrT); this._qrT=null; }   // 자동 공개 중이면 여기서 이어받는다
+    const id=this.state.qRew, FLIP=600, DROP=430, SLIDE=380;
+    const f0=this.eng.N(this.state.qFocus,0);
+    this.setState({qClaim:{gone:[]}});
+    const at=(fn,ms)=>{ this._qcT=setTimeout(()=>{ if(this.state.qRew!==id||!this.state.qClaim){ this._qcT=null; return; } fn(); }, ms); };
+    const step=(i)=>{
+      if(i>=n){ this._qcT=null; this.setState({qClaim:null}); this.qStoreAll(); return; }
+      const drop=()=>{ this.setState({qClaim:{gone:(this.state.qClaim.gone||[]).concat([i])}}); this.sfx('close_bag');   // 가방에 넣는 소리 = 전리품 정리(lm 이동)와 같은 close_bag
+        at(()=>{ if(i+1<n){ this.setState({qFocus:i+1}); at(()=>step(i+1), SLIDE); } else step(i+1); }, DROP); };
+      const moved=(i===0&&f0!==0);   // 첫 장이 가운데가 아니면 먼저 미끄러져 온다
+      if(!this.qIsOpen(i)){ this.setState({qFocus:i, qOpen:(this.state.qOpen||[]).concat([i])}); this.sfxFlip(); at(drop, FLIP+(moved?SLIDE:0)); }
+      else { this.setState({qFocus:i}); at(drop, moved?SLIDE:120); }
+    };
+    step(0);
+  }
   // 부분 수납 없음 — 한 칸이 모자라면 전량 미회수(분해와 같은 규칙). 닫기로 나가도 보상은 대기 상태로 남는다.
   qStoreAll(){
     if(this._qrT){ clearTimeout(this._qrT); this._qrT=null; }
+    if(this._qcT){ clearTimeout(this._qcT); this._qcT=null; }
     const id=this.state.qRew, insts=this.qRewInsts();
     if(this.vaultSlotsForInsts(insts) > this.vaultRoom()){ this.vaultFullMsg(); return; }
     insts.forEach(inst=>{ if(this.maxStack(inst.id)>1) this.stackAdd(this.gs.vault,inst.id,inst.qty||1,{}); else this.gs.vault.push(inst); });
@@ -7063,7 +7157,8 @@ void main(){
   questRewardSheet(){
     const drops=this.qRewInsts(); if(!drops.length) return null;
     const focus=Math.max(0,Math.min(drops.length-1,this.eng.N(this.state.qFocus,0)));
-    const nav=(d)=>{ const i=Math.max(0,Math.min(drops.length-1,focus+d)); if(i!==focus){ this.sfxSwipe(); this.setState({qFocus:i}); } };
+    const claim=this.state.qClaim, gone=(claim&&claim.gone)||[];
+    const nav=(d)=>{ if(claim) return; const i=Math.max(0,Math.min(drops.length-1,focus+d)); if(i!==focus){ this.sfxSwipe(); this.setState({qFocus:i}); } };
     // 가로 스와이프는 '움직이지 않는 부모 스테이지'가 받는다 — 카드가 받으면 캡처가 풀려 pointerup이 유실된다.
     const swipe = drops.length>1 ? {
       onPointerDown:(e)=>{ this._qSX=e.clientX; this._qSY=e.clientY; this._qSwiped=false; },
@@ -7078,9 +7173,11 @@ void main(){
           const Hh=open?this.lootCardH(inst):442;
           return h('div',{key:inst.uid||('qr'+i),onClick:()=>{ if(this._qSwiped){ this._qSwiped=false; return; } this.qTapCard(i); },
             style:{position:'absolute',left:'50%',top:'50%',width:342,height:Hh,
-              transform:'translate(calc(-50% + '+(off*250)+'px), -50%) scale('+(off?0.9:1)+')',
+              // 수령된 카드(gone)는 아래로 떨어지며 사라진다 — 가속(ease-in) · 투명도 함께 (qClaimAll)
+              transform:'translate(calc(-50% + '+(off*250)+'px), calc(-50% + '+(gone.includes(i)?640:0)+'px)) scale('+(off?0.9:1)+')',
+              opacity:gone.includes(i)?0:1,
               filter:off?'brightness(0.9)':'none',
-              transition:'transform .4s cubic-bezier(.16,1,.3,1)',zIndex:off?10-abs:20,perspective:'1200px',cursor:'pointer'}},
+              transition:gone.includes(i)?'transform .43s cubic-bezier(.55,0,.85,.35), opacity .43s ease-in':'transform .4s cubic-bezier(.16,1,.3,1)',zIndex:off?10-abs:20,perspective:'1200px',cursor:'pointer'}},
             h('div',{style:{position:'relative',width:'100%',height:'100%',transformStyle:'preserve-3d',transition:'transform .55s cubic-bezier(.2,.8,.2,1)',transform:open?'rotateY(180deg)':'none'}},
               h('div',{key:'bk',style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',borderRadius:8,background:T.s2,
                 backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid '+T.line2,boxShadow:'0 12px 36px rgba(0,0,0,.5)'}}),
@@ -7090,8 +7187,9 @@ void main(){
         drops.length>1? cardNav(focus, drops.length, ()=>nav(-1), ()=>nav(1)) : null),
       this.dotRow(drops.length, focus, 'qrdots'),
       h('div',{style:{flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',gap:8}},
-        this.qBtn(this.t('hide_store_all'),'#EAEBEE',()=>{ this.qRevealSkip(); this.qStoreAll(); },'ra'),
-        this.qBtn(this.t('quest_btn_close'),'#EAEBEE',()=>{ if(this._qrT){clearTimeout(this._qrT);this._qrT=null;} this.setState({qRew:null,qSel:null}); },'cl')));
+        // 왼쪽 = 나중에 수령(닫기 — 보상은 기록(s:'rw')에 남아 퀘스트를 다시 누르면 이 화면이 뜬다) · 오른쪽 = 전부 수령(2026-10-15 사용자)
+        this.qBtn(this.en()?'Claim later':'나중에 수령',claim?'#4B4D52':'#EAEBEE',claim?null:()=>{ if(this._qrT){clearTimeout(this._qrT);this._qrT=null;} this.setState({qRew:null,qSel:null}); },'cl'),
+        this.qBtn(this.en()?'Claim all':'전부 수령',claim?'#4B4D52':'#EAEBEE',claim?null:()=>this.qClaimAll(),'ra')));
   }
 
   // ===== 아지트 (svg/screen-hideout-*.svg · §3.5) =====
@@ -7118,6 +7216,12 @@ void main(){
     return h('div',{key:key,style:{position:'relative',width:w||'100%',height:6,flex:'0 0 auto',background:'#2B2E32',borderRadius:1,overflow:'hidden'}},
       p>0? h('div',{style:{width:p+'%',height:'100%',background:col||(p>=100?'#83B289':'#A5ACB2')}}) : null);
   }
+  // 아지트 시설 카드의 '진행 중인 것 없음' 바 — 반투명 트랙 + 연한 회색 테두리(2026-10-15 사용자: 솔리드 트랙이 보기 안 좋다).
+  //   높이·모서리는 hideBar와 같다(6 · r1) — 진행이 시작되면 hideBar로 바뀌어도 줄이 흔들리지 않는다.
+  //   pct를 주면 그 안에 채움을 그린다(보관함 용량·진행 중 슬롯) — 시설 카드의 바는 전부 이 한 모양(둥근 r3 · 2026-10-15).
+  hideBarIdle(key,pct,col){ const p=Math.max(0,Math.min(100,pct||0));
+    return h('div',{key:key,style:{position:'relative',width:'100%',height:6,flex:'0 0 auto',boxSizing:'border-box',background:'rgba(43,46,50,0.35)',border:'1px solid rgba(169,171,175,0.32)',borderRadius:3,overflow:'hidden'}},
+      p>0? h('div',{style:{width:p+'%',height:'100%',borderRadius:3,background:col||(p>=100?'#83B289':'#A5ACB2')}}) : null); }
   // 3초 롤 바(제작·분해) — 도망 바와 동종. CSS transition 한 번으로 끝내므로 리렌더가 필요 없다.
   // 재진입하면 항상 0%부터 다시 달린다(사용자 확정). 단 duration은 '남은 시간'이라 끝나는 시점은 정확하다.
   // ⚠️ fill의 vdom style은 상수다 — DC가 다시 쓰지 않아야 명령형 트랜지션이 3초를 버틴다.
@@ -7151,7 +7255,7 @@ void main(){
         h('div',{style:{height:14,display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:13}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.04em',color:'#6F7276'}}, 'SLOT'+(i+1)),
           on? h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#A9ABAF'}}, v==null?'--%':(Math.round(v)+'%')) : this.hideLockIcon()),
-        this.hideBar(on&&v!=null?v:0)); };
+        this.hideBarIdle(null,(on&&v!=null)?v:0)); };   // 시설 카드 바 한 모양 — 진행 중이 아니면 빈 트랙만(빈 슬롯·잠긴 슬롯)
     // total = 그 시설이 만렙에서 갖는 슬롯 수. 디스크는 최대 2라 3번째 칸을 아예 그리지 않는다.
     return h('div',{key:key,style:{display:'flex',gap:8}}, ...Array.from({length:Math.max(1,total||3)},(_,i)=>cell(i)));
   }
@@ -7176,9 +7280,9 @@ void main(){
       h('span',{style:{fontFamily:T.sans,fontSize:12,color:'#6F7276'}}, l),
       h('span',{style:{fontFamily:T.mono,fontSize:12,color:col||'#A9ABAF'}}, r));
     let body=null;
-    if(upg){ body=h('div',null, lblRow('Lv.'+lv, this.hhmmss(upg.left)+'('+Math.round(upg.pct)+'%)'), this.hideBar(upg.pct)); }
+    if(upg){ body=h('div',null, lblRow('Lv.'+lv, this.hhmmss(upg.left)+'('+Math.round(upg.pct)+'%)'), this.hideBarIdle(null,upg.pct)); }
     else if(facId==='storage'){ const cap=this.vaultCap(), used=this.vaultUsed();
-      body=h('div',null, lblRow(this.t('hide_capacity'), used+'/'+cap, used>=cap?'#C4675D':'#A9ABAF'), this.hideBar(cap?used/cap*100:0)); }
+      body=h('div',null, lblRow(this.t('hide_capacity'), used+'/'+cap, used>=cap?'#C4675D':'#A9ABAF'), this.hideBarIdle(null,cap?used/cap*100:0)); }
     // ⚠️ 열린 슬롯 수는 시설 레벨이 아니라 Facility.Effects에서 온다 —
     //    디스크 슬롯은 1/1/2라 레벨을 그대로 쓰면 Lv3에서 3칸으로 잘못 뜬다.
     // 진행 중인 슬롯은 퍼센트·게이지를 채운다(비어 있으면 --%).
@@ -7189,7 +7293,7 @@ void main(){
         this.hideSlotRow(this.diskSlots(),[kv(0),kv(1),kv(2)],'t1',this.hideMaxSlots('terminal','disk_slot')),
         this.hideSlotRow(this.decodeSlots(),[dv(0),dv(1),dv(2)],'t2',this.hideMaxSlots('terminal','decode_slot'))); }
     // 정비대 = 표시할 게 없다(수리·모듈이 전부 즉시). 자리만 잡아두는 빈 바 — 목업 그대로.
-    else body=this.hideBar(0);
+    else body=this.hideBarIdle();
     if(!fOpen) body=null;
     const art='assets/art/hideout/'+facId+'.webp';   // 시설 4종 전부 자기 아트를 깐다
     return h('div',{key:facId,'data-guide':'hide-'+facId,onClick:()=>this.openHideFac(facId),   /* 잠긴 시설도 들어간다 — 안에서 [복원](챕터3) */
@@ -7197,7 +7301,7 @@ void main(){
       h('div',{style:{position:'absolute',inset:0,backgroundImage:'linear-gradient(180deg,rgba(17,19,21,0.45) 0%,rgba(17,19,21,0.10) 40%,rgba(17,19,21,0.93) 100%), url('+art+')',backgroundSize:'cover',backgroundPosition:'center 42%',filter:fOpen?'none':'grayscale(1)'}}),
       h('div',{style:{position:'relative',height:'100%',boxSizing:'border-box',padding:'12px 17px 8.5px 17px',display:'flex',flexDirection:'column'}},
         h('div',{style:{display:'flex',alignItems:'flex-start',justifyContent:'space-between'}},
-          h('span',{style:{marginLeft:1,fontFamily:T.sans,fontSize:17,fontWeight:500,color:fOpen?'#EAEBEE':'#6F7276',lineHeight:'17px'}}, nm),
+          h('span',{style:{marginLeft:1,...this.titleF(),fontSize:24,color:fOpen?'#EAEBEE':'#6F7276',lineHeight:'24px'}}, nm),   // 시설 카드 이름 24(2026-10-15)
           h('div',{style:{marginTop:-4.5,marginRight:-1}}, badge)),
         h('div',{style:{flex:1}}),
         body));
@@ -7270,7 +7374,8 @@ void main(){
     const list=[];
     // 수리·모듈·분해는 대상이 없어도 잠그지 않는다 — 들어가서 '없다'를 보여주는 쪽이 맞다.
     if(facId==='repair'){ list.push({k:'repair',label:this.t('hide_repair'),locked:!can('repair')},
-                                    {k:'module',label:this.t('hide_module'),locked:!can('module')}); }
+                                    {k:'module',label:this.t('hide_module'),locked:!can('module')},
+                                    {k:'enhance',label:this.en()?'Enhance':'강화',locked:!can('enhance')}); }   // 강화 = Facility.Unlocks 'enhance'(2026-10-15)
     // 제작도 설치된 도면이 없다고 잠그지 않는다 — 잠그면 **왜 못 누르는지 알 방법이 없다**.
     // (단말기에서 디스크를 설치해야 한다는 걸 화면 안에서 안내로 알려준다. 2026-09-21)
     if(facId==='workbench'){ list.push({k:'craft',label:this.t('hide_craft'),locked:!can('craft')},
@@ -7312,7 +7417,7 @@ void main(){
       h('button',{onClick:onBack,'data-guide':'shop-back',style:{position:'absolute',left:18,top:24,width:28,height:28,padding:0,borderRadius:8,border:'none',background:'rgba(10,11,14,0.6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
         h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'#EAEBEE',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}, h('path',{key:'p',d:'M14.5 5l-7 7 7 7'}))),
       h('div',{style:{position:'absolute',right:19,top:25,height:27,display:'flex',alignItems:'center'}}, this.storageChips()),
-      h('div',{style:{position:'absolute',left:24,top:62,fontFamily:T.sans,fontSize:16,lineHeight:'16px',fontWeight:400,color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap'}}, title));
+      h('div',{style:{position:'absolute',left:24,top:62,...this.titleF(),fontSize:16,lineHeight:'16px',color:T.hi,letterSpacing:'-.01em',whiteSpace:'nowrap'}}, title));
   }
   // ===== 업그레이드 시트 (svg/screen-hideout-general-upgrade1~4.svg) =====
   // 목업 실측(패널 x16 w370 · 1px #36383C · #18191D):
@@ -7408,6 +7513,51 @@ void main(){
         ...body,
         h('div',{style:{display:'flex',gap:8,marginTop:16}}, ...footer)));
   }
+  // 1차 스탯 설명 시트 — 캐릭터 화면의 힘·민첩·체력·의지 이름(ⓘ)을 누르면 뜬다. 업그레이드 시트와 같은 틀·치수.
+  // 행 = SecondaryStat 탭에서 SourcePrimary가 이 스탯인 것 · 값 = 1pt당 / 현재 기여(현재 스탯값 × 1pt당, 장비 보너스 포함).
+  // ⚠️ 공격 속도는 engine.playerProfile이 1+민첩×0.015를 **코드에 박아** 쓴다 — 여기는 시트 값을 보여준다(현재 동일).
+  statPopSheet(){
+    const k=this.state.statPop; if(!k) return null;
+    const close=()=>this.setState({statPop:null});
+    const LO='#6F7276', MID='#A9ABAF', HI='#EAEBEE', LN='#36383C', MUT='#4B4D52';
+    const e=this.eng, g=this.gs, sid='stat_'+k;
+    const prow=(e.DATA.primaryStats||[]).find(r=>r.PrimaryStatID===sid);
+    const name=this.t(sid), role=prow? e.tr(prow,'Role') : '';
+    const full=e.playerProfile(g,false), bo=(full.primAdd||{})[k]||0;
+    const cur=e.N(g.primary[k],0)+bo;
+    const gtb=e.growthMultiplier(g,k)-e.N(e.DATA.config.growth_tag_mult_base,0.5);   // 표기 규약 = GROWTH_CHIP 주석
+    const LBL={sec_min_atk:'stat_atk_min',sec_max_atk:'stat_atk_max',sec_defense:'stat_def',sec_max_hp:'stat_max_hp',sec_atk_speed:'stat_atk_speed',
+      sec_accuracy:'stat_accuracy',sec_evasion:'stat_evasion',sec_status_resist:'stat_status_resist',sec_crit_chance:'stat_crit_chance',sec_crit_resist:'stat_crit_resist'};
+    const PCT=['sec_accuracy','sec_evasion','sec_status_resist','sec_crit_chance','sec_crit_resist'];   // 캐릭터 화면 2차 목록과 같은 % 표기
+    const num=(id,v)=>{ const pct=PCT.includes(id)||id==='sec_atk_speed'; const x=id==='sec_atk_speed'?v*100:v;
+      return '+'+(Math.round(x*100)/100)+(pct?'%':''); };
+    const rows=(e.DATA.secondaryStats||[]).filter(r=>r.SourcePrimary===sid);
+    const row=(l,rightEls,key,mt)=>h('div',{key:key,style:{height:24,marginTop:mt||0,display:'flex',alignItems:'center',justifyContent:'space-between'}},
+      h('span',{style:{fontFamily:T.sans,fontSize:13,color:MID}}, l),
+      h('span',{style:{fontFamily:T.mono,fontSize:13,display:'flex',alignItems:'center'}}, ...rightEls));
+    const sep=(key)=>h('div',{key:key,style:{height:1,background:LN,margin:'5px 0 6.5px'}});
+    const body=[];
+    body.push(h('div',{key:'k',style:{height:13,display:'flex',alignItems:'center',fontFamily:T.sans,fontSize:10,color:MUT}}, role));
+    body.push(h('div',{key:'n',style:{height:19,marginTop:8,display:'flex',alignItems:'center',justifyContent:'space-between'}},
+      h('span',{style:{display:'inline-flex',alignItems:'center',gap:8,fontFamily:T.sans,fontSize:16,fontWeight:500,color:HI}}, name,
+        gtb>0.001? h('span',{style:{fontFamily:T.mono,fontSize:11,fontWeight:400,color:'#7683F3',background:'#212327',borderRadius:4,padding:'3px 8px',lineHeight:'100%'}}, 'X'+(1+gtb).toFixed(1)) : null),
+      h('span',{style:{fontFamily:T.mono,fontSize:13,color:MID}}, 'Lv '+g.growth[k].level)));
+    body.push(h('div',{key:'hd',style:{height:14,marginTop:18.5,display:'flex',alignItems:'center',justifyContent:'space-between'}},
+      h('span',{style:{fontFamily:T.sans,fontSize:10,color:LO}}, this.en()?'Per point':'1 오를 때 증가'),
+      h('span',{style:{fontFamily:T.sans,fontSize:10,color:LO}}, this.en()?'Current':'현재 기여')));
+    rows.forEach((r,i)=>{
+      const id=r.SecondaryStatID, per=e.N(r.ValuePerPoint,0);
+      body.push(row(LBL[id]? this.t(LBL[id]) : e.tr(r,'SecondaryStat'), [
+        h('span',{key:'p',style:{color:LO,marginRight:14}}, num(id,per)),
+        h('span',{key:'c',style:{color:'#83B289'}}, num(id,per*cur))], 'r'+i, i===0?8:0));
+      if(i<rows.length-1) body.push(sep('s'+i));
+    });
+    const btn=(label,on)=>h('button',{onClick:on,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:HI,fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, label);
+    return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.55)',display:'flex',flexDirection:'column',justifyContent:'flex-end',zIndex:32,animation:'rlFade .18s'}},
+      h('div',{onClick:ev=>ev.stopPropagation(),style:{margin:'0 16px 24px',padding:'24px 17px 25px',boxSizing:'border-box',border:'1px solid '+LN,borderRadius:24,background:'#18191D',animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
+        ...body,
+        h('div',{style:{display:'flex',gap:8,marginTop:16}}, btn(this.t('hide_disk_close'),close))));
+  }
   // 복원 시트(챕터3) — 업그레이드 시트와 같은 틀 · 시간·효과 없음 · 재료(Facility Lv1 CostItems) → [복원] 즉시
   restoreSheet(facId,close){
     const MID='#A9ABAF', HI='#EAEBEE', LN='#36383C', MUT='#4B4D52', LO='#6F7276', mats=this.facRestoreMats(facId), ok=mats.length>0&&mats.every(m=>m.ok);
@@ -7435,7 +7585,7 @@ void main(){
     return h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',height:48,boxSizing:'border-box',background:'#18191D',borderRadius:'0 0 16px 16px',display:'flex',alignItems:'center',padding:'0 16px'}},
       h('span',{style:{fontFamily:T.sans,fontSize:10,color:'#4B4D52'}}, label));
   }
-  rsShell(label,list,empty,rows){
+  rsShell(label,list,empty,rows,opt){
     return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
       h('div',{key:'rsart',style:{position:'absolute',left:0,right:0,top:0,height:116,zIndex:0,pointerEvents:'none',
         backgroundImage:'linear-gradient(180deg,#111315 0%,rgba(17,19,21,0) 87.88%), url(assets/art/hideout/repair.webp)',
@@ -7446,7 +7596,7 @@ void main(){
       h('div',{style:{position:'relative',zIndex:1,flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column'}},
         list.length? rows()
           : h('div',{style:{padding:'40px 0',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, empty)),
-      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D'}},
+      h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',visibility:(opt&&opt.hideBack)?'hidden':'visible'}},   // 강화 연출 중엔 숨긴다(자리는 유지)
         h('button',{onClick:()=>this.openHideFac('repair'),style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.en()?'Back':'뒤로가기')));
   }
   rsRepairScreen(){
@@ -7470,9 +7620,440 @@ void main(){
         AT(src.Attribute)? this.shopPill(this.t('status_'+src.Attribute),'rgb(169,171,175)') : null,
         gtags.length? this.shopPill(GKR[gtags[0]]||gtags[0],'rgb(169,171,175)') : null),
       h('div',{style:{display:'flex',alignItems:'center',gap:8,marginTop:8}},
-        h('span',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',fontWeight:500,color:T.hi,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
+        h('span',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',fontWeight:500,color:T.hi,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.enhName(inst)),
         this.socketBars(inst)),
       h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,marginTop:7,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.tx(src,'Description')||''));
+  }
+  // ===== 정비대 · 강화 (2026-10-15 · 3단계) — 흐름은 모듈과 같다: 목록 → 상세 카드 → 확인 시트 → 결과 =====
+  // 규칙·확률·재료는 engine(enhanceWithCost/enhCost) · 정본 = 확장_v3 §3.7-10 + 메모리 enhancement-materials-concept.
+  // ★판정은 [강화]를 누르는 순간 확정하고 바로 저장한다(연출 도중 새로고침으로 결과 무르기 방지). 결과 시트는 4단계 연출로 교체될 임시 화면.
+  rsEnhGear(){ return this.ownedBy(x=>this.eng.enhable(x)); }
+  // 재료 이름 — 시트에 아이템이 아직 없으면(다른 세션에서 저작 중) 확정 이름으로 대신한다.
+  enhMatName(id){ const nm=this.eng.anyName(id); if(nm&&nm!==id) return nm;
+    const F={stun:['압전','Piezo'],bleed:['사파이어','Sapphire'],pierce:['다이아','Diamond'],rupture:['빙정','Frost'],none:['형상기억','Memory'],fabric:['아라미드','Aramid'],synth:['그래핀','Graphene'],metal:['실리카','Silica']};
+    const m=/^enh_([wa])([12])_(.+)$/.exec(String(id||'')); if(!m||!F[m[3]]) return id;
+    const kind={w1:['본드','Bond'],w2:['퍼티','Putty'],a1:['스프레이','Spray'],a2:['겔','Gel']}[m[1]+m[2]];
+    if(m[3]==='metal'&&m[2]==='2') return this.en()?'Silica Aerogel':'실리카 에어로겔';
+    const L=this.en()?1:0; return F[m[3]][L]+' '+kind[L]; }
+  // 강화 스탯 이름·값 — 무기(dmg·asp·crit·cmult·acc·hitdmg) / 방어구(def·eva·hp·dmgcut·res)
+  enhStatLabel(k){ const b=(x)=>{ const l=this.eng.bonusLabel(x); return this.en()?l.en:l.kr; };
+    return ({dmg:this.t('stat_atk'),asp:this.t('stat_atk_speed'),crit:this.t('combat_crit'),cmult:b('cmult'),acc:this.t('stat_accuracy'),hitdmg:b('hitdmg'),
+      def:this.t('stat_def'),eva:this.t('stat_evasion'),hp:b('hp'),dmgcut:b('dmgcut'),res:this.t('stat_status_resist')})[k]||k; }
+  enhStatVal(k,v){ const r=Math.round(v*100)/100; return '+'+((k==='dmg'||k==='asp')?Math.round(v*1000)/10+'%':(k==='dmgcut'?r+'%':String(r))); }
+  // [+N] 태그 — 단계 색(+1 밝은 회색 · +2 은색 · +3 호박 · +4 빨강 · +5 프리즘). 강화 연출 중이면 옛 값→새 값을 글리치로 겹쳐 바꾼다.
+  enhTagOne(n,size,anim,force){ if(!n&&!force) return null;
+    const SILVER='linear-gradient(135deg,#F2F4F7 0%,#9EA3AB 35%,#E6E9EE 55%,#8A8F97 80%,#D9DCE1 100%)';
+    const C={0:['#6F7276','rgba(111,114,118,0.45)'],1:['#D6D8DC','rgba(214,216,220,0.55)'],2:['#E6E9EE',null],3:['#CCA26E','rgba(204,162,110,0.6)'],4:['#E8857A','rgba(196,103,93,0.7)'],5:[null,null]}[Math.min(5,Math.max(0,n))];
+    const ring = n===2? h('span',{key:'r',className:'rlEnhTRing',style:{background:SILVER}}) : n>=5? h('span',{key:'r',className:'rlEnhTRing rlEnhPrism'}) : null;
+    return h('span',{key:'enh'+n+(anim||''),style:{position:anim?'absolute':'relative',left:0,top:0,flexShrink:0,display:'inline-flex',alignItems:'center',height:size?20:18,boxSizing:'border-box',padding:'0 6px',borderRadius:4,
+      background:'rgba(10,11,14,0.55)',border:C[1]?('1px solid '+C[1]):'1px solid transparent',fontFamily:T.mono,fontSize:size?11:10,lineHeight:'100%',color:C[0]||'#EAEBEE',whiteSpace:'nowrap',
+      animation:anim==='out'?'rlEnhGOut .75s steps(1) forwards':anim==='in'?'rlEnhGIn .75s steps(1) forwards':'none'}},
+      ring, n>=5? h('span',{key:'t',className:'rlEnhPText'}, 'MAX') : h('span',{key:'t'}, '+'+n)); }   // +5 = MAX(2026-10-15)
+  enhTag(inst,size){ const n=this.eng.enhLevel(inst), fx=this._statFx;
+    if(fx&&fx.uid===inst.uid){
+      // ①굴림(2초) — 오를지 내릴지 알 수 없게 단계 숫자가 마구 바뀌며 떨린다 ②확정 — 최종 단계가 글리치로 자리 잡는다(제자리여도 같은 연출)
+      if(fx.rolling) return h('span',{key:'enhroll',style:{display:'inline-block',flexShrink:0,animation:'rlEnhJit .18s steps(1) infinite'}}, this.enhTagOne(Math.max(0,fx.roll),size,null,true));
+      if(fx.settled&&!fx.settleDone) return h('span',{key:'enhset',style:{position:'relative',display:'inline-block',height:size?20:18,minWidth:28,flexShrink:0}}, n? this.enhTagOne(n,size,'in') : this.enhTagOne(0,size,'in',true));
+    }
+    return this.enhTagOne(n,size); }
+  // 강화 배경(Ghost Fibers) 색 = 강화 단계 색 — 결과 확정 전엔 도전 단계(지금+1) 색, 확정 뒤엔 결과 단계 색(0강이면 +1 회색). +5는 프리즘 5색을 천천히 순환.
+  enhFibersColor(now){ const r=this.state.enRes||{}, S=this._statFx, fx=this.state.enFx;
+    const settled=(fx&&(fx.phase==='done'||fx.phase==='detail'))||(S&&S.settled);
+    const n=Math.max(1,Math.min(5, settled? (r.to||0) : (r.from||0)+1));
+    const list=this.enhLevelHex(n), rgb=(c)=>[0,2,4].map(i=>parseInt(c.slice(1+i,3+i),16)/255);
+    if(list.length<=1) return rgb(list[0]);
+    const t=(now/1000)/1.2, i=Math.floor(t)%list.length, f=t-Math.floor(t), a=rgb(list[i]), b=rgb(list[(i+1)%list.length]);
+    return a.map((v,k)=>v+(b[k]-v)*f); }
+  // 강화 단계 색(전기 테두리용 단색 hex) — +0 회색 · +1 밝은 회색 · +2 은색 · +3 호박 · +4 빨강 · +5 프리즘(5색)
+  enhLevelHex(n){ return ({0:['#8A8F97'],1:['#D6D8DC'],2:['#EEF1F5','#9EA3AB'],3:['#E0B17A'],4:['#F07A6A'],5:['#F4B3CB','#F3D7A2','#BFEFCB','#A6D9F3','#C8B3F2']})[Math.max(0,Math.min(5,n))]; }
+  enhBlinkColors(from){ const a=this.enhLevelHex(from), b=this.enhLevelHex(Math.min(5,from+1)); const out=[]; const n=Math.max(a.length,b.length); for(let i=0;i<n;i++){ out.push(a[i%a.length], b[i%b.length]); } return out; }
+  // 목록 줄 이름 + [+N] — 강화된 장비만 감싼다(0강은 글자 그대로 → 기존 줄 레이아웃 불변). 부모의 글꼴을 그대로 물려받는다.
+  enhName(inst,label){ const lab=label!=null?label:this.itemLabel(inst); if(!inst||!this.eng.enhLevel(inst)) return lab;
+    return h('span',{style:{display:'inline-flex',alignItems:'center',gap:6,maxWidth:'100%',verticalAlign:'middle'}},
+      h('span',{style:{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0}}, lab), this.enhTag(inst)); }
+  // ===== 상세 카드 테두리 반사광 (SpecularButton 이식 · 2026-10-15) — 자이로로 카드가 기울면 기운 쪽 테두리에 빛 한 줄기(+맞은편 약하게)가 맺힌다.
+  //   색 = 카드 테두리 색: 강화 +1~+4 단계 색 · +5 무지개(테두리를 따라 색이 흐름) · 귀중품 금빛 · 그 외(일반·미강화) 은은한 회색.
+  //   기울기가 없으면(PC·권한 거부) 그리지 않는다. 원본의 마우스 추적·누름 번쩍임·바닥 헤어라인은 뺐다. ★DOM 이탈 시 컨텍스트 회수(tiltReg 루프가 처리).
+  shineSpec(inst){ if(!inst) return {color:'#A9ABAF',k:0.55,prism:0};
+    const n=Math.min(5,this.eng.enhLevel(inst)); if(n>=5) return {color:'#FFFFFF',k:1,prism:1};
+    if(n>0) return {color:({1:'#E2E4E8',2:'#F2F5F9',3:'#E8B97F',4:'#F28B7C'})[n],k:1,prism:0};
+    if(this.eng.byId.valuable&&this.eng.byId.valuable[inst.id]) return {color:'#E3C48A',k:0.9,prism:0};
+    return {color:'#A9ABAF',k:0.55,prism:0}; }
+  mountShine(canvas,spec){
+    if(!canvas) return; canvas._spec=spec; if(canvas._sh) return;
+    let gl; try{ gl=canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:true,antialias:false,depth:false,stencil:false}); }catch(_){}
+    if(!gl) return;
+    const VERT='#version 300 es\nin vec2 aPosition;\nvoid main(){ gl_Position=vec4(aPosition,0.0,1.0); }';
+    const FRAG="#version 300 es\nprecision highp float;\nuniform vec2 uCenter;uniform vec2 uHalf;uniform float uRadius;uniform float uPx;uniform float uSpot;uniform vec2 uEntry;uniform vec3 uLineColor;uniform float uIntensity;uniform vec2 uWindow;uniform float uThickness;uniform float uGlow;uniform int uPrism;\nout vec4 outColor;\nfloat roundedBox(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.0))+min(max(q.x,q.y),0.0)-r;}\nfloat loopPosition(vec2 p,vec2 b,float r){vec2 inner=b-r;float arc=1.5707963*r;float quarter=inner.x+inner.y+arc;vec2 a=abs(p);vec2 q=a-inner;float s=q.x>0.0&&q.y>0.0?inner.y+atan(q.y,q.x)*r:(q.x>q.y?min(a.y,inner.y):inner.y+arc+inner.x-min(a.x,inner.x));if(p.x<0.0)s=p.y>=0.0?2.0*quarter-s:2.0*quarter+s;else if(p.y<0.0)s=4.0*quarter-s;return s/max(4.0*quarter,0.0001);}\nfloat lobe(float position,float center){float gap=abs(fract(position-center+0.5)-0.5);return 1.0-smoothstep(uWindow.x,uWindow.x+uWindow.y,gap);}\nvec3 prism(float t){vec3 c[5];c[0]=vec3(0.957,0.702,0.796);c[1]=vec3(0.953,0.843,0.635);c[2]=vec3(0.749,0.937,0.796);c[3]=vec3(0.651,0.851,0.953);c[4]=vec3(0.784,0.702,0.949);float x=fract(t)*5.0;int i=int(floor(x));float f=fract(x);vec3 a=c[0],b=c[1];for(int k=0;k<5;k++){if(k==i){a=c[k];b=c[(k+1)%5];}}return mix(a,b,f);}\nvoid main(){vec2 p=gl_FragCoord.xy-uCenter;float d=roundedBox(p,uHalf,uRadius);float position=loopPosition(p,uHalf,uRadius);float key=lobe(position,uSpot);float back=lobe(position,uSpot+0.5);float streak=key+back*0.45;float width=max(uThickness*uPx*mix(1.0,max(key,back),0.6),0.35);float band=smoothstep(-width-0.6,-width+0.6,d)*(1.0-smoothstep(-0.6,0.6,d));float inside=1.0-smoothstep(-0.6,0.6,d);vec2 pool=(p-uEntry)/(uHalf.y*vec2(1.6,1.1));float glow=streak*0.2*exp(-abs(d+width*0.5)/(5.0*uPx))+inside*0.08*exp(-dot(pool,pool));float light=clamp((band*streak+glow*uGlow)*uIntensity,0.0,1.0);vec3 col=uPrism==1?prism(position*2.0+uSpot):uLineColor;outColor=vec4(col,1.0)*light;}";
+    const sh=(t,x)=>{ const o=gl.createShader(t); gl.shaderSource(o,x); gl.compileShader(o); return o; };
+    const prog=gl.createProgram(); gl.attachShader(prog,sh(gl.VERTEX_SHADER,VERT)); gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FRAG)); gl.bindAttribLocation(prog,0,'aPosition'); gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog,gl.LINK_STATUS)) return;
+    const U={}; ['uCenter','uHalf','uRadius','uPx','uSpot','uEntry','uLineColor','uIntensity','uWindow','uThickness','uGlow','uPrism'].forEach(n=>U[n]=gl.getUniformLocation(prog,n));
+    const vao=gl.createVertexArray(); gl.bindVertexArray(vao); const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0); gl.bindVertexArray(null);
+    const PAD=24, R=8, wrap=v=>v-Math.floor(v);
+    const loopPos=(x,y,hx,hy,r)=>{ const ix=hx-r, iy=hy-r, arc=Math.PI/2*r, q4=ix+iy+arc, ax=Math.abs(x), ay=Math.abs(y), qx=ax-ix, qy=ay-iy; let s;
+      if(qx>0&&qy>0) s=iy+Math.atan2(qy,qx)*r; else if(qx>qy) s=Math.min(ay,iy); else s=iy+arc+ix-Math.min(ax,ix);
+      if(x<0) s=y>=0?2*q4-s:2*q4+s; else if(y<0) s=4*q4-s; return wrap(s/Math.max(4*q4,0.0001)); };
+    const rgb=(c)=>{ const m=/^#?([0-9a-f]{6})$/i.exec(String(c||'')); return m? [0,2,4].map(i=>parseInt(m[1].slice(i,i+2),16)/255) : [1,1,1]; };
+    let W=0,H=0,ratio=1;
+    const resize=()=>{ const host=canvas.parentElement; if(!host) return; const w=host.offsetWidth, h=host.offsetHeight; if(w===W&&h===H) return; W=w; H=h; ratio=Math.min(window.devicePixelRatio||1,3);
+      canvas.width=Math.max(1,Math.round((W+PAD*2)*ratio)); canvas.height=Math.max(1,Math.round((H+PAD*2)*ratio)); canvas.style.width=(W+PAD*2)+'px'; canvas.style.height=(H+PAD*2)+'px'; };
+    canvas._sh={ gl, draw:(tx,ty)=>{ resize(); if(!W||!H) return; const sp=canvas._spec||{color:'#A9ABAF',k:0.55,prism:0};
+      const m=Math.min(1,Math.hypot(tx,ty)); gl.viewport(0,0,canvas.width,canvas.height); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
+      if(m<0.03) return;   // 기울지 않았으면 안 보인다(PC·권한 거부 포함)
+      const sx=canvas.width/(W+PAD*2), sy=canvas.height/(H+PAD*2), hx=W/2, hy=H/2;
+      // 빛 위치 = 관찰자 쪽으로 다가온 테두리(rotateX(-y)면 위쪽 · rotateY(+x)면 왼쪽)
+      const dx=-tx/m, dy=ty/m, spot=loopPos(dx*hx*1.4, dy*hy*1.4, hx, hy, R);
+      gl.useProgram(prog);
+      gl.uniform2f(U.uCenter,(PAD+hx)*sx,(PAD+hy)*sy); gl.uniform2f(U.uHalf,hx*sx,hy*sy); gl.uniform1f(U.uRadius,R*sx); gl.uniform1f(U.uPx,ratio);
+      gl.uniform1f(U.uSpot,spot); gl.uniform2f(U.uEntry,dx*hx*0.65*sx,dy*hy*0.65*sy);
+      gl.uniform3fv(U.uLineColor,rgb(sp.color)); gl.uniform1f(U.uIntensity,sp.k*(0.35+0.65*Math.min(1,m*1.6))); gl.uniform1i(U.uPrism,sp.prism?1:0);
+      gl.uniform2f(U.uWindow,10/360,34/360+0.0001); gl.uniform1f(U.uThickness,1.2); gl.uniform1f(U.uGlow,1);
+      gl.bindVertexArray(vao); gl.drawArrays(gl.TRIANGLES,0,3); gl.bindVertexArray(null); },
+      free:()=>{ try{ const e=gl.getExtension('WEBGL_lose_context'); if(e) e.loseContext(); }catch(_){} canvas._sh=null; } };
+  }
+  // ===== 상세 카드 자이로 기울기 (2026-10-15) — 상세 카드 팝업이 열려 있는 동안 폰 기울기를 따라 카드가 살짝(최대 ±6°) 기운다.
+  //   권한은 타이틀 시작(requestGyroPerm)에서 이미 받는다 → 여기선 요청하지 않는다. 이벤트가 안 오면(PC·거부) 가만히 둔다.
+  //   기준각 = 카드가 열린 뒤 첫 이벤트(어떻게 들고 있든 처음엔 똑바로). 래퍼만 기울인다(카드 내부 3D·filter 금지 규칙 유지).
+  //   ★명령형 transform이라 노드 재사용 함정(dc-imperative-style-leak) 방지: data-tilt가 사라지거나 DOM에서 빠진 노드는 transform을 비우고 놓는다.
+  tiltCard(node,inst){ const spec=this.shineSpec(inst);
+    return h('div',{key:'tilt','data-tilt':'1',ref:el=>this.tiltReg(el),style:{position:'relative',transformOrigin:'50% 50%',willChange:'transform'}}, node,
+      h('canvas',{key:'shine','data-shine':'1',ref:c=>this.mountShine(c,spec),style:{position:'absolute',left:-24,top:-24,pointerEvents:'none',zIndex:9}})); }
+  tiltReg(el){ if(!el) return; const S=this._tilt||(this._tilt={els:new Set(),raf:0,cur:{x:0,y:0},tgt:{x:0,y:0},base:null,h:null});
+    if(S.els.has(el)) return; S.els.add(el);
+    if(!S.h){ S.base=null; S.h=(e)=>{ const g=e.gamma, b=e.beta; if(g==null||b==null) return; if(!S.base) S.base={g,b};
+        S.tgt.x=Math.max(-1,Math.min(1,(g-S.base.g)/20)); S.tgt.y=Math.max(-1,Math.min(1,(b-S.base.b)/20)); };
+      try{ window.addEventListener('deviceorientation',S.h,true); }catch(_){} }
+    if(!S.raf){ const MAX=6, loop=()=>{ S.raf=0;
+        for(const e of [...S.els]){ if(!e.isConnected||e.getAttribute('data-tilt')!=='1'){ e.style.transform=''; const c=e.querySelector&&e.querySelector('canvas[data-shine]'); if(c&&c._sh&&!c.isConnected) c._sh.free(); S.els.delete(e); } }
+        if(!S.els.size){ try{ window.removeEventListener('deviceorientation',S.h,true); }catch(_){} S.h=null; S.base=null; S.cur={x:0,y:0}; S.tgt={x:0,y:0}; return; }
+        S.cur.x+=(S.tgt.x-S.cur.x)*0.12; S.cur.y+=(S.tgt.y-S.cur.y)*0.12;
+        const tf=(Math.abs(S.cur.x)<0.002&&Math.abs(S.cur.y)<0.002)? '' : 'perspective(900px) rotateX('+(-S.cur.y*MAX).toFixed(2)+'deg) rotateY('+(S.cur.x*MAX).toFixed(2)+'deg)';
+        for(const e of S.els){ if(e.style.transform!==tf) e.style.transform=tf; const c=e.lastElementChild; if(c&&c._sh&&(S._lx!==S.cur.x||S._ly!==S.cur.y||!c._drawn)){ c._sh.draw(S.cur.x,S.cur.y); c._drawn=1; } }
+        S._lx=S.cur.x; S._ly=S.cur.y;
+        S.raf=requestAnimationFrame(loop); };
+      S.raf=requestAnimationFrame(loop); } }
+  // 연출 중 '보여줄' 단계 — 확정 전엔 강화 전 단계(카드 이펙트·태그가 결과를 미리 흘리지 않게)
+  enhShownLevel(inst){ const fx=this._statFx; return (fx&&fx.uid===inst.uid&&!fx.settled)? (fx.tagFrom||0) : this.eng.enhLevel(inst); }
+  // 강화 단계별 카드 이펙트 층(카드 틀 안쪽) — +1 밝은 회색 테두리 · +2 은색 테두리+안쪽 은빛 · +3 호박 빛 한 줄기 · +4 붉은 빛 두 줄기+불씨 · +5 프리즘 테두리+무지개 불씨+사선 광택(+그림자 색 순환은 카드 root 쪽)
+  // 강화 결과 카운트 — this._statFx={uid, from:[[라벨,값]], p(0~1)} 이 이 카드면 바뀐 줄만 옛 값→새 값으로 보간한다.
+  //   오름 초록 · 내림 빨강 · 새 줄은 0부터 · 사라진 줄은 0까지 내려간 뒤 빠진다. 숫자 개수가 다르면 보간 없이 새 값.
+  enhStatFx(inst,stats){ const fx=this._statFx; if(!fx||fx.uid!==inst.uid||!fx.from) return stats;
+    const p=Math.max(0,Math.min(1,fx.p||0)), e=1-Math.pow(1-p,3);
+    const nums=(t)=>(String(t).match(/-?\d+(?:\.\d+)?/g)||[]).map(Number);
+    const lerp=(fromT,toT)=>{ const a=nums(fromT), b=nums(toT); if(!b.length||a.length!==b.length) return toT;
+      let i=0; return String(toT).replace(/-?\d+(?:\.\d+)?/g,(m)=>{ const dec=(m.split('.')[1]||'').length, v=a[i]+(b[i]-a[i])*e; i++; return v.toFixed(dec); }); };
+    const zero=(t)=>String(t).replace(/-?\d+(?:\.\d+)?/g,(m)=>(0).toFixed((m.split('.')[1]||'').length));
+    const sum=(t)=>nums(t).reduce((x,y)=>x+y,0);
+    if(p<=0) return fx.from.map(r=>r.slice());   // 카운트 시작 전 = 강화 전 줄 그대로(값·색 모두 — 오름/내림 색이 결과를 미리 흘리지 않게)
+    const F=new Map(fx.from.map(r=>[r[0],r[1]])), out=[];
+    for(const r of stats){ const f=F.get(r[0]);
+      if(f==null){ if(p<=0) continue; out.push([r[0], p>=1?r[1]:lerp(zero(r[1]),r[1]), '#83B289']); continue; }   // 새로 생긴 줄 — 카운트 시작 전엔 숨긴다(결과 스포일러 방지)
+      if(String(f)===String(r[1])){ out.push(r); continue; }
+      out.push([r[0], lerp(f,r[1]), sum(r[1])>=sum(f)?'#83B289':'#C4675D']); }
+    if(p<1) for(const [k,v] of fx.from) if(!stats.some(r=>r[0]===k)) out.push([k, lerp(v,zero(v)), '#C4675D']);   // 사라진 줄 — 0까지 내려간 뒤 빠진다
+    return out; }
+  enhFxLayers(inst){ const n=Math.min(5,this.enhShownLevel(inst)); if(!n) return [];
+    const SILVER='linear-gradient(135deg,#F2F4F7 0%,#9EA3AB 35%,#E6E9EE 55%,#8A8F97 80%,#D9DCE1 100%)';
+    const L=[], z={position:'absolute',inset:0,borderRadius:7,pointerEvents:'none',zIndex:8};
+    if(n===1) L.push(h('div',{key:'e1',className:'rlEnhRing',style:{zIndex:8,background:'rgba(214,216,220,0.55)'}}));
+    if(n===2){ L.push(h('div',{key:'e2',className:'rlEnhRing',style:{zIndex:8,background:SILVER}}), h('div',{key:'e2i',style:{...z,boxShadow:'inset 0 0 18px 1px rgba(210,215,222,0.18)'}})); }
+    if(n===3){ L.push(h('div',{key:'e3',className:'rlEnhRing',style:{zIndex:8,background:'rgba(204,162,110,0.6)'}}), h('div',{key:'e3s',className:'rlEnhRing rlEnhSpin1',style:{zIndex:8}}), h('div',{key:'e3i',style:{...z,boxShadow:'inset 0 0 18px 1px rgba(204,162,110,0.18)'}})); }
+    if(n===4){ L.push(h('div',{key:'e4',className:'rlEnhRing',style:{zIndex:8,background:'rgba(196,103,93,0.65)'}}), h('div',{key:'e4s',className:'rlEnhRing rlEnhSpinR',style:{zIndex:8}}), h('div',{key:'e4i',style:{...z,boxShadow:'inset 0 0 26px 3px rgba(196,103,93,0.28)'}})); }
+    if(n>=5){ L.push(h('div',{key:'e5',className:'rlEnhRing rlEnhPrism',style:{zIndex:8}}), h('div',{key:'e5i',style:{...z,boxShadow:'inset 0 0 26px 3px rgba(200,179,242,0.22)'}}),
+      h('div',{key:'e5w',style:{...z,overflow:'hidden'}}, h('div',{style:{position:'absolute',top:0,bottom:0,width:'45%',left:'-60%',background:'linear-gradient(105deg,rgba(255,255,255,0) 0%,rgba(244,179,203,.10) 35%,rgba(166,217,243,.16) 50%,rgba(191,239,203,.10) 65%,rgba(255,255,255,0) 100%)',animation:'rlEnhSweep 4.5s ease-in-out infinite'}}))); }
+    if(n>=4){ const PR=['#F4B3CB','#F3D7A2','#BFEFCB','#A6D9F3','#C8B3F2'], cnt=n>=5?14:8;
+      // 불씨 위치·속도는 카드마다 고정(렌더마다 바뀌면 깜빡인다) — uid 해시로 고른다
+      let seed=0; for(const ch of String(inst.uid||inst.id)) seed=(seed*31+ch.charCodeAt(0))>>>0; const rnd=()=>{ seed=(seed*1103515245+12345)>>>0; return (seed>>>8)/16777216; };
+      L.push(h('div',{key:'esp',style:{position:'absolute',left:0,right:0,top:0,height:190,pointerEvents:'none',zIndex:7,overflow:'hidden'}},
+        ...Array.from({length:cnt},(_,i)=>h('div',{key:i,style:{position:'absolute',width:2,height:2,borderRadius:1,bottom:10,left:(8+rnd()*84)+'%',opacity:0,background:n>=5?PR[i%5]:'#FF9A88',
+          animation:'rlEnhSpark '+(2.2+rnd()*1.4).toFixed(2)+'s linear '+(rnd()*2.8).toFixed(2)+'s infinite'}})))); }
+    return L; }
+  rsEnhRow(inst){
+    const e=this.eng, src=e.byId.weapon[inst.id]||e.byId.armor[inst.id]||{};
+    const lv=e.enhLevel(inst), max=lv>=e.enhMaxLevel(), cost=e.enhCost(this.gs,inst);
+    // 목록 줄엔 재료 칩을 두지 않는다(2026-10-15 사용자) — 재료는 확인 시트에서 본다.
+    const right = (!max&&!cost)? this.shopPill(this.en()?'N/A':'불가','rgb(75,77,82)') : null;   // 5강은 이름 옆 [MAX] 태그가 대신한다
+    return h('div',{key:inst.uid,onClick:cost||max?()=>this.setState({enSel:inst.uid,enSheet:null,enRes:null}):null,
+      style:{flexShrink:0,boxSizing:'border-box',padding:'16px 16px 15px',cursor:(cost||max)?'pointer':'default',borderBottom:'1px solid '+T.line,opacity:(cost||max)?1:0.5}},
+      h('div',{style:{height:20,display:'flex',alignItems:'center',justifyContent:'space-between',gap:6}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:6,minWidth:0}}, this.catChip(this.catKey(src.Category||''),this.isEquipped(inst.uid)), this.isEquipped(inst.uid)?this.eqTag():null),
+        right),
+      h('div',{style:{display:'flex',alignItems:'center',gap:8,marginTop:8}},
+        h('span',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',fontWeight:500,color:T.hi,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
+        this.enhTag(inst)));
+  }
+  rsEnhanceScreen(){
+    const list=this.rsEnhGear();
+    const sel=this.state.enSel? list.find(x=>x.uid===this.state.enSel) : null;
+    const sh=this.state.enSheet;
+    return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+      this.rsShell(this.en()?'ENHANCE':'강화', list, this.en()?'No gear to enhance.':'강화할 장비가 없습니다.', ()=>list.map(inst=>this.rsEnhRow(inst)), {hideBack:!!this.state.enFx}),
+      (sel&&!sh&&!this.state.enFx)? this.enCardSheet(sel) : null,
+      (sel&&sh==='confirm')? this.enConfirmSheet(sel) : null,
+      (sel&&this.state.enFx)? this.enFxOverlay(sel) : null);
+  }
+  enCardSheet(inst){
+    const close=()=>this.setState({enSel:null,enSheet:null,enRes:null});
+    const max=this.eng.enhLevel(inst)>=this.eng.enhMaxLevel();
+    const bs={flex:1,height:48,borderRadius:24,border:'none',background:'#212227',fontFamily:T.sans,fontSize:12};
+    return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',zIndex:32,display:'flex',flexDirection:'column',animation:'rlFade .18s'}},
+      h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px'}},
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.tiltCard(this.lootCardBig({...inst,qty:1},'fit'),inst))),
+      h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',gap:8}},
+        h('button',{onClick:max?null:()=>this.setState({enSheet:'confirm'}),disabled:max,style:{...bs,color:max?'#4B4D52':'#EAEBEE',cursor:max?'default':'pointer'}}, max?'MAX':(this.en()?'Enhance':'강화')),
+        h('button',{onClick:close,style:{...bs,color:'#EAEBEE',cursor:'pointer'}}, this.t('hide_disk_close'))));
+  }
+  enConfirmSheet(inst){
+    const B=this.craftSheetBits(), e=this.eng, C=e.DATA.config;
+    const lv=e.enhLevel(inst), cost=e.enhCost(this.gs,inst)||[], ok=cost.length>0&&cost.every(c=>c.have>=c.qty);
+    const p=Math.round(e.enhChance(lv)*100), drops=(lv+1)>=Math.round(e.N(C.enh_drop_from,4)), dmax=Math.round(e.N(C.enh_drop_max,2));
+    const eff=e.enhEffects(inst), pool=e.enhPool(inst), have=pool.filter(k=>eff[k]);
+    const rowR=(l,v,key,col)=>h('div',{key:key,style:{height:36,display:'flex',alignItems:'center',justifyContent:'space-between',borderTop:'1px solid '+B.LN}},
+      h('span',{style:{fontFamily:T.sans,fontSize:13,color:B.MID}}, l), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col||B.HI}}, v));
+    const body=[ B.kicker(this.en()?'ENHANCE':'강화'),
+      h('div',{key:'n',style:{height:20,marginTop:8,display:'flex',alignItems:'center',gap:8}},
+        h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20px',color:B.HI,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
+        this.enhTagOne(lv+1,true)),   // 도전할 단계 태그(문구 대신)
+      h('div',{key:'pr',style:{marginTop:16}},
+        rowR(this.en()?'Success chance':'성공 확률', p+'%', 'p'),
+        rowR(this.en()?'On failure':'실패 시', drops? (this.en()?('Drop 0–'+dmax+' levels'):('0~'+dmax+'단계 하락')) : (this.en()?'No change':'변화 없음'), 'f', drops?'#C4675D':B.MID)),
+      h('div',{key:'mk',style:{height:13,marginTop:16,display:'flex',alignItems:'center',fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:B.MUT}}, this.en()?'MATERIALS':'재료'),
+      h('div',{key:'mats',style:{marginTop:4}}, ...cost.map((m,i)=>
+        h('div',{key:'m'+i,style:{height:36,display:'flex',alignItems:'center',justifyContent:'space-between',borderTop:i?('1px solid '+B.LN):'none'}},
+          this.matName(m.id, this.enhMatName(m.id), {fontFamily:T.sans,fontSize:13,color:B.MID}),
+          h('span',{style:{fontFamily:T.mono,fontSize:13,color:B.HI}}, h('span',{style:{color:m.have>=m.qty?B.HI:'#CCA26E'}}, String(m.have)), '/'+m.qty)))) ];
+    // 현재 강화 효과 = 모듈 슬롯 시트(mdSlotSheet)와 같은 레이아웃 — 'ENHANCE' 키커 + 42px 둥근 상자 줄. 줄 = 강화 기록 1건(단계 태그 [+N] · 그 단계에서 오른 스탯·양)
+    const recs=(inst.enh&&Array.isArray(inst.enh.rec))? inst.enh.rec : [];
+    if(recs.length){ body.push(h('div',{key:'ek',style:{height:13,marginTop:18,display:'flex',alignItems:'center',fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:B.MUT}}, 'ENHANCE'));
+      body.push(h('div',{key:'eff'}, ...recs.map((rc,i)=>h('div',{key:'r'+i,style:{height:42,marginTop:i?8:10,boxSizing:'border-box',borderRadius:12,background:'#212227',display:'flex',alignItems:'center',gap:8,padding:'0 12px'}},
+        this.enhTagOne(i+1,false),
+        h('span',{style:{fontFamily:T.mono,fontSize:11.5,color:'#A9ABAF',whiteSpace:'nowrap'}}, this.enhStatLabel(rc.stat)),
+        h('div',{style:{flex:1}}),
+        h('span',{style:{fontFamily:T.mono,fontSize:11.5,color:'#83B289',whiteSpace:'nowrap'}}, this.enhStatVal(rc.stat, e.enhStep(rc.stat)*e.N(rc.m,1))))))); }
+    body.push(ok? B.note(this.en()?'Materials are used up even on failure.':'실패해도 재료는 소모됩니다.',B.LO) : B.note(this.t('hide_upg_lack'),'#CCA26E',true));
+    const cancel=()=>this.setState({enSheet:null});
+    const footer=[B.btn(this.en()?'Enhance':'강화',ok?()=>this.doEnhance(inst):null,!ok,'go'), B.btn(this.en()?'Cancel':'취소',cancel,false,'no')];
+    return h('div',{onClick:cancel,style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',zIndex:32,display:'flex',flexDirection:'column',animation:'rlFade .18s'}},
+      h('div',{onClick:ev=>ev.stopPropagation(),style:{marginTop:'auto'}}, B.wrap(body,footer)));
+  }
+  // [강화] 확정 — 판정·재료 차감·저장을 먼저 끝내고(새로고침해도 결과 유지) 연출은 그 뒤에 '강화 전 모습'으로 시작한다.
+  doEnhance(inst){
+    const before=JSON.parse(JSON.stringify(inst));   // 연출 1~4단계에 보여줄 강화 전 카드
+    const r=this.eng.enhanceWithCost(this.gs,inst);
+    if(!r||r.short||r.capped){ this.flash(this.t('hide_upg_lack'),true); return; }
+    this.saveGame();   // ★결과 확정 즉시 저장
+    this.enFxStart(inst,before,r);
+  }
+  // ===== 전기 테두리 (ElectricBorder 이식 · 2026-10-15) — 강화 결과 굴림 2초 동안 카드 테두리를 감싼다.
+  //   React 컴포넌트를 raw WebGL2로 옮겼다(셰이더·경로 계산 원본 그대로 · 마우스 반응·펄스는 뺐다).
+  //   canvas = 카드 둘레보다 64px 크게(카드 부모 기준 absolute -64). active()가 false가 되면 0.4초에 걸쳐 꺼지고, 꺼지면 그리기를 멈춘다.
+  //   ★DOM에서 빠지면 컨텍스트를 회수한다(다른 셰이더와 같은 규칙).
+  mountElectric(canvas, active, opt){
+    if(!canvas || canvas._eb) return; canvas._eb=true;
+    let gl; try{ gl=canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:true,antialias:false,depth:false,stencil:false}); }catch(_){}
+    if(!gl){ canvas._eb=false; return; }
+    const o=Object.assign({color:'#7df9ff',speed:1,chaos:0.5,spread:0.6,thickness:1.5,strands:3,glow:0.6,intensity:0.8,arcs:1,flicker:0.5,borderRadius:8},opt||{});
+    const MARGIN=64, ARCS=4, HALF_PI=Math.PI/2, clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+    const VERT='#version 300 es\nconst vec2 corners[3]=vec2[3](vec2(-1.0,-1.0),vec2(3.0,-1.0),vec2(-1.0,3.0));\nvoid main(){ gl_Position=vec4(corners[gl_VertexID],0.0,1.0); }';
+    const FRAG="#version 300 es\nprecision highp float;\nprecision highp int;\nuniform vec2 uSize;uniform float uRatio;uniform vec2 uCenter;uniform vec2 uHalf;uniform float uRadius;uniform vec3 uParam;uniform float uPerimeter;uniform vec4 uCells;uniform vec2 uSoft;uniform float uTime;uniform float uPower;uniform float uReveal;uniform vec3 uHover;uniform float uHoverRadius;uniform vec4 uPulses[3];uniform vec3 uCore;uniform vec3 uGlowColor;uniform float uIntensity;uniform float uGlow;uniform float uThickness;uniform float uStrands;uniform float uChaos;uniform float uSpread;uniform float uFlicker;uniform float uInk;uniform vec4 uArcEnds[4];uniform vec4 uArcShape[4];\nout vec4 fragColor;\nuint scramble(uint x){x^=x>>16u;x*=0x7feb352du;x^=x>>15u;x*=0x846ca68bu;x^=x>>16u;return x;}\nvec2 slant(uint x,uint y,uint seed){uint h=scramble(x*0x8da6b343u+y*0xd8163841u+seed*0xcb1ab31fu);return vec2(uvec2(h,h>>8u)&255u)/127.5-1.0;}\nvec2 ring(vec2 p,float period,uint seed){vec2 i=floor(p);vec2 f=p-i;vec2 u=f*f*f*(f*(f*6.0-15.0)+10.0);float du=30.0*f.x*f.x*(f.x*(f.x-2.0)+1.0);uint x0=uint(mod(i.x,period));uint x1=uint(mod(i.x+1.0,period));uint y0=uint(i.y+65536.0);vec2 ga=slant(x0,y0,seed);vec2 gb=slant(x1,y0,seed);vec2 gc=slant(x0,y0+1u,seed);vec2 gd=slant(x1,y0+1u,seed);float va=dot(ga,f);float vb=dot(gb,f-vec2(1.0,0.0));float vc=dot(gc,f-vec2(0.0,1.0));float vd=dot(gd,f-vec2(1.0,1.0));float k=va-vb-vc+vd;float value=va+u.x*(vb-va)+u.y*(vc-va)+u.x*u.y*k;float gx=ga.x+u.x*(gb.x-ga.x)+u.y*(gc.x-ga.x)+u.x*u.y*(ga.x-gb.x-gc.x+gd.x);return vec2(value,gx+du*(vb-va+u.y*k));}\nfloat wobble(float x,uint seed){return ring(vec2(x,0.5),1048576.0,seed).x;}\nvec2 frameAt(vec2 p){vec2 inner=max(uHalf-uRadius,0.0);vec2 q=abs(p)-inner;float d=length(max(q,0.0))+min(max(q.x,q.y),0.0)-uRadius;float quarter=uPerimeter*0.25;vec2 v=abs(p)-uParam.xy;float t;if(v.x>0.0&&v.y>0.0)t=uParam.x+uParam.z*atan(v.x,v.y);else if(v.x>v.y)t=uParam.x+1.5707963*uParam.z+uParam.y-abs(p.y);else t=abs(p.x);t=clamp(t,0.0,quarter);float s=p.x>=0.0?(p.y<0.0?t:2.0*quarter-t):(p.y<0.0?4.0*quarter-t:2.0*quarter+t);return vec2(s,d);}\nvec2 glowShape(float line,float spread,float w){float x=abs(line);float y=abs(spread);return vec2(exp(-x*x/(w*w*0.5))+exp(-y/(w*2.2))*0.6,exp(-y/(w*4.5))*0.5);}\nvoid addArc(vec2 p,vec4 ends,vec4 info,float t,inout vec3 light,inout float energy,inout float hot){if(info.y<0.002)return;vec2 ab=ends.zw-ends.xy;float len=max(length(ab),1.0);vec2 dir=ab/len;vec2 rel=p-ends.xy;float along=dot(rel,dir);float side=dot(rel,vec2(-dir.y,dir.x));float margin=abs(info.x)+(0.6+uChaos)*(2.0+len*0.08)+uThickness*12.0+10.0;if(along<-margin||along>len+margin||abs(side)>margin)return;float u=clamp(along/len,0.0,1.0);float taper=sin(3.14159265*u);float settle=smoothstep(0.0,0.15,u)*smoothstep(1.0,0.85,u);float bendSlope=3.14159265/len*cos(3.14159265*u)*settle;float beyond=max(-along,0.0)+max(along-len,0.0);for(int c=0;c<2;c++){uint seed=uint(info.z*131.0)+uint(c)*29u+7u;float jag=0.0;float jagSlope=0.0;float wave=max(len*0.3,14.0);float weight=(0.6+uChaos)*(1.5+len*0.05)*(c==0?1.0:1.5);for(int o=0;o<3;o++){vec2 n=ring(vec2(along/wave+info.z*3.0,t*(1.4+float(o)*1.1)),1048576.0,seed+uint(o));jag+=n.x*weight;jagSlope+=n.y*weight/wave;wave*=0.42;weight*=0.4;}float offset=(info.x+jag)*taper;float offsetSlope=(info.x+jag)*bendSlope+jagSlope*taper*settle;float across=(side-offset)/sqrt(1.0+offsetSlope*offsetSlope);float gap=length(vec2(beyond,across));float w=uThickness*(c==0?0.9:0.6);vec2 g=glowShape(gap,gap,w);float k=info.y*(c==0?1.0:0.45);light+=(uCore*g.x+uGlowColor*g.y*uGlow)*k;energy+=(g.x+g.y*uGlow)*k;hot+=exp(-gap*gap/(w*w*0.16))*k*(c==0?1.0:0.0);}}\nvoid main(){vec2 p=vec2(gl_FragCoord.x/uRatio,uSize.y-gl_FragCoord.y/uRatio);vec2 frame=frameAt(p-uCenter);float s=frame.x;float d=frame.y;float t=uTime;vec3 light=vec3(0.0);float energy=0.0;float hot=0.0;float along=min(s,uPerimeter-s);float front=uReveal*(uPerimeter*0.5+80.0);float shown=smoothstep(front,front-70.0,along)*uPower;float flare=uReveal<1.0?exp(-pow((along-front+30.0)/26.0,2.0))*uPower:0.0;vec2 toHover=p-uHover.xy;float heat=uHover.z*exp(-dot(toHover,toHover)/(uHoverRadius*uHoverRadius));float surge=0.0;for(int i=0;i<3;i++){vec4 pulse=uPulses[i];if(pulse.z<=0.0)continue;float gap=abs(s-pulse.x);gap=min(gap,uPerimeter-gap);float wave=(gap-pulse.y*560.0)/46.0;surge+=exp(-wave*wave)*pulse.z*exp(-pulse.y*1.2);}heat=min(heat*0.7+surge*0.8+flare*0.6,1.2);vec2 inset=min(p,uSize-p);float frameFade=smoothstep(0.0,14.0,min(inset.x,inset.y));float edge=abs(d);float inward=d<0.0?exp(d/14.0):1.0;float bloom=(exp(-edge/3.0)*0.1+exp(-edge/16.0)*0.05*inward)*uGlow*(1.0+heat*0.6)*shown;light+=uGlowColor*bloom;energy+=bloom;float bendAmp=uSpread*16.0*(1.0+heat*0.35);float rippleAmp=uSpread*6.0*(1.0+heat*0.3);float crinkleAmp=uChaos*4.5*(1.0+heat*0.3);float squeeze=min(1.0,34.0/max((bendAmp+rippleAmp)*1.6+crinkleAmp,1e-3));bendAmp*=squeeze;rippleAmp*=squeeze;crinkleAmp*=squeeze;float reach=(bendAmp*1.9+rippleAmp+crinkleAmp*1.6)*1.3+uThickness*14.0+8.0;if(edge<reach&&shown>0.0){float fade=smoothstep(reach,reach*0.55,edge);float count=min(uStrands+heat*1.2,6.0);float slopeScale=1.0/uPerimeter;for(int i=0;i<6;i++){float fi=float(i);if(fi>=ceil(count))break;float present=clamp(count-fi,0.0,1.0);uint seed=uint(i)*7u+3u;float lead=i==0?1.0:0.0;float range=mix(1.35+fi*0.18,0.7,lead);float x=s*slopeScale;vec2 a=ring(vec2(x*uCells.x,t*0.7+fi*3.1),uCells.x,seed);vec2 b=ring(vec2(x*uCells.y,t*1.9+fi*1.7),uCells.y,seed+1u);vec2 c=ring(vec2(x*uCells.z,t*4.6+fi*0.9),uCells.z,seed+2u);vec2 e=ring(vec2(x*uCells.w,t*6.8),uCells.w,seed+3u);float offset=(a.x*bendAmp+b.x*rippleAmp)*range+(c.x+e.x*0.35)*crinkleAmp;float slope=((a.y*uCells.x*bendAmp+b.y*uCells.y*rippleAmp)*range+(c.y*uCells.z+e.y*0.35*uCells.w)*crinkleAmp)*slopeScale;float drift=lead>0.5?0.0:wobble(fi*7.3,seed+9u)*2.5*uSpread;offset+=drift;float across=(d-offset)/sqrt(1.0+slope*slope);float spread=d-a.x*bendAmp*range-drift;float swell=0.5+0.5*ring(vec2(x*uSoft.y,t*2.0+fi*5.1),uSoft.y,seed+8u).x;float w=uThickness*mix(0.55,1.0,lead)*(0.5+swell);float vis=mix(0.3+0.45*smoothstep(-0.25,0.2,ring(vec2(x*uSoft.x,t*0.5+fi*3.7),uSoft.x,seed+5u).x),1.0,lead);float spark=1.0-uFlicker*0.3*(0.5+0.5*wobble(t*13.0+fi*2.3,seed+6u));float weight=max(vis,heat*0.6)*spark*fade*present*(0.7+0.6*swell);vec2 g=glowShape(across,spread,w)*weight;g.y*=inward;float haze=uGlow*(1.0+heat*0.5)*(1.0-uInk*0.7);light+=uCore*g.x+uGlowColor*g.y*haze;energy+=g.x+g.y*haze;hot+=exp(-across*across/(w*w*0.16))*lead*weight;}light*=shown;energy*=shown;hot*=shown;}for(int i=0;i<4;i++)addArc(p,uArcEnds[i],uArcShape[i],t,light,energy,hot);float breath=1.0+uFlicker*0.5*wobble(t*4.6+7.0,3u);float gain=uIntensity*breath*(1.0+heat*0.25)*1.4;light*=frameFade;energy*=frameFade;hot*=frameFade;float alpha=1.0-exp(-energy*gain);vec3 color=mix(1.0-exp(-light*gain),alpha*light/max(energy,1e-4),uInk);color=mix(color,vec3(alpha),clamp(hot,0.0,1.0)*uInk*0.85);float grain=(fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(0.06711056,0.00583715))))-0.5)/255.0;alpha=clamp(alpha+grain,0.0,1.0);fragColor=vec4(clamp(color+grain,0.0,alpha),alpha);}";
+    const sh=(t,x)=>{ const s=gl.createShader(t); gl.shaderSource(s,x); gl.compileShader(s); return s; };
+    const prog=gl.createProgram(); gl.attachShader(prog,sh(gl.VERTEX_SHADER,VERT)); gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FRAG)); gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){ canvas._eb=false; return; }
+    const U={}; const n=gl.getProgramParameter(prog,gl.ACTIVE_UNIFORMS); for(let i=0;i<n;i++){ const inf=gl.getActiveUniform(prog,i); if(inf) U[inf.name.replace(/\[0\]$/,'')]=gl.getUniformLocation(prog,inf.name); }
+    const vao=gl.createVertexArray();
+    const rgb=(c)=>{ const m=/^#?([0-9a-f]{6})$/i.exec(String(c||'')); return m? [0,2,4].map(i=>parseInt(m[1].slice(i,i+2),16)/255) : [0.49,0.98,1]; };
+    // o.colors()가 있으면 [A,B] 두 색(또는 색 배열)을 o.blink초마다 번갈아 쓰고, 바뀌는 순간 밝기를 튀긴다(번쩍임). 없으면 o.color 한 색.
+    let base=rgb(o.color), core=base.map(c=>c+(1-c)*0.55), blinkIdx=-1, blinkAt=0;
+    const roundBox=(x,y,hx,hy,r)=>{ const qx=Math.abs(x)-(hx-r), qy=Math.abs(y)-(hy-r); return Math.hypot(Math.max(qx,0),Math.max(qy,0))+Math.min(Math.max(qx,qy),0)-r; };
+    const pathOf=(w,h,radius)=>{ const hx=Math.max(1,w/2), hy=Math.max(1,h/2), r=clamp(radius,0,Math.min(hx,hy)), vr=Math.min(r+48,Math.min(hx,hy)), ax=hx-vr, ay=hy-vr, quarter=ax+ay+HALF_PI*vr; return {hx,hy,r,vr,ax,ay,quarter,perimeter:quarter*4}; };
+    const pointOn=(P,s)=>{ const {hx,hy,r,vr,ax,ay,quarter,perimeter}=P; const u=((s%perimeter)+perimeter)%perimeter; const part=Math.min(3,Math.floor(u/quarter)); const rest=u-part*quarter; const local=part%2?quarter-rest:rest; let x,y;
+      if(local<=ax){ x=local; y=-hy; } else if(local<=ax+HALF_PI*vr){ const ang=vr>0?(local-ax)/vr:0, dx=Math.sin(ang), dy=-Math.cos(ang); let lo=0, hi=vr+r+2; for(let k=0;k<18;k++){ const m=(lo+hi)/2; if(roundBox(ax+dx*m,-ay+dy*m,hx,hy,r)<0) lo=m; else hi=m; } x=ax+dx*lo; y=-ay+dy*lo; } else { x=hx; y=-ay+(local-ax-HALF_PI*vr); }
+      const px=x*(part>=2?-1:1), py=y*((part===1||part===2)?-1:1); const nx=roundBox(px+0.5,py,hx,hy,r)-roundBox(px-0.5,py,hx,hy,r), ny=roundBox(px,py+0.5,hx,hy,r)-roundBox(px,py-0.5,hx,hy,r), L=Math.hypot(nx,ny)||1; return {x:px,y:py,nx:nx/L,ny:ny/L}; };
+    const arcEnds=new Float32Array(ARCS*4), arcShape=new Float32Array(ARCS*4), pulseData=new Float32Array(12);
+    const sparks=[]; let path=pathOf(1,1,0), size={w:1,h:1,ratio:1}, power=0, reveal=0, time=Math.random()*100, last=performance.now(), raf=0;
+    const spawnArc=(now)=>{ const span=Math.min(path.perimeter*0.3,60+Math.random()*90), start=Math.random()*path.perimeter, from=start-span*(0.2+Math.random()*0.6), to=from+span;
+      const a=pointOn(path,from), b=pointOn(path,to), mid=pointOn(path,(from+to)/2), dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy)||1, side=(-dy/len)*mid.nx+(dx/len)*mid.ny, bow=Math.min(MARGIN-30,len*(0.14+Math.random()*0.16)+5);
+      return {ax:a.x,ay:a.y,bx:b.x,by:b.y,bow:side>=0?bow:-bow,seed:1+Math.random()*60,born:now,life:0.35+Math.random()*0.45}; };
+    const resize=()=>{ const host=canvas.parentElement; if(!host) return; const w=Math.max(1,host.offsetWidth), h=Math.max(1,host.offsetHeight), cw=w+MARGIN*2, ch=h+MARGIN*2;
+      const ratio=Math.min(window.devicePixelRatio||1,2,Math.sqrt(3e6/(cw*ch))), pw=Math.max(1,Math.round(cw*ratio)), ph=Math.max(1,Math.round(ch*ratio));
+      if(canvas.width!==pw||canvas.height!==ph){ canvas.width=pw; canvas.height=ph; } canvas.style.width=cw+'px'; canvas.style.height=ch+'px'; size={w,h,ratio:pw/cw}; path=pathOf(w,h,o.borderRadius); };
+    const frame=(now)=>{ raf=0;
+      if(!canvas.isConnected){ try{ const e=gl.getExtension('WEBGL_lose_context'); if(e) e.loseContext(); }catch(_){} canvas._eb=false; return; }
+      const dt=clamp((now-last)/1000||0,0,0.05); last=now; time+=dt*o.speed;
+      let flash=1;
+      if(o.colors){ const list=o.colors()||[]; if(list.length){ const idx=Math.floor(now/1000/(o.blink||0.2)); if(idx!==blinkIdx){ blinkIdx=idx; blinkAt=now; base=rgb(list[idx%list.length]); core=base.map(c=>c+(1-c)*0.55); }
+        flash=1+0.9*Math.exp(-(now-blinkAt)/70); } }
+      const on=!!active(); power+=((on?1:0)-power)*(1-Math.exp(-dt/(on?0.28:0.4))); if(on) reveal=Math.min(1,reveal+dt/0.9);
+      for(let i=sparks.length-1;i>=0;i--) if(time-sparks[i].born>sparks[i].life) sparks.splice(i,1);
+      if(on&&reveal>=1&&sparks.length<ARCS&&Math.random()<dt*o.speed*o.arcs*(0.6+path.perimeter/2400)) sparks.push(spawnArc(time));
+      const fit=power*power*(3-2*power);
+      for(let i=0;i<ARCS;i++){ const k4=i*4, sp=sparks[i]; if(!sp){ arcShape[k4+1]=0; continue; } const k=clamp((time-sp.born)/sp.life,0,1);
+        arcEnds[k4]=sp.ax+size.w/2+MARGIN; arcEnds[k4+1]=sp.ay+size.h/2+MARGIN; arcEnds[k4+2]=sp.bx+size.w/2+MARGIN; arcEnds[k4+3]=sp.by+size.h/2+MARGIN; arcShape[k4]=sp.bow; arcShape[k4+1]=Math.sin(Math.PI*k)*fit; arcShape[k4+2]=sp.seed; }
+      if(canvas.parentElement && (canvas.parentElement.offsetWidth!==size.w||canvas.parentElement.offsetHeight!==size.h)) resize();
+      const W=size.w+MARGIN*2, H=size.h+MARGIN*2;
+      gl.viewport(0,0,canvas.width,canvas.height); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
+      if(power>0.001||sparks.length){ gl.useProgram(prog);
+        gl.uniform2f(U.uSize,W,H); gl.uniform1f(U.uRatio,size.ratio); gl.uniform2f(U.uCenter,W/2,H/2); gl.uniform2f(U.uHalf,path.hx,path.hy); gl.uniform1f(U.uRadius,path.r);
+        gl.uniform3f(U.uParam,path.ax,path.ay,path.vr); gl.uniform1f(U.uPerimeter,path.perimeter);
+        gl.uniform4f(U.uCells,Math.max(1,Math.round(path.perimeter/75)),Math.max(2,Math.round(path.perimeter/25)),Math.max(3,Math.round(path.perimeter/9)),Math.max(4,Math.round(path.perimeter/4)));
+        gl.uniform2f(U.uSoft,Math.max(1,Math.round(path.perimeter/150)),Math.max(1,Math.round(path.perimeter/50)));
+        gl.uniform1f(U.uTime,time); gl.uniform1f(U.uPower,fit); gl.uniform1f(U.uReveal,reveal); gl.uniform3f(U.uHover,0,0,0); gl.uniform1f(U.uHoverRadius,90);
+        gl.uniform4fv(U.uPulses,pulseData); gl.uniform3fv(U.uCore,core); gl.uniform3fv(U.uGlowColor,base);
+        gl.uniform1f(U.uIntensity,o.intensity*flash*(o.level? o.level() : 1)); gl.uniform1f(U.uGlow,o.glow); gl.uniform1f(U.uThickness,o.thickness); gl.uniform1f(U.uStrands,o.strands);
+        gl.uniform1f(U.uChaos,o.chaos); gl.uniform1f(U.uSpread,o.spread); gl.uniform1f(U.uFlicker,o.flicker); gl.uniform1f(U.uInk,0);
+        gl.uniform4fv(U.uArcEnds,arcEnds); gl.uniform4fv(U.uArcShape,arcShape);
+        gl.bindVertexArray(vao); gl.drawArrays(gl.TRIANGLES,0,3); }
+      if(on||power>0.002||sparks.length) raf=requestAnimationFrame(frame); else { canvas._ebIdle=true; } };
+    canvas._ebWake=()=>{ if(raf) return; canvas._ebIdle=false; last=performance.now(); raf=requestAnimationFrame(frame); };
+    resize(); canvas._ebWake();
+  }
+  // ===== 강화 배경 — Ghost Fibers (사용자 제공 React 컴포넌트 → raw WebGL2 이식 · 2026-10-15) =====
+  //   강화 연출 오버레이 전체 바닥에 깐다. 마우스 렌즈는 뺐다. 값 조정은 위젯에서 → ENH_FIBERS 한 곳만 바꾼다.
+  //   ★DOM에서 빠지면 컨텍스트 회수.
+  mountFibers(canvas){
+    if(!canvas || canvas._gf) return; canvas._gf=true;
+    let gl; try{ gl=canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:true,antialias:false,depth:false,stencil:false}); }catch(_){}
+    if(!gl){ canvas._gf=false; return; }
+    const VERT='#version 300 es\nin vec2 aPosition;\nvoid main(){ gl_Position=vec4(aPosition,0.0,1.0); }';
+    const FRAG="#version 300 es\nprecision highp float;\nout vec4 outColor;\nuniform vec2 uResolution;uniform float uDpr;uniform float uTime;uniform float uAngle;uniform float uScale;uniform float uLayers;uniform float uWaves;uniform float uTwist;uniform float uThreads;uniform float uSpread;uniform float uThickness;uniform float uGlow;uniform float uBrightness;uniform float uVignette;uniform float uGrain;uniform float uIntro;uniform vec3 uGlowColor;uniform vec3 uLineColor;\nconst float PI=3.14159265359;\nmat2 rotate2d(float a){float s=sin(a);float c=cos(a);return mat2(c,-s,s,c);}\nfloat hash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}\nfloat hairline(float value,float width,float px){px=max(px,1e-5);float w=0.5*width*uDpr*px;float draw=max(w,0.75*px);return exp(-value*value/(draw*draw))*(w/draw);}\nvoid main(){vec2 resolution=uResolution*uDpr;vec2 uv=(2.0*gl_FragCoord.xy-resolution)/resolution.y;float time=uTime;vec2 p=uv/max(uScale,0.05);p=rotate2d(uAngle)*p;float threads=0.0;float ghosts=0.0;float halo=0.0;\nfor(int index=0;index<10;index++){float fi=float(index)+1.0;if(fi>uLayers)break;p+=uWaves*sin(p.yx*fi*3.0+time*(0.15+fi*0.08));float radius=length(p);float polarAngle=atan(p.y,p.x);polarAngle+=sin(radius*5.0-time*1.2+fi)*uTwist;p=vec2(cos(polarAngle),sin(polarAngle))*radius;float strand=p.x*3.0+time+fi;float center=PI*floor(strand/PI+0.5);float offset=strand-center;float strandId=center/PI;halo+=exp(-8.0*abs(sin(strand)))/fi;float count=max(uThreads,1.0);float even=1.0-mod(count,2.0);float spacing=0.03*uSpread;float slot=offset/spacing+0.5*even;float slotPx=fwidth(strand)/spacing;float thread=floor(slot+0.5);float rank=thread-0.5*even;float inside=step(abs(rank),0.5*(count-1.0)+0.01);float seed=hash(vec2(strandId*7.13+fi*3.7,thread*1.91+fi));float shimmer=0.55+0.45*sin(p.y*(1.6+seed*1.8)+time*(0.6+seed)+seed*6.283);float taper=1.0-smoothstep(0.0,0.5*count+0.6,abs(rank))*0.65;float appear=smoothstep(seed*0.6,seed*0.6+0.4,uIntro);threads+=hairline(slot-thread,uThickness,slotPx)*inside*mix(0.35,1.0,seed)*shimmer*taper*appear/sqrt(fi);float ghostPhase=p.x*(5.0+fi*2.0)+sin(p.y*3.0+time);float ghostLine=sin(ghostPhase)/max(fwidth(sin(ghostPhase)),1e-5);ghosts+=exp(-ghostLine*ghostLine/(0.8*uThickness*uDpr+0.6))/fi;}\nfloat center=exp(-2.2*dot(uv,uv));float cloud=exp(-1.5*length(uv+vec2(sin(time*0.3)*0.25,cos(time*0.25)*0.18)));float vignette=1.0-smoothstep(0.35,1.45,length(uv));float edge=mix(1.0-uVignette,1.0,vignette);float intro=smoothstep(0.0,1.0,uIntro);float grain=(hash(gl_FragCoord.xy+fract(time*13.7)*91.0)-0.5)*uGrain;\nfloat threadLight=threads*2.2;float ghostLight=ghosts*0.1*intro;float glowLight=halo*0.6*uGlow*intro;float airLight=(center*0.07+cloud*0.1)*uGlow*intro;\nvec3 light=uLineColor*(threadLight+ghostLight)+uGlowColor*(glowLight+airLight);light*=uBrightness*edge;vec3 color=1.0-exp(-light);float peak=max(color.r,max(color.g,color.b));color=max(color+grain*peak,0.0);outColor=vec4(color,max(color.r,max(color.g,color.b)));}";
+    const sh=(t,x)=>{ const o=gl.createShader(t); gl.shaderSource(o,x); gl.compileShader(o); return o; };
+    const prog=gl.createProgram(); gl.attachShader(prog,sh(gl.VERTEX_SHADER,VERT)); gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FRAG)); gl.linkProgram(prog);
+    if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){ canvas._gf=false; return; }
+    const names=['uResolution','uDpr','uTime','uAngle','uScale','uLayers','uWaves','uTwist','uThreads','uSpread','uThickness','uGlow','uBrightness','uVignette','uGrain','uIntro','uGlowColor','uLineColor'];
+    const U={}; names.forEach(n=>U[n]=gl.getUniformLocation(prog,n));
+    const vao=gl.createVertexArray(); gl.bindVertexArray(vao); const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+    const loc=gl.getAttribLocation(prog,'aPosition'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0); gl.bindVertexArray(null);
+    const rgb=(c)=>{ const m=/^#?([0-9a-f]{6})$/i.exec(String(c||'')); return m? [0,2,4].map(i=>parseInt(m[1].slice(i,i+2),16)/255) : [0.18,0.36,1]; };
+    let time=0, spin=0, intro=0, last=0, W=1, H=1, ratio=1;
+    const frame=(now)=>{
+      if(!canvas.isConnected){ try{ const e=gl.getExtension('WEBGL_lose_context'); if(e) e.loseContext(); }catch(_){} canvas._gf=false; return; }
+      const o=ENH_FIBERS, dt=last? Math.min(0.05,(now-last)/1000) : 1/60; last=now;
+      time+=dt*o.speed; spin+=dt*o.speed*o.rotationSpeed; intro=Math.min(2.2,intro+dt);
+      const w=Math.max(1,canvas.clientWidth), hh=Math.max(1,canvas.clientHeight), base=Math.min(window.devicePixelRatio||1,2), longest=Math.max(w,hh)*base, r=longest>2048? base*2048/longest : base;
+      const pw=Math.max(1,Math.round(w*r)), ph=Math.max(1,Math.round(hh*r)); if(canvas.width!==pw||canvas.height!==ph){ canvas.width=pw; canvas.height=ph; } W=w; H=hh; ratio=canvas.width/w;
+      const gc=(typeof canvas._color==='function'? canvas._color(now) : null) || o.glowColor;
+      const g=Array.isArray(gc)? gc : rgb(gc), ln=o.lineColor? rgb(o.lineColor) : g.map(c=>c+(1-c)*0.78), ip=Math.min(1,intro/2.2);
+      gl.viewport(0,0,canvas.width,canvas.height); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT); gl.useProgram(prog);
+      gl.uniform2f(U.uResolution,W,H); gl.uniform1f(U.uDpr,ratio); gl.uniform1f(U.uTime,time); gl.uniform1f(U.uAngle,o.rotation*Math.PI/180+spin);
+      gl.uniform1f(U.uScale,o.scale); gl.uniform1f(U.uLayers,o.layers); gl.uniform1f(U.uWaves,o.waves); gl.uniform1f(U.uTwist,o.twist); gl.uniform1f(U.uThreads,o.threads);
+      gl.uniform1f(U.uSpread,o.spread); gl.uniform1f(U.uThickness,o.thickness); gl.uniform1f(U.uGlow,o.glow); gl.uniform1f(U.uBrightness,o.brightness);
+      gl.uniform1f(U.uVignette,o.vignette); gl.uniform1f(U.uGrain,o.grain); gl.uniform1f(U.uIntro,1-Math.pow(1-ip,3));
+      gl.uniform3f(U.uGlowColor,g[0],g[1],g[2]); gl.uniform3f(U.uLineColor,ln[0],ln[1],ln[2]);
+      gl.bindVertexArray(vao); gl.drawArrays(gl.TRIANGLES,0,3); gl.bindVertexArray(null);
+      requestAnimationFrame(frame); };
+    requestAnimationFrame(frame);
+  }
+  // ===== 강화 연출 (2026-10-15 확정) — ①앞면(표시 없음) ②자동 뒤집기 0.9s ③뒷면 스캔 2.5s ④옆으로 밀어 뒤집기(75°↑ 완료)
+  //   ⑤앞면 = 강화 후 · 바뀐 줄만 카운트 + [+N] 글리치 교체 · 결과 문구 없음 → [자세히] → 변경 수치 시트 → [닫기] = 정비대 화면.
+  //   ★3D 래퍼 transform은 vdom 값(enFx.rot)이 정본이다 — 드래그 중에만 명령형으로 쓰고, 끝나면 setState로 같은 값을 넣는다(dc-imperative-style-leak).
+  enFxClear(){ (this._enT||[]).forEach(clearTimeout); this._enT=[]; if(this._enRaf){ cancelAnimationFrame(this._enRaf); this._enRaf=null; } this._statFx=null; }
+  enFxStart(inst,before,r){
+    this.enFxClear();
+    this._enFrom=this.itemDetailStats(before).filter(r=>r[0]!==this.t('item_durability'));   // 카드 STAT 칸과 같은 줄만(내구도 제외)
+    const sk=Object.keys(ENH_SHAKES); const shake=sk[Math.floor(Math.random()*sk.length)];   // 뒷면 흔들림 무작위
+    this.setState({enSheet:null,enRes:r,enFx:{uid:inst.uid,before,phase:'front',rot:0,anim:0,shake}});
+    const T=(f,ms)=>this._enT.push(setTimeout(f,ms));
+    T(()=>{ this.sfxFlip(); this.setState({enFx:{...this.state.enFx,phase:'flip',rot:180,anim:0.9}}); },700);
+    const shakeMs=parseFloat((ENH_SHAKES[shake]||ENH_SHAKES.jolt)[1])*1000, scanMs=Math.max(2500,shakeMs+300);   // 흔들림이 다 끝난 뒤에 밀기 대기로
+    T(()=>this.setState({enFx:{...this.state.enFx,phase:'scan',anim:0}}),1600);
+    T(()=>this.setState({enFx:{...this.state.enFx,phase:'ready'}}),1600+scanMs);
+  }
+  // ⑤ 결과 — 앞면으로 넘어온 뒤: 태그 굴림 2초(오를지 내릴지 모르게) → 최종 단계 확정(글리치·카드 이펙트 교체) → 수치 카운트 1.5초 → [자세히]
+  enFxReveal(){
+    const fx=this.state.enFx; if(!fx) return; const r=this.state.enRes||{};
+    this.sfxFlip();
+    const from=r.from||0, lo=Math.max(0,from-2), hi=Math.min(this.eng.enhMaxLevel(),from+1);
+    this._statFx={uid:fx.uid, from:this._enFrom, p:0, tagFrom:from, rolling:true, roll:from, settled:false, settleDone:false};
+    this.setState({enFx:{...fx,phase:'reveal',rot:360,anim:0.35}});
+    { const el=this._enCardEl; if(el){ el.style.transition='transform .35s cubic-bezier(.2,.8,.2,1)'; el.style.transform='rotateY(360deg)'; } }   // 명령형 각도와 vdom 정본을 맞춘다
+    const T=(f,ms)=>this._enT.push(setTimeout(f,ms));
+    let last=from;
+    const rollIv=setInterval(()=>{ const S=this._statFx; if(!S||!S.rolling){ clearInterval(rollIv); return; }
+      let v; do{ v=lo+Math.floor(Math.random()*(hi-lo+1)); }while(v===last&&hi>lo); last=v; S.roll=v; this.forceUpdate(); },90);   // 빠르게 — 0.09초마다(테두리 색 교차와 같은 박자)
+    this._enT.push(rollIv);
+    T(()=>{ const S=this._statFx; if(!S) return; S.rolling=false; S.settled=true; this.forceUpdate(); },400+2000);
+    T(()=>{ const S=this._statFx; if(!S) return; S.settleDone=true;
+      const t0=Date.now(), D=1500;
+      const step=()=>{ const S2=this._statFx; if(!S2) return; S2.p=Math.min(1,(Date.now()-t0)/D); this.forceUpdate();
+        if(S2.p<1) this._enRaf=requestAnimationFrame(step);
+        else { this._enRaf=null; T(()=>{ this._statFx=null; this.setState({enFx:{...this.state.enFx,phase:'done',rot:0,anim:0}}); },400); } };
+      this._enRaf=requestAnimationFrame(step); },400+2000+800);
+  }
+  enFxBorderOn(){ const fx=this.state.enFx; if(!fx) return false; if(['flip','scan','ready'].includes(fx.phase)) return true; return !!(this._statFx&&this._statFx.rolling); }
+  // 스캔 [건너뛰기] — 남은 스캔·직접 뒤집기를 건너뛰고 바로 결과(앞면 카운트)로 간다. (스캔 연출은 교체 예정 · 2026-10-15)
+  enFxSkip(){ const fx=this.state.enFx; if(!fx||fx.phase!=='scan') return; (this._enT||[]).forEach(clearTimeout); this._enT=[];
+    const el=this._enCardEl; if(el){ el.style.transition='transform .35s cubic-bezier(.2,.8,.2,1)'; el.style.transform='rotateY(360deg)'; }
+    this.enFxReveal(); }
+  enFxDragBind(){ return {
+    onPointerDown:(e)=>{ const fx=this.state.enFx; if(!fx||fx.phase!=='ready') return; this._enDrag={x:e.clientX,rot:180,moved:0}; try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){} },
+    onPointerMove:(e)=>{ const d=this._enDrag; if(!d) return; d.moved=Math.max(d.moved,Math.abs(e.clientX-d.x)); const r=Math.max(90,Math.min(270,180+(e.clientX-d.x)*0.6)); d.rot=r;
+      const el=this._enCardEl; if(el){ el.style.transition='none'; el.style.transform='rotateY('+r+'deg)'; } },
+    onPointerUp:()=>{ const d=this._enDrag; if(!d) return; this._enDrag=null; const el=this._enCardEl;
+      if(!this.state.enFx||this.state.enFx.phase!=='ready') return;   // 이미 넘어갔으면(건너뛰기 등) 손을 뗀 것으로 각도를 되돌리지 않는다
+      const tap=d.moved<8;   // 거의 안 움직이고 뗐으면 = 탭 → 그 자리에서 뒤집는다(2026-10-15 · 밀기·탭 둘 다)
+      if(tap||Math.abs(d.rot-180)>75){ if(el){ el.style.transition='transform .45s cubic-bezier(.2,.8,.2,1)'; el.style.transform='rotateY('+(tap||d.rot>180?360:0)+'deg)'; } this.enFxReveal(); }
+      else { if(el){ el.style.transition='transform .3s cubic-bezier(.2,.8,.2,1)'; el.style.transform='rotateY(180deg)'; } } },
+    onPointerCancel:()=>{ this._enDrag=null; const el=this._enCardEl; if(el){ el.style.transition='transform .3s'; el.style.transform='rotateY(180deg)'; } } }; }
+  enFxOverlay(inst){
+    const fx=this.state.enFx; if(!fx) return null;
+    const flat=fx.phase==='done'||fx.phase==='detail';   // 끝나면 3D를 푼다(모바일 GPU 반투명 방지)
+    const showAfter=fx.phase==='reveal'||flat;
+    const shown=showAfter? inst : fx.before;
+    const card=(x)=>h('div',{style:{width:342}}, this.lootCardBig({...x,qty:1},'fit'));
+    const back=h('div',{key:'bk',style:{position:'absolute',inset:0,borderRadius:8,overflow:'hidden',backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',
+        background:'#0d0e10',backgroundImage:'url(assets/art/card_back/item_back.webp)',backgroundSize:'cover',backgroundPosition:'center',border:'1px solid #36383C',boxSizing:'border-box'}},
+      null);   // 스캔(격자·빛줄기) 연출 삭제(2026-10-15) — 배경 Ghost Fibers가 대신한다
+    const stage = flat
+      ? h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',overflowY:'auto'}}, card(inst))
+      : h('div',Object.assign({style:{flex:1,minHeight:0,position:'relative',touchAction:'none',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px'}}, this.enFxDragBind()),
+          h('div',{style:{position:'relative',width:342,perspective:'1200px',animation:fx.phase==='scan'?((ENH_SHAKES[fx.shake]||ENH_SHAKES.jolt).join(' ')+' 1'):'none'}},   // 뒷면이 보인 직후 흔들림 — 강화마다 무작위 1종(격정·은은·두 번·떨림·툭)
+            // 전기 테두리 — 굴림(rolling) 동안만 켜진다. 연출 오버레이가 살아 있는 동안 캔버스를 유지해 꺼짐(0.4s)까지 그린다.
+            // 아주 얇고 빠르게(두께 0.5·속도 3.6) · 지금 단계 색 ↔ 다음 단계 색이 0.09초마다(태그 굴림과 같은 박자) 번갈아 번쩍인다(+5 다음은 프리즘 5색 순환)
+            // 뒤집혀 있는 동안(flip·scan·ready) = 같은 테두리를 아주 은은하게(세기 ×0.22) · 굴림 중 = 원래 세기 · 확정되면 꺼진다
+            (['flip','scan','ready','reveal'].includes(fx.phase))? h('canvas',{key:'eb',ref:el=>{ if(el){ const on=()=>this.enFxBorderOn();
+                this.mountElectric(el,on,{thickness:0.5,speed:3.6,glow:0.4,strands:2,chaos:0.65,spread:0.45,intensity:0.9,arcs:1.8,blink:0.09,
+                  colors:()=>this.enhBlinkColors((this.state.enRes||{}).from||0), level:()=>(this._statFx&&this._statFx.rolling)?1:((this.state.enFx&&this.state.enFx.phase==='scan')?0.5:0.22)});   // 흔들리는 동안(scan)은 테두리도 함께 달아오른다
+              if(el._ebIdle&&on()&&el._ebWake) el._ebWake(); } },
+              style:{position:'absolute',left:-64,top:-64,pointerEvents:'none',zIndex:3}}) : null,
+            h('div',{ref:el=>{ this._enCardEl=el; },style:{position:'relative',transformStyle:'preserve-3d',transform:'rotateY('+fx.rot+'deg)',transition:fx.anim?('transform '+fx.anim+'s cubic-bezier(.2,.8,.2,1)'):'none'}},
+              h('div',{key:'fr',style:{backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden'}}, card(shown)),
+              back)),
+          fx.phase==='ready'? h('div',{key:'hint',style:{position:'absolute',left:0,right:0,bottom:4,textAlign:'center',fontFamily:T.sans,fontSize:12,color:'#A9ABAF',pointerEvents:'none'}}, this.en()?'Swipe or tap to flip':'옆으로 밀거나 눌러서 뒤집기') : null);
+    // 하단 버튼 한 자리 — 상자 배경 없이 흰 테두리 둥근 버튼만(2026-10-15).
+    //   스캔 중 = [건너뛰기] · 스캔이 끝나면 같은 자리가 [자세히](연출이 끝날 때까지 비활성) · 끝나면(done) [자세히] 활성.
+    //   자리를 처음부터 끝까지 유지해 뒤의 [뒤로가기]와 겹쳐 보일 틈을 없앤다(배경 딤 0.86).
+    const OUT=(label,on,dim)=>h('button',{onClick:on||null,disabled:!on,style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,background:'transparent',
+      border:'1px solid '+(dim?'rgba(75,77,82,0.9)':'rgba(234,235,238,0.85)'),color:dim?'#4B4D52':'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:on?'pointer':'default'}}, label);
+    const slot=(btn)=>h('div',{style:{flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box'}}, btn);
+    const bottom = (fx.phase==='front'||fx.phase==='flip')? h('div',{style:{flex:'0 0 auto',height:120}})
+      : fx.phase==='scan'? slot(OUT(this.en()?'Skip':'건너뛰기',()=>this.enFxSkip(),false))
+      : fx.phase==='done'? slot(OUT(this.en()?'Details':'자세히',()=>this.setState({enFx:{...fx,phase:'detail'}}),false))
+      : slot(OUT(this.en()?'Details':'자세히',null,true));
+    return h('div',{style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.86)',zIndex:34,display:'flex',flexDirection:'column',animation:'rlFade .18s'}},
+      h('canvas',{key:'gf',ref:el=>{ if(el){ el._color=(now)=>this.enhFibersColor(now); this.mountFibers(el); } },style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:0}}),   // 배경 전체 = Ghost Fibers
+      h('div',{key:'fxbody',style:{position:'relative',zIndex:1,flex:1,minHeight:0,display:'flex',flexDirection:'column'}}, stage, bottom),
+      fx.phase==='detail'? this.enDetailSheet(inst) : null);
+  }
+  // 변경 수치 시트 — 강화 전/후 상세 수치를 줄 단위로 비교해 바뀐 줄만 보여준다. [닫기] = 정비대 화면.
+  enDetailSheet(inst){
+    const B=this.craftSheetBits(), r=this.state.enRes||{}, fx=this.state.enFx;
+    const A=new Map((this._enFrom||[]).map(x=>[x[0],x[1]])), Z=new Map(this.itemDetailStats(inst).map(x=>[x[0],x[1]]));
+    const keys=[...new Set([...A.keys(),...Z.keys()])].filter(k=>k!==this.t('item_durability')&&String(A.get(k))!==String(Z.get(k)));
+    const nums=(t)=>(String(t==null?'':t).match(/-?\d+(?:\.\d+)?/g)||[]).map(Number).reduce((x,y)=>x+y,0);
+    const close=()=>{ this.enFxClear(); this.setState({enFx:null,enRes:null,enSel:null,enSheet:null}); };   // [닫기] = 강화 아이템 목록으로(2026-10-15)
+    const body=[ B.kicker(this.en()?'RESULT':'강화 결과'),
+      h('div',{key:'n',style:{height:20,marginTop:8,display:'flex',alignItems:'center',gap:8}},
+        h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20px',color:B.HI,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
+        this.enhTagOne(r.to||0,true)),   // 결과 단계 태그(0강이면 없음)
+      h('div',{key:'rows',style:{marginTop:16}}, ...(keys.length? keys.map((k,i)=>{ const a=A.get(k), z=Z.get(k), up=nums(z)>=nums(a);
+          return h('div',{key:k,style:{height:36,display:'flex',alignItems:'center',justifyContent:'space-between',borderTop:i?('1px solid '+B.LN):'none'}},
+            h('span',{style:{fontFamily:T.sans,fontSize:13,color:B.MID}}, k),
+            h('span',{style:{fontFamily:T.mono,fontSize:13,display:'flex',gap:6,alignItems:'center'}},
+              h('span',{style:{color:B.LO}}, a==null?'-':String(a)), h('span',{style:{color:B.MUT}}, '→'), h('span',{style:{color:up?'#83B289':'#C4675D'}}, z==null?'-':String(z)))); })
+        : [h('div',{key:'none',style:{height:36,display:'flex',alignItems:'center',fontFamily:T.sans,fontSize:13,color:B.MID}}, this.en()?'No change':'변화 없음')])) ];
+    return h('div',{style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.5)',zIndex:36,display:'flex',flexDirection:'column',justifyContent:'flex-end',animation:'rlFade .18s'}},
+      B.wrap(body,[B.btn(this.t('hide_disk_close'),close,false,'c')]));
   }
   rsModuleScreen(){
     this.mdTick();   // ⚠️ hideTick 금지 — 1초 리렌더가 드래그 중 포인터 캡처를 끊는다(아래 hideTick 주석 참조)
@@ -7492,7 +8073,7 @@ void main(){
     const close=()=>this.setState({mdSel:null,mdSheet:null});
     return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',zIndex:32,display:'flex',flexDirection:'column',animation:'rlFade .18s'}},
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...inst,qty:1},'fit'))),
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.tiltCard(this.lootCardBig({...inst,qty:1},'fit'),inst))),
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',gap:8}},
         h('button',{onClick:()=>this.setState({mdSheet:'slots'}),style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.t('hide_mod_label')),
         h('button',{onClick:close,style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.t('hide_disk_close'))));
@@ -7768,7 +8349,7 @@ void main(){
     const close=()=>this.setState({craftSel:null,craftConfirm:false});
     return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',zIndex:32,display:'flex',flexDirection:'column',animation:'rlFade .18s'}},
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...this.craftPrev(bp),qty:1},'fit','?'))),
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.tiltCard(this.lootCardBig({...this.craftPrev(bp),qty:1},'fit','?'),null))),
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',gap:8}},
         h('button',{onClick:()=>this.setState({craftConfirm:true}),style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.t('hide_craft')),
         h('button',{onClick:close,style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.t('hide_disk_close'))));
@@ -7915,7 +8496,7 @@ void main(){
     return h('div',{key:inst.uid,'data-guide':'disa-row',onClick:()=>this.setState({disaSel:inst.uid}),
       style:{flexShrink:0,height:89,boxSizing:'border-box',padding:'10px 16px 0',cursor:'pointer',borderBottom:'1px solid '+T.line}},
       h('div',{style:{height:20,display:'flex',alignItems:'center'}}, this.catChip(this.catKey(src.Category||(inst.kind==='artifact'?'Accessory':inst.kind==='bag'?'Bag':'')),false)),
-      h('div',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',fontWeight:500,color:T.hi,marginTop:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
+      h('div',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',fontWeight:500,color:T.hi,marginTop:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.enhName(inst)),
       h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,marginTop:7,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.tx(src,'Description')||''));
   }
   // 제작 화면의 Slot 탭 자리 = 분해에선 라벨 바 하나(목업 disassemble1).
@@ -7950,7 +8531,7 @@ void main(){
     const close=()=>this.setState({disaSel:null,disaConfirm:false});
     return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',zIndex:32,display:'flex',flexDirection:'column',animation:'rlFade .18s'}},
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...inst,qty:1},'fit'))),
+        h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.tiltCard(this.lootCardBig({...inst,qty:1},'fit'),inst))),
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',gap:8}},
         h('button',{'data-guide':'disa-sel',onClick:()=>this.setState({disaConfirm:true}),style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.t('hide_disassemble')),
         h('button',{onClick:close,style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.t('hide_disk_close'))));
@@ -8106,7 +8687,7 @@ void main(){
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:20}},
         this.catChip('item_disk', false),
         done? this.shopPill(this.t('hide_disk_installed'),'rgb(169,171,175)') : null),
-      h('div',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',fontWeight:500,color:T.hi,marginTop:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
+      h('div',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',fontWeight:500,color:T.hi,marginTop:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.enhName(inst)),
       h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,marginTop:7,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.tx(bp,'Description')));
   }
   diskListScreen(){
@@ -8391,7 +8972,7 @@ void main(){
     const close=()=>this.setState({dataSel:null});
     return h('div',{onClick:close,style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',zIndex:32,display:'flex',flexDirection:'column',animation:'rlFade .18s'}},
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{maxHeight:'100%',overflowY:'auto'}}, this.lootCardBig({...inst,qty:1},'fit'))),
+        h('div',{onClick:e=>e.stopPropagation(),style:{maxHeight:'100%',overflowY:'auto'}}, this.tiltCard(this.lootCardBig({...inst,qty:1},'fit'),inst))),
       h('div',{onClick:e=>e.stopPropagation(),style:{flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',gap:8}},
         h('button',{onClick:()=>this.startDecode(slot,inst),style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.t('usb_decode_do')),
         h('button',{onClick:close,style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.t('hide_disk_close'))));
@@ -8422,7 +9003,7 @@ void main(){
           : [h('button',{key:'d',disabled:true,style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:MUT,fontFamily:T.sans,fontSize:12}}, this.t('usb_decode_do')),
              h('button',{key:'c',onClick:()=>this.openHideFac('terminal'),style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:HI,fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.t('hide_disk_close'))])));
   }
-  hideAction(facId,k){ if(k==='upgrade'||k==='restore') this.openUpg(facId); else if(k==='repair') this.setState({screen:'rsrep',repairSel:null,repairMode:'hideout'}); else if(k==='module') this.setState({screen:'rsmod',mdSel:null,mdSheet:null,mdModule:null,mdSlot:0,mdIdx:0}); else if(k==='craft') this.setState({screen:'craft',craftSlot:this.craftFreeSlot(),craftSel:null,craftConfirm:false,craftRev:null,craftFlip:false}); else if(k==='disassemble') this.setState({screen:'disa',disaSel:null,disaConfirm:false,disaRev:false,disaOpen:[],disaFocus:0}); else if(k==='disk') this.openDiskList(); else if(k==='decode') this.setState({screen:'decode',decodeSlot:0,dataSel:null}); else this.flash('TBD: '+facId+' / '+k);
+  hideAction(facId,k){ if(k==='upgrade'||k==='restore') this.openUpg(facId); else if(k==='repair') this.setState({screen:'rsrep',repairSel:null,repairMode:'hideout'}); else if(k==='module') this.setState({screen:'rsmod',mdSel:null,mdSheet:null,mdModule:null,mdSlot:0,mdIdx:0}); else if(k==='enhance') this.setState({screen:'rsenh',enSel:null,enSheet:null,enRes:null}); else if(k==='craft') this.setState({screen:'craft',craftSlot:this.craftFreeSlot(),craftSel:null,craftConfirm:false,craftRev:null,craftFlip:false}); else if(k==='disassemble') this.setState({screen:'disa',disaSel:null,disaConfirm:false,disaRev:false,disaOpen:[],disaFocus:0}); else if(k==='disk') this.openDiskList(); else if(k==='decode') this.setState({screen:'decode',decodeSlot:0,dataSel:null}); else this.flash('TBD: '+facId+' / '+k);
     // 튜토리얼 — 기능 첫 진입. 화면 전환 setState 뒤 다음 틱에 건다(상점 진입과 같은 형태).
     // gs.tuto에 기록돼 한 번만 뜬다.
     const tk=HIDE_TUTO[k]; if(tk) setTimeout(()=>this.tutoOpen(tk),0); }
@@ -8479,10 +9060,10 @@ void main(){
       style:{flexShrink:0,height:101,boxSizing:'border-box',padding:'15px 16px 0',cursor:'pointer',borderBottom:'1px solid '+T.line}},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,height:20}},
         h('div',{style:{display:'flex',alignItems:'center',gap:6,minWidth:0}},
-          this.catChip(CATKR[src.Category]||src.Category||'',false), this.unappTag()),
+          this.catChip(CATKR[src.Category]||src.Category||'',this.isEquipped(inst.uid)), this.isEquipped(inst.uid)?this.eqTag():null, this.unappTag()),   // 착용중 표시 = 소지품 목록과 같은 순서(분류·착용중·미감정)
         gtags.length? this.shopPill(GKR[gtags[0]]||gtags[0],'rgb(169,171,175)') : null),
       h('div',{style:{display:'flex',alignItems:'center',gap:8,marginTop:8,height:20}},
-        h('span',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',color:'#EAEBEE',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.itemLabel(inst)),
+        h('span',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',color:'#EAEBEE',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.enhName(inst)),
         (inst.sockets&&inst.sockets.length)?this.socketBars(inst):null),
       desc? h('div',{style:{fontFamily:T.sans,fontSize:12,lineHeight:'17px',color:'#6F7276',marginTop:5,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, desc):null);
   }
@@ -8563,7 +9144,7 @@ void main(){
     const box=absolute===false?{}:{position:'absolute',left:0,right:0,bottom:0};
     return h('div',{key:'npcline',style:Object.assign({display:'flex',flexDirection:'column',alignItems:'center',gap:12,padding:'0 24px',textAlign:'center',pointerEvents:'none'},box)},
       h('span',{style:{fontFamily:T.sans,fontSize:11,letterSpacing:'.1em',color:'#A5ACB2'}}, name),
-      h('span',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',color:'#EAEBEE',wordBreak:'keep-all'}}, line));
+      h('span',{style:{fontFamily:T.npc,fontWeight:400,fontSize:14,lineHeight:'20px',color:'#EAEBEE',wordBreak:'keep-all'}}, line));   // NPC 대사(흥정) = T.npc
   }
   appraiseCardScreen(v){
     const a=this.state.apr||{}; const item=this.eng.instById(this.gs,a.itemUid);
@@ -8831,7 +9412,7 @@ void main(){
         const on=it.k===active, dis=!!it.lock;
         const br=(n===1)?'0 0 16px 16px':(i===0?'0 0 0 16px':(i===n-1?'0 0 16px 0':'0'));
         const st={flex:1,height:47,background:'#18191D',border:'none',borderRadius:br,
-          color:dis?'#4B4D52':(on?'#EAEBEE':'#6F7276'),fontFamily:T.sans,fontSize:14,fontWeight:400,
+          color:dis?'#4B4D52':(on?'#EAEBEE':'#6F7276'),...this.titleF(),fontSize:16,lineHeight:'16px',
           cursor:dis?'default':'pointer',padding:0};
         if(it.tail) Object.assign(st,{display:'flex',alignItems:'center',justifyContent:'center',gap:8});
         const pr={key:it.k,disabled:dis,onClick:dis?null:()=>onPick(it.k),style:st,'data-guide':it.guide||null};
@@ -8906,7 +9487,7 @@ void main(){
     const groups=this.sellGroups(v);
     return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px',display:'flex',flexDirection:'column'}},
       groups.length? groups.map(g=>{ const inst=g.rep; const eq=this.isEquipped(inst.uid); const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]; const md=this.eng.byId.module&&this.eng.byId.module[inst.id]; const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id]; const src=this.eng.byId.weapon[inst.id]||this.eng.byId.armor[inst.id]||this.eng.byId.item[inst.id]||this.eng.byId.artifact[inst.id]||(this.eng.byId.talisman&&this.eng.byId.talisman[inst.id])||(this.eng.byId.bag&&this.eng.byId.bag[inst.id])||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
-        return this.shopRow({key:g.uids[0],guide:'sell-'+inst.id,cat,name:this.itemLabel(inst),desc:this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'',priceLabel:'SELL '+g.price.toLocaleString(),priceColor:'rgb(204,162,110)',countLabel:(this.en()?'Owned ':'소지 ')+String(g.total).padStart(2,'0'),onClick:()=>this.openSell(g),dim:eq,eqTag:eq}); })
+        return this.shopRow({key:g.uids[0],guide:'sell-'+inst.id,cat,name:this.enhName(inst),desc:this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'',priceLabel:'SELL '+g.price.toLocaleString(),priceColor:'rgb(204,162,110)',countLabel:(this.en()?'Owned ':'소지 ')+String(g.total).padStart(2,'0'),onClick:()=>this.openSell(g),dim:eq,eqTag:eq}); })
         : this.emptyRow(this.en()?'No items to sell.':'판매 가능한 아이템이 없습니다.'));
   }
   healCost(){ if(this.storyFreeOnce('heal')) return 0; return Math.max(0, Math.ceil((this.gs.maxHp - this.gs.hp) * this.eng.N(this.eng.DATA.config.heal_cost_per_hp, 2))); }

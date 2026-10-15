@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val40';
-import { buildIndex } from './sheet-loader.js?v=val47';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
+import { DATA as FALLBACK } from './data/game-data.js?v=val41';
+import { buildIndex } from './sheet-loader.js?v=val48';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
 
@@ -515,26 +515,32 @@ export function rollArmorBonus(inst){
 //  · 뽑히는 스탯은 매번 균등 랜덤, 한 번에 오르는 양 = 스탯 기본 폭 × 그 단계 배율
 const ENH_P = [0.8, 0.7, 0.5, 0.3, 0.1], ENH_M = [0.8, 1.0, 1.3, 4.0, 10.0];
 const ENH_STEP = { dmg: 0.15, asp: 0.15, crit: 12, cmult: 0.3, acc: 8, hitdmg: 0.5 };   // 한 방 +15% · 공속 +15% · 크리 +12 · 크리배수 +0.3 · 적중 +8 · 추가타 +0.5 (1배당)
+// 방어구 풀(2026-10-15 확정) — 방어 계열만 · 1배당 폭 = 기준안의 80%(투구+갑옷 2개 합산 보정). 무기 키와 이름이 겹치지 않는다(Config enh_step_<키> 공용).
+const ENH_STEP_A = { def: 2.4, eva: 1.6, hp: 16, dmgcut: 4, res: 6.4 };   // 방어 +2.4 · 회피 +1.6 · 최대 체력 +16 · 받는 피해 감소 +4% · 상태저항 +6.4
 export const ENH_STATS = Object.keys(ENH_STEP);
+export const ENH_STATS_A = Object.keys(ENH_STEP_A);
+export function enhPool(inst){ return (inst && inst.kind === 'armor') ? ENH_STATS_A : ENH_STATS; }
+export function enhable(inst){ return !!inst && (inst.kind === 'weapon' || inst.kind === 'armor'); }   // 장신구·징표·가방은 강화 대상 아님
 export function enhMaxLevel(){ return Math.max(1, Math.min(5, Math.round(N(C.enh_max_level, 5)))); }
 export function enhLevel(inst){ return (inst && inst.enh && Array.isArray(inst.enh.rec)) ? inst.enh.rec.length : 0; }
-export function enhStep(stat){ return N(C['enh_step_' + stat], ENH_STEP[stat]); }
+export function enhStep(stat){ return N(C['enh_step_' + stat], (stat in ENH_STEP) ? ENH_STEP[stat] : ENH_STEP_A[stat]); }
 export function enhChance(level){ return clamp(N(C['enh_p_' + (level + 1)], ENH_P[level]), 0, 1); }   // level = 현재 단계(0~4) → 다음 단계로 오를 확률
-// 합산 효과 {dmg, asp, crit, cmult, acc, hitdmg} (dmg·asp는 비율, 나머지는 가산)
+// 합산 효과 — 무기 {dmg, asp, crit, cmult, acc, hitdmg}(dmg·asp는 비율, 나머지는 가산) · 방어구 {def, eva, hp, dmgcut, res}(전부 가산, dmgcut은 %)
 export function enhEffects(inst){
-  const out = { dmg: 0, asp: 0, crit: 0, cmult: 0, acc: 0, hitdmg: 0 };
+  const out = { dmg: 0, asp: 0, crit: 0, cmult: 0, acc: 0, hitdmg: 0, def: 0, eva: 0, hp: 0, dmgcut: 0, res: 0 };
   if (inst && inst.enh && Array.isArray(inst.enh.rec)) for (const e of inst.enh.rec) if (e && e.stat in out) out[e.stat] += enhStep(e.stat) * N(e.m, 1);
   return out;
 }
 // 한 번 시도한다(재료 차감은 호출 쪽). 반환: { ok, from, to, entry?, dropped, capped? }
 export function enhanceTry(inst, opts = {}){
-  if (!inst || inst.kind !== 'weapon') return null;
+  if (!enhable(inst)) return null;
   const from = enhLevel(inst);
   if (from >= enhMaxLevel()) return { ok: false, capped: true, from, to: from, dropped: 0 };
   if (!inst.enh || !Array.isArray(inst.enh.rec)) inst.enh = { rec: [] };
   const p = clamp(enhChance(from) + N(opts.bonusChance), 0, 1);
   if (Math.random() < p){
-    const entry = { stat: ENH_STATS[randInt(0, ENH_STATS.length - 1)], m: N(C['enh_mult_' + (from + 1)], ENH_M[from]) };
+    const pool = enhPool(inst);
+    const entry = { stat: pool[randInt(0, pool.length - 1)], m: N(C['enh_mult_' + (from + 1)], ENH_M[from]) };
     inst.enh.rec.push(entry);
     return { ok: true, from, to: from + 1, entry, dropped: 0 };
   }
@@ -542,6 +548,44 @@ export function enhanceTry(inst, opts = {}){
   if (from + 1 >= Math.round(N(C.enh_drop_from, 4))) dropped = Math.min(from, randInt(0, Math.max(0, Math.round(N(C.enh_drop_max, 2)))));
   if (dropped > 0 && !opts.protect) inst.enh.rec.splice(inst.enh.rec.length - dropped, dropped); else dropped = 0;
   return { ok: false, from, to: from - dropped, dropped };
+}
+
+// ---- 강화 재료(2026-10-15 사용자 확정) ----
+// 재료는 장비가 정한다(플레이어 선택 없음): 무기 = Attribute별 / 방어구 = Material별. 일반(1~3강) `enh_w1_*`·`enh_a1_*` · 고급(4~5강) `enh_w2_*`·`enh_a2_*`.
+//   ★재료 아이템 데이터(시트)는 다른 세션에서 만든다 — ID가 바뀌면 여기 두 맵만 고친다.
+// 소모 = 도달할 단계 기준 1회분(실패해도 소모): →1강 일반1 · →2강 일반2 · →3강 일반3 · →4강 고급1+일반3 · →5강 고급2+일반5.
+//   Config enh_cost_norm_<N> · enh_cost_adv_<N>(N=도달 단계)로 덮어쓴다.
+const ENH_W_MAT = { stun: 'stun', bleed: 'bleed', pierce: 'pierce', rupture: 'rupture', none: 'none' };   // 그 밖의 속성(절단 등 미구현)은 none(형상기억)
+const ENH_A_MAT = { Fabric: 'fabric', Synthetic: 'synth', Metal: 'metal' };
+const ENH_COST = [[0, 1], [0, 2], [0, 3], [1, 3], [2, 5]];   // [고급, 일반] — 인덱스 = 현재 단계(0~4)
+export function enhMatIds(inst){
+  if (!enhable(inst)) return null;
+  if (inst.kind === 'weapon'){ const w = byId.weapon[inst.id] || {}; const k = ENH_W_MAT[String(w.Attribute || '').trim()] || 'none';
+    return { norm: 'enh_w1_' + k, adv: 'enh_w2_' + k }; }
+  const a = byId.armor[inst.id] || {}; const k = ENH_A_MAT[String(a.Material || '').trim()];
+  return k ? { norm: 'enh_a1_' + k, adv: 'enh_a2_' + k } : null;   // 재질 미지정 방어구는 강화 불가(재료를 정할 수 없다)
+}
+// 다음 단계에 필요한 재료 — [{id, qty, have}] · 최대 단계거나 대상이 아니면 null
+export function enhCost(state, inst){
+  const ids = enhMatIds(inst); if (!ids) return null;
+  const from = enhLevel(inst); if (from >= enhMaxLevel()) return null;
+  const to = from + 1, d = ENH_COST[from] || [0, 1];
+  const adv = Math.max(0, Math.round(N(C['enh_cost_adv_' + to], d[0]))), norm = Math.max(0, Math.round(N(C['enh_cost_norm_' + to], d[1])));
+  const out = [];
+  if (adv > 0) out.push({ id: ids.adv, qty: adv, have: countItem(state, ids.adv) });
+  if (norm > 0) out.push({ id: ids.norm, qty: norm, have: countItem(state, ids.norm) });
+  return out;
+}
+export function enhAffordable(state, inst){ const c = enhCost(state, inst); return !!c && c.every(x => x.have >= x.qty); }
+// 재료를 내고 한 번 시도한다 — 모자라면 아무것도 안 하고 {ok:false, short:true}. 성공·실패 모두 재료는 소모(실패 보정 없음).
+//   반환 = enhanceTry 결과 + cost. ★판정은 여기서 확정된다 — 호출 쪽은 바로 저장할 것(연출 도중 새로고침으로 결과 무르기 방지).
+export function enhanceWithCost(state, inst, opts = {}){
+  const cost = enhCost(state, inst);
+  if (!cost) return { ok: false, capped: true, from: enhLevel(inst), to: enhLevel(inst), dropped: 0 };
+  if (!cost.every(x => x.have >= x.qty)) return { ok: false, short: true, cost, from: enhLevel(inst), to: enhLevel(inst), dropped: 0 };
+  for (const x of cost) consumeItems(state, x.id, x.qty);
+  const r = enhanceTry(inst, opts);
+  return Object.assign({}, r, { cost });
 }
 
 // 부호 붙은 수치 표기 — 정수면 그대로, 소수(크리 피해 0.4 등)는 한 자리. 단위는 키 접미(_pct)나 명시 unit.
@@ -725,6 +769,8 @@ export function playerProfile(state, staminaZero = false) {
   // v3: appraisable stats read the per-instance rolled value (works even while hidden)
   const wOpt = k => (w ? instOpt(w, k) : 0);
   const enh = w ? enhEffects(w) : enhEffects(null);   // 무기 강화 합산(없으면 0)
+  const ae = enhEffects(null);   // 방어구(투구+갑옷) 강화 합산 — 파손된 방어구는 headInst/bodyInst가 null이라 빠진다
+  for (const a of [headInst, bodyInst]) if (a) { const e = enhEffects(a); for (const k of ENH_STATS_A) ae[k] += e[k]; }
   const armorOpt = k => (headInst ? instOpt(headInst, k) : 0) + (bodyInst ? instOpt(bodyInst, k) : 0);
   const armorDef = armorOpt('def');
   const armorEva = armorOpt('evasion');
@@ -734,23 +780,23 @@ export function playerProfile(state, staminaZero = false) {
   const sa = k => secAdd[k] || 0;
   return {
     name: t('common_me'),
-    maxHp: Math.round(sec.sec_max_hp + sa('sec_max_hp')),
+    maxHp: Math.round(sec.sec_max_hp + sa('sec_max_hp') + ae.hp),   // + 방어구 강화
     // 공격력 % (sec_dmg_pct: 방어구 Bonus·장신구·모듈) — 합계에 곱한다. 고정 가산과 달리 공속과 무관하게 공평하다(§3.7-7)
     minAtk: (sec.sec_min_atk + (w ? wOpt('minAtk') : 0) + sa('sec_min_atk')) * (1 + sa('sec_dmg_pct') / 100 + enh.dmg),
     maxAtk: (sec.sec_max_atk + (w ? wOpt('maxAtk') : 1) + sa('sec_max_atk')) * (1 + sa('sec_dmg_pct') / 100 + enh.dmg),
-    defense: sec.sec_defense + armorDef + sa('sec_defense'),
+    defense: sec.sec_defense + armorDef + sa('sec_defense') + ae.def,
     atkSpeed: clamp((w ? (wOpt('atkSpeed') || 1) * (1 + enh.asp) : 1) * speedMult * bf.speedMult * Math.max(0.2, 1 + sa('sec_atk_speed_pct') / 100), 0.2, 3),   // 버프는 곱한 뒤 clamp — 상한 3은 그대로
     accuracy: sec.sec_accuracy + (w ? wOpt('accuracy') : 0) + sa('sec_accuracy') + enh.acc,
-    evasion: sec.sec_evasion + armorEva + sa('sec_evasion'),
+    evasion: sec.sec_evasion + armorEva + sa('sec_evasion') + ae.eva,
     critChance: sec.sec_crit_chance + (w ? wOpt('critChance') : 0) + sa('sec_crit_chance') + enh.crit,
     critResist: sec.sec_crit_resist + sa('sec_crit_resist'),
-    statusResist: sec.sec_status_resist + armorSR + sa('sec_status_resist'),
+    statusResist: sec.sec_status_resist + armorSR + sa('sec_status_resist') + ae.res,
     potency: w ? wOpt('potency') : 0,
     attribute: wd ? wd.Attribute : null,
     weaponMaxDmg: w ? wOpt('maxAtk') : 2,
     critMultBonus: sa('sec_crit_mult') + enh.cmult,        // 크리 피해 배수에 더해지는 값(장비 합산, 천장 ×4)
     hitBonus: sa('sec_hit_bonus') + enh.hitdmg,             // 타격당 고정 추가 피해(방어 무시) — 의도적으로 남긴 '빠른 무기' 축
-    dmgCutPct: sa('sec_dmg_cut_pct'),          // 받는 피해 감소 %(상한 60)
+    dmgCutPct: sa('sec_dmg_cut_pct') + ae.dmgcut,   // 받는 피해 감소 %(상한 60 · 방어구 강화 포함)
     killHealPct: sa('sec_kill_heal_pct'),      // 처치 시 최대 HP 회복 %
     dmgFlatCut: bf.dmgFlatCut,   // 소모품: 받는 피해 플랫 감소 (simulateCombat.strike에서 차감)
     statusImmune: bf.immune,     // 소모품: 상태이상별 차단 확률(%) — strike의 관통/상태이상 두 경로가 본다
