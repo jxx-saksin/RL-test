@@ -126,7 +126,7 @@ const V3_STRINGS = {
   hide_craft_can:['제작가능','Ready'],   // 조립대 목록 칩 — 재료가 전부 모인 도면 (※ hide_craft_ready = '제작을 준비중입니다' 와 다른 키)
   // 시설 화면 버튼 칩 — 슬롯 중 완료가 하나라도 있으면 '완료'가 이긴다(수령 대기가 더 급한 정보)
   hide_chip_run:['진행','Running'], hide_chip_done:['완료','Done'],
-  hide_reveal_all:['전부 확인','Reveal all'], hide_store_all:['전부 넣기','Store all'],
+  hide_store_all:['전부 넣기','Store all'],
   // 정비대 · 수리 / 모듈
   hide_rep_section:['수리가능 아이템','Repairable'], hide_rep_confirm:['수리를 진행 하시겠습니까?','Start the repair?'],
   hide_rep_rate:['성공률','Success rate'],
@@ -155,39 +155,10 @@ const V3_STRINGS = {
   appraise_unappraised:['미감정','Sealed'],   // ★EN은 폭 제약 — 내구도 값 칸이 width:50이라 'Unappraised'(72.9px)는 잘렸다. 6자 이하를 유지할 것
   // 도주 카드 뒤집기 전 경고. 실패해도 즉시 전투가 아니라 '다음 조우 카드'로 간다(2026-08-26 도망 개편).
   combat_flee_warn:['도주 실패시 다음 전투로 강제 진입합니다.','On failure, the next encounter is forced.'],
-  appraise_pick_liquor:['감정에 쓸 술을 고른다','Pick a liquor to appraise with'],
-  appraise_uses:['감정 횟수','Uses'], appraise_proof_band:['도수 = 변동폭','Proof = variance'],
   appraise_no_liquor:['감정용 술이 없다 — 몬스터가 드랍한다','No liquor — monsters drop it'],
-  appraise_pick_item:['감정할 아이템을 고른다','Pick an item to appraise'],
-  appraise_hidden_opts:['미감정 옵션','Hidden options'],
   appraise_no_item:['감정할 미감정 아이템이 없다','No unappraised items'],
-  appraise_confirm:['감정 실행 — 1회 확정','Appraise — one shot, final'],
-  appraise_execute:['감정하기','Appraise'], appraise_revealed:['공개된 옵션','Revealed options'],
-  marta_intro:['미감정 원석은 술로 읽는다. 뭘 마실 텐가.','Raw goods read with liquor. What will you drink.'],
-  marta_pick:['어느 물건을 볼까. 한 번 열면 되돌릴 수 없다.','Which piece. Once opened, no take-backs.'],
-  marta_confirm:['도수만큼 흔들린다. 각오는 됐나.','It swings with the proof. Ready.'],
-  marta_done:['이게 자네가 들고 있던 물건의 정체다.','This is what you were carrying.'],
-  vendor_marta_label:['마르타 콜 · 전당포','Marta Cole · Pawnshop'],
-  module_intro:['소켓이 있는 장비를 가져와. 색을 박아주지.','Bring gear with sockets. I set the color.'],
-  module_pick_item:['모듈을 박을 장비','Gear to socket'],
-  module_no_socket_item:['소켓이 있는 장비가 없다','No gear with sockets'],
-  module_pick_socket:['소켓을 고르게.','Choose a socket.'],
-  module_sockets:['소켓','Sockets'], module_tap_socket:['소켓을 눌러 장착하거나 제거한다','Tap a socket to attach or remove'],
-  module_installed:['장착된 모듈','Installed module'],
-  module_remove_line:['빼면 부서진다. 그래도 하겠나.','Pull it and it breaks. Still.'],
-  module_remove_warn:['제거하면 모듈은 즉시 파괴된다','Removing destroys the module'],
-  module_remove_do:['제거 (파괴)','Remove (destroy)'],
-  module_pick_module:['박을 색을 고르게.','Pick a color.'],
-  module_owned:['보유 모듈','Owned modules'], module_no_owned:['맞는 모듈이 없다','No matching modules'],
-  module_bind_line:['한 번 박으면 그 장비의 것이 된다.','Once set, it belongs to that gear.'],
-  module_confirm:['장착 확인','Confirm attach'],
-  module_bind_warn:['장착 시 이 장비에 귀속 · 분리/재활용 불가','Binds to this gear · no reuse'],
-  module_attach_do:['장착','Attach'], module_attach_fail:['장착할 수 없는 소켓','Cannot attach here'],
-  module_hint_red:['공격·힘 계열','Attack·STR'], module_hint_green:['방어·저항 계열','Defense·Resist'],
-  module_hint_blue:['적중·민첩 계열','Accuracy·DEX'], module_hint_violet:['체력·생명 계열','Vitality·HP'],
+  appraise_execute:['감정하기','Appraise'], 
   item_slot_weapon:['무기','Weapon'], item_slot_armor:['방어구','Armor'],
-  loot_open_all:['한번에 뒤집기','Flip all'], loot_open_one:['하나씩','One by one'],
-  loot_carousel:['획득 — 카드를 뒤집어 확인','Loot — flip to reveal'], loot_tap_flip:['카드를 눌러 공개','Tap card to reveal'],
   socket_label:['소켓','Socket'],
   search_failed_title:['전리품 획득 실패','No loot found'],
   search_failed_desc:['시체에서 아무것도 찾을 수 없었다.','Found nothing on the body.'],
@@ -195,23 +166,17 @@ const V3_STRINGS = {
   item_desc_label:['아이템 설명','Item description'],
   item_head:['투구','Head'], item_body:['갑옷','Body'], item_food:['음식','Food'],
   item_junk:['정크','Junk'], item_quest:['퀘스트','Quest'], item_key:['키','Key'],
-  item_accessory:['장신구','Accessory'], item_talisman:['징표','Token'], dmg_reduce:['피해 감소','Damage Reduced'], item_material_type:['재질','Material'],
+  item_accessory:['장신구','Accessory'], item_talisman:['징표','Token'], item_material_type:['재질','Material'],
   common_me:['나','Me'],
   stat_max_dur:['최대 내구도','Max Durability'], stat_growth_tags:['성장 태그','Growth Tags'],
   item_liquor:['술','Liquor'], item_module:['모듈','Module'], item_data:['데이터','Data'],
-  pvp_flee_fail_loss:['도주 실패 — 착용 장비 1개가 영구 소실됐다','Flee failed — one equipped item lost forever'],
-  pvp_flee_success:['도주 성공 — 무사히 벗어났다','Fled clean — got away safely'],
-  pvp_win_pick_tpl:['승리 — 카드 1장 선택 · 복제 확률 {Rate}%','Win — pick 1 card · copy chance {Rate}%'],
-  pvp_lose_pick_tpl:['패배 — 카드 1장 선택 · 도주 실패 확률 {Rate}%','Lose — pick 1 card · flee-fail chance {Rate}%'],
   pvp_cold_chip:['콜드데이터','Cold Data'], pvp_grade_survivor:['생존자','Survivor'],
   // 장비 재질 — 시트 UIString(mat_*)이 정본. 시트를 못 읽는 로컬·장애 때 키가 그대로 새는 걸 막는다.
   mat_metal:['금속','Metal'], mat_wood:['목재','Wood'],
   mat_fabric:['섬유','Fabric'], mat_synthetic:['합성','Synthetic'],
   // save system (UIString Category=save — sheet wins, these are offline fallbacks)
   save_section:['세이브','Save'],
-  save_continue:['이어하기','Continue'],
   save_new_game:['처음부터','New game'],
-  save_resuming:['이어하는 중','Resuming'],
   save_export:['세이브 코드 내보내기','Export save code'],
   save_import:['세이브 코드 불러오기','Import save code'],
   save_import_hint:['세이브 코드를 붙여넣으세요','Paste your save code'],
@@ -221,7 +186,6 @@ const V3_STRINGS = {
   save_imported:['세이브를 불러왔습니다','Save loaded'],
   save_reset:['세이브 초기화','Reset save'],
   save_reset_done:['세이브를 초기화했습니다','Save reset'],
-  save_autosaved:['자동 저장됨','Autosaved'],
   // toast messages (sheet UIString wins; these are offline fallbacks)
   shop_buy_done:['아이템 구매 완료','Item purchased'],
   shop_sell_done:['아이템 판매 완료','Item sold'],
@@ -233,7 +197,6 @@ const V3_STRINGS = {
   heal_pull_use:['사용하기','Pull down to use'],
   loot_tap_reveal:['탭하여 확인','Tap to reveal'],
   loot_pull_stash:['소지품에 넣기','Pull down to stash'],
-  loot_pull_remove:['꺼내기','Pull up to remove'],
   vault_tidy_pull:['아래로 당겨 물건정리','Pull down to tidy'],
   vault_tidy_release:['물건정리','Release to tidy'],
   item_swipe_close:['위로 올려 닫기','Swipe up to close'],
@@ -291,7 +254,6 @@ const N = (v, d = 0) => (v === '' || v == null || isNaN(Number(v)) ? d : Number(
 const rand = (a, b) => a + Math.random() * (b - a);
 const randInt = (a, b) => Math.floor(rand(a, b + 1));
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-export const R = { rand, randInt, clamp };
 
 // a weapon/armor/accessory instance is 'functional' only while it still has durability.
 // dur 0 / maxDur >=1 = 파손(broken, unusable but repairable); maxDur 0 = 파괴(destroyed).
@@ -373,8 +335,6 @@ export const APPRAISE_OPTS = {
   weapon: ['minAtk','maxAtk','atkSpeed','accuracy','critChance','maxDur','potency'],
   armor:  ['def','evasion','statusResist','maxDur'],
 };
-const OPT_KR = { minAtk:'최소 공격력', maxAtk:'최대 공격력', atkSpeed:'공격 속도', accuracy:'적중률', critChance:'크리티컬 확률', maxDur:'최대 내구도', potency:'부여력', def:'방어력', evasion:'회피율', statusResist:'상태이상 저항', growthTags:'성장 태그' };
-export function optKr(k){ return OPT_KR[k] || k; }
 const STAT_KEYS = ['str','dex','vit','will'];
 
 // seed the working (rolled) value for one option from the base def
@@ -472,14 +432,17 @@ export function balanceVer(){ return Math.max(1, Math.round(N(C.balance_ver, 1))
 // 무기 인스턴스의 롤값을 현재 시트 범위로 다시 굴린다(올라갈 때도 되돌릴 때도 같다).
 // 소켓·성장태그·감정 가림(unappraised)·현재 내구도 **비율**은 보존한다 — 갖고 있던 물건이 바뀌면 안 되는 부분만 새로 맞춘다.
 // 감정으로 흔들린 수치(apprDelta)는 옛 범위 기준이라 버린다. 미감정 옵션은 가림이 유지돼 감정 때 새 값에서 흔들린다.
+// 최대 내구도를 바꾸면서 현재 내구도는 '비율'로 보존(마모량 보존 아님 — appraise 주석 참조). 재추첨·감정 공용.
+function rescaleMaxDur(inst, newMax){
+  const ratio = clamp(N(inst.dur) / Math.max(1, Math.round(N(inst.maxDur))), 0, 1);
+  inst.maxDur = Math.max(1, Math.round(newMax));
+  inst.dur = clamp(Math.round(inst.maxDur * ratio), 0, inst.maxDur);
+}
 export function reseedWeaponRolls(inst){
   const w = inst && byId.weapon[inst.id];
   if (!w || !inst.rolls) return false;
-  const oldMax = Math.max(1, Math.round(N(inst.maxDur, 1)));
-  const ratio = clamp(N(inst.dur) / oldMax, 0, 1);
   for (const k of APPRAISE_OPTS.weapon) inst.rolls[k] = seedOpt('weapon', k, w, null);
-  inst.maxDur = Math.max(1, Math.round(inst.rolls.maxDur));
-  inst.dur = clamp(Math.round(inst.maxDur * ratio), 0, inst.maxDur);
+  rescaleMaxDur(inst, inst.rolls.maxDur);
   delete inst.apprDelta;
   return true;
 }
@@ -576,7 +539,6 @@ export function enhCost(state, inst){
   if (norm > 0) out.push({ id: ids.norm, qty: norm, have: countItem(state, ids.norm) });
   return out;
 }
-export function enhAffordable(state, inst){ const c = enhCost(state, inst); return !!c && c.every(x => x.have >= x.qty); }
 // 재료를 내고 한 번 시도한다 — 모자라면 아무것도 안 하고 {ok:false, short:true}. 성공·실패 모두 재료는 소모(실패 보정 없음).
 //   반환 = enhanceTry 결과 + cost. ★판정은 여기서 확정된다 — 호출 쪽은 바로 저장할 것(연출 도중 새로고침으로 결과 무르기 방지).
 export function enhanceWithCost(state, inst, opts = {}){
@@ -629,10 +591,7 @@ export function appraise(inst, proofPct){
   //   새 드랍 44/44 → 50/50, 3 닳은 물건 41/44 → 47/50, 파손 0/44 → 0/50이 된다.
   //   (마모량 보존은 파손품이 감정만으로 6/50으로 부활해 버려서 못 쓴다 — 수리를 건너뛰게 된다.)
   if (inst.unappraised.includes('maxDur')) {
-    const oldMax = Math.max(1, Math.round(N(inst.maxDur)));
-    const ratio = clamp(N(inst.dur) / oldMax, 0, 1);
-    inst.maxDur = Math.max(1, Math.round(inst.rolls.maxDur));
-    inst.dur = clamp(Math.round(inst.maxDur * ratio), 0, inst.maxDur);
+    rescaleMaxDur(inst, inst.rolls.maxDur);
   }
   inst.unappraised = [];
   inst.appraised = true;
@@ -640,8 +599,6 @@ export function appraise(inst, proofPct){
 }
 
 // ---------- modules (미스터 박 · 소켓) ----------
-export function moduleColorStat(mod){ return mod ? (mod.ColorFamily || '') : ''; }
-export function socketFilled(inst){ return (inst && inst.sockets) ? inst.sockets.filter(Boolean).length : 0; }
 export function attachModule(inst, socketIdx, moduleId){
   const mod = byId.module[moduleId]; if (!inst || !mod || !inst.sockets) return false;
   if (String(mod.Tag) !== inst.kind) return false;             // 무기/방어구 구분만
@@ -710,10 +667,6 @@ export function vaultCap(state){
   const eff = facilityEffects(facilityRow('storage', facilityLevel(state, 'storage'))).find(e => e && e.key === 'capacity');
   return eff ? N(eff.to, 40) : N(C.hideout_storage_cap_fallback, 40);
 }
-// 사용 칸 = 금고 배열의 길이. stackAdd가 MaxStack을 넘기면 새 묶음을 만들므로
-// "MaxStack 1묶음 = 1칸"이 배열 길이와 그대로 일치한다 — 따로 세지 않는다.
-export function vaultUsed(state){ return ((state && state.vault) || []).length; }
-export function vaultRoom(state){ return Math.max(0, vaultCap(state) - vaultUsed(state)); }
 
 // ---------- 소모품 버프 (§6-7) ----------
 // state.buffs = [{ id, type, value, left }] · left = 남은 전투 수(유지력).
@@ -880,7 +833,6 @@ function defMitigate(dmg, def, pierceFrac = 0) {
   const eff = def * (1 - pierceFrac);
   return dmg * (K / (K + Math.max(0, eff)));
 }
-const ATTR_KR = { bleed: '출혈', stun: '기절', pierce: '관통', rupture: '파열', sever: '절단' };
 
 // ---------- combat-log grammar (sheet-driven, CombatLog tab) ----------
 // Templates come from DATA.combatLog (live sheet); DEFAULT_TPL is the fallback
@@ -948,10 +900,6 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
   const push = (who, type, text, extra) => log.push({ t: +t.toFixed(1), who, type, text, hpP: Math.max(0, Math.round(A.hp)), hpM: Math.max(0, Math.round(B.hp)), ...(extra || {}) });
   push('sys', 'start', logTpl('start', { MonsterName: mProf.name, Grade: mProf.grade, TimeLimit: limit }));
 
-  function applyBleedTicks(actor, now) {
-    actor.bleed = actor.bleed.filter(b => b.until > now);
-    // handled via scheduled ticks below (simplified: apply on each actor's turn)
-  }
   // 관통 — 개편(EffectType damage_taken_up): 발동하면 대상이 받는 피해 +스택×Value. 시트가 아직 옛 값(defense_ignore)이면
   // 옛 방식(해당 일격 방어 무시)으로 돈다 — 코드를 시트보다 먼저 배포해도 깨지지 않는다.
   // 스택형 디버프(파열·관통)의 지속 = 시트 Duration × 시전자 무기 간격(초, 0.4~3배 클램프). 기준 간격 1초.
@@ -1445,17 +1393,6 @@ export function applyUsbGrant(state, grantStat, value){
   return { stat: key, grantStat, from: before, to: g.level };
 }
 
-// ---------- NPC dialogue (NpcDialogue tab · usbload flow) ----------
-// fallback pool when the tab is missing — 미스터 박: 냉정·주술사적·클러리컬
-const USB_TPL = {
-  intro: ['저장매체를 갖고 있군. 해독이 필요하면 내놓아라.', '구 유물은 아무나 다루지 못한다. 볼일이 있으면 매체를 보여라.'],
-  request: ['{USB}. 해독에는 재료가 든다 — {MAT}. 있나.', '수신 준비에 {MAT}이(가) 필요하다.'],
-  insufficient: ['모자란다. {MAT}. 갖춰서 다시 와라.', '이걸로는 회로를 못 돌린다. {MAT}.'],
-  start: ['됐다. 이식을 시작한다. {MIN}분. 접속을 끊지 마라.', '수신 개시. {MIN}분간 유지해라.'],
-  uploading: ['수신 중이다. 끊지 마라.', '신호가 흐르고 있다. 기다려라.'],
-  complete: ['끝났다. {STAT}의 감각이 돌아왔을 거다.', '수신 완료. {STAT}이(가) 몸에 새겨졌다.'],
-  farewell: ['볼일이 끝났으면 가라.', '다음 매체를 구해 와라.'],
-};
 const STAT_KR_FALLBACK = { stat_str: '힘', stat_dex: '민첩', stat_vit: '체력', stat_will: '의지' };
 // USB 부여 효과 — Grants JSON 열(개수 자유)이 정본. 없으면 옛 GrantStat/GrantValue 한 쌍으로 폴백한다.
 export function usbGrants(u){
@@ -1476,12 +1413,6 @@ export function substUsbTokens(s, u){
   const mats = parseMaterials(u.RequiredMaterials).map(m => anyName(m.id) + ' ' + m.qty + '개').join(', ');
   const names = usbGrants(u).map(g => statName(g.stat)).filter(Boolean).join(', ');
   return s.replace(/\{USB\}/g, tr(u, 'Name') || '').replace(/\{MAT\}/g, mats).replace(/\{STAT\}/g, names).replace(/\{MIN\}/g, String(N(u.UploadMinutes, 1)));
-}
-// 2026-08-18: usbload 대사는 시트(NpcDialogue)에서 전량 삭제됨 — 내장 템플릿만 쓴다.
-// USB 이식은 아지트(하이드) 신설 때 되살릴 예정이라 화면·함수는 남겨둔다.
-export function usbLine(stage, usbRow){
-  const pool = USB_TPL[stage] || [''];
-  return substUsbTokens(pool[Math.floor(Math.random() * pool.length)], usbRow);
 }
 
 // ---------- ColdData (비대칭 PvP · DEV_HANDOFF §6-6) ----------
@@ -1656,11 +1587,7 @@ export function repairInputs(inst){
   return out;
 }
 // 모듈 장착 재료 = 시트 Module.Inputs(계열별 전자 정크 2종). 사토는 안 받는다(module_attach_cost=0).
-export function moduleInputs(moduleId){
-  const arr = jsonList(byId.module[moduleId] && byId.module[moduleId].Inputs);
-  if (!arr) return [];
-  return arr.map(x => ({ id: x.id || x.ItemID, qty: Math.max(1, N(x.qty, 1)) })).filter(x => x.id);
-}
+export function moduleInputs(moduleId){ return craftInputs(byId.module[moduleId]); }   // 같은 Inputs 열 형식(제작법과 동일)
 
 // ===== 퀘스트 (Quest 탭 · 일일) =========================================
 // 시트의 Objective/Reward는 JSON 열이다. Objective는 targets 배열이 정본이고,
@@ -1699,8 +1626,13 @@ export function questReward(q){
            free: Array.isArray(r.free) ? r.free.map(String) : [] };   // 무료 1회(예: ["heal"] = 다음 치료 1회 0 사토 · 3번)
 }
 // ---------- 스토리 퀘스트 (StoryQuest 탭 · Chapter·Order 순번) ----------
+// 정렬본은 원본 배열이 바뀔 때만 다시 만든다 — 화면이 렌더마다 수십 번 부른다(가드·가이드·무전 판정). 읽기 전용(freeze).
+let _srSrc = null, _srOut = [];
 export function storyRows(){
-  return (DATA.storyQuests || []).slice().sort((a, b) => (N(a.Chapter, 0) - N(b.Chapter, 0)) || (N(a.Order, 0) - N(b.Order, 0)));
+  const src = DATA.storyQuests || [];
+  if (src !== _srSrc || _srOut.length !== src.length){ _srSrc = src;
+    _srOut = Object.freeze(src.slice().sort((a, b) => (N(a.Chapter, 0) - N(b.Chapter, 0)) || (N(a.Order, 0) - N(b.Order, 0)))); }
+  return _srOut;
 }
 export function storyRow(id){ return (DATA.storyQuests || []).find(q => q.QuestID === id) || null; }
 // 퀘스트 대사(QuestDialogue) — QuestID + Stage(start/done/radio)
@@ -1786,4 +1718,4 @@ export function questResetLeft(now){
   return step - ((passed % step) + step) % step;
 }
 
-export { ATTR_KR, N, C };
+export { N, C };
