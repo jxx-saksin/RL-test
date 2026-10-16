@@ -356,7 +356,13 @@ const SFX = {
   shop_pawnshop:    'assets/sound/shop/pawnshop.m4a',
   shop_bar:         'assets/sound/shop/bar.m4a',
   shop_blackmarket: 'assets/sound/shop/blackmarket.m4a',
-  shop_kiosk:       'assets/sound/shop/kiosk.m4a'
+  shop_kiosk:       'assets/sound/shop/kiosk.m4a',
+  // ── ui 클릭음 5종 (2026-10-16 · sound/UI 마스터) — 버튼·메뉴를 누를 때 5종 중 직전과 다른 것(sfxClick). 5번은 늦게 시작하던 앞 무음 171ms를 잘라 변환
+  ui_click1:        'assets/sound/ui/ui-click-1.m4a',
+  ui_click2:        'assets/sound/ui/ui-click-2.m4a',
+  ui_click3:        'assets/sound/ui/ui-click-3.m4a',
+  ui_click4:        'assets/sound/ui/ui-click-4.m4a',
+  ui_click5:        'assets/sound/ui/ui-click-5.m4a'
 };
 // 파일별 기본 게인 — 원본 음량이 제각각이라 코드에서 맞춘다(원본 파일은 안 건드린다).
 // 측정 기준 = '체감 음량'(상위 10% 구간 RMS). 피크는 짧은 타격 하나로도 1.0을 쳐서 기준이 못 된다.
@@ -377,7 +383,9 @@ const SFX_GAIN = {
   battle_victory:0.19, battle_defeat:0.23,
   // 상점 진입음 목표 0.050
   shop_canteen:0.18, shop_blackmarket:0.23, shop_hardware:0.35, shop_clinic:0.52,
-  shop_kiosk:0.80, shop_bar:1.48, shop_pawnshop:3.18
+  shop_kiosk:0.80, shop_bar:1.48, shop_pawnshop:3.18,
+  // UI 클릭음 5종 — 카드와 같은 미세 피드백 목표 0.030로 **5종 모두 같은 체감 음량**(상위10% RMS 0.034/0.057/0.033/0.024/0.036 → 보정 후 0.030)
+  ui_click1:0.89, ui_click2:0.53, ui_click3:0.91, ui_click4:1.27, ui_click5:0.83
 };
 // VendorID → SFX 키. 시트에 없는 벤더가 생겨도 조용히 무음이 된다.
 const SHOP_SFX = { vendor_clinic:'shop_clinic', vendor_canteen:'shop_canteen', vendor_hardware:'shop_hardware',
@@ -450,7 +458,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 101;
+const TITLE_VER = 102;
 const TITLE_DATE = '1016';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -705,6 +713,8 @@ class Component extends DCLogic {
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
       window.addEventListener('pointerdown', ()=>this.hideToast(), true);  // 토스트: 아무 데나 터치 → 즉시 소멸
+      // 버튼·메뉴 클릭음 — 화면 전체의 <button>을 한 곳에서(캡처 단계 · 비활성 버튼은 무음). 카드·행처럼 button이 아닌 것은 대상 아님.
+      window.addEventListener('click', (e)=>{ const b=e.target&&e.target.closest&&e.target.closest('button'); if(b && !b.disabled) this.sfxClick(); }, true);
       this._dataPromise = this.loadData().catch(()=>{}); // 데이터는 스플래시 대기 중 백그라운드 로드
       this.loadTT();                                       // 타이틀급 한글 글자 이미지 목록(실패해도 글자로 폴백)
       this.setState({ ready:false, splash:true });        // "탭하여 시작" 스플래시
@@ -1566,6 +1576,8 @@ class Component extends DCLogic {
     this.sfx(fam + (1+Math.floor(Math.random()*2))); }
   // 카드 뒤집기 — 3종 중 직전과 다른 것. 순차 공개처럼 연달아 울릴 때 같은 소리가 반복되지 않게.
   sfxComms(){ let k; do{ k=1+Math.floor(Math.random()*4); }while(k===this._commsLast); this._commsLast=k; this.sfxLayer('npc_comms'+k); }   // NPC 교신 시작음 — 4종 중 직전과 다른 것
+  // 버튼·메뉴 클릭음 — 5종 중 직전과 다른 것(사용자 2026-10-16 · 다른 효과음과 겹쳐도 그대로 낸다).
+  sfxClick(){ let k; do{ k=1+Math.floor(Math.random()*5); }while(k===this._clickLast); this._clickLast=k; this.sfxLayer('ui_click'+k,{pitch:0.03}); }
   sfxFlip(){ let k; do{ k=1+Math.floor(Math.random()*3); }while(k===this._flipLast);
     this._flipLast=k; this.sfxLayer('card_flip'+k,{pitch:0.05}); }
   // 카드가 2장 이상 깔리는 화면/시트에 들어설 때 1회. 1장이면 딜링이 아니다.
@@ -2536,9 +2548,13 @@ class Component extends DCLogic {
       (fx&&fx.tier===2&&!fx.cp)? h('div',{key:'brd'+fx.seq,style:{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 1px #FFFFFF',animation:'rlBorderFlash .42s ease-out forwards'}}):null,
       (fx&&fx.tier===2&&!fx.cp)? h('div',{key:'ig'+fx.seq,style:{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 36px 4px rgba(255,255,255,0.5)',animation:'rlInnerGlow .22s ease-out forwards'}}):null,
       // 덮개는 아트웍 영역에만. 플레이어 카드는 아트가 없어 카드 전체가 그 자리를 대신한다.
-      deadNow? h('div',{key:'dth',style:{position:'absolute',top:0,left:0,right:0,height:isMonster?114:'100%',zIndex:7,pointerEvents:'none',background:'rgba(255,0,4,0.10)'}}):null,
+      // ★몬스터 사망 = svg/death-card.svg(2026-10-16): 아트 블록에 붉은 덮개 두 겹(#FF0004 5% + #FF0000 19%) + 짙은 빨강 해골(#A20000 40% · 76px · ic_death 2.5배)이
+      //   0.5초에 걸쳐 스며든다. 플레이어 사망은 예전 그대로(카드 전체 10% 덮개 + 흰 아이콘 30px).
+      deadNow? h('div',{key:'dth',style:{position:'absolute',top:0,left:0,right:0,height:isMonster?114:'100%',zIndex:7,pointerEvents:'none',
+        background:isMonster?'linear-gradient(rgba(255,0,0,0.19),rgba(255,0,0,0.19)),linear-gradient(rgba(255,0,4,0.05),rgba(255,0,4,0.05))':'rgba(255,0,4,0.10)',
+        animation:isMonster?'rlFade .5s ease-out both':'none'}}):null,
       // 아이콘은 가로 중앙 · 세로는 몬스터=아트 블록 중앙(114/2), 플레이어=아트가 없어 카드 중앙.
-      deadNow? h('div',{key:'dthi',style:{position:'absolute',left:'50%',top:isMonster?57:'50%',transform:'translate(-50%,-50%)',zIndex:8,pointerEvents:'none'}}, icDeath(30,'#E1E1E1')):null,
+      deadNow? h('div',{key:'dthi',style:{position:'absolute',left:'50%',top:isMonster?57:'50%',transform:'translate(-50%,-50%)',zIndex:8,pointerEvents:'none',animation:isMonster?'rlFade .5s ease-out both':'none'}}, isMonster? icDeath(76,'rgba(162,0,0,0.4)') : icDeath(30,'#E1E1E1')):null,
       isMonster? h('div',{style:{position:'relative',height:114,overflow:'hidden',background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
         (!prof.isUser)?h('img',{src:'assets/art/monsters/'+prof.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',transformOrigin:'50% 100%',animation:stn?'rlSway .4s ease-in-out infinite alternate':'none'}}):null,
         h('div',{style:{position:'absolute',left:12,bottom:8,fontFamily:T.mono,fontSize:9,color:prof.isUser?T.sato:T.faint,letterSpacing:'.1em'}}, prof.isUser?this.t('kicker_userdata'):((md.Category||'')+''+this.t('kicker_dot_monsters'))), prof.grade?(()=>{ const gcol=GRADECOL[String(prof.grade).toLowerCase()]||'rgb(234,235,238)'; return h('div',{key:'gtag',style:{position:'absolute',right:10,top:10,zIndex:4,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid '+(gcol==='rgb(234,235,238)'?'rgba(222,222,222,0.18)':gcol),display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'4px 8px',animation:'rlLvlPop .5s cubic-bezier(.2,.8,.2,1)'}},
@@ -6497,12 +6513,17 @@ void main(){
   // 진입 = 캐릭터 헤더 우측 무전기. ⚠️screen-character-top은 바깥 1px 프레임 때문에 전부 +1 밀려 있다 →
   //   실좌표 아이콘 x342~367.2 · y29~60.9 / 점 (373.5,26.5) r2.5. 터치 영역 44×44를 아이콘 중심(354.6,45)에 맞춘다.
   // 점·탭바 깜빡임 = **처리할 게 있을 때만**(B안: 완료 퀘스트 · 수령할 알림) — 조건은 commsPending 한 곳.
-  commsPending(){
+  commsPending(){ return this.commsTabPending('mission') || this.commsTabPending('news'); }
+  // 탭별 새 알림(2026-10-16) — 무전기 점과 같은 조건을 탭으로 나눈다. 임무 = 스토리(보상 대기·목표 완료·호출받은 임무) / 소식 = 아지트 완료 알림 + 일일·주간 완료.
+  commsTabPending(tab){
     if(!this.eng || !this.gs) return false;
-    if(this.commsAlerts().length) return true;
+    if(tab==='news') return this.commsAlerts().length>0 || ['daily','weekly'].some(t=>this.commsQuests(t).some(x=>x.st==='done'));
     { const c=this.storyMap().cur, q=c&&this.eng.storyRow(c.id); if(q && (c.s==='rw' || this.storyAllDone(q))) return true; }
     { const m=this.storyMap(), pq=!m.cur&&this.storyPending(); if(pq && m.called && m.called[pq.QuestID]) return true; }   /* 호출받고 아직 안 받은 임무(챕터2 1번 마르타) — 받으러 갈 때까지 */
-    return ['daily','weekly'].some(t=>this.commsQuests(t).some(x=>x.st==='done')); }
+    return false; }
+  // 탭 라벨 + 알림 점(무전기 점과 같은 5px #2FBF71 · 같은 깜빡임) — 글자 오른쪽 위에 붙는다. 점은 레이아웃 폭에 안 들어간다(absolute).
+  commsTabLabel(key,on){ return h('span',{style:{position:'relative',display:'inline-block'}}, this.ttx(this.t(key),16),
+      on? h('span',{key:'d',style:{position:'absolute',right:-8,top:-2,width:5,height:5,borderRadius:'50%',background:'#2FBF71',animation:'rlCommsDot 2.4s ease-in-out infinite'}}) : null); }
   commsBtn(){
     return h('button',{key:'comms','data-guide':'comms-btn',onClick:()=>this.openComms(),'aria-label':this.t('comms_title'),
       style:{position:'absolute',right:25.4,top:23,width:44,height:44,padding:0,border:'none',background:'none',cursor:'pointer'}},
@@ -6523,7 +6544,7 @@ void main(){
       this.forceUpdate(); },5000);
     return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'#111315'}},
       this.screenTitle('COMMS','comms_title'),
-      this.segBar([{k:'mission',label:this.t('comms_tab_mission')},{k:'news',label:this.t('comms_tab_news')}],
+      this.segBar([{k:'mission',label:this.commsTabLabel('comms_tab_mission',this.commsTabPending('mission'))},{k:'news',label:this.commsTabLabel('comms_tab_news',this.commsTabPending('news'))}],
         tab, k=>this.setState({commsTab:k})),
       h('div',{key:'cb:'+tab,style:{flex:'1 1 auto',minHeight:0,overflowY:'auto',padding:'0 0 24px',boxSizing:'border-box'}},
         tab==='mission'? this.commsMission() : this.commsNews()),
@@ -8594,10 +8615,11 @@ void main(){
   // ===== 조립대 · 분해 (svg/screen-hideout-workbench-disassemble*.svg) =====
   // 슬롯이 없다(목록에 Slot 탭이 없음) — 한 번에 한 건, 실패도 없다. 3초 연출이 끝나면 곧바로 완료다.
   DISA_ROLL_MS(){ return 3000; }
-  // 착용 중인 장비는 gs.bag에 산다 — 그래서 목록에서 명시적으로 걸러야 한다.
+  // 착용 중인 장비도 목록에 넣고 **맨 위 + 착용중 태그**(다른 목록과 같은 규칙 · 2026-10-16). 분해하면 착용이 먼저 풀린다(startDisa).
   disaOwned(){ return [...this.gs.bag, ...this.gs.vault].filter(i=>
-    (i.kind==='weapon'||i.kind==='armor'||i.kind==='artifact'||i.kind==='bag') && !this.isEquipped(i.uid)
-    && (!this.facWbGuideOn() || i.uid===this.storyMap().fac.workbench.uid)); }   /* 분해 안내 중엔 유리의 쇠파이프만(챕터3) */
+    (i.kind==='weapon'||i.kind==='armor'||i.kind==='artifact'||i.kind==='bag')
+    && (!this.facWbGuideOn() || i.uid===this.storyMap().fac.workbench.uid))   /* 분해 안내 중엔 유리의 쇠파이프만(챕터3) */
+    .sort((a,b)=>(this.isEquipped(b.uid)?1:0)-(this.isEquipped(a.uid)?1:0)); }
   disaJob(){
     const j=this.gs.hideout&&this.gs.hideout.disa; if(!j||!j.id) return null;
     const now=Date.now(), R=this.eng.N(j.rollAt,0), RM=this.DISA_ROLL_MS();
@@ -8616,7 +8638,7 @@ void main(){
     const src=e.weapon[inst.id]||e.armor[inst.id]||e.artifact[inst.id]||(e.bag&&e.bag[inst.id])||{};
     return h('div',{key:inst.uid,'data-guide':'disa-row',onClick:()=>this.setState({disaSel:inst.uid}),
       style:{flexShrink:0,height:89,boxSizing:'border-box',padding:'10px 16px 0',cursor:'pointer',borderBottom:'1px solid '+T.line}},
-      h('div',{style:{height:20,display:'flex',alignItems:'center'}}, this.catChip(this.catKey(src.Category||(inst.kind==='artifact'?'Accessory':inst.kind==='bag'?'Bag':'')),false)),
+      h('div',{style:{height:20,display:'flex',alignItems:'center',gap:6}}, this.catChip(this.catKey(src.Category||(inst.kind==='artifact'?'Accessory':inst.kind==='bag'?'Bag':'')),this.isEquipped(inst.uid)), this.isEquipped(inst.uid)?this.eqTag():null),
       h('div',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',fontWeight:500,color:T.hi,marginTop:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.enhName(inst)),
       h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,marginTop:7,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.tx(src,'Description')||''));
   }
@@ -8666,7 +8688,9 @@ void main(){
         h('div',{key:'s'+i,style:{height:36,display:'flex',alignItems:'center',justifyContent:'space-between',borderTop:i?('1px solid '+B.LN):'none'}},
           h('span',{style:{fontFamily:T.sans,fontSize:13,color:B.MID}}, this.eng.anyName(s.id)),
           h('span',{style:{fontFamily:T.mono,fontSize:13,color:B.HI}}, s.chance!=null? (Math.round(s.chance*100)+'%') : (s.min+' - '+s.max))))),   // 확률 산출(강화 재료) = 'N%'
-      B.note(spec.length? this.t('hide_disa_confirm') : this.t('hide_disa_none'), spec.length?B.LO:'#CCA26E', !spec.length) ];
+      (spec.length&&this.isEquipped(inst.uid))
+        ? B.note(this.tOr('hide_disa_equipped',this.en()?'This is equipped. Disassembling will unequip it first.':'착용 중인 장비입니다. 분해하면 착용이 해제됩니다.'),'#CCA26E',false)   // UIString 행 없음 → 폴백
+        : B.note(spec.length? this.t('hide_disa_confirm') : this.t('hide_disa_none'), spec.length?B.LO:'#CCA26E', !spec.length) ];
     // 산출 목록이 비면(DisassembleOutputs 미기입) 분해를 막는다 — 원본만 사라지고 아무것도 안 나오는 사고 방지.
     const footer=[ B.btn(this.t('hide_disa_label'),spec.length?()=>this.startDisa(inst):null,!spec.length,'go'),
                    B.btn(this.en()?'Cancel':'취소',()=>this.setState({disaSel:null,disaConfirm:false}),false,'no') ];
@@ -8675,6 +8699,12 @@ void main(){
   startDisa(inst){
     if(this.disaJob()) return;
     const spec=this.eng.disassembleSpec(inst); if(!spec.length) return;
+    // 착용 중이면 먼저 해제 — 가방은 gearOff(배낭 내용물을 보관함으로 · 자리가 없으면 거기서 막히고 분해도 취소) ·
+    //   그 밖의 장비는 슬롯만 비운다(어차피 사라지니 보관함 자리가 필요 없다). 체력 상한은 다시 계산.
+    if(this.isEquipped(inst.uid)){
+      if(inst.kind==='bag'){ this.gearOff(inst); if(this.isEquipped(inst.uid)) return; }
+      else { const e=this.gs.equip; ['weapon','head','body','artifact1','artifact2'].forEach(k=>{ if(e[k]===inst.uid) e[k]=null; });
+        const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp); } }
     const drops=[]; this.eng.disassembleRoll(spec).forEach(d=>{ for(let k=0;k<d.qty;k++){ const x=this.eng.mkInstance(d.id,1); x.qty=1; drops.push(x); } });   // 카드는 낱장으로(×N 카드 없음 · 2026-10-16)
     // 원본은 즉시 사라진다 — 되돌릴 수 없는 지점이라 확인 시트가 앞에 있다.
     const rm=(arr)=>{ const i=arr.findIndex(x=>x.uid===inst.uid); if(i<0) return false; arr.splice(i,1); return true; };
