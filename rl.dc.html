@@ -462,7 +462,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 104;
+const TITLE_VER = 105;
 const TITLE_DATE = '1016';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -713,9 +713,9 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val89');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val49');
-      import('./hitfx.js?v=hfx2').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
+      const eng = await import('./engine.js?v=val90');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val50');
+      import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -5429,7 +5429,7 @@ void main(){
       const en=this.eng.enhEffects(inst);
       const dm=atkHidden?0:mod('sec_dmg_pct'), am=1+dm/100+(atkHidden?0:en.dmg);
       const atk=atkHidden?HID:(Number((r.minAtk??N(w.MinAtk_Low))*am).toFixed(2)+'–'+Number((r.maxAtk??N(w.MaxAtk_High))*am).toFixed(2));
-      const atkCol=atkHidden?'#7683F3':(dm||en.dmg)?MG:(()=>{ const d=(inst.apprDelta&&((inst.apprDelta.minAtk||0)+(inst.apprDelta.maxAtk||0)))||0; return d>0?'#83B289':d<0?'#C4675D':'#EAEBEE'; })();
+      const atkCol=atkHidden?'#7683F3':(dm||en.dmg)?MG:(()=>{ const d=(inst.apprDelta&&((inst.apprDelta.minAtk||0)+(inst.apprDelta.maxAtk||0)))||0;   /* 최소·최대 변화량의 합(순변화) — 예전엔 ±1 부호만 더해 하나 오르고 하나 내리면 흰색이었다(2026-10-16) */ return d>0?'#83B289':d<0?'#C4675D':'#EAEBEE'; })();
       out.push([this.t('stat_atk'), atk, atkCol],
         [this.t('stat_atk_speed'), opt(inst,'atkSpeed')?HID:Number((r.atkSpeed??N(w.AttackSpeed))*(1+en.asp)).toFixed(2), (en.asp&&!opt(inst,'atkSpeed'))?MG:col('atkSpeed')],
         [this.t('stat_accuracy'), opt(inst,'accuracy')?HID:Number((r.accuracy??N(w.Accuracy))+mod('sec_accuracy')+en.acc).toFixed(2)+'%', (modSum.sec_accuracy||en.acc)&&!opt(inst,'accuracy')?MG:col('accuracy')],
@@ -8220,7 +8220,7 @@ void main(){
               if(el._ebIdle&&on()&&el._ebWake) el._ebWake(); } },
               style:{position:'absolute',left:-64,top:-64,pointerEvents:'none',zIndex:3}}) : null,
             h('div',{ref:el=>{ this._enCardEl=el; },style:{position:'relative',transformStyle:'preserve-3d',transform:'rotateY('+fx.rot+'deg)',transition:fx.anim?('transform '+fx.anim+'s cubic-bezier(.2,.8,.2,1)'):'none'}},
-              h('div',{key:'fr',style:{backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',visibility:(fx.phase==='flip'||fx.phase==='scan'||fx.phase==='ready')?'hidden':'visible',transition:'visibility 0s linear '+(fx.phase==='flip'?'.45s':(fx.phase==='reveal'?'.175s':'0s'))}}, card(shown)),   // ★타이틀 글자는 mask-image 스팬이라 iOS에서 backface-visibility를 무시하고 뒷면 위에 거울상으로 비친다 → 뒷면이 보이는 동안(flip 중반~ready) 앞면을 visibility로 끈다(다른 뒤집기 화면과 같은 방식)
+              h('div',{key:'fr',style:{backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',visibility:(fx.phase==='flip'||fx.phase==='scan'||fx.phase==='ready')?'hidden':'visible',transition:'visibility 0s linear '+(fx.phase==='flip'?'.11s':(fx.phase==='reveal'?'.175s':'0s'))}}, card(shown)),   // ★뒤집기(0.9s, 감속 곡선)는 0.12초에 이미 90°를 넘는다 → .11s에 끈다(예전 .45s는 그 사이 이름이 비쳤다 · 2026-10-16) · ★타이틀 글자는 mask-image 스팬이라 iOS에서 backface-visibility를 무시하고 뒷면 위에 거울상으로 비친다 → 뒷면이 보이는 동안(flip 중반~ready) 앞면을 visibility로 끈다(다른 뒤집기 화면과 같은 방식)
               back)),
           fx.phase==='ready'? h('div',{key:'hint',style:{position:'absolute',left:0,right:0,bottom:4,textAlign:'center',fontFamily:T.sans,fontSize:12,color:'#A9ABAF',pointerEvents:'none'}}, this.en()?'Swipe or tap to flip':'옆으로 밀거나 눌러서 뒤집기') : null);
     // 하단 버튼 한 자리 — 상자 배경 없이 흰 테두리 둥근 버튼만(2026-10-15).

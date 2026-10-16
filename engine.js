@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val42';
-import { buildIndex } from './sheet-loader.js?v=val49';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
+import { DATA as FALLBACK } from './data/game-data.js?v=val43';
+import { buildIndex } from './sheet-loader.js?v=val50';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
 
@@ -618,7 +618,7 @@ export function appraise(inst, proofPct){
     else after = Math.max(0, after);
     inst.rolls[key] = after;
     inst.apprDelta = inst.apprDelta || {};
-    inst.apprDelta[key] = after > before ? 1 : (after < before ? -1 : 0);
+    inst.apprDelta[key] = after - before;   // 부호 = 색(증가 초록·감소 빨강) · 크기 = 공격력처럼 두 값을 합쳐 칠할 때 순변화로 판정(옛 세이브의 ±1도 그대로 읽힌다)
     changes.push({ key, from: before, to: after });
   }
   // 감정된 최대 내구도는 rolls뿐 아니라 인스턴스 본체에도 반영해야 한다 —
