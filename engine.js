@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val41';
-import { buildIndex } from './sheet-loader.js?v=val48';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
+import { DATA as FALLBACK } from './data/game-data.js?v=val42';
+import { buildIndex } from './sheet-loader.js?v=val49';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
 
@@ -1615,12 +1615,18 @@ export function disassembleSpec(inst){
   if (!src) return [];
   const arr = jsonList(src.DisassembleOutputs);
   if (!arr) return [];
-  return arr.map(x => {
+  const out = arr.map(x => {
     const lo = Math.max(0, N(x.min, 0)), hi = Math.max(lo, N(x.max, lo));
     return { id: x.id || x.ItemID, min: lo, max: hi };
   }).filter(x => x.id && x.max > 0);
+  // ★무기·방어구 분해 = 그 장비의 일반 강화 재료(enh_w1_<속성>·enh_a1_<재질>) 1개가 확률로 덤(2026-10-16 사용자).
+  //   시트 행이 아니라 여기서 붙인다 — 재질·속성이 바뀌어도 자동으로 따라가고, chance 필드를 모르는 옛 코드가 100%로 주는 사고가 없다.
+  //   확률 = Config disa_enh_chance(0~1 · 기본 0.1) · 산출 목록이 원래 비어 있으면(분해 불가 장비) 붙이지 않는다.
+  const em = out.length ? enhMatIds(inst) : null, ch = clamp(N(C.disa_enh_chance, 0.1), 0, 1);
+  if (em && ch > 0 && byId.item && byId.item[em.norm]) out.push({ id: em.norm, min: 1, max: 1, chance: ch });
+  return out;
 }
-export function disassembleRoll(spec){ return (spec || []).map(s => ({ id: s.id, qty: randInt(N(s.min,1), N(s.max,1)) })).filter(d => d.qty > 0); }
+export function disassembleRoll(spec){ return (spec || []).filter(s => s.chance == null || Math.random() < s.chance).map(s => ({ id: s.id, qty: randInt(N(s.min,1), N(s.max,1)) })).filter(d => d.qty > 0); }
 
 // ===== 아지트 · 정비대 =====
 // 수리 성공률(점당) = Facility 탭 repair_rate. Lv1이 기준선이고 위 레벨은 그 차이를 보너스로 보여준다.
@@ -1746,9 +1752,10 @@ export function questTier(q){
 export function questPerVendor(){ return Math.max(1, N(C.quest_daily_per_vendor, 3)); }
 // 오늘의 편성 — 고난도는 **전역 덱에서 하루 1장**이고, 그 퀘스트의 GiverVendorID가 곧 오늘의 상인이다.
 // 일반은 상인별 덱에서 perDay장. 고난도가 붙은 상인은 마지막 한 칸을 고난도에 내준다(하루 노출 수는 그대로).
-export function questDaily(period){
+// avail(q) = 호출부가 넘기는 '지금 달성 가능한가' 판정. 편성은 거른 풀에서만 뽑는다 — 아직 못 가는 존·못 구하는 물건을 요구하는 퀘스트가 열리지 않게.
+export function questDaily(period, avail){
   const p = period == null ? questPeriod() : period;
-  const rows = (DATA.quests || []).filter(q => String(q.Type || '') === 'daily');
+  const rows = (DATA.quests || []).filter(q => String(q.Type || '') === 'daily' && (!avail || avail(q)));
   const per = questPerVendor();
   const hard = qBag(rows.filter(q => questTier(q) === 'hard'), 'hard', p, 1)[0] || null;
   const hv = hard ? String(hard.GiverVendorID || '') : '';
@@ -1765,8 +1772,8 @@ export function questDaily(period){
   if (hv && !byVendor[hv]) byVendor[hv] = [hard];
   return { period: p, hard, byVendor };
 }
-export function questTodayIds(period){
-  const d = questDaily(period), s = new Set();
+export function questTodayIds(period, avail){
+  const d = questDaily(period, avail), s = new Set();
   for (const vid in d.byVendor) for (const q of d.byVendor[vid]) if (q) s.add(q.QuestID);
   return s;
 }
