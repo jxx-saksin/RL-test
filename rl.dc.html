@@ -165,6 +165,7 @@
     50%{box-shadow:inset 0 0 0 1px rgba(229,100,91,.62),inset 0 0 13px 2px rgba(229,100,91,.34),0 0 13px 3px rgba(229,100,91,.28)}
   }
   /* 타이틀 아트 — 아주 느린 확대(켄번즈). 기준점을 바닥으로 잡아야 프레임 아래에 틈이 안 생긴다. */
+  @keyframes rlBossMaxF{0%,100%{filter:drop-shadow(0 0 3px rgba(229,100,91,.25))}50%{filter:drop-shadow(0 0 8px rgba(229,100,91,.6))}}   /* 깎인 판용 MAX 숨쉬기(10-18) */
   @keyframes rlTitleZoom{from{transform:scale(1)}to{transform:scale(1.08)}}
   /* 태그 단말 LED — 대기=붉게 숨쉬기 / 인증=초록 빠른 점멸 */
   @keyframes rlLedBreath{0%,100%{opacity:.45}50%{opacity:1}}
@@ -212,6 +213,61 @@
   @keyframes rlGJit{0%{transform:none;opacity:1}2%{transform:translateX(-3px)}2.6%{transform:translateX(2px)}3.2%{transform:none}58%{transform:none;opacity:1}58.6%{transform:translateX(4px);opacity:.55}59.2%{transform:translateX(-2px)}59.8%{transform:none;opacity:1}}
   @keyframes rlGSlA{0%{clip-path:inset(0 0 100% 0);transform:none}20%{clip-path:inset(15% 0 55% 0);transform:translateX(-6px)}21%{clip-path:inset(60% 0 10% 0);transform:translateX(4px)}22%{clip-path:inset(0 0 100% 0);transform:none}70%{clip-path:inset(35% 0 40% 0);transform:translateX(7px)}71.5%{clip-path:inset(0 0 100% 0);transform:none}}
   @keyframes rlGSlB{0%{clip-path:inset(0 0 100% 0);transform:none}35%{clip-path:inset(50% 0 20% 0);transform:translateX(5px)}36%{clip-path:inset(10% 0 70% 0);transform:translateX(-7px)}37.2%{clip-path:inset(0 0 100% 0);transform:none}85%{clip-path:inset(65% 0 5% 0);transform:translateX(-4px)}86.2%{clip-path:inset(0 0 100% 0);transform:none}}
+  /* ===== UI 시안 스킨 — 버튼(2026-10-17 · 미리보기용) =====
+     48px 버튼 + 튜토리얼 팝업 버튼(47px · r23.5) 전부를 '모서리 깎인 판'으로 덮는다(버튼이 65곳에 흩어져 있어 한 곳에서 덮음). 되돌리려면 이 블록만 지운다.
+     테두리 = 바깥 판(선 색) + ::before 1px 안쪽 판(바탕색) 두 겹 — inset 그림자는 깎인 사선에서 선이 끊긴다. */
+  :is(button[style*="height: 48px"],button[style*="border-radius: 23.5px"]){position:relative;isolation:isolate;border-radius:0 !important;border:none !important;background:linear-gradient(180deg,#62646A,#33353A) !important;   /* 선도 위가 밝고 아래가 어둡게 — 빛이 위에서 · 버튼 표현 시안 D(금속판) 확정(10-18) */
+    clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+  :is(button[style*="height: 48px"],button[style*="border-radius: 23.5px"])::before{content:"";position:absolute;inset:.5px;z-index:-1;background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px),linear-gradient(180deg,#2C2D33,#1C1D21);   /* 선 0.5px(10-17) · 바탕 = 금속판(가는 가로 결 + 세로 그라데이션 · 시안 D 10-18) */
+    clip-path:polygon(9.7px 0,100% 0,100% calc(100% - 9.7px),calc(100% - 9.7px) 100%,0 100%,0 9.7px)}
+  :is(button[style*="height: 48px"],button[style*="border-radius: 23.5px"]):disabled{background:#1b1c20 !important}
+  :is(button[style*="height: 48px"],button[style*="border-radius: 23.5px"]):disabled::before{display:none}
+  button[data-skin="raid"]:not(:disabled){color:#fff !important;background:repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 5px,transparent 5px 11px),linear-gradient(160deg,#d8796e,#a2463e) !important}
+  button[data-skin="pri"]:not(:disabled){color:#15120C !important;background:repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 5px,transparent 5px 11px),linear-gradient(160deg,#B8914F,#8C6A34) !important}   /* 무거운 금(10-17 '너무 밝아') */
+  button[data-skin]:not(:disabled)::before{display:none}
+  /* ===== UI 시안 스킨 — 하단 박스(2026-10-17 · 미리보기용) =====
+     버튼 뒤 둥근 박스(#18191D · r24 — ST.botBox/botRow·하단 시트·대화 패널 등 40여 곳)를 버튼과 같은 '깎인 판'(14px)으로 덮는다.
+     테두리 있는 박스는 바깥 판(선 색) + ::before 안쪽 판 두 겹으로 — 깎인 사선에도 선이 이어진다. 되돌리려면 이 블록만 지운다. */
+  :is(div[style*="border-radius: 24px"][style*="background: rgb(24, 25, 29)"],div[style*="border-radius: 24px"][style*="background: oklch(0.215 0.007 264)"]){
+    border-radius:0 !important;clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
+  :is(div[style*="border-radius: 24px"][style*="background: rgb(24, 25, 29)"],div[style*="border-radius: 24px"][style*="background: oklch(0.215 0.007 264)"]){   /* 박스 = 시안 C(윗면 광택) · 테두리 유무 상관없이 두 겹(10-18) */
+    isolation:isolate;border:none !important;box-shadow:none !important;background:linear-gradient(180deg,#45474C,#26282C) !important}
+  :is(div[style*="border-radius: 24px"][style*="background: rgb(24, 25, 29)"],div[style*="border-radius: 24px"][style*="background: oklch(0.215 0.007 264)"]):not([style*="position:"]){position:relative}
+  :is(div[style*="border-radius: 24px"][style*="background: rgb(24, 25, 29)"],div[style*="border-radius: 24px"][style*="background: oklch(0.215 0.007 264)"])::before{
+    content:"";position:absolute;inset:1px;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.035) 0,rgba(255,255,255,.015) 24%,rgba(255,255,255,0) 25%),linear-gradient(180deg,#1A1B1F,#141518);clip-path:polygon(13.4px 0,100% 0,100% calc(100% - 13.4px),calc(100% - 13.4px) 100%,0 100%,0 13.4px)}
+  /* ===== UI 시안 스킨 — 안내 박스·진행 바(2026-10-17 · 미리보기용) =====
+     안내 박스(#1A1B21 · r16/r8 — 시트·팝업의 '!' 안내 15곳)= 버튼과 같은 10px 깎인 판.
+     진행 바(높이 4~6 · overflow hidden 트랙)= 양 끝 사선(평행사변형) · 채워진 부분엔 은은한 빗금(::after라 바 색은 그대로). 되돌리려면 이 블록만 지운다. */
+  div[style*="background: rgb(26, 27, 33)"]:is([style*="border-radius: 16px"],[style*="border-radius: 8px"]){   /* 시트 바탕과 색이 거의 같아 깎인 모서리가 안 보였다 → 0.5px 선을 둘러 판 모양이 읽히게(10-18) */
+    isolation:isolate;border-radius:0 !important;background:#35373D !important;clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+  div[style*="background: rgb(26, 27, 33)"]:is([style*="border-radius: 16px"],[style*="border-radius: 8px"]):not([style*="position:"]){position:relative}
+  div[style*="background: rgb(26, 27, 33)"]:is([style*="border-radius: 16px"],[style*="border-radius: 8px"])::before{content:"";position:absolute;inset:.5px;z-index:-1;pointer-events:none;background:#1A1B21;
+    clip-path:polygon(9.7px 0,100% 0,100% calc(100% - 9.7px),calc(100% - 9.7px) 100%,0 100%,0 9.7px)}
+  div[style*="overflow: hidden"]:is([style*="height: 4px"],[style*="height: 5px"],[style*="height: 6px"]){
+    border-radius:0 !important;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+  div[style*="overflow: hidden"]:is([style*="height: 4px"],[style*="height: 5px"],[style*="height: 6px"])>div{position:relative;border-radius:0 !important}
+  div[style*="overflow: hidden"]:is([style*="height: 4px"],[style*="height: 5px"],[style*="height: 6px"])>div::after{
+    content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(135deg,rgba(0,0,0,.2) 0 2px,transparent 2px 6px)}
+  /* ===== UI 시안 스킨 — 버튼 2개 한 줄(2026-10-18) =====
+     나란히 놓인 버튼 2개(flex:1)를 '이어진 한 판'으로 — 가운데만 사선(/)으로 나눈다. 두 번째 버튼이 사선 폭(12px)만큼 겹쳐 틈 0 · 선은 두 판의 0.5px가 겹쳐 1줄. */
+  div:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]):not(:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"])){gap:0 !important}
+  div:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]):not(:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"])) > button[style*="height: 48px"][style*="flex: 1"]:first-child{clip-path:polygon(10px 0,100% 0,calc(100% - 12px) 100%,0 100%,0 10px)}
+  div:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]):not(:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"])) > button[style*="height: 48px"][style*="flex: 1"]:first-child::before{clip-path:polygon(9.7px 0,100% 0,calc(100% - 12px) 100%,0 100%,0 9.7px)}
+  div:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]):not(:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"])) > button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]{margin-left:-12px;clip-path:polygon(12px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%)}
+  div:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]):not(:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"])) > button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]::before{clip-path:polygon(12px 0,100% 0,100% calc(100% - 9.7px),calc(100% - 9.7px) 100%,0 100%)}
+  /* 버튼 3개 한 줄도 이어진 한 판 — 가운데 버튼은 양쪽 모두 사선(10-18) */
+  div:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]):not(:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"])){gap:0 !important}
+  div:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]):not(:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"])) > button[style*="height: 48px"][style*="flex: 1"]:first-child{clip-path:polygon(10px 0,100% 0,calc(100% - 12px) 100%,0 100%,0 10px)}
+  div:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]):not(:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"])) > button[style*="height: 48px"][style*="flex: 1"]:first-child::before{clip-path:polygon(9.7px 0,100% 0,calc(100% - 12px) 100%,0 100%,0 9.7px)}
+  div:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]):not(:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"])) > button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]{margin-left:-12px;clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+  div:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]):not(:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"])) > button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]::before{clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+  div:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]):not(:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"])) > button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]{clip-path:polygon(12px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%)}
+  div:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]):not(:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"])) > button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]::before{clip-path:polygon(12px 0,100% 0,100% calc(100% - 9.7px),calc(100% - 9.7px) 100%,0 100%)}
+  /* 전투 카드 HP 바(r99 · overflow 없음)도 양 끝 사선 + 채움 빗금 / '교전중' 박스(r32)도 깎인 판(10-18) */
+  div[style*="height: 6px"][style*="border-radius: 99px"]{border-radius:0 !important;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+  div[style*="height: 6px"][style*="border-radius: 99px"]>div{border-radius:0 !important}
+  div[style*="height: 6px"][style*="border-radius: 99px"]>div:last-child::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(135deg,rgba(0,0,0,.2) 0 2px,transparent 2px 6px)}
+  div[style*="border-radius: 32px"][style*="background: rgb(24, 25, 29)"]{border-radius:0 !important;clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
 </style>
 </helmet>
 <template id="__bundler_thumbnail">
@@ -268,6 +324,18 @@ const glProgram=(gl,vert,frag,attr0)=>{ const sh=(t,src)=>{ const o=gl.createSha
 // 스탯 증감 색 — 아이템 카드와 같은 관례. 전투 화면의 버프 표시(공속·받는 피해)도 이걸 쓴다.
 // (2026-08-31 이전엔 공속 증가만 파랑 #7CA5BB였다 — 소모품 버프가 붙으면서 카드 쪽으로 통일했다.)
 const BUF = '#83B289', DBF = '#C4675D';
+// ===== UI 시안 — 목록 태그 = 모서리 깎인 판(2026-10-17 · 미리보기용) =====
+// 바깥 판 = 테두리색, 1px 안쪽 판 = 바탕색 → 깎인 모서리까지 선이 따라간다. 버튼(10px)의 절반인 5px 깎임.
+const CUT5='polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px)', CUT4='polygon(3.5px 0,100% 0,100% calc(100% - 3.5px),calc(100% - 3.5px) 100%,0 100%,0 3.5px)';   // 높이 16 판(10-17 '태그가 너무 커' → 20에서 축소)
+const plate=(o,...kids)=>h('span',{key:o.key,style:{display:'inline-flex',flex:'0 0 auto',height:o.h||16,boxSizing:'border-box',padding:1,background:o.bd||'#34373d',clipPath:CUT5}},
+  h('span',{style:{display:'inline-flex',alignItems:'center',gap:4,height:'100%',boxSizing:'border-box',padding:o.pad||'0 5px',background:o.bg||'#1d1f24',clipPath:CUT4,
+    color:o.fg||'#C2C5CB',fontFamily:"'IBM Plex Sans KR',system-ui,sans-serif",fontSize:9.5,fontWeight:o.w||500,lineHeight:1,whiteSpace:'nowrap'}}, ...kids));
+// 분류 계열색 — 왼쪽 띠에만 쓴다(이름은 모두 같은 중립 회색). 키 = Category 원문·한글 라벨 둘 다.
+const CAT_FAM=(()=>{ const F={gear:'#95A2B0',trinket:'#C9A46E',cons:'#86B08C',val:'#D9A55C',mat:'#8E9196',data:'#86B4C6',disk:'#A792D6',key:'#C97066',quest:'#C8C1AE'}, m={};
+  [['gear','Weapon Head Body Bag 무기 투구 갑옷 가방'],['trinket','Accessory Talisman 장신구 징표'],['cons','Medicine Food Liquor 약품 음식 술'],['val','Valuable 귀중품'],
+   ['mat','Junk Material Enhance Module 정크 재료 강화 모듈'],['data','USB Data DataTech 데이터'],['disk','Blueprint 디스크'],['key','Key 키 키카드'],['quest','Quest 퀘스트']]
+   .forEach(([f,ks])=>ks.split(' ').forEach(k=>m[k]=F[f])); return m; })();
+const PRISM='linear-gradient(100deg,#e7d3a8,#a9d6e0 35%,#c9b5ea 65%,#e9c3a4)';
 const ATTR = { bleed:{kr:'출혈',c:T.bleed}, stun:{kr:'기절',c:T.stun}, pierce:{kr:'관통',c:T.pierce}, rupture:{kr:'파열',c:T.rupture}, sever:{kr:'절단',c:T.mid} };
 // safe lookup — items/monsters may carry an Attribute like "none" or a value absent from the map
 const AT = (x)=> (x && ATTR[x]) ? ATTR[x] : null;
@@ -422,7 +490,8 @@ const PRELOAD = [
   ['assets/art/cities/city_01.webp',
    'assets/art/shop/shop_clinic.webp','assets/art/shop/shop_canteen.webp','assets/art/shop/shop_hardware.webp',
    'assets/art/shop/shop_pawnshop.webp','assets/art/shop/shop_tavern.webp','assets/art/shop/shop_blackmarket.webp',
-   'assets/art/shop/shop_auction.webp','assets/art/shop/hide_locked.webp','assets/art/shop/hide_open.webp'],
+   'assets/art/shop/shop_auction.webp','assets/art/shop/hide_locked.webp','assets/art/shop/hide_open.webp',
+   'assets/art/ui/nav/nav_safehouse.webp','assets/art/ui/nav/nav_inventory.webp','assets/art/ui/nav/nav_zone.webp','assets/art/ui/nav/nav_character.webp','assets/art/ui/nav/nav_settings.webp','assets/art/ui/icons/battle_start.webp?v=3','assets/title/btn_sijak.webp'],
   // 2순위 — 레이드 존 목록 · 카드 뒷면
   [zoneArt('city_01_mall'),zoneArt('city_01_houses'),'assets/art/zones/city_01_tower.webp',
    'assets/art/zones/city_01_police.webp','assets/art/zones/city_01_greenhouse.webp','assets/art/zones/city_01_depot.webp',
@@ -485,8 +554,8 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 107;
-const TITLE_DATE = '1016';
+const TITLE_VER = 108;
+const TITLE_DATE = '1018';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -698,8 +767,6 @@ const TIP_FALLBACK = [
   ['수리는 완벽 확률이 있어, 실패하면 최대 내구도가 영구히 줄어든다.','Repairs can fail — each failed point permanently lowers max durability.'],
   ['무기 소켓에 모듈을 끼우면 능력치를 강화할 수 있다.','Slot modules into weapon sockets to boost your stats.'],
 ];
-const NAV_ICONS = {"safehouse":{"d":"M11.415 0 L13.168 0 C13.917 0 14.541 0 15.037 0.067 C15.56 0.137 16.033 0.292 16.412 0.671 C16.792 1.051 16.946 1.523 17.017 2.046 C17.083 2.542 17.083 3.166 17.083 3.915 L17.083 16.667 L17.292 16.667 C17.637 16.667 17.917 16.946 17.917 17.292 C17.917 17.637 17.637 17.917 17.292 17.917 L0.625 17.917 C0.28 17.917 0 17.637 0 17.292 C0 16.946 0.28 16.667 0.625 16.667 L0.833 16.667 L0.833 6.415 C0.833 5.666 0.833 5.042 0.9 4.546 C0.97 4.023 1.125 3.551 1.505 3.171 C1.884 2.792 2.356 2.637 2.88 2.567 C3.375 2.5 4 2.5 4.748 2.5 L7.523 2.5 C7.566 1.772 7.7 1.142 8.171 0.671 C8.551 0.292 9.023 0.137 9.546 0.067 C10.042 0 10.666 0 11.415 0 Z M8.131 3.75 C8.13 3.75 8.129 3.75 8.127 3.75 C8.127 3.75 8.126 3.75 8.125 3.75 L4.792 3.75 C3.988 3.75 3.449 3.751 3.046 3.805 C2.662 3.857 2.497 3.947 2.388 4.055 C2.28 4.164 2.19 4.328 2.139 4.713 C2.085 5.115 2.083 5.655 2.083 6.458 L2.083 16.667 L5.833 16.667 L5.833 14.792 C5.833 14.446 6.113 14.167 6.458 14.167 C6.804 14.167 7.083 14.446 7.083 14.792 L7.083 16.667 L10.833 16.667 L10.833 6.458 C10.833 5.655 10.832 5.115 10.778 4.713 C10.726 4.328 10.637 4.164 10.528 4.055 C10.42 3.947 10.255 3.857 9.871 3.805 C9.469 3.751 8.931 3.75 8.131 3.75 Z M12.083 16.667 L12.083 6.415 C12.083 5.666 12.083 5.042 12.017 4.546 C11.946 4.023 11.792 3.551 11.412 3.171 C11.033 2.792 10.56 2.637 10.037 2.567 C9.683 2.519 9.262 2.505 8.778 2.502 C8.82 1.918 8.911 1.699 9.055 1.555 C9.164 1.447 9.328 1.357 9.713 1.305 C10.115 1.251 10.655 1.25 11.458 1.25 L13.125 1.25 C13.928 1.25 14.468 1.251 14.871 1.305 C15.255 1.357 15.42 1.447 15.528 1.555 C15.637 1.664 15.726 1.828 15.778 2.213 C15.832 2.615 15.833 3.155 15.833 3.958 L15.833 16.667 L12.083 16.667 Z M3.333 5.625 C3.333 5.28 3.613 5 3.958 5 L8.958 5 C9.304 5 9.583 5.28 9.583 5.625 C9.583 5.97 9.304 6.25 8.958 6.25 L3.958 6.25 C3.613 6.25 3.333 5.97 3.333 5.625 Z M3.333 8.125 C3.333 7.78 3.613 7.5 3.958 7.5 L8.958 7.5 C9.304 7.5 9.583 7.78 9.583 8.125 C9.583 8.47 9.304 8.75 8.958 8.75 L3.958 8.75 C3.613 8.75 3.333 8.47 3.333 8.125 Z M3.333 10.625 C3.333 10.28 3.613 10 3.958 10 L8.958 10 C9.304 10 9.583 10.28 9.583 10.625 C9.583 10.97 9.304 11.25 8.958 11.25 L3.958 11.25 C3.613 11.25 3.333 10.97 3.333 10.625 Z","ox":0.83,"oy":0.83},"inventory":{"d":"M6.458 9.167 C6.113 9.167 5.833 9.446 5.833 9.792 C5.833 10.137 6.113 10.417 6.458 10.417 L9.792 10.417 C10.137 10.417 10.417 10.137 10.417 9.792 C10.417 9.446 10.137 9.167 9.792 9.167 L6.458 9.167 Z M4.225 2.521 C4.507 1.084 5.772 0 7.292 0 L8.959 0 C10.478 0 11.743 1.084 12.025 2.521 C14.479 3.151 16.215 5.349 16.25 7.892 C16.25 7.93 16.25 7.973 16.25 8.045 L16.25 10.611 C16.25 10.62 16.25 10.629 16.25 10.639 L16.25 12.604 C16.25 14.662 14.821 16.444 12.812 16.89 C9.725 17.576 6.525 17.576 3.438 16.89 C1.429 16.444 0 14.662 0 12.604 L0 10.639 C0 10.629 0 10.62 0 10.611 L0 8.045 C0 7.973 0 7.93 0.001 7.892 C0.036 5.349 1.771 3.151 4.225 2.521 Z M5.637 2.242 C5.953 1.652 6.576 1.25 7.292 1.25 L8.959 1.25 C9.674 1.25 10.297 1.652 10.613 2.242 C8.964 1.99 7.286 1.99 5.637 2.242 Z M15 8.051 L15 10.214 C10.601 12.051 5.649 12.051 1.25 10.214 L1.25 8.051 C1.25 7.971 1.25 7.938 1.251 7.909 C1.278 5.903 2.666 4.174 4.617 3.712 C4.646 3.705 4.678 3.698 4.756 3.681 C4.826 3.665 4.859 3.658 4.892 3.65 C7.023 3.187 9.228 3.187 11.358 3.65 C11.391 3.658 11.424 3.665 11.494 3.681 C11.572 3.698 11.605 3.705 11.633 3.712 C13.585 4.174 14.972 5.903 15 7.909 C15 7.938 15 7.971 15 8.051 Z M1.25 12.604 L1.25 11.561 C4.72 12.901 8.486 13.189 12.083 12.427 L12.083 13.125 C12.083 13.47 12.363 13.75 12.708 13.75 C13.054 13.75 13.333 13.47 13.333 13.125 L13.333 12.118 C13.895 11.958 14.451 11.773 15 11.561 L15 12.604 C15 14.076 13.978 15.351 12.541 15.67 C9.633 16.316 6.618 16.316 3.71 15.67 C2.273 15.351 1.25 14.076 1.25 12.604 Z","ox":1.67,"oy":0.83},"zone":{"d":"M8.958 0 C9.304 0 9.583 0.28 9.583 0.625 L9.583 1.693 C13.112 1.993 15.924 4.805 16.224 8.333 L17.292 8.333 C17.637 8.333 17.917 8.613 17.917 8.958 C17.917 9.304 17.637 9.583 17.292 9.583 L16.224 9.583 C15.924 13.112 13.112 15.924 9.583 16.224 L9.583 17.292 C9.583 17.637 9.304 17.917 8.958 17.917 C8.613 17.917 8.333 17.637 8.333 17.292 L8.333 16.224 C4.805 15.924 1.993 13.112 1.693 9.583 L0.625 9.583 C0.28 9.583 0 9.304 0 8.958 C0 8.613 0.28 8.333 0.625 8.333 L1.693 8.333 C1.993 4.805 4.805 1.993 8.333 1.693 L8.333 0.625 C8.333 0.28 8.613 0 8.958 0 Z M8.958 2.917 C5.622 2.917 2.917 5.622 2.917 8.958 C2.917 12.295 5.622 15 8.958 15 C12.295 15 15 12.295 15 8.958 C15 5.622 12.295 2.917 8.958 2.917 Z M8.958 7.083 C7.923 7.083 7.083 7.923 7.083 8.958 C7.083 9.994 7.923 10.833 8.958 10.833 C9.994 10.833 10.833 9.994 10.833 8.958 C10.833 7.923 9.994 7.083 8.958 7.083 Z M5.833 8.958 C5.833 7.232 7.232 5.833 8.958 5.833 C10.684 5.833 12.083 7.232 12.083 8.958 C12.083 10.684 10.684 12.083 8.958 12.083 C7.232 12.083 5.833 10.684 5.833 8.958 Z","ox":0.83,"oy":0.83},"character":{"d":"M6.458 2.5 C5.193 2.5 4.167 3.526 4.167 4.792 C4.167 6.057 5.193 7.083 6.458 7.083 C7.724 7.083 8.75 6.057 8.75 4.792 C8.75 3.526 7.724 2.5 6.458 2.5 Z M5.417 4.792 C5.417 4.216 5.883 3.75 6.458 3.75 C7.034 3.75 7.5 4.216 7.5 4.792 C7.5 5.367 7.034 5.833 6.458 5.833 C5.883 5.833 5.417 5.367 5.417 4.792 Z M6.458 7.5 C5.462 7.5 4.529 7.701 3.822 8.054 C3.152 8.389 2.5 8.967 2.5 9.792 L2.5 9.844 C2.499 10.269 2.496 10.985 3.175 11.476 C3.49 11.704 3.906 11.85 4.421 11.942 C4.94 12.036 5.606 12.083 6.458 12.083 C7.311 12.083 7.976 12.036 8.496 11.942 C9.011 11.85 9.427 11.704 9.741 11.476 C10.42 10.985 10.418 10.269 10.417 9.844 L10.417 9.792 C10.417 8.967 9.765 8.389 9.095 8.054 C8.388 7.701 7.455 7.5 6.458 7.5 Z M3.75 9.792 C3.75 9.696 3.844 9.441 4.381 9.172 C4.88 8.922 5.614 8.75 6.458 8.75 C7.303 8.75 8.036 8.922 8.536 9.172 C9.073 9.441 9.167 9.696 9.167 9.792 C9.167 10.295 9.135 10.373 9.009 10.464 C8.907 10.538 8.697 10.636 8.275 10.712 C7.857 10.787 7.273 10.833 6.458 10.833 C5.644 10.833 5.06 10.787 4.642 10.712 C4.219 10.636 4.01 10.538 3.908 10.464 C3.782 10.373 3.75 10.295 3.75 9.792 Z M14.792 7.917 C15.137 7.917 15.417 7.637 15.417 7.292 C15.417 6.946 15.137 6.667 14.792 6.667 L11.458 6.667 C11.113 6.667 10.833 6.946 10.833 7.292 C10.833 7.637 11.113 7.917 11.458 7.917 L14.792 7.917 Z M15.417 4.792 C15.417 5.137 15.137 5.417 14.792 5.417 L10.625 5.417 C10.28 5.417 10 5.137 10 4.792 C10 4.446 10.28 4.167 10.625 4.167 L14.792 4.167 C15.137 4.167 15.417 4.446 15.417 4.792 Z M14.792 10.417 C15.137 10.417 15.417 10.137 15.417 9.792 C15.417 9.446 15.137 9.167 14.792 9.167 L12.292 9.167 C11.946 9.167 11.667 9.446 11.667 9.792 C11.667 10.137 11.946 10.417 12.292 10.417 L14.792 10.417 Z M7.245 0 L10.672 0 C12.203 0 13.417 0 14.366 0.128 C15.343 0.259 16.134 0.536 16.757 1.159 C17.381 1.783 17.658 2.574 17.789 3.551 C17.917 4.5 17.917 5.713 17.917 7.245 L17.917 7.339 C17.917 8.87 17.917 10.083 17.789 11.033 C17.658 12.01 17.381 12.8 16.757 13.424 C16.134 14.048 15.343 14.324 14.366 14.456 C13.417 14.583 12.203 14.583 10.672 14.583 L7.245 14.583 C5.713 14.583 4.5 14.583 3.551 14.456 C2.574 14.324 1.783 14.048 1.159 13.424 C0.536 12.8 0.259 12.01 0.128 11.033 C0 10.083 0 8.87 0 7.339 L0 7.245 C0 5.713 0 4.5 0.128 3.551 C0.259 2.574 0.536 1.783 1.159 1.159 C1.783 0.536 2.574 0.259 3.551 0.128 C4.5 0 5.713 0 7.245 0 Z M3.717 1.366 C2.879 1.479 2.396 1.691 2.043 2.043 C1.691 2.396 1.479 2.879 1.366 3.717 C1.251 4.574 1.25 5.703 1.25 7.292 C1.25 8.881 1.251 10.01 1.366 10.866 C1.479 11.704 1.691 12.187 2.043 12.54 C2.396 12.893 2.879 13.104 3.717 13.217 C4.574 13.332 5.703 13.333 7.292 13.333 L10.625 13.333 C12.214 13.333 13.343 13.332 14.199 13.217 C15.038 13.104 15.521 12.893 15.873 12.54 C16.226 12.187 16.437 11.704 16.55 10.866 C16.665 10.01 16.667 8.881 16.667 7.292 C16.667 5.703 16.665 4.574 16.55 3.717 C16.437 2.879 16.226 2.396 15.873 2.043 C15.521 1.691 15.038 1.479 14.199 1.366 C13.343 1.251 12.214 1.25 10.625 1.25 L7.292 1.25 C5.703 1.25 4.574 1.251 3.717 1.366 Z","ox":0.83,"oy":2.5},"settings":{"d":"M8.125 5.833 C6.399 5.833 5 7.232 5 8.958 C5 10.684 6.399 12.083 8.125 12.083 C9.851 12.083 11.25 10.684 11.25 8.958 C11.25 7.232 9.851 5.833 8.125 5.833 Z M6.25 8.958 C6.25 7.923 7.089 7.083 8.125 7.083 C9.161 7.083 10 7.923 10 8.958 C10 9.994 9.161 10.833 8.125 10.833 C7.089 10.833 6.25 9.994 6.25 8.958 Z M8.125 0 C7.538 0 7.002 0.161 6.415 0.434 C5.848 0.697 5.192 1.086 4.37 1.572 L3.743 1.944 C2.921 2.431 2.265 2.819 1.759 3.191 C1.236 3.576 0.835 3.969 0.544 4.485 C0.255 5 0.124 5.551 0.061 6.204 C0 6.838 0 7.614 0 8.588 L0 9.328 C0 10.303 0 11.079 0.061 11.712 C0.124 12.366 0.255 12.917 0.544 13.432 C0.835 13.947 1.236 14.341 1.759 14.725 C2.265 15.097 2.921 15.486 3.743 15.973 L4.37 16.344 C5.192 16.831 5.848 17.22 6.415 17.483 C7.002 17.755 7.538 17.917 8.125 17.917 C8.712 17.917 9.248 17.755 9.835 17.483 C10.402 17.22 11.058 16.831 11.88 16.344 L12.507 15.973 C13.329 15.486 13.985 15.097 14.491 14.725 C15.014 14.341 15.415 13.947 15.706 13.432 C15.995 12.917 16.126 12.366 16.189 11.712 C16.25 11.079 16.25 10.303 16.25 9.328 L16.25 8.588 C16.25 7.614 16.25 6.838 16.189 6.204 C16.126 5.551 15.995 5 15.706 4.485 C15.415 3.969 15.014 3.576 14.491 3.191 C13.985 2.819 13.329 2.431 12.507 1.944 L11.88 1.572 C11.058 1.086 10.402 0.697 9.835 0.434 C9.248 0.161 8.712 0 8.125 0 Z M4.979 2.665 C5.835 2.158 6.438 1.801 6.942 1.567 C7.434 1.339 7.784 1.25 8.125 1.25 C8.466 1.25 8.816 1.339 9.308 1.567 C9.812 1.801 10.415 2.158 11.271 2.665 L11.842 3.003 C12.698 3.51 13.301 3.868 13.751 4.198 C14.189 4.521 14.443 4.79 14.616 5.098 C14.79 5.408 14.892 5.77 14.945 6.324 C14.999 6.891 15 7.607 15 8.62 L15 9.297 C15 10.31 14.999 11.026 14.945 11.593 C14.892 12.147 14.79 12.509 14.616 12.818 C14.443 13.127 14.189 13.396 13.751 13.718 C13.301 14.049 12.698 14.407 11.842 14.914 L11.271 15.252 C10.415 15.759 9.812 16.115 9.308 16.349 C8.816 16.578 8.466 16.667 8.125 16.667 C7.784 16.667 7.434 16.578 6.942 16.349 C6.438 16.115 5.835 15.759 4.979 15.252 L4.408 14.914 C3.552 14.407 2.949 14.049 2.499 13.718 C2.061 13.396 1.807 13.127 1.634 12.818 C1.46 12.509 1.358 12.147 1.305 11.593 C1.251 11.026 1.25 10.31 1.25 9.297 L1.25 8.62 C1.25 7.607 1.251 6.891 1.305 6.324 C1.358 5.77 1.46 5.408 1.634 5.098 C1.807 4.79 2.061 4.521 2.499 4.198 C2.949 3.868 3.552 3.51 4.408 3.003 L4.979 2.665 Z","ox":1.67,"oy":0.83}};
-const navIcon=(k,c='currentColor',sz=22)=>{ const ic=NAV_ICONS[k]; if(!ic) return null; return h('svg',{width:sz,height:sz,viewBox:'0 0 20 20',fill:c,style:{display:'block'}}, h('g',{transform:'translate('+ic.ox+','+ic.oy+')'}, h('path',{d:ic.d,fillRule:'evenodd'}))); };
 const svg = (d,sz=20,c='currentColor',sw=1.6)=>h('svg',{width:sz,height:sz,viewBox:'0 0 24 24',fill:'none',stroke:c,strokeWidth:sw,strokeLinecap:'round',strokeLinejoin:'round'},h('path',{d}));
 const icInfo=(sz=22,c='#6f7276')=>h('svg',{width:Math.round(sz*19.5/21.5),height:sz,viewBox:'0 0 19.5 21.5',fill:c,style:{display:'block',flexShrink:0}},h('path',{d:'M 9.75 5 C 10.164 5 10.5 5.336 10.5 5.75 L 10.5 11.75 C 10.5 12.164 10.164 12.5 9.75 12.5 C 9.336 12.5 9 12.164 9 11.75 L 9 5.75 C 9 5.336 9.336 5 9.75 5 Z'}),h('path',{d:'M 10.75 14.75 C 10.75 15.302 10.302 15.75 9.75 15.75 C 9.198 15.75 8.75 15.302 8.75 14.75 C 8.75 14.198 9.198 13.75 9.75 13.75 C 10.302 13.75 10.75 14.198 10.75 14.75 Z'}),h('path',{fillRule:'evenodd',d:'M 9.75 0 C 9.045 0 8.402 0.194 7.699 0.52 C 7.018 0.837 6.23 1.303 5.245 1.887 L 4.491 2.333 C 3.505 2.917 2.718 3.383 2.111 3.829 C 1.483 4.291 1.002 4.763 0.653 5.382 C 0.305 6 0.148 6.661 0.073 7.445 C 0 8.205 0 9.136 0 10.306 L 0 11.194 C 0 12.363 0 13.295 0.073 14.055 C 0.148 14.839 0.305 15.5 0.653 16.118 C 1.002 16.737 1.483 17.209 2.111 17.671 C 2.718 18.117 3.505 18.583 4.491 19.167 L 5.245 19.613 C 6.23 20.197 7.018 20.663 7.699 20.98 C 8.402 21.306 9.045 21.5 9.75 21.5 C 10.455 21.5 11.098 21.306 11.801 20.98 C 12.482 20.663 13.27 20.197 14.255 19.613 L 15.008 19.167 C 15.995 18.583 16.782 18.117 17.389 17.671 C 18.017 17.209 18.498 16.737 18.847 16.118 C 19.195 15.5 19.352 14.839 19.427 14.055 C 19.5 13.295 19.5 12.364 19.5 11.194 L 19.5 10.306 C 19.5 9.137 19.5 8.205 19.427 7.445 C 19.352 6.661 19.195 6 18.847 5.382 C 18.498 4.763 18.017 4.291 17.389 3.829 C 16.782 3.383 15.995 2.917 15.009 2.333 L 14.255 1.887 C 13.27 1.303 12.482 0.837 11.801 0.52 C 11.098 0.194 10.455 0 9.75 0 Z M 5.975 3.197 C 7.002 2.589 7.726 2.162 8.331 1.881 C 8.92 1.607 9.341 1.5 9.75 1.5 C 10.159 1.5 10.58 1.607 11.169 1.881 C 11.774 2.162 12.498 2.589 13.525 3.197 L 14.211 3.604 C 15.238 4.212 15.961 4.641 16.501 5.038 C 17.027 5.425 17.331 5.747 17.539 6.118 C 17.749 6.489 17.87 6.924 17.934 7.589 C 17.999 8.269 18 9.128 18 10.344 L 18 11.156 C 18 12.372 17.999 13.231 17.934 13.911 C 17.87 14.576 17.749 15.011 17.539 15.382 C 17.331 15.753 17.027 16.075 16.501 16.462 C 15.961 16.859 15.238 17.288 14.211 17.896 L 13.525 18.303 C 12.498 18.911 11.774 19.338 11.169 19.619 C 10.58 19.893 10.159 20 9.75 20 C 9.341 20 8.92 19.893 8.331 19.619 C 7.726 19.338 7.002 18.911 5.975 18.303 L 5.289 17.896 C 4.262 17.288 3.539 16.859 2.999 16.462 C 2.473 16.075 2.169 15.753 1.961 15.382 C 1.751 15.011 1.63 14.576 1.566 13.911 C 1.501 13.231 1.5 12.372 1.5 11.156 L 1.5 10.344 C 1.5 9.128 1.501 8.269 1.566 7.589 C 1.63 6.924 1.751 6.489 1.961 6.118 C 2.169 5.747 2.473 5.425 2.999 5.038 C 3.539 4.641 4.262 4.212 5.289 3.604 L 5.975 3.197 Z'}));
 const icCaution=(sz=22,c='#cca26e')=>h('svg',{width:Math.round(sz*21.5/19.5),height:sz,viewBox:'0 0 21.5 19.5',fill:c,style:{display:'block',flexShrink:0}},h('path',{d:'M 10.75 5 C 11.164 5 11.5 5.336 11.5 5.75 L 11.5 10.75 C 11.5 11.164 11.164 11.5 10.75 11.5 C 10.336 11.5 10 11.164 10 10.75 L 10 5.75 C 10 5.336 10.336 5 10.75 5 Z'}),h('path',{d:'M 10.75 14.75 C 11.302 14.75 11.75 14.302 11.75 13.75 C 11.75 13.198 11.302 12.75 10.75 12.75 C 10.198 12.75 9.75 13.198 9.75 13.75 C 9.75 14.302 10.198 14.75 10.75 14.75 Z'}),h('path',{fillRule:'evenodd',d:'M 7.044 2.226 C 8.116 0.865 9.252 0 10.75 0 C 12.248 0 13.384 0.865 14.456 2.226 C 15.51 3.565 16.627 5.546 18.056 8.081 L 18.492 8.853 C 19.673 10.948 20.607 12.602 21.097 13.93 C 21.598 15.288 21.717 16.52 20.959 17.607 C 20.224 18.662 18.997 19.093 17.449 19.297 C 15.908 19.5 13.834 19.5 11.175 19.5 L 10.325 19.5 C 7.666 19.5 5.592 19.5 4.051 19.297 C 2.503 19.093 1.276 18.662 0.541 17.607 C -0.217 16.52 -0.098 15.288 0.403 13.93 C 0.893 12.602 1.827 10.948 3.008 8.853 L 3.444 8.081 C 4.873 5.546 5.99 3.565 7.044 2.226 Z M 8.223 3.154 C 7.249 4.391 6.187 6.27 4.715 8.88 L 4.351 9.525 C 3.125 11.699 2.254 13.249 1.81 14.45 C 1.373 15.635 1.433 16.264 1.771 16.749 C 2.132 17.266 2.809 17.621 4.247 17.81 C 5.679 17.998 7.653 18 10.386 18 L 11.114 18 C 13.847 18 15.821 17.998 17.253 17.81 C 18.691 17.621 19.368 17.266 19.728 16.749 C 20.067 16.264 20.127 15.635 19.69 14.45 C 19.246 13.249 18.375 11.699 17.149 9.525 L 16.785 8.88 C 15.313 6.27 14.251 4.391 13.277 3.154 C 12.312 1.929 11.563 1.5 10.75 1.5 C 9.937 1.5 9.188 1.929 8.223 3.154 Z'}));
@@ -1905,25 +1972,50 @@ class Component extends DCLogic {
   // 두 열을 다 읽어 헤더를 언제 바꿔도 줄이 비지 않게 한다 — Zone은 런타임에 라이브 시트를
   // 직접 읽으므로, 한쪽만 보면 헤더를 바꾼 순간 배포본의 존 목록이 통째로 빈칸이 된다.
   zoneLine(z){ return this.eng.pick(z,'Tagline') || this.eng.pick(z,'LootFocus'); }
-  catChip(txt,on){ const G='rgb(131,178,137)'; return h('span',{style:{display:'inline-flex',alignItems:'center',gap:5,borderRadius:4,background:'rgb(33,35,39)',border:'1px solid '+(on?G:'rgb(54,56,60)'),padding:'3px 7px',boxSizing:'border-box'}}, h('span',{style:{width:5,height:5,borderRadius:999,background:on?G:'rgb(111,114,118)'}}), h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:on?G:'rgb(169,171,175)',whiteSpace:'nowrap',textTransform:'uppercase'}}, this.eng.t(txt))); }
-  subTag(txt){ return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgb(33,35,39)',border:'1px solid rgb(54,56,60)',padding:'3px 7px',boxSizing:'border-box',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:'rgb(169,171,175)',whiteSpace:'nowrap',textTransform:'uppercase'}}, this.eng.t(txt)); }
+  catChip(txt,on){ const f=CAT_FAM[txt]||'#8E9196';   // on(착용 칸) 표시는 착용중 판(eqTag)이 맡는다 — 분류 판은 늘 같은 모양
+    return plate({bd:'linear-gradient(90deg,'+f+' 0 3px,#34373d 3px)',bg:'linear-gradient(90deg,'+f+' 0 2px,#202227 2px)',pad:'0 6px 0 8px'}, this.eng.t(txt)); }
+  subTag(txt){ return plate({}, this.eng.t(txt)); }
+  brkTag(){ return plate({bd:'#C4675D',bg:'#C4675D',fg:'#fff',w:600}, this.t('item_destroyed')); }
+  attrTag(k){ const c=(ATTR[k]&&ATTR[k].c)||T.mid; return plate({bd:'color-mix(in srgb,'+c+' 70%,transparent)',bg:'#16171b',fg:c,pad:'0 5px 0 5px'}, h('span',{style:{width:5,height:5,transform:'rotate(45deg)',background:c,flex:'0 0 auto'}}), this.t('status_'+k)); }
+  groTag(label,n){ return plate({bd:PRISM,bg:'#1b1c21',fg:'#EEE7D7',pad:'0 6px'}, label, n>1?h('span',{style:{display:'inline-flex',gap:2,marginLeft:1}}, ...Array.from({length:n},(_,i)=>h('i',{key:i,style:{width:3,height:3,transform:'rotate(45deg)',background:'#E2C28F'}}))):null); }
   // 착용중 태그 — 목록 줄(소지품·금고·감정·수리·판매) 위쪽 칩 줄에 항상 붙는 초록 표시. 줄 오른쪽의 [착용]/[해제] 버튼은 폐지(카드에서 한다).
-  eqTag(){ const G='rgb(131,178,137)'; return h('span',{key:'eqt',style:{display:'inline-flex',alignItems:'center',flex:'0 0 auto',borderRadius:4,background:'rgb(33,35,39)',border:'1px solid rgba(131,178,137,0.45)',padding:'3px 7px',boxSizing:'border-box',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:G,whiteSpace:'nowrap'}}, this.en()?'EQUIPPED':'착용중'); }
+  eqTag(){ return plate({key:'eqt',bd:'#83B289',bg:'#83B289',fg:'#0F1A12',w:700}, this.en()?'EQUIPPED':'착용중'); }
   // 목록 줄 성장 태그 — 정비대 모듈 목록(rsModRow)과 같은 회색 pill · 분류칩/착용중 바로 옆(2026-10-16 · 모든 장비 목록 통일). 태그 없으면 null.
   gtagPill(inst){ const g=(inst&&this.eng.growthTagsActive(inst))||[]; if(!g.length) return null;
-    const GKR={str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')}; return this.shopPill(GKR[g[0]]||g[0],'rgb(169,171,175)'); }
-  unappTag(){ return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgb(33,35,39)',border:'1px solid rgb(118,131,243)',padding:'3px 7px',boxSizing:'border-box',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:'rgb(118,131,243)',whiteSpace:'nowrap',textTransform:'uppercase'}}, this.t('appraise_unappraised')); }
+    const GKR={str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')}; return this.groTag(GKR[g[0]]||g[0],1); }
+  unappTag(){ return plate({bd:'rgba(118,131,243,.75)',bg:'repeating-linear-gradient(135deg,rgba(118,131,243,.22) 0 4px,transparent 4px 8px),#1a1c2c',fg:'#B9BFFF'}, h('b',{style:{fontFamily:T.mono,fontSize:9,fontWeight:600}},'?'), this.t('appraise_unappraised')); }
   nav(){
-    const items=[['safehouse',this.t('nav_safehouse')],['inventory',this.t('nav_belongings')],['zone','레이드'],['character','캐릭터'],['settings','설정']];
-    return h('div',{style:{position:'absolute',left:0,right:0,bottom:0,padding:'0 16px 26px',background:'transparent',zIndex:15,pointerEvents:'none'}},
-      h('div',{style:{display:'flex',flexDirection:'row',gap:34,justifyContent:'center',alignItems:'center',height:64,padding:16,boxSizing:'border-box',background:'rgba(24,25,29,0.72)',backdropFilter:'blur(14px)',WebkitBackdropFilter:'blur(14px)',borderRadius:999,boxShadow:'inset 0 0 0 1px rgba(54,56,60,0.9)',pointerEvents:'auto'}},
-        ...items.map(([k])=>{ const on=this.state.screen===k || (k==='zone'&&this.state.screen==='combat'); const sortie=k==='zone';
-          const col=on?(sortie?'#C4675D':'rgb(234,235,238)'):'rgb(75,77,82)';
-          const allow=this.storyNavAllow(), lockN=!!allow && k!==allow;   // 스토리 안내 중엔 안내하는 칸만 열린다(사용자 2026-10-09)
-          return h('button',{key:k,'data-guide':'nav-'+k,disabled:lockN,onClick:lockN?null:()=>this.go(k),style:{opacity:lockN?0.35:1,width:36,background:'none',border:'none',cursor:lockN?'default':'pointer',padding:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:col,...((k==='character'&&this.commsPending())?{'--nb':col,animation:'rlCommsBlink 2.4s ease-in-out infinite'}:{}),filter:(on&&sortie)?'drop-shadow(0 0 5px rgba(196,103,93,0.5))':'none'}},
-            navIcon(k,'currentColor',20)); }))
+    // 하단 내비 = 바닥에 붙은 한 덩어리 판(76px). 칸끼리 맞닿고, 레이드 칸만 12px 솟아 위 두 모서리가 깎인다(전체 높이 ≈ 예전 떠 있는 막대와 같은 90px).
+    // 아이콘 = assets/art/ui/nav/nav_<k>.webp(흰 그림 마스크) → 색은 currentColor. 2026-10-17 UI 시안 확정.
+    // 선택 = 꺼져 있던 아이콘에 불이 들어온다(밝은 회색 + 빛 번짐) + 칸 위 선이 켜지며 그 빛이 아래로 비친다(위 밝고 아래로 옅어지는 빛). 노랑/금 안 씀(사용자 10-17). 레이드만 같은 방식을 빨강으로 — 켜지면 심지는 거의 흰빛, 둘레로 붉은 빛이 번진다(다른 칸과 같은 '불 켜짐', 10-17).
+    // 알림 = 점·숫자 배지 없음 — 아이콘 자체가 반짝인다(캐릭터 교신 rlCommsBlink, 사용자 10-17).
+    const items=['safehouse','inventory','zone','character','settings'];
+    const allow=this.storyNavAllow();
+    return h('div',{style:{position:'absolute',left:0,right:0,bottom:0,zIndex:15,pointerEvents:'none'}},
+      h('div',{style:{display:'flex',alignItems:'stretch',height:76,background:'#131418',borderTop:'1px solid #2A2C31',pointerEvents:'auto'}},
+        ...items.map(k=>{ const on=this.state.screen===k || (k==='zone'&&this.state.screen==='combat'); const raid=k==='zone';
+          const lockN=!!allow && k!==allow;   // 스토리 안내 중엔 안내하는 칸만 열린다(사용자 2026-10-09)
+          const col=raid ? (on?'#FFE4DF':'#9A524B') : (on?'#F4F5F7':'#5F6268');
+          const lit=raid?'232,133,122':'234,235,238';   // 켜진 빛의 색(rgb)
+          const bg=raid?'repeating-linear-gradient(135deg,rgba(232,133,122,0.045) 0 9px,transparent 9px 18px),#1C1416':'transparent';   // 레이드 칸 = 위험지역 표시 같은 굵은 빗금, 아주 옅게(사용자 10-17)
+          const glow=on ? (raid?'drop-shadow(0 0 2px rgba(255,214,206,.95)) drop-shadow(0 0 7px rgba(240,118,102,.85)) drop-shadow(0 0 16px rgba(232,90,74,.5))':'drop-shadow(0 0 2px rgba(255,255,255,.9)) drop-shadow(0 0 8px rgba(220,224,232,.55))') : 'none';
+          const sz=raid?35:26;
+          return h('button',{key:k,'data-guide':'nav-'+k,disabled:lockN,onClick:lockN?null:()=>this.go(k),
+            style:{position:'relative',flex:raid?1.25:1,minWidth:0,marginTop:raid?-12:0,padding:0,border:'none',cursor:lockN?'default':'pointer',opacity:lockN?0.35:1,
+              background:bg,color:col,transition:'color .2s',
+              clipPath:raid?'polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%,0 8px)':'none',
+              boxShadow:[(raid&&!on)?'inset 0 2px 0 rgba(196,103,93,0.45)':null,'inset 1px 0 0 #0C0D10'].filter(Boolean).join(','),
+              ...((k==='character'&&this.commsPending())?{'--nb':col,animation:'rlCommsBlink 2.4s ease-in-out infinite'}:{})}},
+            // 위 선에서 아래로 비치는 빛 + 켜진 위 선(빛 번짐)
+            h('span',{style:{position:'absolute',inset:0,pointerEvents:'none',opacity:on?1:0,transition:'opacity .25s',background:'linear-gradient(180deg,rgba('+lit+',0.22) 0,rgba('+lit+',0.07) 45%,rgba('+lit+',0) 82%)'}}),
+            h('span',{style:{position:'absolute',left:0,right:0,top:0,height:2,pointerEvents:'none',opacity:on?1:0,transition:'opacity .25s',background:'rgb('+lit+')',boxShadow:'0 0 8px 1px rgba('+lit+',0.75)'}}),
+            // 빛 번짐(filter)은 마스크 바깥 상자에 건다 — 같은 요소에 걸면 마스크가 번진 빛까지 잘라 먹는다(CSS 순서: filter → mask).
+            h('span',{style:{position:'absolute',left:'50%',top:'calc(50% - 5px)',width:sz,height:sz,marginLeft:-sz/2,marginTop:-sz/2,filter:glow,transition:'filter .25s'}},
+              h('span',{style:{position:'absolute',inset:0,background:'currentColor',
+                WebkitMask:'url(assets/art/ui/nav/nav_'+k+'.webp) center/contain no-repeat',mask:'url(assets/art/ui/nav/nav_'+k+'.webp) center/contain no-repeat'}}))); }))
     );
   }
+
   // right = 우측에 나란히 놓을 요소(재화 칩 등). 좌측 블록은 minWidth:0 이라 kicker가 길면 말줄임된다.
   // 화면 헤더 — svg/header-default.svg 기준(402 스테이지). 높이 90 고정 · 좌우 24 · 하단 헤어라인.
   // 키커/타이틀/재화칩은 절대배치 = SVG 좌표 그대로(키커 cap 27, 타이틀 글리프 45.7~60, 칩 y24~51).
@@ -2036,18 +2128,15 @@ class Component extends DCLogic {
   bossChipEl(label, maxed){
     // 좌우 패딩 9→6: MAX 링이 상시 노출되는 요소가 되면서 상하(5px)와의 여백 차이가 드러났다.
     // 6이면 상하와 1px 차이라 링이 균등하게 둘러싼다. 헤더 우측 정렬이라 폭이 줄어도 레이아웃 영향 없음.
-    return h('div',{style:{display:'flex',alignItems:'center',gap:6,height:27,boxSizing:'border-box',padding:'0 6px',background:'rgba(0,0,0,0.5)',borderRadius:8,
-        animation:maxed?'rlBossMax 2.6s ease-in-out infinite':'none'}},
-      h('span',{style:{flex:'0 0 auto',width:82,height:17,borderRadius:4,background:maxed?'#C4675D':'#6B6B6B',color:maxed?'#F2D08A':'#111111',fontFamily:T.mono,fontSize:10,fontWeight:500,letterSpacing:'.04em',display:'flex',alignItems:'center',justifyContent:'center'}},'BOSS CHANCE'),
-      h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:maxed?'#E5645B':'#FFFFFF',whiteSpace:'nowrap'}}, label));
+    // UI 시안(10-18) — 상단 재화 판(curPlate)과 같은 [코드 | 값] 깎인 판. MAX = 빨간 판 + 바깥 붉은 빛이 숨쉼(rlBossMaxF · clip-path라 box-shadow 대신 drop-shadow)
+    return h('div',{style:{display:'flex',animation:maxed?'rlBossMaxF 2.6s ease-in-out infinite':'none'}},
+      this.curPlate({code:'BOSS CHANCE',codeW:84,h:24,codeFs:9,valFs:12.5,cc:maxed?'#C4675D':'#8A8C91',cv:'#EAEBEE',val:label,state:maxed?'zero':null}));
   }
   // PvP 확률 칩 — svg/screen-battle-pvp-*.svg. 알약 122x27 r8 · 배지 76x17 r4 #C4675D.
   // 값 = Zone.UserDataChance(%) — drawCards가 조우 카드를 유저로 굴릴 때 쓰는 바로 그 확률.
   pvpChip(zone){
     const pct=this.eng.N(String(zone&&zone.UserDataChance==null?'':zone.UserDataChance).replace('%',''),0);
-    return h('div',{style:{display:'flex',alignItems:'center',gap:6,height:27,boxSizing:'border-box',padding:'0 9px',background:'rgba(0,0,0,0.5)',borderRadius:8}},
-      h('span',{style:{flex:'0 0 auto',width:76,height:17,borderRadius:4,background:'#C4675D',color:'#111111',fontFamily:T.mono,fontSize:10,fontWeight:500,letterSpacing:'.04em',display:'flex',alignItems:'center',justifyContent:'center'}},'PVP CHANCE'),
-      h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:'#FFFFFF',whiteSpace:'nowrap'}}, pct+'%'));
+    return this.curPlate({code:'PVP CHANCE',codeW:78,h:24,codeFs:9,valFs:12.5,cc:'#C4675D',cv:'#EAEBEE',val:pct+'%'});   // UI 시안(10-18) 깎인 판
   }
   // 소지품 기준 카운트 칩(주머니/가방/전리품) — 전리품 화면(lm) 밖에서 쓴다.
   belongingsChips(){
@@ -2061,12 +2150,11 @@ class Component extends DCLogic {
   }
   // 헤더 아래 카운트 칩 행 — svg y97~124(알약 h27 r8, gap 4, 중앙정렬) · 배지 h17 r4.
   // items = [[라벨, 값, 배지색], ...]
-  countChips(items){
-    return h('div',{style:{position:'relative',zIndex:2,flex:'0 0 auto',height:35,paddingTop:8,boxSizing:'border-box',display:'flex',justifyContent:'center',alignItems:'flex-start',gap:4}},
-      ...items.map(([label,val,bg],i)=>h('div',{key:i,style:{display:'flex',alignItems:'center',gap:6,height:27,boxSizing:'border-box',padding:'0 9px',background:'rgba(0,0,0,0.5)',borderRadius:8}},
-        h('span',{style:{flex:'0 0 auto',height:17,padding:'0 6px',borderRadius:4,background:bg,color:'#111111',fontFamily:T.sans,fontSize:11,fontWeight:500,lineHeight:'17px',whiteSpace:'nowrap'}}, label),
-        h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:'#FFFFFF',whiteSpace:'nowrap'}}, val))));
+  countChips(items){   // UI 시안(10-18) — 상단 재화 판(curPlate)과 같은 [라벨 | 값] 깎인 판
+    return h('div',{style:{position:'relative',zIndex:2,flex:'0 0 auto',height:35,paddingTop:8,boxSizing:'border-box',display:'flex',justifyContent:'center',alignItems:'flex-start',gap:6}},
+      ...items.map(([label,val,bg],i)=>h('span',{key:i,style:{display:'flex'}}, this.curPlate({code:label,cc:bg,cv:'#EAEBEE',val,sans:true}))));
   }
+
   // ===== 상점 공통 (svg/screen-clinic-*.svg · screen-shop-list.svg) =====
   // 경고 아이콘 — svg 아이콘 박스 20x22. kind 'hex'(기본·완료) / 'tri'(경고).
   // 안내·경고 아이콘 — svg/info-no-sato.svg('tri') · info-heal-done.svg('hex')에서 **그대로 추출**.
@@ -2319,7 +2407,7 @@ class Component extends DCLogic {
         h('div',{key:'bar',style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6,height:38,borderRadius:8,background:'rgb(26,27,33)'}}, icInfo(19,'rgb(204,162,110)'), h('span',{style:{fontFamily:T.sans,fontSize:12,color:'rgb(204,162,110)'}}, '\u201c'+keyName+'\u201d'+(this.en()?' will be used.':'\ub97c \uc0ac\uc6a9\ud569\ub2c8\ub2e4.'))),
         h('button',{key:'btn',disabled:dead,onClick:dead?null:()=>this.openTap(z.ZoneID),style:{display:'flex',justifyContent:'center',alignItems:'center',width:'100%',boxSizing:'border-box',height:48,borderRadius:24,border:'none',background:'#212227',cursor:dead?'default':'pointer',opacity:dead?.5:1}}, icUnlock(22,'rgb(204,162,110)'))];
     } else {
-      bottom=[ h('button',{key:'btn','data-guide':'zone-go',disabled:dead,onClick:dead?null:()=>this.openTap(z.ZoneID),style:{marginTop:8,width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:dead?'#4B4D52':'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:dead?'default':'pointer'}}, dead?this.t('heal_restore_first'):(this.en()?'Raid':'레이드 시작')) ];   // 스태미너 바↔레이드하기 간격: flex gap16 + marginTop8 = 24
+      bottom=[ h('button',{key:'btn','data-guide':'zone-go','data-skin':'pri',disabled:dead,onClick:dead?null:()=>this.openTap(z.ZoneID),style:{marginTop:8,width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:dead?'#4B4D52':'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:dead?'default':'pointer'}}, dead?this.t('heal_restore_first'):(this.en()?h('span',{style:{...this.titleF(),fontSize:18,letterSpacing:'.04em'}},'RAID'):this.ttx('레이드',18))) ];   // UI 시안(10-17) — 금색 판 + 타이틀 폰트 '레이드'   // 스태미너 바↔레이드하기 간격: flex gap16 + marginTop8 = 24
     }
     return h('div',{onClick:()=>this.setState({modalZone:null}),style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.66)',display:'flex',alignItems:'flex-end',zIndex:30,animation:'rlFade .18s'}},
       h('div',{onClick:e=>e.stopPropagation(),style:{width:'calc(100% - 32px)',boxSizing:'border-box',margin:'0 16px 24px',background:'#18191D',borderRadius:24,padding:'24px 18px',display:'flex',flexDirection:'column',gap:16,animation:'rlSheet .24s cubic-bezier(.2,.8,.2,1)'}},
@@ -2368,8 +2456,10 @@ class Component extends DCLogic {
     const last=lines[lines.length-1];
     return (last.who===applier && last.type==='status')?[{key:attr,count:1}]:[];
   }
-  statusChip(key){ const col=(ATTR[key]&&ATTR[key].c)||T.mid; return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid '+col,padding:'3px 8px',whiteSpace:'nowrap',textTransform:'uppercase'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:1,letterSpacing:'1.33px',color:col}}, this.eng.t('status_'+key))); }
-  plainChip(label,col,anim){ return h('span',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid '+col,padding:'3px 8px',whiteSpace:'nowrap',textTransform:'uppercase',animation:anim||'none'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:1,letterSpacing:'1.33px',color:col}}, label)); }
+  statusChip(key){ const col=(ATTR[key]&&ATTR[key].c)||T.mid; return this.cutChip(this.eng.t('status_'+key),col); }
+  plainChip(label,col,anim){ return h('span',{style:{display:'inline-flex',animation:anim||'none'}}, this.cutChip(label,col)); }
+  // 전투 카드 상태 태그(탈진·기절·버프 등) — UI 시안(10-18): 상태색 테두리 깎인 판(높이 20 · mono 대문자)
+  cutChip(label,col){ return plate({h:20,bd:'color-mix(in srgb,'+col+' 75%,transparent)',bg:'#0d0e11',fg:col,pad:'0 8px'}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,letterSpacing:'1.33px',textTransform:'uppercase'}}, label)); }
   // 저스태미너 경보 = 이번 전투가 스태미너를 0으로 만드는가(현재−몬스터소모≤0). 전투 후 소모 로직과 일치.
   staWarn(){ const m=this.combat&&this.combat.mProf; return !!(m && this.gs.sta - this.eng.N(m.staminaCost,0) <= 0); }
   statusIcons(side){ const list=this.activeStatuses(side); const out=[]; list.forEach(s=>{ const n=Math.min(s.count,8); for(let i=0;i<n;i++) out.push(h('span',{key:s.key+i,style:{display:'inline-flex'}}, this.statusIcon(s.key,15))); }); return out; }
@@ -2458,7 +2548,8 @@ class Component extends DCLogic {
       (stn0&&Date.now()-stn0.at<650)? h('div',{key:'ring'+stn0.seq,style:{position:'absolute',left:'50%',top:'38%',width:120,height:120,borderRadius:'50%',border:(stn0.delay>=1.5?4:2)+'px solid #D8BE78',zIndex:9,pointerEvents:'none','--rs':stn0.delay>=1.5?2.6:(stn0.delay>=0.8?2:1.5),animation:'rlRing '+(stn0.delay>=1.5?'.55s':'.4s')+' ease-out forwards'}}):null,
       h('div',{onClick:()=>this.setState({combatSheet:isMonster?'monster':'player'}),ref:el=>{ if(el && rp0 && Date.now()-rp0.at<350 && el._rup!==rp0.seq){ el._rup=rp0.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHit .3s ease-out'; }
         if(el && fx && fx.type==='miss' && el._ms!==fx.seq){ el._ms=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlDodge .6s ease-out'; }
-        if(el && stn0 && stn0.delay>=0.8 && el._stn!==stn0.seq){ el._stn=stn0.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHitCrit .42s ease-out'; } if(el && isHit && el._hit!==fx.seq){ el._hit=fx.seq; el.style.animation='none'; void el.offsetWidth; if(fx.cp){ el.style.setProperty('--sa',fx.cp.amp); el.style.animation=(fx.cp.lin>0?'rlKickL ':'rlKick ')+(((0.36+0.28*fx.cp.big)*fx.cp.k)+0.7*fx.cp.lin).toFixed(2)+'s ease-out'; } else el.style.animation=(fx.tier>=1?'rlHitCrit .42s':'rlHit .3s')+' ease-out'; } },style:{position:'relative',background:isMonster?T.s2:T.s1,border:'1px solid '+T.line,borderRadius:6,overflow:'hidden',cursor:'pointer',transition:'filter .25s',filter:stn?'grayscale(.45) brightness(.92)':'none'}},
+        if(el && stn0 && stn0.delay>=0.8 && el._stn!==stn0.seq){ el._stn=stn0.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHitCrit .42s ease-out'; } if(el && isHit && el._hit!==fx.seq){ el._hit=fx.seq; el.style.animation='none'; void el.offsetWidth; if(fx.cp){ el.style.setProperty('--sa',fx.cp.amp); el.style.animation=(fx.cp.lin>0?'rlKickL ':'rlKick ')+(((0.36+0.28*fx.cp.big)*fx.cp.k)+0.7*fx.cp.lin).toFixed(2)+'s ease-out'; } else el.style.animation=(fx.tier>=1?'rlHitCrit .42s':'rlHit .3s')+' ease-out'; } },style:{position:'relative',isolation:'isolate',background:T.line,clipPath:'polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)',overflow:'hidden',cursor:'pointer',transition:'filter .25s',filter:stn?'grayscale(.45) brightness(.92)':'none'}},
+      h('div',{key:'cfill',style:{position:'absolute',inset:1,zIndex:-1,background:isMonster?T.s2:T.s1,clipPath:'polygon(9.4px 0,100% 0,100% calc(100% - 9.4px),calc(100% - 9.4px) 100%,0 100%,0 9.4px)',pointerEvents:'none'}}),   // UI 시안(10-18) — 카드 = 깎인 판(바깥=선 색 · 1px 안쪽=바탕)
       pxn? h('div',{key:'prcwv',style:{position:'absolute',inset:0,zIndex:3,pointerEvents:'none',background:'rgba(124,165,187,.15)',boxShadow:'inset 0 0 0 1px rgba(124,165,187,.65), inset 0 0 20px 2px rgba(124,165,187,.3)','--ro':pxn>=3?1:(pxn===2?0.85:0.65),animation:'rlRp 2.2s ease-in-out infinite'}}):null,
       (px0&&Date.now()-px0.at<350)? h('div',{key:'prcfl'+px0.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:'rgba(124,165,187,.42)',animation:'rlHitFlash .3s ease-out forwards'}}):null,
       (fx&&fx.expo&&isHit)? h('div',{key:'prcx'+fx.seq,style:{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 2px #7CA5BB',animation:'rlHitFlash .3s ease-out forwards'}}):null,
@@ -2486,7 +2577,8 @@ class Component extends DCLogic {
       deadNow? h('div',{key:'dthi',style:{position:'absolute',left:'50%',top:isMonster?57:'50%',transform:'translate(-50%,-50%)',zIndex:8,pointerEvents:'none',animation:isMonster?'rlFade .5s ease-out both':'none'}}, isMonster? icDeath(76,'rgba(162,0,0,0.4)') : icDeath(30,'#E1E1E1')):null,
       isMonster? h('div',{style:{position:'relative',height:114,overflow:'hidden',background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
         (!prof.isUser)?h('img',{src:'assets/art/monsters/'+prof.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',transformOrigin:'50% 100%',animation:stn?'rlSway .4s ease-in-out infinite alternate':'none'}}):null,
-        h('div',{style:{position:'absolute',left:12,bottom:8,fontFamily:T.mono,fontSize:9,color:prof.isUser?T.sato:T.faint,letterSpacing:'.1em'}}, prof.isUser?this.t('kicker_userdata'):((md.Category||'')+''+this.t('kicker_dot_monsters'))), prof.grade?(()=>{ const gcol=GRADECOL[String(prof.grade).toLowerCase()]||'rgb(234,235,238)'; return h('div',{key:'gtag',style:{position:'absolute',right:10,top:10,zIndex:4,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid '+(gcol==='rgb(234,235,238)'?'rgba(222,222,222,0.18)':gcol),display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'4px 8px',animation:'rlLvlPop .5s cubic-bezier(.2,.8,.2,1)'}},
+        h('div',{style:{position:'absolute',left:12,bottom:8,fontFamily:T.mono,fontSize:9,color:prof.isUser?T.sato:T.faint,letterSpacing:'.1em'}}, prof.isUser?this.t('kicker_userdata'):((md.Category||'')+''+this.t('kicker_dot_monsters'))), prof.grade?(()=>{ const gcol=GRADECOL[String(prof.grade).toLowerCase()]||'rgb(234,235,238)'; return h('div',{key:'gtag',style:{position:'absolute',right:10,top:10,zIndex:4,isolation:'isolate',boxSizing:'border-box',background:(gcol==='rgb(234,235,238)'?'rgba(222,222,222,0.3)':gcol),clipPath:'polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)',display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'5px 9px',animation:'rlLvlPop .5s cubic-bezier(.2,.8,.2,1)'}},   /* UI 시안(10-18) 등급 칩 = 깎인 판 두 겹 */
+            h('span',{style:{position:'absolute',inset:1,zIndex:-1,background:'rgba(10,11,14,0.85)',clipPath:'polygon(4.5px 0,100% 0,100% calc(100% - 4.5px),calc(100% - 4.5px) 100%,0 100%,0 4.5px)'}}),
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',marginRight:'-1.33px',color:gcol,whiteSpace:'nowrap'}}, String(prof.grade).toUpperCase())); })():null) : null,
       h('div',{style:{padding:'11px 13px'}},
         h('div',{style:{display:'flex',alignItems:'center',gap:7,marginBottom:8}},
@@ -3047,7 +3139,8 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
         h('img',{src:artUrl,onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}),
         (isSpecial&&fx)? h('canvas',{key:'burst',ref:el=>this.mountBurst(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:2,pointerEvents:'none',mixBlendMode:'lighten'}}):null,
         h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,zIndex:3,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
-        h('div',{style:{position:'absolute',right:17,top:12,zIndex:4,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid '+(gcol===HI?'rgba(222,222,222,0.18)':gcol),display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'4px 8px',animation:fx?'rlLvlPop .5s cubic-bezier(.2,.8,.2,1)':'none'}},
+        h('div',{style:{position:'absolute',right:17,top:12,zIndex:4,isolation:'isolate',boxSizing:'border-box',background:(gcol===HI?'rgba(222,222,222,0.3)':gcol),clipPath:'polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)',display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'5px 9px',animation:fx?'rlLvlPop .5s cubic-bezier(.2,.8,.2,1)':'none'}},   /* UI 시안(10-18) 전투 카드 등급 칩과 같은 깎인 판 두 겹 */
+          h('span',{style:{position:'absolute',inset:1,zIndex:-1,background:'rgba(10,11,14,0.85)',clipPath:'polygon(4.5px 0,100% 0,100% calc(100% - 4.5px),calc(100% - 4.5px) 100%,0 100%,0 4.5px)'}}),
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',marginRight:'-1.33px',color:gcol,whiteSpace:'nowrap'}}, String(m.grade||'UNIQUE').toUpperCase())),
         h('span',{style:{position:'absolute',left:14,bottom:14,zIndex:4,fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB,whiteSpace:'nowrap'}}, md.Category||''),
         h('span',{style:{position:'absolute',right:15,bottom:15,zIndex:4,fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:SUB,whiteSpace:'nowrap'}}, 'STA −'+m.staminaCost+' · '+this.t('combat_time_limit')+' '+m.timeLimit+'s')),
@@ -3168,7 +3261,12 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
           // 카드 화면 도망은 폐지됐다(2026-08-26) — 카드를 뽑았으면 그 판은 확정. 도망은 전투 사이에서만 시도한다.
           // 몬스터를 보고 무를 수 있으면 depth 램프(깊이=보스 확률)가 무의미해지고, 전투 사이 [도망가기]의 우회로가 된다.
           h('div',{style:{display:'flex',gap:8}},
-            h('button',{disabled:!flipped,'data-guide':'raid-fight',onClick:flipped?()=>this.enterCombat():null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:flipped?'rgb(196,103,93)':'rgb(75,77,82)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:flipped?'pointer':'default'}}, this.t('combat_start'))))));
+            h('button',{disabled:!flipped,'data-guide':'raid-fight','data-skin':'pri',onClick:flipped?()=>this.enterCombat():null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:flipped?'rgb(196,103,93)':'rgb(75,77,82)',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:flipped?'pointer':'default',display:'flex',alignItems:'center',justifyContent:'center',gap:7},'aria-label':this.t('combat_start')},
+              // [전투 ⚔ 시작] / EN [BATTLE ⚔] — 글자 = 지상낙원(전투=아틀라스 · '시작'은 아틀라스에 없어 assets/title/btn_sijak.webp로 따로 구움) · EN = Big Shoulders. 글자·아이콘 모두 검정(#111 · 10-18 진회색에서 변경)
+              h('span',{style:{display:'flex',alignItems:'center',color:flipped?'#111111':'#3A3C41'}}, this.en()? h('span',{style:{...this.titleF(),fontSize:17,lineHeight:'16px',letterSpacing:'.06em'}},'BATTLE') : this.ttx('전투',16)),
+              // 글자 대신 칼 두 자루 교차 아이콘(UI 시안 10-18 · 힉스필드 생성 · 심플 실루엣) — 진회색 20px(사용자 '더 심플하게 진회색으로 작게')
+              h('span',{style:{width:20,height:20,background:flipped?'#111111':'#3A3C41',WebkitMask:'url(assets/art/ui/icons/battle_start.webp?v=3) center/contain no-repeat',mask:'url(assets/art/ui/icons/battle_start.webp?v=3) center/contain no-repeat'}}),
+              this.en()? null : h('span',{style:{width:Math.round(16*82/54),height:16,background:flipped?'#111111':'#3A3C41',WebkitMask:'url(assets/title/btn_sijak.webp) center/contain no-repeat',mask:'url(assets/title/btn_sijak.webp) center/contain no-repeat'}}))))));
   }
   // ---- flee (pre-combat) : 3-card flip, master-sheet flee chance ----
   // 도망 확률 = Config `flee_extract_chance_<회차>`. 행이 없으면 null = 도망 아님(= [귀환하기] 100%).
@@ -4157,12 +4255,13 @@ void main(){
         (val&&mask!=='?')? h('canvas',{key:'vscan',ref:el=>this.mountValScan(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',mixBlendMode:'lighten'}}) : null,   /* 귀중품 = 아트 위 Scanner(전 귀중품 공통 · 사용자 2026-10-12) */
         h('div',{style:{position:'absolute',left:0,bottom:0,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         ((gtags.length||this.durGone(inst))&&mask!=='?')?h('div',{style:{position:'absolute',right:15,top:15,display:'flex',flexDirection:'row-reverse',gap:7}},
-          this.durGone(inst)? h('div',{key:'gone',style:{height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid #C4675D',padding:'0 8px',display:'flex',alignItems:'center'}},
-            h('span',{style:{fontFamily:T.sans,fontSize:11,lineHeight:'100%',color:'#C4675D',whiteSpace:'nowrap'}}, this.t('item_destroyed'))) : null,   /* 파괴됨 = 우측 맨 끝 빨간 태그 · 성장 태그는 그 왼쪽(사용자 2026-10-12) */
+          this.durGone(inst)? h('div',{key:'gone',style:{position:'relative',height:20,boxSizing:'border-box',background:'#C4675D',clipPath:'polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)',padding:'0 8px',display:'flex',alignItems:'center'}},   /* UI 시안(10-18) 깎인 판 */
+            h('div',{style:{position:'absolute',inset:1,background:'#120D0E',clipPath:'polygon(4.5px 0,100% 0,100% calc(100% - 4.5px),calc(100% - 4.5px) 100%,0 100%,0 4.5px)'}}),
+            h('span',{style:{position:'relative',fontFamily:T.sans,fontSize:11,lineHeight:'100%',color:'#C4675D',whiteSpace:'nowrap'}}, this.t('item_destroyed'))) : null,   /* 파괴됨 = 우측 맨 끝 빨간 태그 · 성장 태그는 그 왼쪽(사용자 2026-10-12) */
           // 성장 태그 = 프리즘(라인·글씨에 무지개가 흐름 + 빛줄기) — 라인은 mask xor로 1px 테두리만 남긴다(안쪽 반투명 유지)
-          ...gtags.map((tg,i)=>h('div',{key:i,style:{position:'relative',height:20,boxSizing:'border-box',borderRadius:4,background:'rgba(10,11,14,0.55)',padding:'0 8px',display:'flex',alignItems:'center',overflow:'hidden'}},
-            h('div',{key:'ln',style:{position:'absolute',inset:0,borderRadius:4,padding:1,boxSizing:'border-box',background:PRISM,backgroundSize:'60px 100%',animation:'rlPrism 4s linear infinite',
-              WebkitMask:'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',WebkitMaskComposite:'xor',mask:'linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0)',pointerEvents:'none'}}),
+          ...gtags.map((tg,i)=>h('div',{key:i,style:{position:'relative',height:20,boxSizing:'border-box',clipPath:'polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)',padding:'0 8px',display:'flex',alignItems:'center',overflow:'hidden'}},   /* UI 시안(10-18) 깎인 판 — 바깥 판=흐르는 프리즘, 1px 안쪽 판=어두운 바탕 */
+            h('div',{key:'ln',style:{position:'absolute',inset:0,background:PRISM,backgroundSize:'60px 100%',animation:'rlPrism 4s linear infinite',pointerEvents:'none'}}),
+            h('div',{key:'in',style:{position:'absolute',inset:1,background:'#0E0F12',clipPath:'polygon(4.5px 0,100% 0,100% calc(100% - 4.5px),calc(100% - 4.5px) 100%,0 100%,0 4.5px)',pointerEvents:'none'}}),
             h('span',{key:'tx',style:{position:'relative',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',whiteSpace:'nowrap',background:PRISM,backgroundSize:'60px 100%',WebkitBackgroundClip:'text',backgroundClip:'text',color:'transparent',WebkitTextFillColor:'transparent',animation:'rlPrism 4s linear infinite'}}, abbr[tg]||tg),
             h('div',{key:'sh',style:{position:'absolute',top:0,bottom:0,left:0,width:'80%',background:'linear-gradient(105deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%)',animation:'rlPrismShine 6s ease-in-out '+(i*0.4)+'s infinite',pointerEvents:'none'}}))))
           // 성장 태그는 드랍 시 확정·공개라 미감정 배지가 없다(2026-08-25). 태그가 0개면 아무것도 안 그린다.
@@ -4804,9 +4903,9 @@ void main(){
       h('div',{style:{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8}},
         h('div',{style:{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',minWidth:0}},
           this.catChip(catOf(inst),true),
-          AT(attr)?this.statusChip(attr):null,
+          AT(attr)?this.attrTag(attr):null,
           (inst.unappraised&&inst.unappraised.length)?this.unappTag():null,
-          st==='destroyed'?this.subTag(this.t('item_destroyed')):null),
+          st==='destroyed'?this.brkTag():null),
         growth.length?h('div',{style:{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',justifyContent:'flex-end',flexShrink:0}}, ...growth):null),
       // 아이템명
       h('div',{style:{fontFamily:T.sans,fontSize:14,color:T.hi,marginTop:8}}, this.enhName(inst)),
@@ -4899,7 +4998,7 @@ void main(){
       const v=parseInt(String(c).replace('#',''),16);
       return 'rgba('+((v>>16)&255)+','+((v>>8)&255)+','+(v&255)+','+a+')'; };
     return h('span',{style:{display:'inline-flex',alignItems:'center',flex:'0 0 auto',boxSizing:'border-box',borderRadius:4,background:'rgb(33,35,39)',border:'1px solid '+(col?rgba(col,0.45):'rgb(54,56,60)'),padding:'5px 8px',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',color:col||'rgb(169,171,175)',whiteSpace:'nowrap',textTransform:'uppercase'}}, txt); }
-  qtyChip(inst,ms){ return h('span',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',padding:'3px 8px',borderRadius:4,whiteSpace:'nowrap',background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',color:'rgb(169,171,175)'}}, ((inst.qty||1)>=ms?'MAX':(inst.qty||1))+'/'+ms); }
+  qtyChip(inst,ms){ const mx=(inst.qty||1)>=ms; return h('span',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:10,fontWeight:500,lineHeight:'100%',whiteSpace:'nowrap',color:mx?'#E2C28F':'#A9ABAF'}}, (mx?'MAX':(inst.qty||1))+'/'+ms); }
   invRow(inst,seg,catOf){
     const s=this.eng.anyItem(inst.id)||{};
     const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id];
@@ -4925,9 +5024,9 @@ void main(){
           this.catChip(catOf(inst),equipped),
           equipped?this.eqTag():null,
           (inst.unappraised&&inst.unappraised.length)?this.unappTag():null,
-          AT(attr)?this.subTag('status_'+attr):null,
+          AT(attr)?this.attrTag(attr):null,
           ...this.growthChips(inst),
-          st==='destroyed'?this.subTag(this.t('item_destroyed')):null),
+          st==='destroyed'?this.brkTag():null),
         (!equippable&&ms>=2)?this.qtyChip(inst,ms):null),
       h('div',{style:{display:'flex',alignItems:'center',gap:8,alignSelf:'stretch',flexWrap:'wrap',marginTop:8}},
         h('span',{style:{fontFamily:T.sans,fontSize:14,fontWeight:400,color:T.hi}}, this.enhName(inst,name)),
@@ -5018,7 +5117,7 @@ void main(){
     }
     return out;
   }
-  growthChips(inst){ const active=this.eng.growthTagsActive(inst); if(!active||!active.length) return []; const kr={str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')}; const cnt={}; active.forEach(t=>cnt[t]=(cnt[t]||0)+1); return Object.entries(cnt).map(([k,n])=>this.subTag(kr[k]+(n>1?(' ×'+n):''))); }
+  growthChips(inst){ const active=this.eng.growthTagsActive(inst); if(!active||!active.length) return []; const kr={str:this.t('stat_str'),dex:this.t('stat_dex'),vit:this.t('stat_vit'),will:this.t('stat_will')}; const cnt={}; active.forEach(t=>cnt[t]=(cnt[t]||0)+1); return Object.entries(cnt).map(([k,n])=>this.groTag(kr[k],n)); }
   // 상세 카드 제스처: 위로 스와이프=닫기 / 탭 1회=착용품 비교 플립 토글(canPeek일 때만).
   // 움직임>8px면 탭이 아니라 드래그로 판정 → 두 제스처가 서로 간섭하지 않는다.
   sheetGestures(canPeek){ return {
@@ -5422,7 +5521,7 @@ void main(){
           h('span',{key:'l'}, it.label),
           // 칩은 absolute — gap으로 붙이면 가운데 정렬된 라벨이 밀린다(시설 버튼 칩과 같은 규칙)
           qc? h('span',{key:'chip',style:{position:'absolute',right:16,top:'50%',transform:'translateY(-50%)',display:'flex'}},
-               this.readyChip(this.t('quest_chip_'+qc), this.qCol(qc), {pad:'5px 8px',solid:true})) : null); }))));
+               this.qTag(qc)) : null); }))));
   }
   // ===== 상점 NPC — 평상시 한 줄 (확장_v3 §3.6 「상점 NPC 대화」 · 목업 svg/screen-clinic-menu-npc) =====
   // 실측(402 프레임): NPC 레이어 x91 폭310 높이549(768×1360 원본 비율) · 아래끝 = 패널 윗선
@@ -6052,6 +6151,8 @@ void main(){
   //   탭 라벨 14 · 탭 칩 외곽 h20(bg #212327) · 리스트 행 h89 = shopRow 그대로 · 행 칩 h22(bg #0A0B0E)
   //   시트 폭 370(좌우 마진16) 패딩 24/18 하단 24 · 목표·보상 행 h36 13px · 배너 336x40 r16 #1A1B21
   // 상태색: 신규 #C19E6F · 진행중 #83B289 · 완료 #85B3C5 / 카운터 미달 #AE615C
+  // 퀘스트 상태 태그(신규·진행중·완료) — UI 시안 A안(10-17): 상태색 테두리 깎인 판. 상점 메뉴 퀘스트 버튼·퀘스트 탭·퀘스트 줄 공용.
+  qTag(st){ const c=this.qCol(st); return plate({h:18,bd:'color-mix(in srgb,'+c+' 75%,transparent)',bg:'#0d0e11',fg:c,pad:'0 7px'}, this.t('quest_chip_'+st)); }
   qCol(st){ return st==='done'?'#85B3C5':(st==='run'?'#83B289':'#C19E6F'); }
   // ===== 교신 — 받은 퀘스트를 보는 기록 화면 (확장_v3 §3.6 · 목업 svg/screen-character-top · screen-comms-*) =====
   // 진입 = 캐릭터 헤더 우측 무전기. ⚠️screen-character-top은 바깥 1px 프레임 때문에 전부 +1 밀려 있다 →
@@ -6441,9 +6542,15 @@ void main(){
     if(!this.eng.questRows().some(q=>String(q.Type||'')==='daily'&&String(q.GiverVendorID||'')===vid)) return null;
     const c=this.qVendorCounts(vid);
     return h('div',{style:{flexShrink:0,display:'flex',alignItems:'center',gap:4}},
-      ...[['new','quest_chip_new'],['run','quest_chip_run'],['done','quest_chip_done']].map(([k,lk])=>
-        h('span',{key:k,style:{display:'flex'}},
-          this.readyChip(this.t(lk)+' '+c[k], c[k]>0?this.qCol(k):'#757575', {bg:'#0A0B0E',pad:'4px 9px',solid:true}))));
+      ...[['new','quest_chip_new'],['run','quest_chip_run'],['done','quest_chip_done']].map(([k,lk])=>this.qCodeChip(k,this.t(lk),c[k])));
+  }
+  // UI 시안 B안(10-17) — [상태 | 수] 코드칸 판(PASS·SATO 판과 같은 문법). 0개는 칸을 남기고 색만 죽인다.
+  qCodeChip(k,label,n){ const z=!(n>0), c=this.qCol(k);
+    return h('span',{key:k,style:{position:'relative',display:'inline-flex',alignItems:'stretch',flex:'0 0 auto',height:18,background:'#34363b',clipPath:CUT5}},
+      h('span',{style:{position:'absolute',inset:1,background:'rgba(14,15,18,0.92)',clipPath:CUT4}}),
+      h('span',{style:{position:'relative',display:'flex',alignItems:'center',padding:'0 7px 0 6px',background:z?'#3a3c41':c,color:z?'#7d8086':'#121418',
+        fontFamily:"'IBM Plex Sans KR',system-ui,sans-serif",fontSize:9,fontWeight:600,lineHeight:1,whiteSpace:'nowrap',clipPath:'polygon(0 0,100% 0,calc(100% - 4px) 100%,0 100%)'}}, label),
+      h('span',{style:{position:'relative',alignSelf:'center',padding:'0 7px 0 4px',fontFamily:T.mono,fontSize:10,fontWeight:600,lineHeight:1,color:z?'#6F7276':'#EAEBEE'}}, String(n)));
   }
   qVendorChip(vid){ this.qSync();
     return this.qPick(this.eng.questRows().filter(q=>String(q.Type||'')==='daily'&&String(q.GiverVendorID||'')===vid&&this.qInToday(q))
@@ -6504,7 +6611,7 @@ void main(){
       const st=lock?null:this.qTabChip(k);
       return {k:k, label:this.t('quest_tab_'+k), lock:lock,
         tail: lock? this.hideLockIcon()
-                  : (st? this.readyChip(this.t('quest_chip_'+st), this.qCol(st), {bg:'#212327',solid:true}) : null)};
+                  : (st? this.qTag(st) : null)};
     }), tab, k=>this.setState({qTab:k,qSel:null}), {over:true});
   }
 
@@ -6512,7 +6619,7 @@ void main(){
     const o=this.eng.questObjective(q);
     return this.shopRow({key:q.QuestID, cat:this.qKindLabel(o?o.kind:'submit'),
       name:this.eng.tr(q,'Name'), desc:this.qSummary(q),
-      right:this.readyChip(this.t('quest_chip_'+st), this.qCol(st), {pad:'5px 8px',solid:true}),
+      right:this.qTag(st),
       onClick:()=>this.openQuestSheet(q.QuestID)});
   }
 
@@ -6577,7 +6684,7 @@ void main(){
         h('span',{key:'n',style:{fontFamily:T.mono,color:this.qCntCol(cur,t.count)}}, cur+'/'+t.count),
         parts[1]||''));
   }
-  qBtn(label,color,onClick,key){ return h('button',{key:key,onClick:onClick,
+  qBtn(label,color,onClick,key){ return h('button',{key:key,onClick:onClick,'data-skin':key==='ra'?'pri':null,
     style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:color,fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, label); }
 
   questSheet(q){
@@ -9113,11 +9220,13 @@ void main(){
   // opt.over = 아트 위에 얹히는 화면(상점·퀘스트)에서 position/zIndex를 준다.
   segBar(items,active,onPick,opt){
     const o=opt||{}, n=items.length;
-    return h('div',{style:Object.assign({display:'flex',flex:'0 0 auto',height:47}, o.over?{position:'relative',zIndex:1}:{})},
+    // UI 시안(10-18) — 아래 양쪽 모서리 = 깎인 사선(예전 r16 곡선) · 칸 사이 = 사선 구분선
+    return h('div',{style:Object.assign({position:'relative',display:'flex',flex:'0 0 auto',height:47,background:'#18191D',
+        clipPath:'polygon(0 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,14px 100%,0 calc(100% - 14px))'}, o.over?{zIndex:1}:{})},
+      ...Array.from({length:Math.max(0,n-1)},(_,i)=>h('span',{key:'div'+i,style:{position:'absolute',top:0,bottom:0,left:'calc('+((i+1)*100/n)+'% - 0.5px)',width:1,background:'#2A2C31',transform:'skewX(-24deg)',pointerEvents:'none'}})   /* 위아래 끝까지 꽉 찬 사선 · 1px 은은하게(10-18) */),
       ...items.map((it,i)=>{
         const on=it.k===active, dis=!!it.lock;
-        const br=(n===1)?'0 0 16px 16px':(i===0?'0 0 0 16px':(i===n-1?'0 0 16px 0':'0'));
-        const st={flex:1,height:47,background:'#18191D',border:'none',borderRadius:br,
+        const st={flex:1,height:47,background:'transparent',border:'none',borderRadius:0,
           color:dis?'#4B4D52':(on?'#EAEBEE':'#6F7276'),...this.titleF(),fontSize:16,lineHeight:'16px',
           cursor:dis?'default':'pointer',padding:0};
         if(it.tail) Object.assign(st,{display:'flex',alignItems:'center',justifyContent:'center',gap:8});
@@ -9265,33 +9374,41 @@ void main(){
   usePass(){ this.passTick(); const g=this.gs; if(g.pass<=0) return false;
     g.pass--; if(g.pass<this.passThreshold()) g.passAt=Date.now(); this.savePass(); this.saveGame(); return true; }
   // 재화 칩 — 인벤토리·레이드·프로토콜 지구 우측 상단 공용. PASS(호박) + SATO. PASS 탭 시 패스 화면.
+  // UI 시안(2026-10-17) — [코드칸 | 값] 깎인 판(curPlate). 코드칸 오른쪽은 사선, PASS는 끝에 금색 충전(+) 칸.
   currencyChips(){
     this.passTick();
-    const g=this.gs;
-    // svg/header-default.svg — 알약 h27 r8 반투명검정 + 배지 38x17 r4(PASS #C19E6F / SATO #85B3C5)
-    const badge=(txt,bg,fg,w)=>h('span',{style:{flex:'0 0 auto',width:w||38,height:17,borderRadius:4,background:bg,color:fg,fontFamily:T.mono,fontSize:10,fontWeight:500,letterSpacing:'.04em',display:'flex',alignItems:'center',justifyContent:'center'}}, txt);
-    const pill=(kids,on)=>h('div',{onClick:on||null,style:{display:'flex',alignItems:'center',gap:6,height:27,boxSizing:'border-box',padding:'0 9px',background:'rgba(0,0,0,0.5)',border:'1px solid #0D0F11',borderRadius:8,cursor:on?'pointer':'default'}},...kids);
-    return h('div',{style:{display:'flex',alignItems:'center',gap:4,flex:'0 0 auto'}},
-      pill([badge('PASS','#C19E6F','#111111'),
-            h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:'#FFFFFF',whiteSpace:'nowrap'}}, g.pass+'/'+this.passCap()),
-            h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:'#FFFFFF',opacity:.55}},'+')],
-           ()=>{ this._passFrom=this.state.screen; this._passQty=1; this._passPhase='insert'; this.go('pass'); }),
-      pill([badge('SATO','#85B3C5','#111315'),
-            h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:'#EAEBEE',whiteSpace:'nowrap'}}, g.sato.toLocaleString())]));
+    const g=this.gs, cap=this.passCap();
+    return h('div',{style:{display:'flex',alignItems:'center',gap:6,flex:'0 0 auto'}},
+      this.curPlate({code:'PASS',cc:'#C19E6F',cv:'#F0DDB8',val:g.pass,small:'/'+cap,add:true,state:g.pass<=0?'zero':g.pass>=cap?'full':null,
+        onClick:()=>{ this._passFrom=this.state.screen; this._passQty=1; this._passPhase='insert'; this.go('pass'); }}),
+      this.curPlate({code:'SATO',cc:'#85B3C5',cv:'#CFE3EA',val:g.sato.toLocaleString()}));
+  }
+  // 깎인 판 하나 — 바깥 판(테두리색) + 1px 안쪽 판(바탕) 두 겹 위에 코드칸·값·(+)칸을 얹는다.
+  // state: 'full' = 테두리 금색 / 'zero' = 테두리·값 빨강(PASS 0 · 보관고 가득).
+  curPlate(o){
+    const C5='polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px)', C4='polygon(3.5px 0,100% 0,100% calc(100% - 3.5px),calc(100% - 3.5px) 100%,0 100%,0 3.5px)';   // 높이 20(10-17 '훨씬 작게' → 28에서 축소)
+    const bd=o.state==='full'?'linear-gradient(90deg,#C19E6F,#7c6440)':o.state==='zero'?'#6a2f2a':'#3a3d44';
+    const stripe='repeating-linear-gradient(135deg,rgba(255,255,255,.10) 0 5px,transparent 5px 11px)';
+    return h('div',{onClick:o.onClick||null,style:{position:'relative',display:'inline-flex',alignItems:'stretch',flex:'0 0 auto',height:o.h||20,background:bd,clipPath:C5,cursor:o.onClick?'pointer':'default'}},
+      h('span',{style:{position:'absolute',inset:1,background:'rgba(14,15,18,0.92)',clipPath:C4}}),
+      h('span',{style:{position:'relative',width:o.sans?'auto':(o.codeW||29),display:'flex',alignItems:'center',justifyContent:'center',padding:o.sans?'0 9px 0 6px':'0 3px 0 0',boxSizing:'border-box',
+        background:'linear-gradient(180deg,rgba(255,255,255,.2),transparent 55%),'+o.cc,color:'#121418',fontFamily:o.sans?T.sans:T.mono,fontSize:o.codeFs||(o.sans?9:7.5),fontWeight:600,lineHeight:1,letterSpacing:o.sans?0:'.06em',whiteSpace:'nowrap',
+        clipPath:'polygon(0 0,100% 0,calc(100% - 4px) 100%,0 100%)'}}, o.code),
+      h('span',{style:{position:'relative',display:'flex',alignItems:'baseline',alignSelf:'center',gap:1,padding:'0 8px 0 5px',fontFamily:T.mono,fontSize:o.valFs||10.5,fontWeight:500,lineHeight:1,
+        color:o.state==='zero'?'#F08A7F':o.state==='full'?'#E2C28F':o.cv,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}},
+        String(o.val), o.small?h('small',{style:{fontSize:8.5,color:'#6F7276'}}, o.small):null),
+      o.add?h('span',{style:{position:'relative',width:22,marginLeft:-4,paddingLeft:4,boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',
+        fontFamily:T.mono,fontSize:12,fontWeight:700,lineHeight:1,color:'#15120C',background:stripe+',linear-gradient(160deg,#E2C28F,#C19E6F)',
+        clipPath:'polygon(4px 0,100% 0,100% 100%,0 100%)'}}, '+'):null);
   }
   // STORAGE + SATO. 아지트와 소지품 화면이 쓴다 — 둘 다 '지금 보관고에 얼마나 남았나'가 PASS보다 급하다.
-  // (목업: 배지 57x17 #EAEBEE / 글자 #111111)
   // ⚠️ 이 두 화면 밖에서는 쓰지 말 것 — PASS 칩이 가려지면 패스 충전 진입로가 사라진다.
   //    현재 진입로는 프로토콜 지구·레이드 화면 2곳뿐이다.
   storageChips(){
-    const g=this.gs;
-    const badge=(txt,bg,fg,w)=>h('span',{style:{flex:'0 0 auto',width:w||38,height:17,borderRadius:4,background:bg,color:fg,fontFamily:T.mono,fontSize:10,fontWeight:500,letterSpacing:'.04em',display:'flex',alignItems:'center',justifyContent:'center'}}, txt);
-    const pill=(kids)=>h('div',{style:{display:'flex',alignItems:'center',gap:6,height:27,boxSizing:'border-box',padding:'0 9px',background:'rgba(0,0,0,0.5)',border:'1px solid #0D0F11',borderRadius:8}},...kids);
-    const val=(t,c)=>h('span',{style:{fontFamily:T.mono,fontWeight:500,fontSize:12,color:c||'#EAEBEE',whiteSpace:'nowrap'}}, t);
-    const full=this.vaultRoom()<=0;
-    return h('div',{style:{display:'flex',alignItems:'center',gap:4,flex:'0 0 auto'}},
-      pill([badge('STORAGE','#EAEBEE','#111111',57), val(this.vaultUsed()+'/'+this.vaultCap(), full?'#C4675D':'#FFFFFF')]),
-      pill([badge('SATO','#85B3C5','#111315'), val(g.sato.toLocaleString())]));
+    const g=this.gs, full=this.vaultRoom()<=0;
+    return h('div',{style:{display:'flex',alignItems:'center',gap:6,flex:'0 0 auto'}},
+      this.curPlate({code:'STORAGE',codeW:46,cc:'#C9CBD0',cv:'#EAEBEE',val:this.vaultUsed(),small:'/'+this.vaultCap(),state:full?'zero':null}),
+      this.curPlate({code:'SATO',cc:'#85B3C5',cv:'#CFE3EA',val:g.sato.toLocaleString()}));
   }
   // ===== 태그 단말 (screen-tap-terminal-*.svg · 402x828) =====
   // 존 모달 '레이드하기' → 이 화면. 카드를 위로 끌어 단말에 삽입 → 패스 1회 차감 → 1.5초 뒤 레이드 로딩.
