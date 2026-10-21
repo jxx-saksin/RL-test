@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val45';
-import { buildIndex } from './sheet-loader.js?v=val52';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
+import { DATA as FALLBACK } from './data/game-data.js?v=val46';
+import { buildIndex } from './sheet-loader.js?v=val53';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
 
@@ -769,6 +769,8 @@ export function monsterProfile(m) {
     statusResist: N(m.StatusResist), potency: N(m.Potency),
     attribute: (m.StatusAttack && m.StatusAttack !== 'none') ? m.StatusAttack : null, weaponMaxDmg: N(m.MaxATK),
     grade: m.Grade, staminaCost: N(m.StaminaCost, 1), timeLimit: N(m.CombatTimeLimit, 20),
+    // 오브제(Object 탭) — 반격·상태이상·성장 없음 · 강도(Tier)·확정 사토는 카드·종료 처리용
+    passive: N(m.IsObject) === 1, tier: N(m.Tier), satoMin: N(m.SatoMin), satoMax: N(m.SatoMax),
   };
 }
 
@@ -855,6 +857,10 @@ const DEFAULT_TPL = {
   loot: '적에게서 무언가를 획득했다.',
   talisman_extra: '▶ ⟪징표⟫ 연격',
   talisman_heal: '▶ ⟪징표⟫ 처치 회복 +{Amount} · HP {CurrentHP}',
+  start_object: '{MonsterName} 발견. 제한시간 {TimeLimit}s 안에 부숴라.',
+  win_object: '{MonsterName} 이(가) 부서졌다. ({Elapsed}s)',
+  timeout_object: '제한시간 초과 — {MonsterName} 을(를) 부수지 못했다.',
+  loot_object: '잔해 속에서 무언가를 찾았다.',
 };
 const DEFAULT_TPL_EN = {
   start: 'Encountered {MonsterName} ({Grade}). Time limit {TimeLimit}s.',
@@ -874,6 +880,10 @@ const DEFAULT_TPL_EN = {
   loot: 'Recovered something from the enemy.',
   talisman_extra: '▶ ⟪Charm⟫ extra strike',
   talisman_heal: '▶ ⟪Charm⟫ kill heal +{Amount} · HP {CurrentHP}',
+  start_object: 'Found {MonsterName}. Break it within {TimeLimit}s.',
+  win_object: '{MonsterName} broke apart. ({Elapsed}s)',
+  timeout_object: 'Time out — failed to break {MonsterName}.',
+  loot_object: 'Found something in the wreckage.',
 };
 const uiT = (k) => t(k);
 export function logTpl(id, vars) {
@@ -898,7 +908,9 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
   let t = 0, guard = 0;
   // extra = 연출용 메타(예: 기절 {status:'stun', delay}) — 화면이 로그 텍스트를 파싱하지 않고 구조화된 값을 읽는다.
   const push = (who, type, text, extra) => log.push({ t: +t.toFixed(1), who, type, text, hpP: Math.max(0, Math.round(A.hp)), hpM: Math.max(0, Math.round(B.hp)), ...(extra || {}) });
-  push('sys', 'start', logTpl('start', { MonsterName: mProf.name, Grade: mProf.grade, TimeLimit: limit }));
+  const OBJ = !!mProf.passive;   // 오브제 — 반격 없음(B는 행동하지 않는다) · 상태이상·관통 안 걸림
+  if (OBJ) B.next = Infinity;
+  push('sys', 'start', logTpl(OBJ ? 'start_object' : 'start', { MonsterName: mProf.name, Grade: mProf.grade, TimeLimit: limit }));
 
   // 관통 — 개편(EffectType damage_taken_up): 발동하면 대상이 받는 피해 +스택×Value. 시트가 아직 옛 값(defense_ignore)이면
   // 옛 방식(해당 일격 방어 무시)으로 돈다 — 코드를 시트보다 먼저 배포해도 깨지지 않는다.
@@ -946,7 +958,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     const nm = actor.side === 'player' ? ME : actor.name;
     const fnm = foe.side === 'player' ? ME : foe.name;
     const hc = hitChance(actor.accuracy, foe.evasion);
-    if (!opts.forceHit && Math.random() > hc) {
+    if (!opts.forceHit && !foe.passive && Math.random() > hc) {   // 오브제는 피하지 않는다
       push(actor.side, 'miss', logTpl('miss', { Attacker: nm, Target: fnm, HitPct: (hc * 100).toFixed(0) }));
       if (foe.side === 'player') triggers.evades++;
       return;
@@ -969,7 +981,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     const isCrit = opts.forceCrit || nthCrit || Math.random() < critChance(actor.critChance + ccAdd, foe.critResist);
     if (isCrit) { dmg *= clamp(N(C.crit_damage_mult, 1.5) + N(actor.critMultBonus), 1, 4); if (actor.side === 'player') triggers.critsLanded++; if (actor === A && TAL.critSpeed.length) { for (const c of TAL.critSpeed) { critBuffLeft = Math.max(critBuffLeft, c.hits); critBuffMult = Math.max(critBuffMult === 1 ? 0 : critBuffMult, c.mult); } } }
     let pierceFrac = 0;
-    if (actor.attribute === 'pierce' && !pierceExpose() && !immune(foe, 'pierce') && Math.random() < statusChance(actor.potency, foe.statusResist)) {
+    if (actor.attribute === 'pierce' && !foe.passive && !pierceExpose() && !immune(foe, 'pierce') && Math.random() < statusChance(actor.potency, foe.statusResist)) {
       pierceFrac = rand(N(byId.status.pierce?.Value, 0.05), N(byId.status.pierce?.ValueMax, 0.4));
     }
     let final = defMitigate(dmg, foe.defense, pierceFrac) * exposeMult(foe, t);
@@ -991,7 +1003,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     push(actor.side, isCrit ? 'crit' : 'hit', text, rupM < 1 ? { rup: +(1 - rupM).toFixed(2) } : undefined);   // rup = 약화율(연출: 약해진 타격 숫자 색)
 
     // status application (옛 관통은 위 피해 계산 경로에서 이미 처리됨)
-    if (actor.attribute && (actor.attribute !== 'pierce' || pierceExpose()) && foe.hp > 0 && !immune(foe, actor.attribute)) {
+    if (actor.attribute && !foe.passive && (actor.attribute !== 'pierce' || pierceExpose()) && foe.hp > 0 && !immune(foe, actor.attribute)) {
       const sc = statusChance(actor.potency, foe.statusResist);
       if (Math.random() < sc) {
         const eff = actor.attribute;
@@ -1031,7 +1043,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     }
 
     // 부적: 처치 회복 (플레이어가 몬스터 처치 시 — 이번 전투 종료 후 HP로 이월)
-    if (actor === A && foe === B && foe.hp <= 0 && (TAL.onKillHeal || N(A.killHealPct) > 0)) {
+    if (actor === A && foe === B && foe.hp <= 0 && !foe.passive && (TAL.onKillHeal || N(A.killHealPct) > 0)) {
       const heal = A.maxHp * (TAL.onKillHeal + N(A.killHealPct) / 100);
       A.hp = Math.min(A.maxHp, A.hp + heal);
       push('player', 'heal', logTpl('talisman_heal', { Amount: heal.toFixed(0), CurrentHP: Math.round(A.hp) }));
@@ -1080,9 +1092,9 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
   let winner = 'timeout';
   if (B.hp <= 0) winner = 'player';
   else if (A.hp <= 0) winner = 'monster';
-  if (winner === 'player') push('sys', 'win', logTpl('win', { MonsterName: mProf.name, Elapsed: t.toFixed(1) }));
+  if (winner === 'player') push('sys', 'win', logTpl(OBJ ? 'win_object' : 'win', { MonsterName: mProf.name, Elapsed: t.toFixed(1) }));
   else if (winner === 'monster') push('sys', 'lose', logTpl('lose', { Elapsed: t.toFixed(1) }));
-  else push('sys', 'timeout', logTpl('timeout', { MonsterName: mProf.name }));
+  else push('sys', 'timeout', logTpl(OBJ ? 'timeout_object' : 'timeout', { MonsterName: mProf.name }));
   return { log, winner, triggers, playerHpEnd: Math.max(0, A.hp), elapsed: +t.toFixed(1) };
 }
 

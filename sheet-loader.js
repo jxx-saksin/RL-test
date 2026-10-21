@@ -3,7 +3,7 @@
 // the same structure as the bundled data/game-data.js. CORS-enabled via the
 // gviz endpoint (works for link-shared sheets).
 
-import { DATA as BUNDLE } from './data/game-data.js?v=val45';
+import { DATA as BUNDLE } from './data/game-data.js?v=val46';
 
 // 탭 이름 → shape() 결과 필드. 선택 탭이 실패했을 때 번들 값으로 메꾸는 데 쓴다.
 const TAB_FIELD = { Config:'config', PrimaryStat:'primaryStats', SecondaryStat:'secondaryStats',
@@ -13,15 +13,15 @@ const TAB_FIELD = { Config:'config', PrimaryStat:'primaryStats', SecondaryStat:'
   Affix:'affixes', SpawnTable:'spawnTable', CombatLog:'combatLog', USB:'usb', ColdData:'coldData',
   NpcDialogue:'npcDialogue', UIString:'ui', Liquor:'liquor', Module:'modules', LootGroup:'lootGroups',
   LootGroupItem:'lootGroupItems', Tip:'tips', Facility:'facilities', Blueprint:'blueprints', Quest:'quests',
-  StoryQuest:'storyQuests', QuestDialogue:'questDialogue' };
+  StoryQuest:'storyQuests', QuestDialogue:'questDialogue', Object:'objects' };
 
 export const SHEET_ID = '1d-LNhcuFo1dKO1zzszDNAXXT-zDqffatr1aCe3yB8ls';
 export const TABS = ['Config','PrimaryStat','SecondaryStat','StatusEffect','WeaponAttribute',
   'Weapon','Armor','Item','Valuable','Monster','City','Zone','Vendor','Shop','LootTable','Accessory','Talisman','Bag','Affix','SpawnTable','CombatLog',
   'USB','ColdData','NpcDialogue','UIString',
-  'Liquor','Module','LootGroup','LootGroupItem','Tip','Facility','Blueprint','Quest','StoryQuest','QuestDialogue'];
+  'Liquor','Module','LootGroup','LootGroupItem','Tip','Facility','Blueprint','Quest','StoryQuest','QuestDialogue','Object'];
 // tabs that may not exist yet in older sheets — a failed fetch is non-fatal
-const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString','Liquor','Module','LootGroup','LootGroupItem','Talisman','Bag','Tip','Valuable','Facility','Blueprint','Quest','StoryQuest','QuestDialogue']);
+const OPTIONAL_TABS = new Set(['USB','ColdData','NpcDialogue','UIString','Liquor','Module','LootGroup','LootGroupItem','Talisman','Bag','Tip','Valuable','Facility','Blueprint','Quest','StoryQuest','QuestDialogue','Object']);
 
 // --- RFC4180-ish CSV parser (handles quoted commas + newlines) ---
 export function parseCSV(text) {
@@ -144,12 +144,13 @@ export function shape(rowsByTab) {
     items: toObjs(rowsByTab.Item).filter(r => /^(item_|enh_)/.test(String(r.ItemID || ''))),   // 강화 재료(enh_*)도 Item 탭 행이다(2026-10-15 — item_만 받아 16종이 통째로 빠졌다)
     valuables: pfx(toObjs(rowsByTab.Valuable || []), 'ValuableID', 'item_'),
     monsters: pfx(toObjs(rowsByTab.Monster), 'MonsterID', 'monster_'),
+    objects: pfx(toObjs(rowsByTab.Object || []), 'ObjectID', 'object_'),   // 오브제 조우 카드(부숴서 확정 드랍 · 2026-10-21 신설)
     cities: pfx(toObjs(rowsByTab.City), 'CityID', 'city_'),
     zones: pfx(toObjs(rowsByTab.Zone), 'ZoneID', 'city_'),
     vendors: pfx(toObjs(rowsByTab.Vendor), 'VendorID', 'vendor_'),
     shops: pfx(toObjs(rowsByTab.Shop), 'ShopID', 'shop_'),
-    lootTable: toObjs(rowsByTab.LootTable).map(r => (r.ItemID ? r : { ...r, ItemID: r.itemID })).filter(r => String(r.MonsterID || '').startsWith('monster_') && r.ItemID),
-    spawnTable: toObjs(rowsByTab.SpawnTable || []).filter(r => String(r.ZoneID || '').startsWith('city_') && String(r.MonsterID || '').startsWith('monster_')),
+    lootTable: toObjs(rowsByTab.LootTable).map(r => (r.ItemID ? r : { ...r, ItemID: r.itemID })).filter(r => /^(monster_|object_)/.test(String(r.MonsterID || '')) && r.ItemID),   // 오브제도 MonsterID 열에 ID를 쓴다
+    spawnTable: toObjs(rowsByTab.SpawnTable || []).filter(r => String(r.ZoneID || '').startsWith('city_') && /^(monster_|object_)/.test(String(r.MonsterID || ''))),
     artifacts: toObjs(rowsByTab.Accessory || []),
     talismans: toObjs(rowsByTab.Talisman || []).filter(r => String(r.TalismanID || '').trim()),
     bags: toObjs(rowsByTab.Bag || []).filter(r => String(r.BagID || '').trim()),
@@ -201,6 +202,14 @@ export function bpAsItemRow(b) {
     Category: 'Blueprint', MaxStack: 1 };
 }
 
+// 오브제(Object 탭)를 몬스터 행 스키마로 — 반격 없음(공격 0 · passive) · 회피 0 · 등급 자리에 'Object'.
+//   강도(Tier 1~4)는 HP·방어·제한시간으로 이미 표현되고, 카드 표기용으로만 남긴다.
+export function objAsMonsterRow(o) {
+  return { ...o, MonsterID: o.ObjectID, MonsterName_KR: o.Name_KR, MonsterName_EN: o.Name_EN,
+    Category: 'Object', Grade: 'Object', MinATK: 0, MaxATK: 0, AttackSpeed: 0, Accuracy: 0, Evasion: 0,
+    CritChance: 0, CritResist: 0, StatusResist: 0, StatusAttack: 'none', Potency: 0, IsObject: 1 };
+}
+
 export function buildIndex(DATA) {
   const valuables = (DATA.valuables || []).map(asItemRow);
   const blueprints = (DATA.blueprints || []).map(bpAsItemRow);
@@ -210,7 +219,10 @@ export function buildIndex(DATA) {
     valuable: Object.fromEntries(valuables.map(x => [x.ItemID, x])),
     weapon: Object.fromEntries(DATA.weapons.map(x => [x.WeaponID, x])),
     armor: Object.fromEntries(DATA.armor.map(x => [x.ArmorID, x])),
-    monster: Object.fromEntries(DATA.monsters.map(x => [x.MonsterID, x])),
+    // ★오브제는 byId.monster에만 몬스터 모양 행으로 끼운다 — DATA.monsters(목록·풀·USB·4분류)에는 안 들어간다.
+    //   전투·카드·드랍·스폰은 ID로 byId.monster를 찾으므로 그대로 돌고, 몬스터 목록을 훑는 곳엔 안 걸린다.
+    monster: Object.fromEntries([...DATA.monsters, ...(DATA.objects || []).map(objAsMonsterRow)].map(x => [x.MonsterID, x])),
+    object: Object.fromEntries((DATA.objects || []).map(x => [x.ObjectID, x])),
     artifact: Object.fromEntries((DATA.artifacts || []).map(x => [x.AccessoryID, x])),
     talisman: Object.fromEntries((DATA.talismans || []).map(x => [x.TalismanID, x])),
     bag: Object.fromEntries((DATA.bags || []).map(x => [x.BagID, x])),
