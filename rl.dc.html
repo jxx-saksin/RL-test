@@ -601,7 +601,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 115;
+const TITLE_VER = 116;
 const TITLE_DATE = '1021';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -848,8 +848,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val97');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val56');
+      const eng = await import('./engine.js?v=val98');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val57');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -1168,7 +1168,7 @@ class Component extends DCLogic {
     const n = this.eng.N(this.eng.DATA.config.combat_card_count, 3);
     const zone = this.eng.byId.zone[this.combat.zoneId];
     const isPvp = this.isPvpZone(zone);
-    const userChance = zone ? this.eng.N(String(zone.UserDataChance==null?'':zone.UserDataChance).replace('%',''))/100 : 0;
+    const userChance = this.pvpChance(zone)/100;
     // 조우 카드: PvP 존에서는 각 카드가 UserDataChance(%)로 몬스터/유저(콜드데이터) 확정 (§6-6)
     const cards = this.eng.drawCards(this.combat.zoneId, n, this.combat.bossUp||0).map(id=>{
       if(isPvp && Math.random()<userChance){
@@ -2257,8 +2257,13 @@ class Component extends DCLogic {
   }
   // PvP 확률 칩 — svg/screen-battle-pvp-*.svg. 알약 122x27 r8 · 배지 76x17 r4 #C4675D.
   // 값 = Zone.UserDataChance(%) — drawCards가 조우 카드를 유저로 굴릴 때 쓰는 바로 그 확률.
+  // 유저(콜드데이터) 조우 확률 % — Zone.UserDataChance · 단 진행 중인 임무의 Objective.noPvp에 그 존이 있으면 0
+  //   (「잡음 섞인 교신」 카메라 4마리 · 콜드데이터가 절반이라 칩까지 평균 21전 → 퀘스트 중엔 PvP 없음 · 사용자 10-21)
+  pvpChance(zone){ if(!zone) return 0; const base=this.eng.N(String(zone.UserDataChance==null?'':zone.UserDataChance).replace('%',''),0);
+    const c=this.gs&&this.storyMap().cur; if(!c||c.s!=='run') return base; const q=this.eng.storyRow(c.id), o=q&&this.eng.questObjective(q), np=o&&o.noPvp;
+    return (np===true||(Array.isArray(np)&&np.indexOf(zone.ZoneID)>=0))? 0 : base; }
   pvpChip(zone){
-    const pct=this.eng.N(String(zone&&zone.UserDataChance==null?'':zone.UserDataChance).replace('%',''),0);
+    const pct=this.pvpChance(zone);
     return this.curPlate({code:'PVP CHANCE',codeW:78,h:24,codeFs:9,valFs:12.5,cc:'#C4675D',cv:'#EAEBEE',val:pct+'%'});   // UI 시안(10-18) 깎인 판
   }
   // 소지품 기준 카운트 칩(주머니/가방/전리품) — 전리품 화면(lm) 밖에서 쓴다.
@@ -2732,15 +2737,15 @@ class Component extends DCLogic {
     //   기절로 밀린 시간도 이미 그 구간에 들어 있어 멈추지 않고 노랑으로 느리게 찬다 · 튜토리얼 팝업 동안은 로그와 같이 멈춘다.
     const seg=(side)=>this.combatGaugeSeg(c,side), paused=!!this.state.tuto;
     const gSty=(side,sg)=>({height:'100%',background:stn(side)?'#D8BE78':(rup(side)?'#B27EAD':T.dur),width:(animate&&sg)?undefined:'0%',animation:(animate&&sg)?('rlCharge '+sg.dur.toFixed(3)+'s linear 1 both'):'none',animationPlayState:paused?'paused':'running'});
-    const fist=(sg)=>h('div',{key:sg?'f'+sg.k:'fs',style:{animation:(animate&&sg)?('rlPunch '+sg.dur.toFixed(3)+'s linear 1 both'):'none',animationPlayState:paused?'paused':'running',flex:'0 0 auto'}}, icDuel(16));
+    const fist=(side,sg)=>h('div',{key:'f'+side+(sg?sg.k:'s'),   /* 쪽별 키 — 양쪽이 같은 키('fs'·'f-1')면 DC가 노드를 겹쳐 남겨 주먹이 2개로 보였다(10-21) */style:{animation:(animate&&sg)?('rlPunch '+sg.dur.toFixed(3)+'s linear 1 both'):'none',animationPlayState:paused?'paused':'running',flex:'0 0 auto'}}, icDuel(16));
     const pS=animate?seg('player'):null, mS=animate&&!c.mProf.passive?seg('monster'):null;
     // 왼쪽 = 유저, 오른쪽 = 몬스터 (카드 배치와 같은 방향). 유저 게이지는 왼쪽에서, 몬스터 게이지는 오른쪽 끝에서 차오른다.
     return h('div',{style:{display:'flex',alignItems:'center',gap:7,padding:'15px 0'}},
-      fist(pS),
-      h('div',{style:{flex:1,height:5,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{key:pS?'pa'+pS.k:'ps',style:gSty('player',pS)})),
-      h('div',{style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:11,color:T.warn,border:'1px solid '+T.line2,borderRadius:3,padding:'3px 9px',minWidth:52,textAlign:'center'}}, mmss),
-      h('div',{style:{flex:1,height:5,background:T.s3,borderRadius:99,overflow:'hidden',display:'flex',justifyContent:'flex-end'}}, c.mProf.passive?null:h('div',{key:mS?'ma'+mS.k:'ms',style:gSty('monster',mS)})),   // 오브제는 행동하지 않는다 — 게이지 비움
-      fist(mS));
+      fist('p',pS),
+      h('div',{key:'pg',style:{flex:1,height:5,background:T.s3,borderRadius:99,overflow:'hidden'}}, h('div',{key:pS?'pa'+pS.k:'ps',style:gSty('player',pS)})),
+      h('div',{key:'tm',style:{flex:'0 0 auto',fontFamily:T.mono,fontSize:11,color:T.warn,border:'1px solid '+T.line2,borderRadius:3,padding:'3px 9px',minWidth:52,textAlign:'center'}}, mmss),
+      h('div',{key:'mg',style:{flex:1,height:5,background:T.s3,borderRadius:99,overflow:'hidden',display:'flex',justifyContent:'flex-end'}}, c.mProf.passive?null:h('div',{key:mS?'ma'+mS.k:'ms',style:gSty('monster',mS)})),   // 오브제는 행동하지 않는다 — 게이지 비움
+      fist('m',mS));
   }
   // 로그 공개 간격(ms) — 줄 k-1이 보인 뒤 줄 k가 보일 때까지. 첫 줄은 enterCombat의 300ms, 그 뒤는 tick의 combatDelay와 같은 값.
   combatGap(c,k){ return k<=1?300:this.combatDelay({res:c.res,revealed:k}); }
@@ -3549,16 +3554,13 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     return h('div',{style:{display:'flex',flexDirection:'column',gap:6,fontFamily:T.mono,fontSize:11}}, ...rows.map((r,i)=>h('div',{key:i,style:{display:'flex',gap:18}}, cell(r[0],r[1]), cell(r[2],r[3]))));
   }
   userFront(m){
-    const bot=this.combat.pvp||{};
     return h('div',{style:{width:342,background:T.s1,border:'1px solid '+T.line,borderRadius:8,overflow:'hidden',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
       h('div',{style:{position:'relative',height:140,overflow:'hidden',background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
         h('img',{src:PVP_COLD_ART,alt:'',draggable:false,onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:PVP_COLD_POS}}),   // PvP 상대 공용 실루엣(봇 전원 한 장 · 10-21)
-        h('div',{style:{position:'absolute',right:12,top:11,fontFamily:T.mono,fontSize:9,letterSpacing:'.1em',color:T.sato,background:'oklch(0.15 0.006 264 / .55)',border:'1px solid oklch(0.9 0 0 / .18)',borderRadius:3,padding:'2px 7px'}}, 'TIER '+(bot.Tier!=null&&bot.Tier!==''?bot.Tier:'—')),
         h('div',{style:{position:'absolute',left:13,bottom:10,fontFamily:T.mono,fontSize:9.5,color:T.sato,letterSpacing:'.1em'}}, this.t('kicker_userdata'))),
       h('div',{style:{padding:'12px 15px 0'}},
         h('div',{style:{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}},
-          h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:T.hi,whiteSpace:'nowrap'}}, this.ttx(m.name,18,20.4)),   // 이름 = 몬스터 카드와 같은 구운 타이틀 글자 18(10-21)
-          this.chip('pvp_cold_chip',T.sato)),
+          h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:T.hi,whiteSpace:'nowrap'}}, this.ttx(m.name,18,20.4))),   // 이름 = 몬스터 카드와 같은 구운 타이틀 글자 18 · TIER 칩·콜드데이터 칩 삭제(10-21 사용자)
         m.desc?h('div',{style:{fontFamily:T.sans,fontSize:11.5,color:T.lo,lineHeight:1.5,marginTop:5}}, m.desc):null,
         h('div',{style:{display:'flex',alignItems:'center',gap:9,margin:'11px 0'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,color:T.lo,width:48}},this.t('stat_hp')), h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,overflow:'hidden',backgroundImage:'repeating-linear-gradient(45deg, transparent 0 5px, oklch(0.30 0.009 264) 5px 6px)'}}), h('span',{style:{fontFamily:T.mono,fontSize:12,color:T.lo,width:44,textAlign:'right',letterSpacing:'.06em'}}, '???')),
         this.maskedStatLines()),
