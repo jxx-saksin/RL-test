@@ -360,16 +360,19 @@ const gearIcon=(slot,on)=>{
 };
 // 장착 칸 전체 — 장갑 hands·신발 feet 추가(2026-10-21). 칸 UI는 캐릭터 화면 charGear()가 그린다(소지품 화면엔 장비 섹션이 없다).
 // 가방별 '열린 모습' 그림(assets/art/ui/bagview/<BagID>.webp) — 칸 수가 클수록 그림도 커진다. 이 값은 그림의 기하(시트 수치가 아님)라 그림 옆에 둔다.
-//   ar = 높이/폭 · zoom = 화면 폭 대비 확대(좌우 크롭) · rect = 슬롯이 놓일 입구 안쪽 영역(그림 전체 대비 비율 [좌,우,위,아래]).
+//   ar = 높이/폭 · rect = 슬롯이 놓일 입구 안쪽 영역(그림 전체 대비 비율 [좌,우,위,아래]).
+//   pad(선택) = 입구가 둥글어 모서리가 걸릴 때 더 확대하는 배율. 확대(zoom)는 적지 않는다 — 가방 슬롯 한 칸이 주머니(안전 케이스) 슬롯과 같은 크기(INV_SLOT)가 되도록 belongings()가 계산한다(좌우는 크롭).
 //   그림이 없는 가방은 공용 6칸 그림(inv_bag.webp)으로 폴백한다. 새 가방은 시안 → 영역 측정 → 여기에 한 줄 추가.
+const BAG_EASE = 0.8;   // 1 = 슬롯이 입구에 딱 맞는 확대 · 작을수록 그림이 덜 확대되고 슬롯 가장자리가 입구 테두리에 살짝 걸친다
+const INV_SLOT = {w:1-0.1156-0.109, h:(1-0.155-0.177)*566/800/2};   // 주머니 슬롯 한 칸 = 화면 폭(W) 대비 [폭, 높이]
 const BAG_VIEW = {
-  bag_bundle_01:{ar:0.7534,zoom:1.0,rect:[0.17,0.82,0.2,0.71]},
-  bag_relief_01:{ar:1.0,zoom:1.2,rect:[0.22,0.78,0.19,0.68]},
-  bag_raider_haul_sack:{ar:1.0,zoom:1.22,rect:[0.17,0.8,0.21,0.7]},
-  bag_canvas_sling:{ar:1.3273,zoom:1.26,rect:[0.2,0.8,0.3,0.78]},
-  bag_rigger_pack:{ar:1.5,zoom:1.33,rect:[0.2389,0.7659,0.2296,0.7307]},
-  bag_manager_case:{ar:1.3273,zoom:1.2,rect:[0.1791,0.8118,0.2476,0.7081]},
-  bag_exile_duffel:{ar:1.3273,zoom:1.06,rect:[0.1964,0.7491,0.1652,0.7339]}
+  bag_bundle_01:{ar:0.7534,rect:[0.17,0.82,0.2,0.71]},
+  bag_relief_01:{ar:1.0,rect:[0.22,0.78,0.19,0.68]},
+  bag_raider_haul_sack:{ar:1.0,rect:[0.17,0.8,0.21,0.7]},
+  bag_canvas_sling:{ar:1.3273,rect:[0.2,0.8,0.3,0.78]},
+  bag_rigger_pack:{ar:1.5,rect:[0.2389,0.7659,0.2296,0.7307]},
+  bag_manager_case:{ar:1.3273,rect:[0.1791,0.8118,0.2476,0.7081]},
+  bag_exile_duffel:{ar:1.3273,rect:[0.1964,0.7491,0.1652,0.7339],pad:1.1}
 };
 const EQ_SLOTS = ['weapon','head','body','hands','feet','artifact1','artifact2','bag'];
 const EQ_GEAR = ['weapon','head','body','hands','feet','artifact1','artifact2'];
@@ -571,7 +574,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 112;
+const TITLE_VER = 113;
 const TITLE_DATE = '1021';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -4194,6 +4197,13 @@ void main(){
   // 히든존 키카드 판정: 아이템 Category==='Key'. 앞으로 모든 키카드는 카드 전체가 아트웍이 된다.
   isKeycard(inst){ const it=inst&&this.eng.byId.item[inst.id]; return !!(it && it.Category==='Key'); }
   isBlueprint(inst){ return !!(inst && this.eng.byId.blueprint && this.eng.byId.blueprint[inst.id]); }
+  // 목록·슬롯용 작은 아트 경로 — 큰 카드와 같은 아트를 쓴다: USB = 몬스터 아트 · 도면 = 디스크 아트 · 모듈 = 모듈 카드 아트 · 키카드 = cards/ · 그 외 = items/<id>
+  invArt(inst){ const id=inst.id, e=this.eng;
+    const usb=e.byId.usb&&e.byId.usb[id]; if(usb&&usb.MonsterID) return 'assets/art/monsters/'+usb.MonsterID+'.webp';
+    if(this.isBlueprint(inst)) return 'assets/art/cards/blueprint_disc.webp';
+    if(e.byId.module&&e.byId.module[id]) return 'assets/art/cards/module_card.webp?v=2';
+    if(this.isKeycard(inst)) return 'assets/art/cards/'+id+'.webp';
+    return 'assets/art/items/'+id+'.webp'; }
   // 도면(디스크) 카드 — 목업 card-blueprint-disk.svg 실측(342x442):
   //   아트 340x317 풀블리드(+상단 80px 페이드) · '디스크' y296 x18 · INSTALL y297 우측 · 제목 y334 · 설명 y362 2줄
   // 아트는 **전 도면 공용** 한 장이라 id별 파일을 찾지 않는다(①: 같은 아트웍).
@@ -4867,7 +4877,7 @@ void main(){
     const seg=this.state.seg, filter=this.state.filter;
     this.tutoTick(seg);   // 튜토리얼 팝업 — 탭이 바뀐 첫 렌더에서만 걸린다(다음 틱 실행)
     const list=(seg==='vault'?this.gs.vault:this.gs.bag);
-    const cats=[['전체','common_all'],['무기','item_weapon'],['방어구','item_armor_body'],['가방','item_bag'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['징표','item_talisman'],['술','item_liquor'],['모듈','item_module'],['강화','item_enhance'],['데이터','item_data'],['귀중품','item_quest']];
+    const cats=[['전체','common_all'],['무기','item_weapon'],['방어구','item_armor_body'],['장갑','item_hands'],['신발','item_feet'],['가방','item_bag'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['징표','item_talisman'],['술','item_liquor'],['모듈','item_module'],['강화','item_enhance'],['데이터','item_data'],['귀중품','item_quest']];
     cats.push(['퀘스트','item_questitem']);   // 퀘스트 전용 아이템(챕터3 1번 · 칸 수에 안 셈)
     const catOf=(inst)=>{ if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]) return '술'; if(this.eng.byId.module&&this.eng.byId.module[inst.id]) return '모듈'; if(this.eng.byId.usb&&this.eng.byId.usb[inst.id]) return '데이터'; const s=this.eng.anyItem(inst.id); if(!s) return ''; return CATKR[s.Category]||s.Category; };
     // ★'방어구' 칩 하나가 투구·갑옷을 함께 담는다. 예전 '갑옷' 칩은 Body만 잡아
@@ -4886,7 +4896,10 @@ void main(){
       // 소지품=슬롯 3섹션(belongings) · 금고=필터칩+리스트(기존)
       seg==='bag'? this.belongings(catOf) : h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
         h('div',{style:{display:'flex',gap:6,padding:'12px 18px',overflowX:'auto',flex:'0 0 auto'}},
-          ...cats.map(([id,lk])=>h('button',{key:id,'data-guide':'vcat-'+id,onClick:()=>this.setState({filter:id}),style:{flex:'0 0 auto',background:filter===id?'rgb(43,46,50)':'transparent',border:'1px solid '+(filter===id?'rgb(74,77,83)':'rgb(54,56,60)'),color:filter===id?'rgb(234,235,238)':'rgb(111,114,118)',fontFamily:T.mono,fontSize:11,padding:'5px 11px',borderRadius:999,cursor:'pointer',whiteSpace:'nowrap'}},lk==='item_enhance'?this.tOr(lk,this.en()?'Enhance':'강화'):this.t(lk)))),   // item_enhance = UIString 행 없음 → 폴백
+          ...cats.map(([id,lk])=>{ const on=filter===id;   // 깎인 판 칩(10-21 · 알약형 폐기) — 바깥 판=선 색, 1px 안쪽 판=바탕 → 사선까지 선이 따라간다
+            return h('button',{key:id,'data-guide':'vcat-'+id,onClick:()=>this.setState({filter:id}),style:{flex:'0 0 auto',padding:1,border:'none',background:on?'rgb(74,77,83)':'rgb(54,56,60)',clipPath:'polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)',cursor:'pointer'}},
+              h('span',{style:{display:'block',background:on?'rgb(43,46,50)':'#111315',clipPath:'polygon(5.6px 0,100% 0,100% calc(100% - 5.6px),calc(100% - 5.6px) 100%,0 100%,0 5.6px)',color:on?'rgb(234,235,238)':'rgb(111,114,118)',fontFamily:T.mono,fontSize:11,lineHeight:'14px',padding:'5px 12px',whiteSpace:'nowrap'}},
+                lk==='item_enhance'?this.tOr(lk,this.en()?'Enhance':'강화'):this.t(lk))); })),   // item_enhance = UIString 행 없음 → 폴백
         // 당겨서 정리 — 클리퍼(overflow:hidden) 안에서 리스트만 내려가고 그 위로 힌트가 드러난다.
         h('div',Object.assign({style:{flex:1,position:'relative',overflow:'hidden',overscrollBehavior:'contain',userSelect:'none',WebkitUserSelect:'none',WebkitTouchCallout:'none'}}, this.vtHandlers()),
           h('div',{key:'vthint',ref:el=>{this._vtHint=el;},style:{position:'absolute',left:0,right:0,top:0,height:90,
@@ -4922,10 +4935,16 @@ void main(){
       const bagInst=gs.equip&&gs.equip.bag?this.eng.instById(gs,gs.equip.bag):null; const V=bagInst&&BAG_VIEW[bagInst.id];
       if(V){   // 이 가방의 그림 — 칸 수만큼만 줄을 그린다(그림 크기가 이미 칸 수에 맞다)
         const rows=[]; for(let i=0;i<cap;i++) rows.push(bag[i]?this.invSlotRow(bag[i],'bag',catOf):this.invEmptySlot('bag',i));
-        const z=V.zoom, off=(z-1)/2, [rx0,rx1,ry0,ry1]=V.rect;
-        secs.push(h('div',{key:'bg:'+bagInst.id,style:{position:'relative',width:'100%',height:0,paddingBottom:(V.ar*z*100)+'%',overflow:'hidden',marginTop:6,background:'#101114'}},
-          art('assets/art/ui/bagview/'+bagInst.id+'.webp',{position:'absolute',width:(z*100)+'%',left:(-off*100)+'%',top:0,height:'auto'}),
-          h('div',{style:{position:'absolute',left:((rx0*z-off)*100)+'%',right:((1-(rx1*z-off))*100)+'%',top:(ry0*100)+'%',bottom:((1-ry1)*100)+'%',display:'flex',flexDirection:'column'}}, rows)));
+        const [rx0,rx1,ry0,ry1]=V.rect;
+        const z=Math.max(1, Math.max(INV_SLOT.w/(rx1-rx0), INV_SLOT.h*cap/((ry1-ry0)*V.ar))*BAG_EASE*(V.pad||1)), off=(z-1)/2;   // 슬롯이 입구에 딱 들어가는 최소 확대
+        // 그림 전체를 깔면 슬롯 위아래로 가방 몸통이 남아 슬롯이 비어 보인다 → 슬롯 영역 + 위아래 여백(0.3W)만 창처럼 잘라 보여 준다.
+        const gh=V.ar*z, rhW=cap*INV_SLOT.h, ch=Math.min(gh, rhW+2*0.3);   // 그림 높이 · 슬롯 영역 높이 · 컨테이너 높이(모두 W 단위)
+        const cx=(rx0+rx1)/2*z-off, cyW=(ry0+ry1)/2*gh;
+        const t=Math.min(0,Math.max(ch-gh, ch/2-cyW)), cyC=cyW+t;   // 그림 위 오프셋(W) · 입구 중심의 컨테이너 내 위치(W)
+        secs.push(h('div',{key:'bg:'+bagInst.id,style:{padding:'14px 12px 0'}},   // 주머니와 같은 좌우 여백 — 폭 기준(W)이 같아야 슬롯 크기가 같다
+          h('div',{style:{position:'relative',width:'100%',height:0,paddingBottom:(ch*100)+'%',overflow:'hidden',background:'#101114'}},
+            art('assets/art/ui/bagview/'+bagInst.id+'.webp',{position:'absolute',width:(z*100)+'%',left:(-off*100)+'%',top:(t/ch*100)+'%',height:'auto'}),
+            h('div',{style:{position:'absolute',left:((cx-INV_SLOT.w/2)*100)+'%',right:((1-cx-INV_SLOT.w/2)*100)+'%',top:((cyC-rhW/2)/ch*100)+'%',bottom:((1-(cyC+rhW/2)/ch)*100)+'%',display:'flex',flexDirection:'column'}}, rows))));
       } else {   // 폴백 — 공용 6칸 그림 위에 6줄 고정, 남는 줄은 '사용 불가'
         const n=Math.max(ROWS,cap); const rows=[];
         for(let i=0;i<n;i++) rows.push(bag[i]?this.invSlotRow(bag[i],'bag',catOf):(i<cap?this.invEmptySlot('bag',i):this.invLockedSlot(i)));
@@ -4960,7 +4979,7 @@ void main(){
       style:{position:'relative',flex:'1 1 0',minHeight:0,boxSizing:'border-box',padding:'2.5px 0',touchAction:'pan-y'}},
       h('div',{style:{position:'relative',height:'100%',boxSizing:'border-box',display:'flex',alignItems:'stretch',background:'rgba(255,255,255,.09)',border:'1px solid rgba(255,255,255,.16)'}},
         h('div',{style:{flex:'0 0 auto',alignSelf:'center',height:'80%',aspectRatio:'1 / 1',marginLeft:7,background:'#0B0C0F',position:'relative',overflow:'hidden'}},
-          h('img',{src:'assets/art/items/'+inst.id+'.webp',draggable:false,onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',pointerEvents:'none',userSelect:'none',WebkitUserDrag:'none'}})),
+          h('img',{src:this.invArt(inst),draggable:false,onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',pointerEvents:'none',userSelect:'none',WebkitUserDrag:'none'}})),
         h('div',{style:{flex:1,minWidth:0,display:'flex',flexDirection:'column',justifyContent:'center',gap:3,padding:'0 8px'}},
           h('div',{style:{display:'flex',alignItems:'center',gap:5,minWidth:0}}, this.catChip(catOf(inst),false), this.gtagPill(inst)),
           h('div',{'data-invname':'1',style:{fontFamily:T.sans,fontSize:14,color:T.hi,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, this.enhName(inst)),
@@ -5366,11 +5385,10 @@ void main(){
   // ---- 착용 장비 (캐릭터 화면 맨 위) — 실루엣 위에 8칸. 좌: 투구·갑옷·장갑·신발 / 우: 장신구·가방·징표·무기. 2026-10-21 확정 목업.
   // 좌표는 목업 기준 718×1010 상자의 비율이다(퍼센트로 환산해 폭이 달라져도 같은 자리). 빈 칸은 탭해도 아무 일도 없다.
   charGear(){
-    const g=this.gs; const HW=718, HH=1010, SW=150, SH=190, GAP=232, Y0=50;
+    const g=this.gs; const HW=718, HH=1010, SW=128, SH=192, GAP=232, Y0=48;   // 슬롯 = 가로:세로 2:3 (카드 비율)
     const ANCH={"head": [358.5, 112.1], "chest": [338.2, 277.0], "neck": [365.3, 190.2], "back": [412.7, 233.6], "waist": [385.6, 450.6], "handR": [460.2, 546.1], "handL": [256.8, 546.1], "foot": [324.6, 893.3]};
     const L=[['head','Head','head'],['body','Body','chest'],['hands','Hands','handL'],['feet','Feet','foot']];
     const R=[['artifact1','Accessory','neck'],['bag','Bag','back'],['artifact2','Talisman','waist'],['weapon','Weapon','handR']];
-    const label=(cat)=>{ const k=this.catKey(cat); const v=this.eng.t(k); return (v&&v!==k)?v:(this.en()?cat:(CATKR[cat]||cat)); };
     const lines=[], dots=[];
     const slotEl=(slot,cat,anc,side,i)=>{
       const uid=g.equip&&g.equip[slot]; const inst=uid?this.eng.instById(g,uid):null; const y=Y0+GAP*i;
@@ -5378,14 +5396,24 @@ void main(){
       lines.push(h('line',{key:'l'+slot,x1:ex,y1:y+SH/2,x2:p[0],y2:p[1],stroke:'rgba(255,255,255,.18)','stroke-width':1.5}));
       dots.push(h('circle',{key:'d'+slot,cx:p[0],cy:p[1],r:4.5,fill:'rgba(232,232,234,.82)'}));
       const pos={position:'absolute',top:(y/HH*100)+'%',width:(SW/HW*100)+'%',height:(SH/HH*100)+'%'}; pos[side==='L'?'left':'right']=(20/HW*100)+'%';
+      const C=8, W2=1, poly=(c)=>'polygon('+c+'px 0,100% 0,100% calc(100% - '+c+'px),calc(100% - '+c+'px) 100%,0 100%,0 '+c+'px)';   // 사선으로 깎인 틀(좌상·우하) — 앱 공통 문법
+      if(!inst) return h('div',{key:slot,style:pos},   // 미착용 = 점선 윤곽 + 슬롯 종류(영문 고정, 언어와 무관)
+        h('svg',{'data-guide':'cgear-'+slot,viewBox:'0 0 100 150',preserveAspectRatio:'none',style:{position:'absolute',inset:0,width:'100%',height:'100%',overflow:'visible'}},
+          h('polygon',{points:'7,0.75 99.25,0.75 99.25,143 93,149.25 0.75,149.25 0.75,7',fill:'rgba(255,255,255,.025)',stroke:'rgba(190,192,198,.28)','stroke-width':1.3,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','stroke-linejoin':'round'})),
+        h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.mono,fontSize:8.5,letterSpacing:'.05em',color:'rgba(190,192,198,.55)',pointerEvents:'none'}}, cat==='Accessory'?'ACC':cat.toUpperCase()));
+      // 테두리 = 강화 단계 — +0 은은한 회색 · +1 밝은 회색 · +2 은색 · +3 호박(빛 한 줄기) · +4 붉은빛(두 줄기) · +5 프리즘. 카드 이펙트와 같은 색·움직임을 사선 틀을 따라 그린다.
+      const n=Math.min(5,this.eng.enhLevel(inst)); const SILVER='linear-gradient(135deg,#F2F4F7 0%,#9EA3AB 35%,#E6E9EE 55%,#8A8F97 80%,#D9DCE1 100%)';
+      const rb=['rgba(255,255,255,.2)','rgba(214,216,220,.75)',SILVER,'rgba(204,162,110,.8)','rgba(196,103,93,.85)',null][n];
+      const spin=[null,null,null,'conic-gradient(from var(--rlA),rgba(204,162,110,0) 0deg,rgba(204,162,110,0) 250deg,rgba(255,214,150,.98) 330deg,rgba(204,162,110,0) 360deg)','conic-gradient(from var(--rlA),rgba(196,103,93,0) 0deg,rgba(255,140,120,1) 40deg,rgba(196,103,93,0) 90deg,rgba(196,103,93,0) 180deg,rgba(255,140,120,1) 220deg,rgba(196,103,93,0) 270deg)','conic-gradient(from var(--rlA),#F4B3CB,#F3D7A2,#BFEFCB,#A6D9F3,#C8B3F2,#F4B3CB)'][n];
+      const dur=[0,0,0,3.2,2.4,3][n]; const glow=[null,null,null,'rgba(204,162,110,.35)','rgba(196,103,93,.4)','rgba(200,179,242,.45)'][n];
+      const lay={position:'absolute',inset:0,pointerEvents:'none'};
       return h('div',{key:slot,style:pos},
-        h('div',{style:{position:'absolute',left:3,top:-14,fontFamily:T.sans,fontSize:9.5,color:T.faint,whiteSpace:'nowrap'}}, label(cat)),
-        h('div',{'data-guide':'cgear-'+slot,onClick:inst?()=>this.setState({sel:inst.uid,moveQty:null}):undefined,style:{position:'absolute',inset:0,boxSizing:'border-box',background:'rgba(255,255,255,.09)',border:'1px solid rgba(255,255,255,.16)',padding:'5.3% 11% 0',display:'flex',flexDirection:'column',cursor:inst?'pointer':'default'}},
-          h('div',{style:{position:'relative',width:'100%',height:0,paddingBottom:'100%',background:inst?'#0B0C0F':'transparent',border:inst?'none':'1px dashed rgba(190,192,198,.4)',boxSizing:'border-box'}},
-            inst?h('img',{src:'assets/art/items/'+inst.id+'.webp',draggable:false,onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',pointerEvents:'none',userSelect:'none',WebkitUserDrag:'none'}})
-                :h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.sans,fontSize:10,color:'rgba(190,192,198,.6)'}}, this.tf('equip_unequipped','미착용','Empty'))),
-          inst?h('div',{style:{marginTop:'3%',textAlign:'center',fontFamily:T.sans,fontSize:9.5,lineHeight:1.15,color:T.hi,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',wordBreak:'keep-all'}}, this.enhName(inst)):null));
-    };
+        h('div',{'data-guide':'cgear-'+slot,onClick:()=>this.setState({sel:inst.uid,moveQty:null}),style:{position:'absolute',inset:0,cursor:'pointer',filter:glow?'drop-shadow(0 0 7px '+glow+')':'none'}},
+          h('div',{style:{position:'absolute',inset:0,clipPath:poly(C),background:rb||'#101114',overflow:'hidden'}},
+            spin?h('div',{style:{...lay,background:spin,animation:'rlEnhSpin '+dur+'s linear infinite'}}):null,
+            h('div',{style:{position:'absolute',inset:W2,clipPath:poly(C-W2*0.586),background:'#0B0C0F',overflow:'hidden'}},
+              h('img',{src:this.invArt(inst),draggable:false,onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',pointerEvents:'none',userSelect:'none',WebkitUserDrag:'none'}}),
+              n>=2?h('div',{style:{...lay,boxShadow:'inset 0 0 14px 1px '+(n>=5?'rgba(200,179,242,.22)':n===4?'rgba(196,103,93,.3)':n===3?'rgba(204,162,110,.2)':'rgba(210,215,222,.18)')}}):null)))); };
     const els=[...L.map(([sl,ct,an],i)=>slotEl(sl,ct,an,'L',i)), ...R.map(([sl,ct,an],i)=>slotEl(sl,ct,an,'R',i))];
     return h('div',{key:'hero',style:{position:'relative',width:'100%',height:0,paddingBottom:(HH/HW*100)+'%'}},
       h('div',{style:{position:'absolute',inset:0}},
