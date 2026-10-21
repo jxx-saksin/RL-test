@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val46';
-import { buildIndex } from './sheet-loader.js?v=val53';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
+import { DATA as FALLBACK } from './data/game-data.js?v=val48';
+import { buildIndex } from './sheet-loader.js?v=val55';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
 
@@ -164,7 +164,7 @@ const V3_STRINGS = {
   search_failed_desc:['시체에서 아무것도 찾을 수 없었다.','Found nothing on the body.'],
   search_failed_cat:['실패','FAILED'],
   item_desc_label:['아이템 설명','Item description'],
-  item_head:['투구','Head'], item_body:['갑옷','Body'], item_food:['음식','Food'],
+  item_head:['투구','Head'], item_body:['갑옷','Body'], item_hands:['장갑','Gloves'], item_feet:['신발','Footwear'], item_food:['음식','Food'],
   item_junk:['정크','Junk'], item_quest:['퀘스트','Quest'], item_key:['키','Key'],
   item_accessory:['장신구','Accessory'], item_talisman:['징표','Token'], item_material_type:['재질','Material'],
   common_me:['나','Me'],
@@ -282,13 +282,15 @@ export function startingState() {
   const vaultIds = String(C.start_vault_items || 'weapon_wooden_sword,armor_cloth_hood').split(',').map(s => s.trim()).filter(Boolean);
   const vault = vaultIds.map(id => mkInstance(id));
   // auto-equip the starting weapon + head/body if present in vault
-  const equip = { weapon: null, head: null, body: null, artifact1: null, artifact2: null, bag: null };
+  const equip = { weapon: null, head: null, body: null, hands: null, feet: null, artifact1: null, artifact2: null, bag: null };   // hands·feet = 장갑·신발(2026-10-21)
   for (const it of vault) {
     if (it.kind === 'weapon' && !equip.weapon) equip.weapon = it.uid;
     else if (it.kind === 'armor') {
       const a = byId.armor[it.id];
       if (a && a.Category === 'Head' && !equip.head) equip.head = it.uid;
       if (a && a.Category === 'Body' && !equip.body) equip.body = it.uid;
+      if (a && a.Category === 'Hands' && !equip.hands) equip.hands = it.uid;
+      if (a && a.Category === 'Feet' && !equip.feet) equip.feet = it.uid;
     }
     else if (it.kind === 'artifact') {
       // 장신구는 artifact1 슬롯 전용.
@@ -451,10 +453,11 @@ export function reseedWeaponRolls(inst){
 // 방어구 시트의 `Bonus` 열 = JSON {"키":[Low,High]}. 개체마다 Low~High를 한 번 굴려 inst.bonus에 담는다(감정 대상 아님 — 항상 공개).
 // 키 → 2차 스탯 매핑은 장신구 sec_* 와 1:1이라 playerProfile의 addStat 한 길로 합산된다. 열이 없거나 '-'면 보너스 없음(무동작).
 export const BONUS_SEC = { hp:'sec_max_hp', crit:'sec_crit_chance', acc:'sec_accuracy', asp:'sec_atk_speed_pct', dmgcut:'sec_dmg_cut_pct',
-  cmult:'sec_crit_mult', hitdmg:'sec_hit_bonus', dmgpct:'sec_dmg_pct', killheal:'sec_kill_heal_pct' };
+  cmult:'sec_crit_mult', hitdmg:'sec_hit_bonus', dmgpct:'sec_dmg_pct', killheal:'sec_kill_heal_pct',
+  flee:'sec_flee_pct', sta:'sec_sta_max' };   // 신발 전용(2026-10-21) — 도망 확률 +%p · 최대 스태미너 +
 const BONUS_KR = { hp:['최대 체력','Max HP',''], crit:['크리티컬 확률','Crit Chance','%'], acc:['적중률','Accuracy','%'], asp:['공격 속도','Attack Speed','%'],
   dmgcut:['받는 피해 감소','Damage Reduction','%'], cmult:['크리티컬 피해','Crit Damage',''], hitdmg:['추가 타격 피해','Bonus Hit Damage',''],
-  dmgpct:['공격력','Attack','%'], killheal:['처치 시 회복','Heal on Kill','%'] };
+  dmgpct:['공격력','Attack','%'], killheal:['처치 시 회복','Heal on Kill','%'], flee:['도망 확률','Escape Chance','%'], sta:['최대 스태미너','Max Stamina',''] };
 export function bonusLabel(key){ const b = BONUS_KR[key]; return b ? { kr:b[0], en:b[1], unit:b[2] } : { kr:key, en:key, unit:'' }; }
 export function rollArmorBonus(inst){
   const a = byId.armor[inst && inst.id]; const out = {};
@@ -466,6 +469,18 @@ export function rollArmorBonus(inst){
       out[k] = Math.round(rand(Math.min(lo, hi), Math.max(lo, hi)) * 10) / 10;
     }
   }catch(_){ /* 깨진 JSON = 보너스 없음 */ }
+  // 랜덤 옵션(BonusPool · 장갑·신발 2026-10-21): {"none":0,"asp":[2,6],…} 중 **하나를 균등 추첨** — "none"도 한 항목이다(뽑히면 무옵션).
+  //   범위는 행마다 다르고 언제든 시트에서 바뀐다(코드에 박지 않는다). 뽑힌 키는 inst.poolKey(무옵션 = 'none').
+  try{
+    const pool = (a && a.BonusPool && a.BonusPool !== '-') ? JSON.parse(a.BonusPool) : null;
+    const keys = pool ? Object.keys(pool).filter(k => k === 'none' || (BONUS_SEC[k] && Array.isArray(pool[k]))) : [];
+    if (keys.length){
+      const k = keys[Math.floor(Math.random() * keys.length)]; inst.poolKey = k;
+      if (k !== 'none'){ const lo = N(pool[k][0]), hi = N(pool[k][1], lo);
+        const v = Math.round(rand(Math.min(lo, hi), Math.max(lo, hi)) * 10) / 10;
+        out[k] = Math.round(((out[k] || 0) + (k === 'sta' ? Math.round(v) : v)) * 10) / 10; }   // 스태미너는 정수
+    }
+  }catch(_){ /* 깨진 JSON = 랜덤 옵션 없음 */ }
   inst.bonus = out;
   return out;
 }
@@ -695,12 +710,18 @@ export function playerProfile(state, staminaZero = false) {
   const bodyRaw = state.equip.body ? instById(state, state.equip.body) : null;
   const headInst = functional(headRaw) ? headRaw : null;
   const bodyInst = functional(bodyRaw) ? bodyRaw : null;
+  // 장갑·신발(2026-10-21) — 투구·갑옷과 같은 방어구 규칙(파손 = 효과 없음) · 장갑은 고정 적중(Armor.Accuracy)을 더한다
+  const handsRaw = state.equip.hands ? instById(state, state.equip.hands) : null;
+  const feetRaw = state.equip.feet ? instById(state, state.equip.feet) : null;
+  const handsInst = functional(handsRaw) ? handsRaw : null;
+  const feetInst = functional(feetRaw) ? feetRaw : null;
+  const armorInsts = [headInst, bodyInst, handsInst, feetInst].filter(Boolean);
   const head = headInst ? byId.armor[headInst.id] : null;
   const body = bodyInst ? byId.armor[bodyInst.id] : null;
   // gather bonuses from equipped gear: v3 socket modules (+ legacy affixes for back-compat)
   const primAdd = { str: 0, dex: 0, vit: 0, will: 0 }; const secAdd = {};
   const addStat = (key, val) => { const pk = PRIM[key]; if (pk) primAdd[pk] += N(val); else if (key) secAdd[key] = (secAdd[key] || 0) + N(val); };
-  for (const inst of [w, headInst, bodyInst]) {
+  for (const inst of [w, ...armorInsts]) {
     if (!inst) continue;
     if (inst.sockets) for (const s of inst.sockets) { if (s) addStat(s.target, s.value); }
     if (inst.affixes) for (const af of inst.affixes) addStat(af.target, af.value);
@@ -723,8 +744,9 @@ export function playerProfile(state, staminaZero = false) {
   const wOpt = k => (w ? instOpt(w, k) : 0);
   const enh = w ? enhEffects(w) : enhEffects(null);   // 무기 강화 합산(없으면 0)
   const ae = enhEffects(null);   // 방어구(투구+갑옷) 강화 합산 — 파손된 방어구는 headInst/bodyInst가 null이라 빠진다
-  for (const a of [headInst, bodyInst]) if (a) { const e = enhEffects(a); for (const k of ENH_STATS_A) ae[k] += e[k]; }
-  const armorOpt = k => (headInst ? instOpt(headInst, k) : 0) + (bodyInst ? instOpt(bodyInst, k) : 0);
+  for (const a of armorInsts) { const e = enhEffects(a); for (const k of ENH_STATS_A) ae[k] += e[k]; }
+  const armorOpt = k => armorInsts.reduce((s, a) => s + instOpt(a, k), 0);
+  const armorAcc = armorInsts.reduce((s, a) => s + N((byId.armor[a.id] || {}).Accuracy), 0);   // 고정 적중(장갑) — 감정 대상 아님
   const armorDef = armorOpt('def');
   const armorEva = armorOpt('evasion');
   const armorSR = armorOpt('statusResist');
@@ -739,7 +761,7 @@ export function playerProfile(state, staminaZero = false) {
     maxAtk: (sec.sec_max_atk + (w ? wOpt('maxAtk') : 1) + sa('sec_max_atk')) * (1 + sa('sec_dmg_pct') / 100 + enh.dmg),
     defense: sec.sec_defense + armorDef + sa('sec_defense') + ae.def,
     atkSpeed: clamp((w ? (wOpt('atkSpeed') || 1) * (1 + enh.asp) : 1) * speedMult * bf.speedMult * Math.max(0.2, 1 + sa('sec_atk_speed_pct') / 100), 0.2, 3),   // 버프는 곱한 뒤 clamp — 상한 3은 그대로
-    accuracy: sec.sec_accuracy + (w ? wOpt('accuracy') : 0) + sa('sec_accuracy') + enh.acc,
+    accuracy: sec.sec_accuracy + (w ? wOpt('accuracy') : 0) + sa('sec_accuracy') + enh.acc + armorAcc,
     evasion: sec.sec_evasion + armorEva + sa('sec_evasion') + ae.eva,
     critChance: sec.sec_crit_chance + (w ? wOpt('critChance') : 0) + sa('sec_crit_chance') + enh.crit,
     critResist: sec.sec_crit_resist + sa('sec_crit_resist'),
@@ -751,6 +773,8 @@ export function playerProfile(state, staminaZero = false) {
     hitBonus: sa('sec_hit_bonus') + enh.hitdmg,             // 타격당 고정 추가 피해(방어 무시) — 의도적으로 남긴 '빠른 무기' 축
     dmgCutPct: sa('sec_dmg_cut_pct') + ae.dmgcut,   // 받는 피해 감소 %(상한 60 · 방어구 강화 포함)
     killHealPct: sa('sec_kill_heal_pct'),      // 처치 시 최대 HP 회복 %
+    fleeBonusPct: sa('sec_flee_pct'),         // 도망 확률 +%p(신발) — rl.dc.html fleeChance가 더한다
+    staMaxBonus: Math.round(sa('sec_sta_max')),   // 최대 스태미너 +(신발) — rl.dc.html staMax
     dmgFlatCut: bf.dmgFlatCut,   // 소모품: 받는 피해 플랫 감소 (simulateCombat.strike에서 차감)
     statusImmune: bf.immune,     // 소모품: 상태이상별 차단 확률(%) — strike의 관통/상태이상 두 경로가 본다
     primAdd,
@@ -1125,6 +1149,11 @@ export function applyDurabilityWear(state, triggers) {
   const head = state.equip.head ? instById(state, state.equip.head) : null;
   const body = state.equip.body ? instById(state, state.equip.body) : null;
   [head, body].filter(Boolean).forEach(p => wear(p, N(triggers.hitsTaken), apl));
+  // 장갑 = 내가 때릴 때(적중) · 신발 = 피할 때 닳는다(2026-10-21). 키가 없으면 방어구 값으로 폴백.
+  const hands = state.equip.hands ? instById(state, state.equip.hands) : null;
+  const feet = state.equip.feet ? instById(state, state.equip.feet) : null;
+  wear(hands, N(triggers.hitsLanded), N(C.dura_gloves_hits_per_loss, apl));
+  wear(feet, N(triggers.evades), N(C.dura_shoes_evades_per_loss, apl));
   // artifact1 = 장신구. artifact2(징표)는 maxDur이 0이라 wear()의 가드에서 자동으로 걸러진다.
   const acc = state.equip.artifact1 ? instById(state, state.equip.artifact1) : null;
   wear(acc, N(triggers.hitsLanded) + N(triggers.hitsTaken), cpl);
@@ -1346,7 +1375,7 @@ export function rollLoot(monsterId, zoneId) {
 // ---------- growth ----------
 export function growthMultiplier(state, stat) {
   let tags = 0;
-  for (const uid of [state.equip.weapon, state.equip.head, state.equip.body, state.equip.artifact1, state.equip.artifact2]) {
+  for (const uid of [state.equip.weapon, state.equip.head, state.equip.body, state.equip.hands, state.equip.feet, state.equip.artifact1, state.equip.artifact2]) {
     if (!uid) continue; const inst = instById(state, uid); if (!inst) continue;
     tags += growthTagsActive(inst).filter(t => t === stat).length; // v3: 확정·활성 태그만 (무기·방어구·장신구·부적)
   }
