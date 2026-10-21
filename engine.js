@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val48';
-import { buildIndex } from './sheet-loader.js?v=val55';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
+import { DATA as FALLBACK } from './data/game-data.js?v=val49';
+import { buildIndex } from './sheet-loader.js?v=val56';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
 
@@ -1017,7 +1017,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
       if (cut > 0) final = Math.max(1, final - cut);
     }
     if (N(actor.hitBonus) > 0) final += N(actor.hitBonus) * exposeMult(foe, t);   // 추가 타격 피해: 방어 무시(약점 노출은 받는다)
-    if (foe === A && N(A.dmgCutPct) > 0) final *= 1 - clamp(N(A.dmgCutPct), 0, 60) / 100;   // 받는 피해 감소 %
+    if (N(foe.dmgCutPct) > 0) final *= 1 - clamp(N(foe.dmgCutPct), 0, 60) / 100;   // 받는 피해 감소 % — 플레이어·PvP 봇 공통(몬스터는 필드 없음 = 0)
     foe.hp -= final;
     if (actor.side === 'player') triggers.hitsLanded++;
     if (foe.side === 'player') triggers.hitsTaken++;
@@ -1482,7 +1482,8 @@ export function parseGearToken(token){
   return inst;
 }
 export function coldGear(bot){
-  return { weapon: parseGearToken(bot.Weapon), head: parseGearToken(bot.Helmet), body: parseGearToken(bot.Armor), artifact1: parseGearToken(bot.Artifact1), artifact2: parseGearToken(bot.Artifact2) };
+  // Hands·Feet 열은 시트에 아직 없을 수 있다(없으면 빈 칸) — 플레이어와 같은 4부위 방어구 규칙(2026-10-21)
+  return { weapon: parseGearToken(bot.Weapon), head: parseGearToken(bot.Helmet), body: parseGearToken(bot.Armor), hands: parseGearToken(bot.Hands), feet: parseGearToken(bot.Feet), artifact1: parseGearToken(bot.Artifact1), artifact2: parseGearToken(bot.Artifact2) };
 }
 export function coldEquippedList(bot){ return Object.values(coldGear(bot)).filter(Boolean); }
 export function cloneGearInstance(inst){
@@ -1494,34 +1495,38 @@ export function cloneGearInstance(inst){
 export function coldProfile(bot){
   const gear = coldGear(bot);
   const w = functional(gear.weapon) ? gear.weapon : null; const wd = w ? byId.weapon[w.id] : null;
-  const headI = functional(gear.head) ? gear.head : null, bodyI = functional(gear.body) ? gear.body : null;
-  const head = headI ? byId.armor[headI.id] : null, body = bodyI ? byId.armor[bodyI.id] : null;
+  // 방어구 4부위 — playerProfile과 같은 규칙(파손 = 효과 없음 · 장갑은 고정 적중 Armor.Accuracy)
+  const armorInsts = [gear.head, gear.body, gear.hands, gear.feet].filter(functional);
+  const armorRows = armorInsts.map(a => byId.armor[a.id]).filter(Boolean);
   const primAdd = { str: 0, dex: 0, vit: 0, will: 0 }; const secAdd = {};
-  for (const inst of [w, headI, bodyI]){
+  const addStat = (key, val) => { if (!key || key === '-' || val == null || val === '') return; const pk = PRIM[key]; if (pk) primAdd[pk] += N(val); else secAdd[key] = (secAdd[key] || 0) + N(val); };
+  for (const inst of [w, ...armorInsts]){
     if (!inst || !inst.affixes) continue;
-    for (const x of inst.affixes){ const pk = PRIM[x.target]; if (pk) primAdd[pk] += x.value; else secAdd[x.target] = (secAdd[x.target] || 0) + x.value; }
+    for (const x of inst.affixes) addStat(x.target, x.value);
   }
   for (const inst of [gear.artifact1, gear.artifact2]){
     if (!inst || !functional(inst)) continue;   // 상대 봇도 동일 — 파손 장신구는 효과 없음(playerProfile과 대칭)
     const ar = byId.artifact[inst.id]; if (!ar) continue;
-    const applyStat = (key, val) => { if (!key || key === '-' || val == null || val === '') return; const pk = PRIM[key]; if (pk) primAdd[pk] += N(val); else secAdd[key] = (secAdd[key] || 0) + N(val); };
-    applyStat(ar.Stat1, inst.stat1); applyStat(ar.Stat2, inst.stat2);
+    addStat(ar.Stat1, inst.stat1); addStat(ar.Stat2, inst.stat2);
   }
   const p = { str: N(bot.Str, 1) + primAdd.str, dex: N(bot.Dex, 1) + primAdd.dex, vit: N(bot.Vit, 1) + primAdd.vit, will: N(bot.Will, 1) + primAdd.will };
   const sec = deriveSecondary(p);
-  const armorDef = (headI ? (headI.def ?? 0) : 0) + (bodyI ? (bodyI.def ?? 0) : 0);
-  const armorEva = (head ? N(head.Evasion) : 0) + (body ? N(body.Evasion) : 0);
-  const armorSR = (head ? N(head.StatusResist) : 0) + (body ? N(body.StatusResist) : 0);
+  const armorDef = armorInsts.reduce((s, a) => s + (a.def ?? 0), 0);
+  const armorEva = armorRows.reduce((s, r) => s + N(r.Evasion), 0);
+  const armorSR = armorRows.reduce((s, r) => s + N(r.StatusResist), 0);
+  const armorAcc = armorRows.reduce((s, r) => s + N(r.Accuracy), 0);
   const speedMult = clamp(1 + p.dex * 0.015, 0.3, 3);
   const sa = k => secAdd[k] || 0;
+  // 공격력 %(sec_dmg_pct)·공속 %(sec_atk_speed_pct)·피해 감소 %·크리 배수·추가 타격·처치 회복 — playerProfile과 같은 식(2026-10-21 대칭 맞춤)
+  const dmgM = 1 + sa('sec_dmg_pct') / 100;
   return {
     name: tr(bot, 'Name') || bot.ColdDataID || bot.ID, id: bot.ColdDataID || bot.ID, isUser: true, tier: bot.Tier, desc: tr(bot, 'Description'), gear,
     maxHp: Math.round(sec.sec_max_hp + sa('sec_max_hp')),
-    minAtk: sec.sec_min_atk + (w ? w.minAtk : 0) + sa('sec_min_atk'),
-    maxAtk: sec.sec_max_atk + (w ? w.maxAtk : 1) + sa('sec_max_atk'),
+    minAtk: (sec.sec_min_atk + (w ? w.minAtk : 0) + sa('sec_min_atk')) * dmgM,
+    maxAtk: (sec.sec_max_atk + (w ? w.maxAtk : 1) + sa('sec_max_atk')) * dmgM,
     defense: sec.sec_defense + armorDef + sa('sec_defense'),
-    atkSpeed: clamp((wd ? N(wd.AttackSpeed, 1) : 1) * speedMult, 0.2, 3),
-    accuracy: sec.sec_accuracy + (wd ? N(wd.Accuracy) : 0) + sa('sec_accuracy'),
+    atkSpeed: clamp((wd ? N(wd.AttackSpeed, 1) : 1) * speedMult * Math.max(0.2, 1 + sa('sec_atk_speed_pct') / 100), 0.2, 3),
+    accuracy: sec.sec_accuracy + (wd ? N(wd.Accuracy) : 0) + sa('sec_accuracy') + armorAcc,
     evasion: sec.sec_evasion + armorEva + sa('sec_evasion'),
     critChance: sec.sec_crit_chance + (wd ? N(wd.CritChance) : 0) + sa('sec_crit_chance'),
     critResist: sec.sec_crit_resist + sa('sec_crit_resist'),
@@ -1529,6 +1534,10 @@ export function coldProfile(bot){
     potency: wd ? N(wd.Potency) : 0,
     attribute: (wd && wd.Attribute && wd.Attribute !== 'none') ? wd.Attribute : null,
     weaponMaxDmg: w ? w.maxAtk : 2,
+    critMultBonus: sa('sec_crit_mult'),
+    hitBonus: sa('sec_hit_bonus'),
+    dmgCutPct: sa('sec_dmg_cut_pct'),
+    killHealPct: sa('sec_kill_heal_pct'),
     // PvP는 상대가 콜드데이터라 Monster 탭 행이 없다 → 스태미너·제한시간을 Config로 관리(2026-08-26).
     grade: t('pvp_grade_survivor'), staminaCost: N(C.pvp_stamina_cost, 3), timeLimit: N(C.pvp_time_limit, 60),
   };

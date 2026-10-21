@@ -41,6 +41,8 @@
   img{-webkit-user-drag:none;user-drag:none;}
   @keyframes rlFade{from{opacity:0}to{opacity:1}}
   @keyframes rlBlink{0%,49%{opacity:1}50%,100%{opacity:0}}
+  @keyframes rlCctvIn{0%{opacity:0}30%{opacity:1}55%{opacity:.25}100%{opacity:1}}
+  @keyframes rlCctvPulse{0%,100%{opacity:.95}50%{opacity:.35}}
   @keyframes rlScreenFlick{0%,100%{opacity:1}90%{opacity:1}92%{opacity:.93}94%{opacity:.82}96%{opacity:1}}
   /* 카드 테두리 은은한 빛 — 귀중품=금 / 퀘스트 아이템=은 (4.8s 호흡) */
   /* 성장 태그 프리즘 — 무지개가 흐르고(60px 주기 = 끝색=첫색이라 이음매 없음) 빛줄기가 가끔 훑는다 */
@@ -403,10 +405,12 @@ const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Hands:'장갑', F
 // (배포 시 index V만 올리면 html/js만 갱신되고 이미지는 옛 것이 남는다 — 2026-09-15 mall·houses 교체).
 const ZONE_ART_V = { city_01_mall:'?v=2', city_01_houses:'?v=2' };
 const zoneArt = (id) => 'assets/art/zones/'+id+'.webp'+(ZONE_ART_V[id]||'');
+const PVP_COLD_ART = 'assets/art/monsters/pvp_cold_user.webp', PVP_COLD_POS = '50% 32%';   // PvP 상대(ColdData 봇) 카드 공용 아트 — 얼굴 없는 실루엣 · 후드가 보이게 위쪽으로 맞춤(10-21)
 const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','monster_bloated_toad','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_pale_lynx','monster_rogue_emergency','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_spore_gardener','monster_wandering_sentry','monster_abandoned_chihuahua',
   'monster_gravid_queen','monster_last_deputy','monster_lingering_manager','monster_tower_sentinel',
   'monster_fare_gate','monster_foreman_unit','monster_track_sweeper','monster_tunnel_drifter',
-  'monster_self_cart','monster_squatter']);
+  'monster_self_cart','monster_squatter',
+  'monster_copper_stripper','monster_antenna_root']);
 // 부팅 로딩(4초) 동안 미리 받아둘 아트 — 텍스트보다 이미지가 늦게 뜨는 걸 줄인다.
 // 순위별로 순차 로드하고, 1순위(부팅 직후 프로토콜 지구)는 부팅이 끝나기 전까지 기다린다.
 // ⚠️ 실제로 파일이 있는 것만 적을 것 — 없는 경로를 넣으면 404 요청만 낭비된다(MONSTER_ART와 같은 규약).
@@ -426,6 +430,29 @@ const IC_INFO = { vb:'81.5 29.2 15.6 17.2', ar:15.6/17.2, d:[
 // ⚠️ new Audio()에서 갈아탄 이유 4가지: ① 레이어를 같은 순간에 못 겹침 ② 피치를 못 흔듦
 //    ③ iOS가 volume을 무시 ④ 타이머로 시작한 재생이 막힘(기기에서 disk_load만 안 들리던 원인).
 // 파일은 전부 AAC 모노 128k(.m4a) — 원본 mp3 마스터는 프로젝트 루트 sound/ 에 남아 있다.
+// ===== 프로토콜 지구 환경음(2026-10-21) — 음악 대신 비 + 생활 소리 =====
+// 소스 = sound/BGM(ElevenLabs) → 크기·고음 컷·튐 억제·페이드를 **미리 구워** assets/sound/amb/*.m4a(재생은 섞기만 한다).
+// 바탕 = 비 2층(30초 주 + 10초 저음을 1.03배속으로 겹쳐 반복 무늬를 어긋나게) · 가끔 소리 = '카드 섞기' 묶음(발소리4·수다3·문2·드론1)을 8~25초마다 하나.
+// 배경 곡 = amb_bed_1~3(60초 · ElevenLabs Music) — 가끔 한 곡씩(쉼 15~30초) · 아래 AMB_BED_*.
+// 지구 안 화면 전부에서 재생 · 레이드 흐름(로딩·전투·결과·전리품 정리)과 앱이 가려졌을 때는 서서히 끈다.
+const AMB = {
+  rain:['amb_rain_1','amb_rain_2'],
+  steps:['amb_steps_1','amb_steps_2','amb_steps_3','amb_cart_1','amb_cart_2'],
+  murmur:['amb_murmur_1','amb_murmur_2','amb_chat_1','amb_chat_2'],
+  door:['amb_door_1','amb_door_2','amb_door_3','amb_door_4'],
+  drone:['amb_drone_1','amb_drone_2'],
+  bed:['amb_bed_1','amb_bed_2','amb_bed_3'],   // 배경 곡(60초) — 가끔 소리 묶음(AMB_BAG)엔 안 들어간다. 따로 ambTrack이 튼다
+};
+const AMB_BAG = ['steps','steps','steps','steps','murmur','murmur','murmur','door','door','drone'];
+const AMB_GAIN = 1.0;   // 환경음 전체 크기(효과음 마스터 대비) — 실기 청취로 조정
+const AMB_GAP = [8, 25];   // 가끔 소리 간격(초)
+// 배경 곡 — 환경음 위에 3종 중 하나씩(직전과 다른 것). 겹치지 않고 곡 사이에 쉼이 있다(사용자 2026-10-21). 파일은 RMS −38dB로 구워 둠.
+const AMB_RAIN_GAIN = 0.25;   // 바탕 비 크기(굽기 대비 배수) — 0.25 ≈ −12dB(사용자 10-21 '비가 너무 크다'→두 번 더 낮춤)
+const AMB_BED_GAIN = 1.26;   // 곡 크기(굽기 RMS 대비 배수) — 1.26 ≈ +2dB(0.63 기준 +6dB, 사용자 10-21 '곡 +6'). 실기 청취로 조정
+const AMB_BED_GAP = [15, 30];   // 곡이 끝난 뒤 다음 곡까지 쉬는 시간(초) — 사용자 10-21: 15~30초(처음 25~70초에서 줄임)
+const AMB_BED_FIRST = [8, 20];   // 환경음이 시작된 뒤 첫 곡까지(초)
+const AMB_BED_FADE = [3, 4];   // 곡 페이드인·페이드아웃(초) — 파일엔 안 굽고 코드가 건다
+const AMB_OFF = new Set(['sortieLoad','combat','result','lootmanage']);
 const SFX = {
   // ── effect · 단발 ──
   card_insert:      'assets/sound/effect/card_insert.m4a',        // 카드가 단말로 빨려 들어가는 순간 (1.32s)
@@ -574,7 +601,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 113;
+const TITLE_VER = 114;
 const TITLE_DATE = '1021';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -653,9 +680,12 @@ const HIDE_TUTO = { repair:'rs_rep1', module:'rs_mod1', craft:'wb_craft1',
 // 다시 뽑은 튜토리얼 아트 — 파일명이 그대로라 ?v= 없이는 브라우저 캐시가 안 끊긴다(zoneArt와 같은 형).
 // 키 = '<팝업키>-<장번호>'. 같은 파일을 또 고치면 숫자를 올린다.
 const DIARY_SCREEN_TILT = 5.5;   // 다이어리 읽기 배경(diary_screen.webp)의 화면 기울기(시계 방향 °) — 아트 교체하면 다시 잰다
+const CCTV_STEP_MS = 1200, CCTV_COUNT_MS = 1400;   // 해독 기록(감시 카메라 화면) — 다음 줄까지 간격 · 큰 숫자 올라가는 시간
 const TUTO_ART_V = { 'wb_craft1-2':'?v=2', 'rs_rep1-2':'?v=2', 'loot_get1-3':'?v=2', 'loot_get1-4':'?v=2' };   // loot_get1-3/4 = 아래로 내려 잠금 그림(2026-10-16 · svg/guide-loot-move-3-1·4-1)
 
 const PATCH_NOTES = [
+  { ver:114, date:'21/Oct', lines:[
+    ['송신탑 개방 및 신규 몬스터 추가.','The Transmission Tower is open, and new monsters have arrived.'] ] },
   { ver:112, date:'21/Oct', lines:[
     ['아이템 추가 및 인터페이스 일부 개편.','New items and a partial interface overhaul.'] ] },
   { ver:111, date:'21/Oct', lines:[
@@ -818,8 +848,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val96');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val55');
+      const eng = await import('./engine.js?v=val97');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val56');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -1427,7 +1457,7 @@ class Component extends DCLogic {
   // 두 복귀 경로가 반드시 이걸 거치게 할 것 — 한쪽만 빠지면 그 종료 방식에서만 재고가 안 돈다.
   // 소모품 버프는 여기서 전부 만료된다 — 성공·사망 무관, **유지력이 남았든 말든**(§6-7 "매 레이드 재투자").
   // 버프를 비우는 곳은 여기 하나뿐이다. 다른 데서 또 비우면 안전지대 사용분이 조용히 사라진다.
-  endSortie(){ this.gs.buffs=[]; this.gs.sorties++; return this.eng.restockShopsIfDue(this.gs); }
+  endSortie(){ this.gs.buffs=[]; this.gs.sorties++; this._raidBack=true; return this.eng.restockShopsIfDue(this.gs); }   // _raidBack = 지구로 돌아오는 첫 화면에서 '귀환 호출'(call id hub)을 한 번 건다
   // ⚠️ 재고 토스트는 화면 전환이 **끝난 뒤** 띄운다 — flash()가 그 시점의 헤더를 재서 위치를 잡는데,
   //    go() 직후 곧바로 부르면 아직 옛 화면(결과 화면)이 서 있어 앵커가 엉뚱한 데 잡힌다.
   flashRestock(){ setTimeout(()=>this.flash(this.t('shop_restocked')), 120); }
@@ -1597,7 +1627,8 @@ class Component extends DCLogic {
   }
 
   // ================= RENDER =================
-  renderVals(){ let screenEl; try{ screenEl = this.state.ready ? this.renderApp() : (this.state.splash ? this.splashScreen() : this.loading()); }catch(e){ console.error('renderApp threw:', e); screenEl = this.loading(); } return { screenEl }; }
+  renderVals(){ if(!this._ambQ) this._ambQ=setTimeout(()=>{ this._ambQ=null; this.ambSync(); },0);   // 환경음 켜기/끄기 — 렌더마다 상태만 확인(부작용은 다음 틱)
+    let screenEl; try{ screenEl = this.state.ready ? this.renderApp() : (this.state.splash ? this.splashScreen() : this.loading()); }catch(e){ console.error('renderApp threw:', e); screenEl = this.loading(); } return { screenEl }; }
   // 로딩 팁 1개 픽 — 시트 Tip 탭 랜덤, 없으면 폴백. (호출 시점 1회 고정해 쓰도록 저장해두고 재사용)
   pickTip(){ const arr=(this.eng&&this.eng.DATA&&this.eng.DATA.tips)||[];
     if(arr.length){ const r=arr[Math.floor(Math.random()*arr.length)]; const t=this.tx(r,'Text'); if(t) return t; }
@@ -1658,6 +1689,68 @@ class Component extends DCLogic {
     this.sfxLayer('card_deal'+this.sfxPickN(2,'_dealLast'),{pitch:0.05}); }
   // n종 중 직전(lastKey 필드)과 다른 번호 1~n — 같은 소리 연속 방지(스와이프·플립·교신·클릭·딜 공용).
   sfxPickN(n,lastKey){ let k; do{ k=1+Math.floor(Math.random()*n); }while(k===this[lastKey]); this[lastKey]=k; return k; }
+  // ---- 환경음(AMB) ----
+  ambWant(){ return !!(this.state.ready && this.gs && !AMB_OFF.has(this.state.screen) && !(typeof document!=='undefined' && document.hidden)); }
+  ambSync(){ const ctx=this._ac; if(!ctx) return;   // 컨텍스트는 첫 제스처에서 생긴다 — 그 전엔 조용히 대기
+    if(!this._ambVis && typeof document!=='undefined'){ this._ambVis=true; document.addEventListener('visibilitychange',()=>this.ambSync()); }
+    const want=this.ambWant(); if(want && !this._ambOn) this.ambStart(); else if(!want && this._ambOn) this.ambStop(); }
+  ambLoad(){ const ctx=this._ac; if(!ctx||this._ambLoaded) return; this._ambLoaded=true; this._ambBufs={};
+    Object.values(AMB).flat().forEach(id=>{ fetch('assets/sound/amb/'+id+'.m4a').then(r=>r.arrayBuffer())
+      .then(a=>new Promise((ok,no)=>ctx.decodeAudioData(a,ok,no))).then(b=>{ this._ambBufs[id]=b; }).catch(()=>{}); }); }
+  ambStart(){ const ctx=this._ac; this.ambLoad(); this._ambOn=true; this._ambGen=(this._ambGen||0)+1; const gen=this._ambGen;
+    try{ if(ctx.state==='suspended'&&ctx.resume) ctx.resume().catch(()=>{}); }catch(_){ }
+    const bus=ctx.createGain(); bus.gain.setValueAtTime(0,ctx.currentTime); bus.gain.linearRampToValueAtTime(AMB_GAIN,ctx.currentTime+2); bus.connect(this._acGain); this._ambBus=bus;
+    this._ambSrcs=[]; this._ambTimers=[];
+    this.ambBed(gen,'amb_rain_1',1,true); this.ambBed(gen,'amb_rain_2',1.03,true);
+    this.ambNext(gen, 3+Math.random()*6);
+    this.ambTrackNext(gen, AMB_BED_FIRST[0]+Math.random()*(AMB_BED_FIRST[1]-AMB_BED_FIRST[0])); }
+  ambStop(){ const ctx=this._ac; this._ambOn=false; this._ambGen=(this._ambGen||0)+1;
+    (this._ambTimers||[]).forEach(t=>clearTimeout(t)); this._ambTimers=[];
+    const bus=this._ambBus, srcs=this._ambSrcs||[]; this._ambBus=null; this._ambSrcs=[];
+    if(bus&&ctx){ try{ bus.gain.cancelScheduledValues(ctx.currentTime); bus.gain.setValueAtTime(bus.gain.value,ctx.currentTime); bus.gain.linearRampToValueAtTime(0,ctx.currentTime+1.5); }catch(_){ }
+      setTimeout(()=>{ srcs.forEach(x=>{ try{ x.stop(); }catch(_){ } }); try{ bus.disconnect(); }catch(_){ } },1700); } }
+  ambTimer(gen,sec,fn){ const t=setTimeout(()=>{ if(gen===this._ambGen) fn(); }, Math.max(0,sec*1000)); this._ambTimers.push(t); }
+  // 바탕 비 — m4a 앞뒤 무음(인코더 지연) 때문에 loop=true 대신 **1.5초씩 겹쳐 이어 붙인다**(빗소리라 겹침이 안 들린다)
+  ambBed(gen,id,rate,first){ const ctx=this._ac, buf=this._ambBufs&&this._ambBufs[id];
+    if(!buf){ this.ambTimer(gen,0.5,()=>this.ambBed(gen,id,rate,first)); return; }   // 아직 디코드 중
+    const X=1.5, off=first?Math.random()*buf.duration*0.8:0, len=(buf.duration-off)/rate, t0=ctx.currentTime+0.05;
+    try{ const src=ctx.createBufferSource(); src.buffer=buf; src.playbackRate.value=rate;
+      const R=AMB_RAIN_GAIN, g=ctx.createGain(); g.gain.setValueAtTime(first?R:0,t0); if(!first) g.gain.linearRampToValueAtTime(R,t0+X);
+      g.gain.setValueAtTime(R,t0+len-X); g.gain.linearRampToValueAtTime(0,t0+len);
+      src.connect(g).connect(this._ambBus); src.start(t0,off); src.stop(t0+len+0.05); this._ambSrcs.push(src);
+      src.onended=()=>{ this._ambSrcs=(this._ambSrcs||[]).filter(x=>x!==src); };
+    }catch(_){ }
+    this.ambTimer(gen,len-X,()=>this.ambBed(gen,id,rate,false)); }
+  // 배경 곡 — 곡 하나가 끝나면 쉬었다가(AMB_BED_GAP) 3종 중 직전과 다른 곡을 튼다. 한 번에 한 곡만 — 겹치지 않는다.
+  ambTrackNext(gen,sec){ this.ambTimer(gen,sec,()=>this.ambTrack(gen)); }
+  ambTrack(gen){ const ctx=this._ac; if(!ctx||!this._ambBus) return;
+    const ids=AMB.bed.filter(id=>this._ambBufs&&this._ambBufs[id]);
+    if(!ids.length){ this.ambTrackNext(gen,2); return; }   // 아직 디코드 중
+    const pool=ids.length>1?ids.filter(id=>id!==this._bedLast):ids; const id=pool[Math.floor(Math.random()*pool.length)]; this._bedLast=id;
+    const buf=this._ambBufs[id], FI=AMB_BED_FADE[0], FO=AMB_BED_FADE[1], t0=ctx.currentTime+0.05, len=buf.duration;
+    try{ const src=ctx.createBufferSource(); src.buffer=buf;
+      const g=ctx.createGain(); g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(AMB_BED_GAIN,t0+FI);
+      g.gain.setValueAtTime(AMB_BED_GAIN,t0+len-FO); g.gain.linearRampToValueAtTime(0,t0+len);
+      src.connect(g).connect(this._ambBus); src.start(t0); src.stop(t0+len+0.05); this._ambSrcs.push(src);
+      src.onended=()=>{ this._ambSrcs=(this._ambSrcs||[]).filter(x=>x!==src); };
+      this._bedPlaying={id,t0,len};
+    }catch(_){ }
+    this.ambTrackNext(gen, len+AMB_BED_GAP[0]+Math.random()*(AMB_BED_GAP[1]-AMB_BED_GAP[0])); }
+  // 가끔 소리 — 카드 섞기: AMB_BAG을 섞어 하나씩 꺼내고 다 쓰면 다시 섞는다(드론 연속 금지 · 같은 파일 연속 금지)
+  ambNext(gen,sec){ this.ambTimer(gen,sec,()=>{ this.ambOne(); this.ambNext(gen, AMB_GAP[0]+Math.random()*(AMB_GAP[1]-AMB_GAP[0])); }); }
+  ambOne(){ const ctx=this._ac; if(!ctx||!this._ambBus) return;
+    if(!this._ambBag||!this._ambBag.length){ const b=AMB_BAG.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]]; }
+      if(b[b.length-1]==='drone'&&this._ambLastCat==='drone'){ const k=b.findIndex(c=>c!=='drone'); [b[b.length-1],b[k]]=[b[k],b[b.length-1]]; }
+      this._ambBag=b; }
+    const cat=this._ambBag.pop(); this._ambLastCat=cat;
+    const ids=AMB[cat].filter(id=>this._ambBufs&&this._ambBufs[id]); if(!ids.length) return;
+    this._ambLast=this._ambLast||{}; const pool=ids.length>1?ids.filter(id=>id!==this._ambLast[cat]):ids; const id=pool[Math.floor(Math.random()*pool.length)]; this._ambLast[cat]=id;
+    try{ const src=ctx.createBufferSource(); src.buffer=this._ambBufs[id];
+      const g=ctx.createGain(); g.gain.value=Math.pow(10,(-3+Math.random()*5)/20);   // 크기 −3~+2dB
+      let node=src.connect(g);
+      if(ctx.createStereoPanner){ const pn=ctx.createStereoPanner(); pn.pan.value=Math.random()*1.2-0.6; node=node.connect(pn); }
+      node.connect(this._ambBus); src.start(); this._ambSrcs.push(src); src.onended=()=>{ this._ambSrcs=(this._ambSrcs||[]).filter(x=>x!==src); };
+    }catch(_){ } }
   // 카드 좌우 이동 — 포커스가 실제로 바뀐 경우에만 운다(끝에서 더 밀 때는 조용).
   // 연달아 넘길 때 같은 소리가 반복되지 않게 3종 중 직전과 다른 것을 고른다(플립과 같은 규칙).
   sfxSwipe(){ this.sfxLayer('card_swipe'+this.sfxPickN(3,'_swipeLast'),{pitch:0.05}); }
@@ -2362,7 +2455,7 @@ class Component extends DCLogic {
   shopName(id,v){ return this.tx(v,'ShopName') || id; }
 
   // ---- zone select ----
-  figPill(text,color){ return h('div',{style:{display:'inline-flex',alignItems:'center',borderRadius:4,background:'rgba(10,11,14,0.55)',border:'1px solid rgba(222,222,222,0.18)',padding:'3px 8px',flexShrink:0}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:1,letterSpacing:'1.33px',color,whiteSpace:'nowrap',textTransform:'uppercase'}}, text)); }
+  figPill(text,color){ return plate({h:18,bd:'color-mix(in srgb,'+color+' 70%,transparent)',bg:'#0d0e11',fg:color,pad:'0 7px'}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,letterSpacing:'1.33px',textTransform:'uppercase'}}, text)); }   // 존 태그(PVP·잠금·LOCKED) = 깎인 판(10-21 · 알약→공용 태그 문법)
   cityDesc(i){ const c=(this.eng.DATA.cities||[])[i]; const d=c?(this.tx(c,'CityDesc')||this.tx(c,'Description')):''; if(d) return d; return ['한때 수만 명이 오가던 위성도시. 신호가 끕긴 거리㤼 이제 굶주린 것들의 발소리만 울린다.','기계가 멈추지 않는 버려진 공장지대. 녹슬 쇠덩이와 변이체가 뒤엉켜 도시를 삼켰다.'][i]||''; }
   zone(){
     const cities=this.eng.DATA.cities||[];
@@ -2607,7 +2700,7 @@ class Component extends DCLogic {
       // 아이콘은 가로 중앙 · 세로는 몬스터=아트 블록 중앙(114/2), 플레이어=아트가 없어 카드 중앙.
       deadNow? h('div',{key:'dthi',style:{position:'absolute',left:'50%',top:isMonster?57:'50%',transform:'translate(-50%,-50%)',zIndex:8,pointerEvents:'none',animation:isMonster?'rlFade .5s ease-out both':'none'}}, isMonster? icDeath(76,'rgba(162,0,0,0.4)') : icDeath(30,'#E1E1E1')):null,
       isMonster? h('div',{style:{position:'relative',height:114,overflow:'hidden',background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
-        (!prof.isUser)?h('img',{src:'assets/art/monsters/'+prof.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',transformOrigin:'50% 100%',animation:stn?'rlSway .4s ease-in-out infinite alternate':'none'}}):null,
+        h('img',{src:prof.isUser?PVP_COLD_ART:'assets/art/monsters/'+prof.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:prof.isUser?PVP_COLD_POS:'50% 50%',transformOrigin:'50% 100%',animation:stn?'rlSway .4s ease-in-out infinite alternate':'none'}}),
         h('div',{style:{position:'absolute',left:12,bottom:8,fontFamily:T.mono,fontSize:9,color:prof.isUser?T.sato:T.faint,letterSpacing:'.1em'}}, prof.isUser?this.t('kicker_userdata'):(prof.passive?(this.en()?'Object · Breakable':'Object · 오브제'):((md.Category||'')+''+this.t('kicker_dot_monsters')))), prof.grade?(()=>{ const gcol=GRADECOL[String(prof.grade).toLowerCase()]||'rgb(234,235,238)'; return h('div',{key:'gtag',style:{position:'absolute',right:10,top:10,zIndex:4,isolation:'isolate',boxSizing:'border-box',background:(gcol==='rgb(234,235,238)'?'rgba(222,222,222,0.3)':gcol),clipPath:'polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)',display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'5px 9px',animation:'rlLvlPop .5s cubic-bezier(.2,.8,.2,1)'}},   /* UI 시안(10-18) 등급 칩 = 깎인 판 두 겹 */
             h('span',{style:{position:'absolute',inset:1,zIndex:-1,background:'rgba(10,11,14,0.85)',clipPath:'polygon(4.5px 0,100% 0,100% calc(100% - 4.5px),calc(100% - 4.5px) 100%,0 100%,0 4.5px)'}}),
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',marginRight:'-1.33px',color:gcol,whiteSpace:'nowrap'}}, String(prof.grade).toUpperCase())); })():null) : null,
@@ -3448,12 +3541,13 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
   userFront(m){
     const bot=this.combat.pvp||{};
     return h('div',{style:{width:342,background:T.s1,border:'1px solid '+T.line,borderRadius:8,overflow:'hidden',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:'rlIn .28s'}},
-      h('div',{style:{position:'relative',height:140,background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
+      h('div',{style:{position:'relative',height:140,overflow:'hidden',background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
+        h('img',{src:PVP_COLD_ART,alt:'',draggable:false,onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:PVP_COLD_POS}}),   // PvP 상대 공용 실루엣(봇 전원 한 장 · 10-21)
         h('div',{style:{position:'absolute',right:12,top:11,fontFamily:T.mono,fontSize:9,letterSpacing:'.1em',color:T.sato,background:'oklch(0.15 0.006 264 / .55)',border:'1px solid oklch(0.9 0 0 / .18)',borderRadius:3,padding:'2px 7px'}}, 'TIER '+(bot.Tier!=null&&bot.Tier!==''?bot.Tier:'—')),
         h('div',{style:{position:'absolute',left:13,bottom:10,fontFamily:T.mono,fontSize:9.5,color:T.sato,letterSpacing:'.1em'}}, this.t('kicker_userdata'))),
       h('div',{style:{padding:'12px 15px 0'}},
         h('div',{style:{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}},
-          h('span',{style:{fontFamily:T.sans,fontSize:16,fontWeight:500,color:T.hi}}, m.name),
+          h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:T.hi,whiteSpace:'nowrap'}}, this.ttx(m.name,18,20.4)),   // 이름 = 몬스터 카드와 같은 구운 타이틀 글자 18(10-21)
           this.chip('pvp_cold_chip',T.sato)),
         m.desc?h('div',{style:{fontFamily:T.sans,fontSize:11.5,color:T.lo,lineHeight:1.5,marginTop:5}}, m.desc):null,
         h('div',{style:{display:'flex',alignItems:'center',gap:9,margin:'11px 0'}}, h('span',{style:{fontFamily:T.mono,fontSize:9.5,color:T.lo,width:48}},this.t('stat_hp')), h('div',{style:{flex:1,height:6,background:T.s3,borderRadius:99,overflow:'hidden',backgroundImage:'repeating-linear-gradient(45deg, transparent 0 5px, oklch(0.30 0.009 264) 5px 6px)'}}), h('span',{style:{fontFamily:T.mono,fontSize:12,color:T.lo,width:44,textAlign:'right',letterSpacing:'.06em'}}, '???')),
@@ -4717,14 +4811,17 @@ void main(){
   storyRadioCheck(){ if(this.radio||this.talk||this.state.tuto||this.state.wake||!this.gs||!this.eng||!this.eng.storyLines) return;
     if(this.state.screen==='tap' && !this._tapWarned){ this._tapWarned=true; const rows=this.raidWarnRows(); if(rows.length){ setTimeout(()=>{ if(!this.state.tuto&&!this.radio) this.radioOpen(rows[0]._vid,rows); else this._tapWarned=false; },0); return; } }
     const c=this.storyMap().cur;
-    if(!c){ const pq=this.storyPending(), rows=pq?this.storyCallRows(pq):[], m=this.storyMap();   // 받기 전 호출 — 교신 화면에서 1회 · id:auto면 레이드 밖 아무 화면에서
+    if(!c){ let pq=this.storyPending(), rows=pq?this.storyCallRows(pq):[]; const m=this.storyMap();
+      if(!rows.length){ const alt=this.storyGenAll().find(x=>this.storyCallRows(x).length&&!(m.called&&m.called[x.QuestID])); if(alt){ pq=alt; rows=this.storyCallRows(alt); } }   /* 호출 대사가 있는 다른 [일반] 임무(잡음 섞인 교신) */   // 받기 전 호출 — 교신 화면에서 1회 · id:auto면 레이드 밖 아무 화면에서
       const free=RAID_SCREENS.indexOf(this.state.screen)<0 && !this.storyRew && !this.state.notice && !!this.state.ready;
       const cid=rows.length?this.storyCallId(pq):'', navId=cid==='nav'||cid==='auto'; if(navId&&(!this._navArm||this._navArm.q!==pq.QuestID)) this._navArm={q:pq.QuestID,s:this._navArmS||this.state.screen,n:0};   /* id:nav = 화면을 2번 옮기면 호출(챕터1 5번 맥 · 사용자 2026-10-10) */
       if(navId&&this._navArm&&this.state.screen!==this._navArm.s){ this._navArm.s=this.state.screen; this._navArm.n++; }
       const navHit=navId&&free&&this._navArm&&this._navArm.n>=(cid==='nav'?2:1);   /* id:auto = 보상 받은 화면을 벗어나면 호출(사용자 2026-10-12) */
-      const invHit=cid==='inv'&&free&&this.state.screen==='inventory';   /* id:inv = 소지품 화면을 여는 순간(주거지역 임무 · 사용자 2026-10-16) — 귀환 성공·도망은 착지가 곧 소지품이라 바로, 사망은 보건소 뒤 처음 여는 때 */
-      if(rows.length && (this.state.screen==='comms' || navHit || invHit) && !(m.called&&m.called[pq.QuestID]) && !this.tidyActive()){ m.called=Object.assign({},m.called,{[pq.QuestID]:1}); this.saveGame();
-        setTimeout(()=>{ if(this.state.tuto||this.state.notice||this.radio||this.talk){ delete m.called[pq.QuestID]; return; } this.radioOpen(String(pq.GiverVendorID||''),rows); },this.storyCallAuto(pq)?900:0); }   /* 자동 호출은 화면이 자리 잡은 뒤 */
+      const invHit=cid==='inv'&&free&&this.state.screen==='inventory';
+      const hubHit=cid==='hub'&&free&&!!this._raidBack;   /* id:hub = 레이드를 마치고 지구로 돌아온 첫 화면(잡음 섞인 교신 · 10-21) */
+      if(free && !(cid==='hub' && rows.length && !(m.called&&m.called[pq.QuestID]))) this._raidBack=false;   /* 귀환 순간 한 번만 — 기다리는 hub 호출이 없으면 바로 끈다(다른 안내에 막혔으면 풀릴 때까지 유지) */   /* id:inv = 소지품 화면을 여는 순간(주거지역 임무 · 사용자 2026-10-16) — 귀환 성공·도망은 착지가 곧 소지품이라 바로, 사망은 보건소 뒤 처음 여는 때 */
+      if(rows.length && (this.state.screen==='comms' || navHit || invHit || hubHit) && !(m.called&&m.called[pq.QuestID]) && !this.tidyActive()){ m.called=Object.assign({},m.called,{[pq.QuestID]:1}); if(hubHit) this._raidBack=false; this.saveGame();
+        setTimeout(()=>{ if(this.state.tuto||this.state.notice||this.radio||this.talk){ delete m.called[pq.QuestID]; if(hubHit) this._raidBack=true; return; } this.radioOpen(String(pq.GiverVendorID||''),rows); },this.storyCallAuto(pq)?900:0); }   /* 자동 호출은 화면이 자리 잡은 뒤 */
       return; }
     if(c.s!=='run') return; const q=this.eng.storyRow(c.id); if(!q) return;
     const fired=c.radio||{}, groups={};
@@ -4749,7 +4846,8 @@ void main(){
   radioOpen(vid,rows){ if(!rows.length) return; this.radio={vid,rows,i:-1}; this.sfxComms(); this.radioNext(); }   // 교신 시작음 1회(줄이 넘어갈 땐 안 울림)
   radioNext(){ const r=this.radio; if(!r) return; r.i++;
     if(r.i>=r.rows.length){ this.radio=null; if(this._tutoAfterRadio){ const tk=this._tutoAfterRadio; this._tutoAfterRadio=null; setTimeout(()=>this.tutoOpen(tk),0); } if(this._talkAutoT){ clearTimeout(this._talkAutoT); this._talkAutoT=null; } this.setState({npcLine:null}); this.forceUpdate(); return; }
-    const row=r.rows[r.i]; this.npcSay({id:row.LineID,vid:row._vid||r.vid,text:this.tx(row,'Line')||row.Line_KR||'',face:this.npcFaceKey(row.Expression)}, NPC_TW_TALK); }
+    const row=r.rows[r.i], nz=String(row.Expression||'').trim()==='static';   // static = 발신자 없는 잡음 무전(초상·이름 없음 · 잡음 섞인 교신)
+    this.npcSay({id:row.LineID,vid:nz?'__noise':(row._vid||r.vid),text:this.tx(row,'Line')||row.Line_KR||'',face:nz?'neutral':this.npcFaceKey(row.Expression)}, NPC_TW_TALK); }
   radioTap(){ if(!this.radio) return; if(this.talkTyping()){ this.npcComplete(); return; } this.radioNext(); }
   // 무전 화면 — 402×828 프레임을 화면 아래에 붙여 목업 좌표 그대로: 검정 80% · 무전기(좌우 반전 15°) · 얼굴 128×103(x238 y458) · 대사 박스 y561~618
   radioOverlay(){ const r=this.radio; if(!r) return null; const L=this.state.npcLine, vid=(L&&L.vid)||r.vid, v=this.eng.byId.vendor[vid]||{};
@@ -4763,7 +4861,7 @@ void main(){
           h('img',{src:'assets/art/ui/walkie.webp',alt:'',draggable:false,style:{position:'absolute',left:-12.06,top:-5.41,width:71.75,height:95.66,maxWidth:'none'}})),
         h('div',{key:'fc',style:{position:'absolute',left:238,top:458,width:128,height:103,overflow:'hidden'}}, ...NPC_FACES.map(faceImg)),
         h('div',{key:'bx',style:{position:'absolute',left:0,right:0,top:634.5,height:0}},   // 탭은 바깥 판 하나가 받는다(두 번 넘어가지 않게)
-          L? this.npcTalkBox(this.tx(v,'VendorName'),L,'radio') : null))); }
+          L? this.npcTalkBox(vid==='__noise'?(this.en()?'Unknown signal':'알 수 없는 신호'):this.tx(v,'VendorName'),L,'radio') : null))); }
   // ===== 스토리 손 안내 — 화면을 은은하게 어둡게 + 가리키는 곳만 밝게 + 손 아이콘(assets/art/ui/guide_hand.webp 43×57 픽셀아트) =====
   //   대상 = data-guide 속성 요소. 위치는 매 200ms 다시 재서 따라간다(스크롤·레이아웃 변화). 클릭은 그대로 통과(pointerEvents none).
   //   손끝 = 이미지 (14,2). 화면 아래쪽 대상(하단 내비)은 손을 위에서 아래로 가리키게 뒤집는다.
@@ -4877,15 +4975,10 @@ void main(){
     const seg=this.state.seg, filter=this.state.filter;
     this.tutoTick(seg);   // 튜토리얼 팝업 — 탭이 바뀐 첫 렌더에서만 걸린다(다음 틱 실행)
     const list=(seg==='vault'?this.gs.vault:this.gs.bag);
-    const cats=[['전체','common_all'],['무기','item_weapon'],['방어구','item_armor_body'],['장갑','item_hands'],['신발','item_feet'],['가방','item_bag'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['징표','item_talisman'],['술','item_liquor'],['모듈','item_module'],['강화','item_enhance'],['데이터','item_data'],['귀중품','item_quest']];
-    cats.push(['퀘스트','item_questitem']);   // 퀘스트 전용 아이템(챕터3 1번 · 칸 수에 안 셈)
-    const catOf=(inst)=>{ if(this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]) return '술'; if(this.eng.byId.module&&this.eng.byId.module[inst.id]) return '모듈'; if(this.eng.byId.usb&&this.eng.byId.usb[inst.id]) return '데이터'; const s=this.eng.anyItem(inst.id); if(!s) return ''; return CATKR[s.Category]||s.Category; };
-    // ★'방어구' 칩 하나가 투구·갑옷을 함께 담는다. 예전 '갑옷' 칩은 Body만 잡아
-    //   투구는 어느 칩에도 걸리지 않았다(전체에서만 보였다).
-    const catHit=(inst)=>{ if(filter==='전체') return true;
-      const c=catOf(inst);
-      if(filter==='방어구') return c==='투구'||c==='갑옷';
-      return c===filter; };
+    const catOf=(inst)=>this.invCatOfId(inst.id);
+    // 칩 = 보관함에 실제로 있는 분류만(10-21) · 고른 분류가 비면 '전체'로 본다
+    const vc=this.catFilterChips(list.map(x=>x.id), filter, id=>this.setState({filter:id}), 'vcat-');
+    const catHit=(inst)=>this.invCatMatch(catOf(inst), vc.eff);
     const rows=list.filter(catHit).sort((a,b)=>(this.isEquipped(b.uid)?1:0)-(this.isEquipped(a.uid)?1:0));
     return h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       this.screenTitle('INVENTORY','nav_inventory',this.storageChips()),   // 소지품에선 PASS 대신 보관고 잔량을 본다
@@ -4895,11 +4988,7 @@ void main(){
         seg, k=>{ if(k==='vault') this._hintVault=false; this.setState({seg:k}); }),
       // 소지품=슬롯 3섹션(belongings) · 금고=필터칩+리스트(기존)
       seg==='bag'? this.belongings(catOf) : h('div',{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
-        h('div',{style:{display:'flex',gap:6,padding:'12px 18px',overflowX:'auto',flex:'0 0 auto'}},
-          ...cats.map(([id,lk])=>{ const on=filter===id;   // 깎인 판 칩(10-21 · 알약형 폐기) — 바깥 판=선 색, 1px 안쪽 판=바탕 → 사선까지 선이 따라간다
-            return h('button',{key:id,'data-guide':'vcat-'+id,onClick:()=>this.setState({filter:id}),style:{flex:'0 0 auto',padding:1,border:'none',background:on?'rgb(74,77,83)':'rgb(54,56,60)',clipPath:'polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)',cursor:'pointer'}},
-              h('span',{style:{display:'block',background:on?'rgb(43,46,50)':'#111315',clipPath:'polygon(5.6px 0,100% 0,100% calc(100% - 5.6px),calc(100% - 5.6px) 100%,0 100%,0 5.6px)',color:on?'rgb(234,235,238)':'rgb(111,114,118)',fontFamily:T.mono,fontSize:11,lineHeight:'14px',padding:'5px 12px',whiteSpace:'nowrap'}},
-                lk==='item_enhance'?this.tOr(lk,this.en()?'Enhance':'강화'):this.t(lk))); })),   // item_enhance = UIString 행 없음 → 폴백
+        vc.el,
         // 당겨서 정리 — 클리퍼(overflow:hidden) 안에서 리스트만 내려가고 그 위로 힌트가 드러난다.
         h('div',Object.assign({style:{flex:1,position:'relative',overflow:'hidden',overscrollBehavior:'contain',userSelect:'none',WebkitUserSelect:'none',WebkitTouchCallout:'none'}}, this.vtHandlers()),
           h('div',{key:'vthint',ref:el=>{this._vtHint=el;},style:{position:'absolute',left:0,right:0,top:0,height:90,
@@ -5337,7 +5426,7 @@ void main(){
   // ---- character ----
   character(){
     const g=this.gs; const full=this.eng.playerProfile(g,false);
-    const bareState={...g, equip:{weapon:null,head:null,body:null,artifact1:null,artifact2:null,bag:null}};
+    const bareState={...g, equip:{weapon:null,head:null,body:null,hands:null,feet:null,artifact1:null,artifact2:null,bag:null}};   // 맨몸 비교 — 장갑·신발도 빼야 보너스 차이가 맞다
     const bare=this.eng.playerProfile(bareState,false);
     const prim=[['str',this.t('stat_str')],['dex',this.t('stat_dex')],['vit',this.t('stat_vit')],['will',this.t('stat_will')]];
     const bonus=full.primAdd||{str:0,dex:0,vit:0,will:0};
@@ -5351,6 +5440,7 @@ void main(){
         this.screenTitle('CHARACTER','nav_character'),
         this.commsBtn()),
       h('div',{style:{flex:1,margin:'16px 16px 16px',background:'#18191D',border:'1px solid #36383C',borderRadius:8,overflowY:'auto',padding:'0 0 110px'}},
+        h('div',{key:'gtitle',style:{padding:'16px 14px 0'}}, h('span',{style:{...this.titleF(),fontSize:17,color:T.hi}}, this.ttx(this.en()?'Equipment':'착용 장비',17))),   // 착용 장비 제목 — 아래 '플레이어'와 같은 글자(구운 이미지 · 10-21)
         this.charGear(),
         h('div',{style:{padding:'4px 14px 0'}},
         h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:3}},
@@ -5669,12 +5759,14 @@ void main(){
   storyIsGen(q){ const o=q&&this.eng.questObjective(q); return !!(o&&o.general); }
   // [일반] 임무 트랙(2026-10-18 · 「팔에 적힌 이름」) — 메인 순서와 따로 연다. 같은 Chapter(=시리즈) 안에서는 Order 순으로 앞 임무가 끝나야 다음.
   //   진행 중 임무는 메인·일반 통틀어 한 번에 하나(gs.story.cur 한 칸) — 앞 임무가 끝나야 다음이 열린다.
-  storyGenNext(){ if(!this.gs||!this.eng||!this.eng.storyRows) return null; const m=this.storyMap(), rows=this.eng.storyRows();
+  // [일반] 임무 — 지금 받을 수 있는 것 전부(시리즈마다 앞 순번을 마쳐야 다음) · 여러 시리즈가 동시에 열릴 수 있다(10-21)
+  storyGenAll(){ if(!this.gs||!this.eng||!this.eng.storyRows) return []; const m=this.storyMap(), rows=this.eng.storyRows(), out=[];
     for(const q of rows){ if(m.done[q.QuestID]||!this.storyIsGen(q)) continue;
       const ch=this.eng.N(q.Chapter,0), od=this.eng.N(q.Order,0);
       if(rows.some(p=>p!==q&&this.storyIsGen(p)&&this.eng.N(p.Chapter,0)===ch&&this.eng.N(p.Order,0)<od&&!m.done[p.QuestID])) continue;
-      if(this.storyUnlockOk(q)) return q; }
-    return null; }
+      if(this.storyUnlockOk(q)) out.push(q); }
+    return out; }
+  storyGenNext(){ return this.storyGenAll()[0]||null; }
   // 시작 조건(Unlock) 한 개 — ★모르는 kind는 "안 열림"(의도치 않게 스토리가 먼저 열리는 사고 방지 · power·hideout은 아직 미구현)
   storyCond(c){ const e=this.eng, g=this.gs, n=e.N(c&&c.min,1);
     switch(String((c&&c.kind)||'')){
@@ -5685,6 +5777,8 @@ void main(){
       // 착용 무기·방어구가 닳은 내구도 합(5번 · 맥 카터 "나중에 고치러 와")
       case 'gear_worn': { let w=0; ['weapon','head','body','hands','feet'].forEach(sl=>{ const u=g.equip[sl], x=u&&g.bag.find(i=>i.uid===u); if(x&&e.N(x.maxDur)>0&&!e.isHidden(x,'maxDur')) w+=Math.max(0,e.N(x.maxDur)-e.N(x.dur)); }); return w>=n; }
       // 시설 전부 복원 뒤 레이드가 min번 끝났다(성공·도망·사망 무관 — gs.sorties 증가분)
+      // 어떤 임무를 마친 뒤 레이드가 min번 끝났다(「잡음 섞인 교신」 · 2026-10-21) — 기준선 = 완료 때 찍은 gs.story.qra[id](없으면 처음 본 지금)
+      case 'quest_raids': { const m=this.storyMap(); if(!m.done[c.id]) return false; if(!m.qra||m.qra[c.id]==null){ m.qra=Object.assign({},m.qra,{[c.id]:e.N(g.sorties,0)}); this.saveGame(); } return e.N(g.sorties,0)-e.N(m.qra[c.id],0)>=n; }
       case 'fac_raids': { if(!this.facAllOpen()) return false; this.facBaseMark(); const b=this.storyMap().facAllAt; return b!=null && e.N(g.sorties,0)-b>=n; }
       default: return false; } }
   storyUnlockOk(q){ const raw=String((q&&q.Unlock)||'').trim(); if(!raw||raw==='-') return true;
@@ -5704,7 +5798,7 @@ void main(){
     if(c){ const q=this.eng.storyRow(c.id); if(!q||String(q.GiverVendorID||'')!==vid) return null;   /* 진행 중 임무(메인이든 일반이든)가 있으면 그것만 */
       if(c.s==='rw') return {q,stage:'reward'}; return this.storyAllDone(q)?{q,stage:'done'}:null; }
     const q=this.storyNext(); if(q&&String(q.GiverVendorID||'')===vid&&this.storyUnlockOk(q)) return {q,stage:'start'};
-    const g=this.storyGenNext(); if(g&&String(g.GiverVendorID||'')===vid) return {q:g,stage:'start'};   /* [일반] 임무 — 조건이 되면 그 기버 상점에 들어갈 때 */
+    const g=this.storyGenAll().find(x=>String(x.GiverVendorID||'')===vid); if(g) return {q:g,stage:'start'};   /* 그 상점이 기버인 [일반] 임무(여러 시리즈 중) */   /* [일반] 임무 — 조건이 되면 그 기버 상점에 들어갈 때 */
     return null; }
   // 스토리 안내 — 진행 중인 퀘스트가 act/equip이고 아직 다 못 입었으면 { q, ids } (내비 잠금·[착용] 반짝·튜토리얼 미루기의 기준)
   storyGuide(){ if(!this.gs||!this.eng||!this.eng.storyRow) return null; const c=this.storyMap().cur; if(!c||c.s!=='run') return null;
@@ -5931,7 +6025,7 @@ void main(){
     return null; }
   storyQuietStart(q){ return this.eng.N(q&&q.Chapter,1)>=2; }   /* 챕터2부터 퀘스트 시작은 손 안내·내비 잠금 없이(찾아가는 건 유저 몫 · 사용자 2026-10-10) */
   storyCallId(q){ const r=this.storyCallRows(q)[0]; try{ return String(JSON.parse(String(r.Trigger||'')).id||''); }catch(_){ return ''; } }
-  storyCallAuto(q){ return this.storyCallRows(q).some(r=>{ try{ return ['auto','inv'].indexOf(JSON.parse(String(r.Trigger||'')).id)>=0; }catch(_){ return false; } }); }   /* inv도 자동 호출 — 아니면 내비가 캐릭터 화면으로 잠긴다 */
+  storyCallAuto(q){ return this.storyCallRows(q).some(r=>{ try{ return ['auto','inv','hub'].indexOf(JSON.parse(String(r.Trigger||'')).id)>=0; }catch(_){ return false; } }); }   /* inv도 자동 호출 — 아니면 내비가 캐릭터 화면으로 잠긴다 */
   // 무료 1회(보상 free) — gs.story.free = { heal:1 } · 쓰면 지운다
   storyFreeOnce(k){ const f=this.gs&&this.gs.story&&this.gs.story.free; return !!(f&&f[k]); }
   // 상점까지 손 안내 — 다른 상점 메뉴면 뒤로 · 프로토콜 지구면 그 상점 행 · 그 밖은 하단 프로토콜 지구
@@ -6028,7 +6122,9 @@ void main(){
       if(ch.length){ const re={}; g.filter(r=>kind(r)==='reaction').forEach(r=>{ re[e.N(r.ChoiceNo,0)]=r; }); return {t:'choice',choices:ch,react:re}; }
       return {t:'line',row:g.find(r=>kind(r)==='line')||g[0]}; }); }
   // this.talk = { vid, qid, stage, steps, si(현재 단계), wait:'read'|'choose'|'end' } — 인스턴스에 두고 forceUpdate(타자기 setState와 분리)
-  talkBegin(vid,q,stage){ if(stage==='done'&&this._diaryShown!==q.QuestID){ const o0=this.eng.questObjective(q); if(o0&&o0.diary){ this.diaryBegin(vid,q); return; } }   /* 다이어리 읽기(프로토콜의 진실1) — 먼저 전체 화면 글, 끝나면 평소 퀘스트 완료 대화(_diaryShown) */
+  talkBegin(vid,q,stage){ if(stage==='done'&&this._diaryShown!==q.QuestID){ const o0=this.eng.questObjective(q); if(o0&&o0.diary){
+        if(o0.diary.pre&&this._diaryPre!==q.QuestID&&this.storySteps(q.QuestID,'predone').length){ this._diaryPre=q.QuestID; stage='predone'; }   /* 글 보기 전 한마디(카이토 "바로 열어 보겠습니다") → talkFinish가 글로 넘긴다 */
+        else { this.diaryBegin(vid,q); return; } } }   /* 다이어리 읽기(프로토콜의 진실1) — 먼저 전체 화면 글, 끝나면 평소 퀘스트 완료 대화(_diaryShown) */
     this.talk={vid,qid:q.QuestID,stage,steps:this.storySteps(q.QuestID,stage),si:-1,wait:'read'};
     if(this._talkHold){ this.setState({npcLine:null}); return; } this.talkNext(); }
   talkSay(row,full){ this._talkFullAt=0; const t=this.talk;
@@ -6076,7 +6172,8 @@ void main(){
       // 받은 뒤 갈 곳 안내 — Dest가 보관함이면 소지품 화면으로 보내고 [보관함] 탭을 반짝인다(보관함을 열면 멈춤)
       if(q && String(q.Dest||'').trim()==='screen:vault'){ this._hintVault=true; this.go('inventory'); this.setState({seg:'bag'}); return; }
       this.npcPickLine(t.vid); this.forceUpdate(); }
-    else if(t.stage==='done' && q){ this._diaryShown=null; this.storyBringTake(q); this.storyGrant(q); } }
+    else if(t.stage==='predone' && q){ this.diaryBegin(t.vid,q); }   /* 한마디 끝 → 해독 글(diary) → 끝나면 done 대화 */
+    else if(t.stage==='done' && q){ this._diaryShown=null; this._diaryPre=null; this.storyBringTake(q); this.storyGrant(q); } }
   // 건넨 물건은 기버가 수량만큼 가져간다(bring)
   storyBringTake(q){ const o=this.eng.questObjective(q); if(o&&o.what==='bring') o.targets.forEach(tg=>{ let left=Math.max(1,this.eng.N(tg.count,1)); (tg.ids||[]).forEach(id=>{ const n=Math.min(left,this.eng.countItem(this.gs,id)); if(n>0){ this.eng.consumeItems(this.gs,id,n); left-=n; } }); }); }
   // ===== 다이어리 읽기(「프로토콜의 진실1」 · 사용자 2026-10-16) — 전당포에서 건네면 화면이 어두워지고 글이 써지듯 나타난다(교신 UI 없음) → 평소 퀘스트 완료 대화(마르타) → 보상 =====
@@ -6084,34 +6181,64 @@ void main(){
   //   ⚠️ 물건 회수·보상은 완료 대화가 끝난 뒤(talkFinish done) — 중간에 새로고침해도 다이어리를 잃지 않고 처음부터 다시 본다
   // kind = 'diary'(전자 다이어리 · 진실1) / 'scene'(장면 그림 + 글 · 「팔에 적힌 이름 1」 창고) — 글 = QuestDialogue Stage=<kind> · 장면 그림 = Objective.scene.art(assets/art/ui/<art>.webp)
   diaryBegin(vid,q,kind){ if(this._diaryRun) return; const k=kind||'diary'; const rows=this.eng.storyLines(q.QuestID,k).slice().sort((a,b)=>this.eng.N(a.Seq,0)-this.eng.N(b.Seq,0));
-    if(!rows.length) return; const o=this.eng.questObjective(q), art=k==='scene'? 'assets/art/ui/'+String((o&&o.scene&&o.scene.art)||'scene')+'.webp' : 'assets/art/ui/diary_screen.webp';
-    this._diaryRun=true; try{ new Image().src=art; }catch(_){ } this._diary={vid,qid:q.QuestID,rows,i:0,shown:0,kind:k,art}; this.diaryType(); this.forceUpdate(); }
+    if(!rows.length) return; const o=this.eng.questObjective(q), dArt=(k==='diary'&&o&&o.diary&&typeof o.diary==='object'&&o.diary.art)?String(o.diary.art):'';
+    const art=k==='scene'? 'assets/art/ui/'+String((o&&o.scene&&o.scene.art)||'scene')+'.webp' : dArt? 'assets/art/ui/'+dArt+'.webp' : 'assets/art/ui/diary_screen.webp';
+    this._diaryRun=true; try{ new Image().src=art; }catch(_){ } this._diary={vid,qid:q.QuestID,rows,i:0,shown:0,kind:k,art,look:dArt?'scene':k,mono:!!dArt,cctv:!!dArt,ts:{}}; if(dArt){ if(this._cctvT) clearInterval(this._cctvT); this._cctvT=setInterval(()=>{ if(this._diary) this.forceUpdate(); },100); } this.diaryType(); this.forceUpdate(); }   /* cctv = 해독 기록을 감시 카메라 프로그램 화면처럼(시각·REC·로그 줄이 찍힘 · 10-21) */   /* look=scene = 그림 배경 화면(해독 기록은 mono 글자) */
   diaryLen(){ const d=this._diary; if(!d) return 0; const r=d.rows[d.i]; return Array.from(this.tx(r,'Line')||r.Line_KR||'').length; }
   diaryTyping(){ const d=this._diary; return !!d && d.shown<this.diaryLen(); }
   diaryType(){ if(this._diaryTw){ clearInterval(this._diaryTw); this._diaryTw=null; } if(this._diaryAuto){ clearTimeout(this._diaryAuto); this._diaryAuto=null; }
     const d=this._diary; if(!d) return; d.shown=0;
+    if(d.cctv){ d.shown=this.diaryLen(); d.ts[d.i]=Date.now(); if(d.i<d.rows.length-1){ const cnt=/\d{1,3}(,\d{3})+/.test(this.tx(d.rows[d.i],'Line')||d.rows[d.i].Line_KR||''); this._diaryAuto=setTimeout(()=>{ this._diaryAuto=null; if(this._diary===d) this.diaryNext(); },CCTV_STEP_MS+(cnt?CCTV_COUNT_MS:0)); } this.forceUpdate(); return; }   /* 한 줄씩 통째로 찍힌다 · 마지막 줄은 탭을 기다림 */
     this._diaryTw=setInterval(()=>{ const dd=this._diary; if(!dd){ clearInterval(this._diaryTw); this._diaryTw=null; return; } dd.shown++;
       if(dd.shown>=this.diaryLen()){ clearInterval(this._diaryTw); this._diaryTw=null; this._diaryAuto=setTimeout(()=>{ this._diaryAuto=null; if(this._diary&&!this.diaryTyping()) this.diaryNext(); },3400); }
       this.forceUpdate(); },85); }
-  diaryTap(){ const d=this._diary; if(!d) return; if(this.diaryTyping()){ if(this._diaryTw){ clearInterval(this._diaryTw); this._diaryTw=null; } d.shown=this.diaryLen();
+  diaryTap(){ const d=this._diary; if(!d) return; if(d.cctv){ if(this._diaryAuto){ clearTimeout(this._diaryAuto); this._diaryAuto=null; } this.diaryNext(); return; } if(this.diaryTyping()){ if(this._diaryTw){ clearInterval(this._diaryTw); this._diaryTw=null; } d.shown=this.diaryLen();
       this._diaryAuto=setTimeout(()=>{ this._diaryAuto=null; if(this._diary&&!this.diaryTyping()) this.diaryNext(); },3400); this.forceUpdate(); return; }
     this.diaryNext(); }
   diaryNext(){ const d=this._diary; if(!d) return; d.i++; if(d.i>=d.rows.length){ this.diaryEnd(); return; } this.diaryType(); this.forceUpdate(); }
-  diaryEnd(){ const d=this._diary; if(this._diaryTw){ clearInterval(this._diaryTw); this._diaryTw=null; } if(this._diaryAuto){ clearTimeout(this._diaryAuto); this._diaryAuto=null; } this._diary=null;
+  diaryEnd(){ const d=this._diary; if(this._cctvT){ clearInterval(this._cctvT); this._cctvT=null; } if(this._diaryTw){ clearInterval(this._diaryTw); this._diaryTw=null; } if(this._diaryAuto){ clearTimeout(this._diaryAuto); this._diaryAuto=null; } this._diary=null;
     if(d.kind==='scene'){ this._diaryRun=false; this.forceUpdate(); return; }   /* 장면 — 끝나면 원래 화면(전투 종료) 그대로 */
     const q=this.eng.storyRow(d.qid); this._diaryRun=false; this._diaryShown=d.qid;   /* 글은 이미 봤다 — 이 뒤 done은 평소 대화 */
     if(!q){ this.forceUpdate(); return; }
     this.talkBegin(d.vid,q,'done'); this.forceUpdate(); }
   diaryOverlay(){ const d=this._diary; if(!d) return null; const typing=this.diaryTyping();
     const txt=(r)=>this.tx(r,'Line')||r.Line_KR||'';
-    if(d.kind==='scene'){   // 장면 — 그림 위 어두운 하늘(위쪽)에 글이 위에서 아래로 쌓인다 · 주사선·기울기 없음 · 소리 없음
+    if(d.cctv){   // 감시 카메라 프로그램 화면 — 상단바(REC·카메라·시각) · 화각 모서리 · 사람 형상 인식 박스 · 아래 로그 창에 줄이 시각과 함께 찍힌다(해독 기록 · 10-21)
+      const en=this.en(), p2=n=>String(n).padStart(2,'0'), hms=t=>{ const x=new Date(t); return p2(x.getHours())+':'+p2(x.getMinutes())+':'+p2(x.getSeconds()); };
+      const now=new Date(), stamp=now.getFullYear()+'-'+p2(now.getMonth()+1)+'-'+p2(now.getDate())+'  '+hms(now), last=d.rows.length-1;
+      const count=(t,t0)=>t.replace(/\d{1,3}(,\d{3})+/,m=>{ const N=+m.replace(/,/g,''), f=Math.min(1,(Date.now()-t0)/CCTV_COUNT_MS); return Math.round(N*(1-Math.pow(1-f,3))).toLocaleString('en-US'); });   // 큰 숫자는 0부터 올라가다 멈춘다
+      const logs=d.rows.slice(1,d.i+1).map((r,k)=>{ const n=k+1, cur=n===d.i, t0=d.ts[n]||Date.now();
+        return h('div',{key:'l'+n,style:{display:'flex',gap:8,opacity:cur?1:.6,animation:cur?'rlCctvIn .35s linear':'none'}}, h('span',{key:'t',style:{color:'#8E969F',flex:'none'}},'['+hms(t0)+']'), h('span',{key:'x'},count(txt(r),t0))); });
+      const corner=(k,pos,bd)=>h('div',{key:k,style:Object.assign({position:'absolute',width:22,height:22,borderColor:'rgba(234,235,238,.7)',borderStyle:'solid',borderWidth:0},pos,bd)});
+      const done=d.i===last && Date.now()-(d.ts[last]||0)>600, mono="'IBM Plex Mono','IBM Plex Sans KR',monospace";
+      return h('div',{key:'cctv',onClick:()=>this.diaryTap(),style:{position:'absolute',inset:0,zIndex:80,background:'#000',cursor:'pointer',animation:'rlFade 1s ease-out',overflow:'hidden',WebkitTapHighlightColor:'transparent',fontFamily:mono,color:'#EAEBEE'}},
+        h('img',{key:'bg',src:d.art,alt:'',draggable:false,style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}),
+        h('div',{key:'tf',style:{position:'absolute',inset:0,background:'linear-gradient(180deg,#000 0%,#000 28%,rgba(0,0,0,.6) 36%,rgba(0,0,0,0) 48%)',pointerEvents:'none'}}),   /* 그림 위 28%가 검은 띠 → 윗변이 직선으로 끊기지 않게 */
+        h('div',{key:'sl',style:{position:'absolute',inset:0,background:'repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0,rgba(0,0,0,.18) 1px,transparent 1px,transparent 3px)',pointerEvents:'none'}}),
+        h('div',{key:'vg',style:{position:'absolute',inset:0,background:'radial-gradient(ellipse at 50% 55%,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%)',pointerEvents:'none'}}),
+        h('svg',{key:'box',viewBox:'0 0 768 1360',preserveAspectRatio:'xMidYMid slice',style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',animation:'rlCctvPulse 1.6s ease-in-out infinite'}},   /* 그림 좌표(768×1360) 그대로 — object-fit cover와 같은 slice */
+          h('rect',{key:'r',x:320,y:708,width:135,height:232,fill:'none',stroke:'rgba(255,96,86,.45)',strokeWidth:1.5}),
+          h('path',{key:'c',d:'M320 732V708H344 M431 708H455V732 M455 916V940H431 M344 940H320V916',fill:'none',stroke:'#FF6056',strokeWidth:3}),
+          h('rect',{key:'tb',x:320,y:676,width:en?176:94,height:28,fill:'rgba(0,0,0,.62)'}), h('text',{key:'t',x:328,y:697,fill:'#FF6056',fontSize:19,fontFamily:mono,letterSpacing:1},en?'UNIDENTIFIED 1':'미확인 1')),
+        corner('c1',{left:14,top:44},{borderTopWidth:2,borderLeftWidth:2}), corner('c2',{right:14,top:44},{borderTopWidth:2,borderRightWidth:2}),
+        corner('c3',{left:14,bottom:24},{borderBottomWidth:2,borderLeftWidth:2}), corner('c4',{right:14,bottom:24},{borderBottomWidth:2,borderRightWidth:2}),
+        h('div',{key:'top',style:{position:'absolute',left:28,right:28,top:58,display:'flex',justifyContent:'space-between',alignItems:'flex-start',fontSize:11,lineHeight:1.6,letterSpacing:'.06em',pointerEvents:'none'}},
+          h('div',{key:'l'},
+            h('div',{key:'r',style:{display:'flex',alignItems:'center',gap:7}}, h('span',{key:'d',style:{width:8,height:8,borderRadius:4,background:'#FF3B30',animation:'rlBlink 1.2s steps(1,end) infinite'}}), h('span',{key:'t',style:{color:'#FF6056',fontWeight:600}},'REC')),
+            h('div',{key:'c',style:{color:'#C2C5CB'}},en?'CAM-04 · TOWER BASE':'CAM-04 · 송신탑 하부')),
+          h('div',{key:'s',style:{textAlign:'right'}}, h('div',{key:'d',style:{color:'#C2C5CB'}},stamp.split('  ')[0]), h('div',{key:'t'},stamp.split('  ')[1]))),
+        h('div',{key:'log',style:{position:'absolute',left:24,right:24,bottom:58,background:'rgba(0,0,0,.62)',border:'1px solid rgba(234,235,238,.16)',padding:'10px 12px 12px',fontSize:11.5,lineHeight:1.65,wordBreak:'keep-all',pointerEvents:'none'}},
+          h('div',{key:'hd',style:{color:'#C2C5CB',letterSpacing:'.05em',paddingBottom:7,marginBottom:7,borderBottom:'1px solid rgba(234,235,238,.14)'}},'■ '+txt(d.rows[0])),
+          ...logs, logs.length?null:h('div',{key:'wait',style:{color:'#8E969F',animation:'rlBlink 1s steps(1,end) infinite'}},'_')),
+        done? h('div',{key:'go',style:{position:'absolute',right:28,bottom:32,fontSize:10.5,letterSpacing:'.08em',color:'#8E969F',animation:'rlCctvPulse 1.6s ease-in-out infinite',pointerEvents:'none'}},en?'TAP TO CONTINUE':'화면을 눌러 계속') : null); }
+    if(d.look==='scene'){   // 장면 — 그림 위 어두운 하늘(위쪽)에 글이 위에서 아래로 쌓인다 · 주사선·기울기 없음 · 소리 없음 (해독 기록도 이 화면 · mono)
       const lines=d.rows.slice(0,d.i+1).map((r,k)=>{ const cur=k===d.i, t=cur?Array.from(txt(r)).slice(0,d.shown).join(''):txt(r);
         return h('div',{key:'s'+k,style:{opacity:cur?1:.55,transition:'opacity .8s ease',animation:cur?'rlIn .6s ease-out':'none'}}, t,
           (cur&&typing)?h('span',{style:{display:'inline-block',width:2,height:'1.05em',marginLeft:4,verticalAlign:'-0.16em',background:'#EAEBEE',animation:'rlBlink .9s steps(1,end) infinite'}}):null); });
       return h('div',{key:'scene',onClick:()=>this.diaryTap(),style:{position:'absolute',inset:0,zIndex:80,background:'#000',cursor:'pointer',animation:'rlFade 1.4s ease-out',overflow:'hidden',WebkitTapHighlightColor:'transparent'}},
         h('img',{key:'bg',src:d.art,alt:'',draggable:false,style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',animation:'rlFade 2.2s ease-out'}}),
         h('div',{key:'dk',style:{position:'absolute',inset:0,background:'linear-gradient(180deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.45) 42%,rgba(0,0,0,.08) 70%,rgba(0,0,0,.25) 100%)',pointerEvents:'none'}}),
-        h('div',{key:'tx',style:{position:'absolute',left:36,right:36,top:120,display:'flex',flexDirection:'column',gap:18,fontFamily:"'IBM Plex Sans KR',system-ui,sans-serif",fontSize:16,lineHeight:1.75,color:'#EAEBEE',wordBreak:'keep-all',whiteSpace:'pre-wrap',textShadow:'0 1px 10px rgba(0,0,0,.9)',pointerEvents:'none'}}, ...lines)); }
+        h('div',{key:'tx',style:{position:'absolute',left:36,right:36,top:120,display:'flex',flexDirection:'column',gap:18,fontFamily:d.mono?"'IBM Plex Mono','IBM Plex Sans KR',monospace":"'IBM Plex Sans KR',system-ui,sans-serif",fontSize:d.mono?14:16,lineHeight:1.75,color:'#EAEBEE',wordBreak:'keep-all',whiteSpace:'pre-wrap',textShadow:'0 1px 10px rgba(0,0,0,.9)',pointerEvents:'none'}}, ...lines)); }
     // 전자 다이어리 화면(배경 아트) 위에 기록이 위에서 아래로 쌓인다 — 지난 기록은 어둡게, 지금 쓰는 줄만 밝게(사용자 2026-10-16)
     const ents=d.rows.slice(0,d.i+1).map((r,k)=>{ const cur=k===d.i, t=cur?Array.from(txt(r)).slice(0,d.shown).join(''):txt(r);
       return h('div',{key:'e'+k,style:{opacity:cur?1:.5,transition:'opacity .8s ease',animation:cur?'rlIn .5s ease-out':'none'}}, t,
@@ -6174,7 +6301,7 @@ void main(){
     (rw.free||[]).forEach(k=>{ if(!m.free||typeof m.free!=='object') m.free={}; m.free[k]=1; });   // 첫 치료 무료 등 — 쓰면 지운다
     if(rw.pass){ const cap=this.passCap(); this.gs.pass=Math.min(cap,this.eng.N(this.gs.pass,0)+rw.pass); this.savePass(); }
     if((c.cards||[]).some(cd=>cd.k==='sato')) this.sfx('got_sato');
-    m.done[c.id]=Date.now(); m.cur=null; this.storyRew=null; this.saveGame();
+    m.done[c.id]=Date.now(); m.qra=Object.assign({},m.qra,{[c.id]:this.eng.N(this.gs.sorties,0)}); m.cur=null; this.storyRew=null; this.saveGame();   // qra = 완료 시점 레이드 수(quest_raids 기준선)
     const vid=this.state.vendor; const nx=vid&&this.storyStageFor(vid);
     if(nx&&nx.stage==='start'){ const ao=this.eng.questObjective(nx.q);
       if(ao&&ao.autoStart){ m.cur={id:nx.q.QuestID,s:'run',p:[]}; this.saveGame(); this.sfx('quest_accept'); this.npcPickLine(vid); }   /* autoStart — 앞 단계 마무리 대화가 곧 수락(「팔에 적힌 이름 1」 ②) */
@@ -8174,6 +8301,23 @@ void main(){
   craftFreeSlot(){ const n=this.craftSlotsN(); for(let i=0;i<n;i++) if(!this.craftJob(i)) return i; return 0; }
   craftSlotSel(){ return Math.max(0,Math.min(this.craftSlotsN()-1,this.eng.N(this.state.craftSlot,0))); }
   // 설치가 끝난 도면만 제작할 수 있다 — 단말기 인스톨 결과(gs.hideout.disks)가 곧 레시피 목록이다.
+  // ---- 분류 칩 공용(보관함 · 제작 · 2026-10-21) ----
+  // 분류 = 보관함 칩과 같은 이름. '방어구' 칩은 투구·갑옷을 함께 담는다(장갑·신발은 각자 칩).
+  invCatDefs(){ return [['전체','common_all'],['무기','item_weapon'],['방어구','item_armor_body'],['장갑','item_hands'],['신발','item_feet'],['가방','item_bag'],['약품','item_medicine'],['음식','item_food'],['정크','item_junk'],['장신구','item_accessory'],['징표','item_talisman'],['술','item_liquor'],['모듈','item_module'],['강화','item_enhance'],['데이터','item_data'],['귀중품','item_quest'],['퀘스트','item_questitem']]; }
+  invCatOfId(id){ const e=this.eng.byId; if(e.liquor&&e.liquor[id]) return '술'; if(e.module&&e.module[id]) return '모듈'; if(e.usb&&e.usb[id]) return '데이터'; const s=this.eng.anyItem(id); if(!s) return ''; return CATKR[s.Category]||s.Category; }
+  invCatMatch(c,filter){ if(filter==='전체') return true; if(filter==='방어구') return c==='투구'||c==='갑옷'; return c===filter; }
+  // ids에 실제로 있는 분류만 칩으로 보인다 · '전체'는 항상 · 고른 분류가 목록에서 사라지면 eff='전체'
+  catFilterChips(ids,filter,onSet,guide){
+    const cs=ids.map(id=>this.invCatOfId(id));
+    const defs=this.invCatDefs().filter(([id])=>id==='전체'||cs.some(c=>this.invCatMatch(c,id)));
+    const eff=defs.some(([id])=>id===filter)?filter:'전체';
+    const el=h('div',{key:'catchips',style:{display:'flex',gap:6,padding:'12px 18px',overflowX:'auto',flex:'0 0 auto',position:'relative',zIndex:1}},
+      ...defs.map(([id,lk])=>{ const on=eff===id;   // 깎인 판 칩(10-21 · 알약형 폐기) — 바깥 판=선 색, 1px 안쪽 판=바탕 → 사선까지 선이 따라간다
+        return h('button',{key:id,'data-guide':guide?guide+id:null,onClick:()=>onSet(id),style:{flex:'0 0 auto',padding:1,border:'none',background:on?'rgb(74,77,83)':'rgb(54,56,60)',clipPath:'polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)',cursor:'pointer'}},
+          h('span',{style:{display:'block',background:on?'rgb(43,46,50)':'#111315',clipPath:'polygon(5.6px 0,100% 0,100% calc(100% - 5.6px),calc(100% - 5.6px) 100%,0 100%,0 5.6px)',color:on?'rgb(234,235,238)':'rgb(111,114,118)',fontFamily:T.mono,fontSize:11,lineHeight:'14px',padding:'5px 12px',whiteSpace:'nowrap'}},
+            lk==='item_enhance'?this.tOr(lk,this.en()?'Enhance':'강화'):this.t(lk))); }));   // item_enhance = UIString 행 없음 → 폴백
+    return {el,eff};
+  }
   craftables(){ return this.diskInstalled().map(id=>this.eng.byId.blueprint[id])
     .filter(b=>b && String(b.Facility||'workbench')==='workbench' && b.OutputItemID && b.OutputItemID!=='-'); }
   craftOutSrc(bp){ const e=this.eng.byId, id=bp&&bp.OutputItemID;
@@ -8219,8 +8363,10 @@ void main(){
     this.hideTick(); this.craftRollTick();
     const slot=this.craftSlotSel();
     const job=this.craftJob(slot);
-    const list=this.craftables();
-    const sel=this.state.craftSel? list.find(b=>b.BlueprintID===this.state.craftSel) : null;
+    const all=this.craftables();
+    const cc=this.catFilterChips(all.map(b=>b.OutputItemID), this.state.craftCat||'전체', id=>this.setState({craftCat:id}), 'ccat-');   // 슬롯 아래 분류 칩(결과물 기준 · 있는 분류만)
+    const list=all.filter(b=>this.invCatMatch(this.invCatOfId(b.OutputItemID), cc.eff));
+    const sel=this.state.craftSel? all.find(b=>b.BlueprintID===this.state.craftSel) : null;
     const rev=(this.state.craftRev!=null)? this.craftJob(this.eng.N(this.state.craftRev,0)) : null;
     return h('div',{style:{...ST.screen}},
       h('div',{key:'wart',style:{position:'absolute',left:0,right:0,top:0,height:116,zIndex:0,pointerEvents:'none',
@@ -8229,6 +8375,7 @@ void main(){
       this.shopHeaderChips(this.hideFacName('workbench'), ()=>this.openHideFac('workbench')),
       h('div',{style:{flex:'0 0 auto',height:26}}),
       this.slotTabs(3, this.craftSlotsN(), slot, (i)=>this.setState({craftSlot:i,craftSel:null}), (i)=>{ const j=this.craftJob(i); return (j&&j.phase==='run')?j.left:null; }),
+      all.length? cc.el : null,
       h('div',{style:{position:'relative',zIndex:1,flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column'}},
         list.length? list.map(bp=>this.craftRow(bp,slot))
           // 설치된 도면이 없을 때 — 버튼을 잠그는 대신 들어와서 이유를 읽게 한다.
@@ -8635,15 +8782,17 @@ void main(){
   diskRow(inst,i,slot){
     const bp=this.eng.byId.blueprint[inst.id]||{};
     const done=this.diskInstalled().indexOf(inst.id)>=0;
-    return this.hideRow({key:inst.uid, guide:'disk-row', onClick:done?null:()=>this.openDiskInsert(inst.uid,slot), dim:done,
-      headStyle:{justifyContent:'space-between'}, head:[this.catChip('item_disk', false), done? this.shopPill(this.t('hide_disk_installed'),'rgb(169,171,175)') : null],
+    // 이미 배운 도면 = 회색 '이미 배움' 판(착용중 판 자리) + 흐리게 + 목록 맨 아래(diskListScreen 정렬) · 누를 수 없음(10-21)
+    return this.hideRow({key:inst.uid, guide:done?null:'disk-row', onClick:done?null:()=>this.openDiskInsert(inst.uid,slot), dim:done,
+      headStyle:{gap:4}, head:[this.catChip('item_disk', false), done? plate({key:'lrn',bd:'#5A5D63',bg:'#2A2C31',fg:'#C2C5CB',w:600}, this.en()?'LEARNED':'이미 배움') : null],
       name:this.enhName(inst), desc:this.tx(bp,'Description')});
   }
   diskListScreen(){
     this.hideTick();
     const slot=this.diskSlotSel();
     const job=this.diskJob(slot);
-    const list=this.disksOwned();
+    const learned=this.diskInstalled();
+    const list=this.disksOwned().map((x,i)=>[x,i]).sort((a,b)=>((learned.indexOf(a[0].id)>=0)-(learned.indexOf(b[0].id)>=0))||(a[1]-b[1])).map(p=>p[0]);   // 이미 배운 도면은 맨 아래(나머지 순서는 그대로)
     return h('div',{style:{...ST.screen}},
       h('div',{key:'tart',style:{position:'absolute',left:0,right:0,top:0,height:116,zIndex:0,pointerEvents:'none',
         backgroundImage:'linear-gradient(180deg,#111315 0%,rgba(17,19,21,0) 87.88%), url(assets/art/hideout/terminal.webp)',
