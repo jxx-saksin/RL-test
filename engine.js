@@ -790,7 +790,7 @@ export function monsterProfile(m) {
     defense: N(m.Defense), atkSpeed: N(m.AttackSpeed, 1),
     accuracy: N(m.Accuracy), evasion: N(m.Evasion),
     critChance: N(m.CritChance), critResist: N(m.CritResist),
-    statusResist: N(m.StatusResist), potency: N(m.Potency),
+    statusResist: N(m.StatusResist), potency: N(m.Potency), category: m.Category || '',
     attribute: (m.StatusAttack && m.StatusAttack !== 'none') ? m.StatusAttack : null, weaponMaxDmg: N(m.MaxATK),
     grade: m.Grade, staminaCost: N(m.StaminaCost, 1), timeLimit: N(m.CombatTimeLimit, 20),
     // 오브제(Object 탭) — 반격·상태이상·성장 없음 · 강도(Tier)·확정 사토는 카드·종료 처리용
@@ -850,6 +850,13 @@ function critChance(cc, cr) {
   const K = N(C.crit_soften, 100);
   return clamp(cc / (cc + cr + K), N(C.crit_proc_min, 0.02), N(C.crit_proc_max, 0.45));
 }
+// 분류 상성(사용자 2026-10-23) — Config `status_aff_<분류>_<상태이상>` = 상태이상이 걸렸을 때의 **강도 배율**(1=보통 · 2=약점 · 0.5=저항 · 0=무효).
+// 걸릴 확률(StatusResist)과는 다른 축이다. 키가 없으면 1 — 코드를 시트보다 먼저 배포해도 동작이 바뀌지 않는다. 분류 = Monster.Category(소문자).
+function affinityOf(category, eff) {
+  if (!category) return 1;
+  const v = C['status_aff_' + String(category).toLowerCase() + '_' + eff];
+  return (v === undefined || v === null || v === '') ? 1 : Math.max(0, N(v, 1));
+}
 function statusChance(pot, res) {
   const s = pot + res, ratio = s <= 0 ? 0 : pot / s;
   return clamp(N(C.status_proc_min, 0.05) + (N(C.status_proc_max, 0.25) - N(C.status_proc_min, 0.05)) * ratio, N(C.status_proc_min), N(C.status_proc_max));
@@ -869,10 +876,19 @@ const DEFAULT_TPL = {
   hit: '{Attacker} 공격 → {Target} −{Damage} · HP {TargetHP}/{TargetMaxHP}',
   crit: '{Attacker} ⟪치명타⟫ 공격 → {Target} −{Damage} · HP {TargetHP}/{TargetMaxHP}',
   pierce_suffix: ' (관통 −방어{PiercePct}%)',
-  status_bleed: '▶ {Target} 출혈 ({DmgPerTick}/tick, {Duration}s)',
-  status_stun: '▶ {Target} 기절 (+{Delay}s 지연)',
-  status_rupture: '▶ {Target} 파열 x{Stacks} (공격력↓)',
-  status_pierce: '▶ {Target} 관통 x{Stacks} (받는 피해↑)',
+  status_bleed_msg: '상태이상 부여! {Target} 출혈 발생.',
+  status_bleed_tail: '({DmgPerTick}/tick, {Duration}s)',
+  status_stun_msg: '상태이상 부여! {Target} 기절 발생.',
+  status_stun_tail: '(+{Delay}s)',
+  status_rupture_msg: '상태이상 부여! {Target} 파열 발생, {Stacks}.',
+  status_rupture_tail: '(공격력 -{Pct}%)',
+  status_pierce_msg: '▶ {Target} 관통 x{Stacks}.',
+  status_pierce_tail: '(받는 피해 +{Pct}%)',
+  aff_weak: '효과가 제대로 먹힌다!',
+  aff_resist: '잘 통하지 않는 것 같다.',
+  aff_immune: '{Status}이(가) 통하지 않는다.',
+  aff_bleed_blocked: '', aff_stun_blocked: '', aff_pierce_blocked: '', aff_rupture_blocked: '',
+  aff_tail_bleed0: '(0/tick)', aff_tail_stun0: '(+0.0s)', aff_tail_pierce0: '(받는 피해 +0%)', aff_tail_rupture0: '(공격력 -0%)',
   dot_bleed: '{Target} 출혈 피해 −{Damage} (HP {CurrentHP})',
   stun_skip: '{Target} 기절 — 행동 지연',
   win: '{MonsterName} 처치. ({Elapsed}s)',
@@ -892,10 +908,19 @@ const DEFAULT_TPL_EN = {
   hit: '{Attacker} attacks → {Target} −{Damage} · HP {TargetHP}/{TargetMaxHP}',
   crit: '{Attacker} ⟪CRIT⟫ → {Target} −{Damage} · HP {TargetHP}/{TargetMaxHP}',
   pierce_suffix: ' (pierce −def {PiercePct}%)',
-  status_bleed: '▶ {Target} bleeding ({DmgPerTick}/tick, {Duration}s)',
-  status_stun: '▶ {Target} stunned (+{Delay}s delay)',
-  status_rupture: '▶ {Target} rupture x{Stacks} (attack↓)',
-  status_pierce: '▶ {Target} pierced x{Stacks} (damage taken↑)',
+  status_bleed_msg: 'Status inflicted! {Target} bleeding.',
+  status_bleed_tail: '({DmgPerTick}/tick, {Duration}s)',
+  status_stun_msg: 'Status inflicted! {Target} stunned.',
+  status_stun_tail: '(+{Delay}s)',
+  status_rupture_msg: 'Status inflicted! {Target} ruptured, {Stacks}.',
+  status_rupture_tail: '(ATK -{Pct}%)',
+  status_pierce_msg: '▶ {Target} pierced x{Stacks}.',
+  status_pierce_tail: '(damage taken +{Pct}%)',
+  aff_weak: 'It works very well!',
+  aff_resist: 'It barely seems to work.',
+  aff_immune: '{Status} has no effect.',
+  aff_bleed_blocked: '', aff_stun_blocked: '', aff_pierce_blocked: '', aff_rupture_blocked: '',
+  aff_tail_bleed0: '(0/tick)', aff_tail_stun0: '(+0.0s)', aff_tail_pierce0: '(damage taken +0%)', aff_tail_rupture0: '(ATK -0%)',
   dot_bleed: '{Target} bleed damage −{Damage} (HP {CurrentHP})',
   stun_skip: '{Target} stunned — action delayed',
   win: '{MonsterName} defeated. ({Elapsed}s)',
@@ -926,6 +951,8 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
   const log = [];
   const A = { ...pProf, hp: playerHpStart != null ? playerHpStart : pProf.maxHp, side: 'player', next: 0, stunEnd: -1, bleed: [], ruptureStacks: 0, ruptureUntil: 0, exposeStacks: 0, exposeUntil: 0 };
   const B = { ...mProf, hp: mProf.maxHp, side: 'monster', next: 0, stunEnd: -1, bleed: [], ruptureStacks: 0, ruptureUntil: 0, exposeStacks: 0, exposeUntil: 0 };
+  // 상성 — 몬스터만(플레이어·PvP 봇·오브제는 1). 대상이 받는 강도 배율을 전투 시작에 한 번 읽는다.
+  B.aff = (mProf.passive || !mProf.category) ? {} : { bleed: affinityOf(mProf.category, 'bleed'), stun: affinityOf(mProf.category, 'stun'), pierce: affinityOf(mProf.category, 'pierce'), rupture: affinityOf(mProf.category, 'rupture') };
   const triggers = { hitsLanded: 0, evades: 0, hitsTaken: 0, critsLanded: 0 };
   const ME = uiT('common_me');
   const limit = mProf.timeLimit;
@@ -942,12 +969,21 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
   // 발동은 타수에 비례하니 지속을 간격에 비례시켜야 가동률이 공속과 무관해진다(시뮬: 고정 3초면 빠른 무기 이득 −5.9%, 간격 비례면 −1.8/−1.9/−2.3%).
   const durScaled = (base, actor) => base * clamp(1 / (actor === A ? playerSpeed() : actor.atkSpeed), 0.4, 3);
   const pierceExpose = () => (byId.status.pierce?.EffectType === 'damage_taken_up');
+  // --- 분류 상성 도우미 ---
+  const affOf = (e, eff) => (e && e.aff && e.aff[eff] != null) ? e.aff[eff] : 1;
+  const statusNameOf = (eff) => tr(byId.status[eff], 'Name') || eff;
+  // 약점·저항·무효 한마디 — 상성 조합별 문구(aff_<분류>_<상태이상>)가 있으면 그것, 없으면 공통(aff_weak·aff_resist·aff_immune)
+  const affFlavor = (foe, eff, am) => { if (am === 1) return ''; const lvl = am <= 0 ? 'immune' : (am > 1 ? 'weak' : 'resist');
+    return logTpl('aff_' + String(foe.category || '').toLowerCase() + '_' + eff, {}) || logTpl('aff_' + lvl, { Status: statusNameOf(eff) }); };
+  // 로그 한 줄 = 문장 + (상성 한마디) + 숫자 꼬리. 꼬리는 따로 담아 화면이 투명도 50%로 흐리게 그린다(tail 필드).
+  const statusMsg = (headId, tailId, vars, flavor) => { const head = logTpl(headId, vars), tail = tailId ? logTpl(tailId, vars) : '';
+    return { text: [head, flavor, tail].filter(Boolean).join(' '), tail }; };
   function exposeMult(target, now) {
-    return (target.exposeUntil > now && target.exposeStacks > 0) ? 1 + target.exposeStacks * N(byId.status.pierce?.Value, 0.06) : 1;
+    return (target.exposeUntil > now && target.exposeStacks > 0) ? 1 + target.exposeStacks * N(byId.status.pierce?.Value, 0.06) * affOf(target, 'pierce') : 1;
   }
   function ruptureMult(actor, now) {
     if (actor.ruptureUntil > now && actor.ruptureStacks > 0) {
-      const per = 0.10 + 0.05 * (actor.ruptureStacks - 1);
+      const per = (0.10 + 0.05 * (actor.ruptureStacks - 1)) * affOf(actor, 'rupture');   // 파열은 맞은 쪽(공격자 본인)의 공격력을 깎는다 → 상성은 그 몬스터 것
       return clamp(1 - per, 0.3, 1);
     }
     return 1;
@@ -1006,7 +1042,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     if (isCrit) { dmg *= clamp(N(C.crit_damage_mult, 1.5) + N(actor.critMultBonus), 1, 4); if (actor.side === 'player') triggers.critsLanded++; if (actor === A && TAL.critSpeed.length) { for (const c of TAL.critSpeed) { critBuffLeft = Math.max(critBuffLeft, c.hits); critBuffMult = Math.max(critBuffMult === 1 ? 0 : critBuffMult, c.mult); } } }
     let pierceFrac = 0;
     if (actor.attribute === 'pierce' && !foe.passive && !pierceExpose() && !immune(foe, 'pierce') && Math.random() < statusChance(actor.potency, foe.statusResist)) {
-      pierceFrac = rand(N(byId.status.pierce?.Value, 0.05), N(byId.status.pierce?.ValueMax, 0.4));
+      pierceFrac = clamp(rand(N(byId.status.pierce?.Value, 0.05), N(byId.status.pierce?.ValueMax, 0.4)) * affOf(foe, 'pierce'), 0, 0.9);
     }
     let final = defMitigate(dmg, foe.defense, pierceFrac) * exposeMult(foe, t);
     if (foe === A) {
@@ -1031,37 +1067,45 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
       const sc = statusChance(actor.potency, foe.statusResist);
       if (Math.random() < sc) {
         const eff = actor.attribute;
-        if (eff === 'bleed') {
+        const am = affOf(foe, eff), fl = affFlavor(foe, eff, am);
+        if (am <= 0) {   // 무효 — 걸릴 뻔했는데 막혔다(발동 판정을 통과했을 때만 한 줄)
+          const m0 = statusMsg('aff_' + eff + '_blocked', 'aff_tail_' + eff + '0', {}, fl);
+          push(actor.side, 'status', m0.text, { status: eff, aff: 'immune', tail: m0.tail });
+        } else if (eff === 'bleed') {
           const s = byId.status.bleed;
           const dur = N(s?.Duration, 4), iv = N(s?.TickInterval, 2);
           // 개편(ScaleSource attacker_hit): 틱 피해 = 시전자 평균 한 방 × Value × 틱 간격. 한 방 기준이라야 공속과 무관해진다 —
           // 빠른 무기는 발동이 잦은 대신 한 방이 약하다(시뮬: 처치시간 −7.9/−6.9/−7.0% @공속 0.4/1.0/2.0. dps 기준이면 −3.5/−6.9/−12.9%로 빠른 쪽 편향).
           // 시트가 옛 값(weapon_max_dmg)이면 옛 식 그대로.
           const hitBased = s?.ScaleSource === 'attacker_hit';
-          const dmgPer = hitBased ? (actor.minAtk + actor.maxAtk) / 2 * N(s?.Value, 0.12) * iv : actor.weaponMaxDmg * N(s?.Value, 0.5);
+          const dmgPer = (hitBased ? (actor.minAtk + actor.maxAtk) / 2 * N(s?.Value, 0.12) * iv : actor.weaponMaxDmg * N(s?.Value, 0.5)) * am;
           foe.bleed.push({ dmg: dmgPer, until: t + dur, nextTick: t + iv, interval: iv });
           if (foe.bleed.length > N(s?.MaxStack, 3)) foe.bleed.shift();
-          push(actor.side, 'status', logTpl('status_bleed', { Target: fnm, DmgPerTick: dmgPer.toFixed(0), Duration: dur }), { status: 'bleed', dur });
+          const mb = statusMsg('status_bleed_msg', 'status_bleed_tail', { Target: fnm, DmgPerTick: dmgPer.toFixed(0), Duration: dur }, fl);
+          push(actor.side, 'status', mb.text, { status: 'bleed', dur, tail: mb.tail, aff: am > 1 ? 'weak' : (am < 1 ? 'resist' : undefined) });
         } else if (eff === 'stun') {
           const s = byId.status.stun;
           // 지연만 준다(확장_v3 §3.7-11): 대상의 다음 행동 시각을 뒤로 민다. 예정된 공격을 지우지 않는다 —
           // 옛 구현은 stunUntil로 그 공격을 통째로 스킵하고 한 간격을 더 기다리게 해 연타 기절 무기가 기절 락을 만들었다.
           // 기절 중(= 밀린 다음 행동 시각 전, 그 시각과 같은 순간 포함)에는 재발동을 무시한다 — 연타해도 지연이 쌓이지 않는다.
           if (t > foe.stunEnd) {
-            const delay = (1 / actor.atkSpeed) * N(s?.Value, 1.0);
+            const delay = (1 / actor.atkSpeed) * N(s?.Value, 1.0) * am;
             foe.next += delay; foe.stunEnd = foe.next;
-            push(actor.side, 'status', logTpl('status_stun', { Target: fnm, Delay: delay.toFixed(1) }), { status: 'stun', delay: +delay.toFixed(2) });
+            const ms = statusMsg('status_stun_msg', 'status_stun_tail', { Target: fnm, Delay: delay.toFixed(1) }, fl);
+            push(actor.side, 'status', ms.text, { status: 'stun', delay: +delay.toFixed(2), tail: ms.tail, aff: am > 1 ? 'weak' : (am < 1 ? 'resist' : undefined) });
           }
         } else if (eff === 'pierce') {
           const s = byId.status.pierce;
           foe.exposeStacks = Math.min(N(s?.MaxStack, 3), foe.exposeStacks + 1);
           foe.exposeUntil = t + durScaled(N(s?.Duration, 3), actor);
-          push(actor.side, 'status', logTpl('status_pierce', { Target: fnm, Stacks: foe.exposeStacks }), { status: 'pierce', stacks: foe.exposeStacks, dur: +(foe.exposeUntil - t).toFixed(2) });
+          const mp = statusMsg('status_pierce_msg', 'status_pierce_tail', { Target: fnm, Stacks: foe.exposeStacks, Pct: Math.round(foe.exposeStacks * N(s?.Value, 0.15) * am * 100) }, fl);
+          push(actor.side, 'status', mp.text, { status: 'pierce', stacks: foe.exposeStacks, dur: +(foe.exposeUntil - t).toFixed(2), tail: mp.tail, aff: am > 1 ? 'weak' : (am < 1 ? 'resist' : undefined) });
         } else if (eff === 'rupture') {
           const s = byId.status.rupture;
           foe.ruptureStacks = Math.min(N(s?.MaxStack, 3), foe.ruptureStacks + 1);
           foe.ruptureUntil = t + durScaled(N(s?.Duration, 3), actor);
-          push(actor.side, 'status', logTpl('status_rupture', { Target: fnm, Stacks: foe.ruptureStacks }), { status: 'rupture', stacks: foe.ruptureStacks, dur: +(foe.ruptureUntil - t).toFixed(2) });
+          const mr = statusMsg('status_rupture_msg', 'status_rupture_tail', { Target: fnm, Stacks: foe.ruptureStacks, Pct: Math.round(Math.min(70, (0.10 + 0.05 * (foe.ruptureStacks - 1)) * am * 100)) }, fl);
+          push(actor.side, 'status', mr.text, { status: 'rupture', stacks: foe.ruptureStacks, dur: +(foe.ruptureUntil - t).toFixed(2), tail: mr.tail, aff: am > 1 ? 'weak' : (am < 1 ? 'resist' : undefined) });
         }
       }
     }
