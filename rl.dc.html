@@ -406,7 +406,9 @@ const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Hands:'장갑', F
 const ZONE_ART_V = { city_01_mall:'?v=2', city_01_houses:'?v=2' };
 const zoneArt = (id) => 'assets/art/zones/'+id+'.webp'+(ZONE_ART_V[id]||'');
 const PVP_COLD_ART = 'assets/art/monsters/pvp_cold_user.webp', PVP_COLD_POS = '50% 32%';   // PvP 상대(ColdData 봇) 카드 공용 아트 — 얼굴 없는 실루엣 · 후드가 보이게 위쪽으로 맞춤(10-21)
-const MONSTER_ART = new Set(['monster_betrayed_exile','monster_blind_zealot','monster_bloated_toad','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_pale_lynx','monster_rogue_emergency','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_spore_gardener','monster_wandering_sentry','monster_abandoned_chihuahua',
+// 몬스터 아트 초점 — 기본은 가운데(프롬프트 규칙 = 얼굴이 세로 50%). 얼굴이 위로 치우친 그림만 여기 적는다(10-23 진압 외골격 = 머리가 위쪽).
+const MONSTER_ART_POS = { monster_riot_exosuit:'50% 14%' };
+const MONSTER_ART = new Set(['monster_patrol_k9','monster_cell_infected','monster_riot_exosuit','monster_betrayed_exile','monster_blind_zealot','monster_bloated_toad','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_pale_lynx','monster_rogue_emergency','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_spore_gardener','monster_wandering_sentry','monster_abandoned_chihuahua',
   'monster_gravid_queen','monster_last_deputy','monster_lingering_manager','monster_tower_sentinel',
   'monster_fare_gate','monster_foreman_unit','monster_track_sweeper','monster_tunnel_drifter',
   'monster_self_cart','monster_squatter',
@@ -606,7 +608,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 118;
+const TITLE_VER = 119;
 const TITLE_DATE = '1023';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -858,8 +860,8 @@ class Component extends DCLogic {
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
     try{
-      const eng = await import('./engine.js?v=val100');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val58');
+      const eng = await import('./engine.js?v=val101');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val59');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -1173,6 +1175,12 @@ class Component extends DCLogic {
     const over=[]; if(this.bagMedicineQty()>this.medicineMax()) over.push(this.en()?'medicine':'의약품'); if(this.bagFoodQty()>this.foodMax()) over.push(this.en()?'food':'음식');
     if(over.length) setTimeout(()=>this.flash(this.en()?(over.join(' & ')+' over slot limit'):(over.join('·')+' 제한 갯수 초과')),120);
   }
+  // Object.OnBreak = {"deck":[오브제/몬스터 ID…],"count":N} — 부순 직후 다음 조우 카드를 이 목록으로 고정(섞어서 뒷면 · N장 · 1회만).
+  //   경찰서 강화 철문 → 압수품 보관함 5종 택1(2026-10-23). 없는 ID는 빠진다 · 시간 초과(못 부숨)면 아무 일도 없다.
+  objOnBreak(c){ const ob=this.eng.byId.object&&this.eng.byId.object[c.mProf&&c.mProf.id]; if(!ob||!ob.OnBreak||ob.OnBreak==='-') return;
+    let nb=null; try{ nb=typeof ob.OnBreak==='string'? JSON.parse(ob.OnBreak) : ob.OnBreak; }catch(_){ return; }
+    const ids=(nb&&Array.isArray(nb.deck)? nb.deck : []).filter(id=>this.eng.byId.monster[id]); if(!ids.length) return;
+    c.nextDeck={ids, count:Math.max(1,Math.min(ids.length,this.eng.N(nb.count,ids.length)))}; }
   drawCards(){
     if(this.combat) this.combat.lootLeft=null;   // 그 자리를 떠난다 — 두고 온 전리품은 여기서 소멸
     const n = this.eng.N(this.eng.DATA.config.combat_card_count, 3);
@@ -1180,7 +1188,7 @@ class Component extends DCLogic {
     const isPvp = this.isPvpZone(zone);
     const userChance = this.pvpChance(zone)/100;
     // 조우 카드: PvP 존에서는 각 카드가 UserDataChance(%)로 몬스터/유저(콜드데이터) 확정 (§6-6)
-    const cards = this.eng.drawCards(this.combat.zoneId, n, this.combat.bossUp||0).map(id=>{
+    let cards = this.eng.drawCards(this.combat.zoneId, n, this.combat.bossUp||0).map(id=>{
       if(isPvp && Math.random()<userChance){
         const bot=this.eng.pickColdOpponent(this.gs, zone.CityID);
         if(bot) return { type:'user', bot };
@@ -1190,7 +1198,8 @@ class Component extends DCLogic {
     // 스토리 레이드 — 이번 판 몬스터를 고정한다(카드 3장 모두 같은 몬스터 · 보스 없음)
     { const sr=this.storyRaidOn(), sp=sr&&Array.isArray(sr.r.spawn)?sr.r.spawn:null;
       if(sp&&sp.length&&(this.combat.encounter||0)<sp.length){ const id=sp[this.combat.encounter||0]; if(this.eng.byId.monster[id]) for(let i=0;i<cards.length;i++) cards[i]={type:'monster',id}; } }
-    Object.assign(this.combat, { cards, picked:null, mProf:null, pvp:null, pvpCards:null, phase:'cards', res:null, revealed:0, loot:[], ups:[], cardFocus:Math.floor(n/2), flipped:false, flipAnim:false });
+    { const nd=this.combat.nextDeck; if(nd){ this.combat.nextDeck=null; const ids=nd.ids.slice(); for(let k=ids.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [ids[k],ids[j]]=[ids[j],ids[k]]; } cards=ids.slice(0,nd.count).map(id=>({type:'monster',id})); } }   // 돌파 오브제 뒤 = 고정 덱(PvP·스토리 고정보다 우선) · 뒷면은 몬스터와 같은 눈 뒷면(사용자 10-23)
+    Object.assign(this.combat, { cards, picked:null, mProf:null, pvp:null, pvpCards:null, phase:'cards', res:null, revealed:0, loot:[], ups:[], cardFocus:Math.floor(cards.length/2), flipped:false, flipAnim:false });
     this.sfxDeal(cards.length);   // 딜링 — 카드 1장당 1회, 간격 랜덤
     if(this._t){ clearInterval(this._t); this._t=null; }
     this.forceUpdate();
@@ -1391,7 +1400,7 @@ class Component extends DCLogic {
       if(el && el.isConnected){
         const r=el.getBoundingClientRect(), isM=target==='monster', artH=isM?Math.min(114,r.height):r.height;
         const cat=isM?String(((this.eng.byId.monster[(c.mProf||{}).id])||{}).Category||''):'';
-        this.hfx.burst({ x:r.left+r.width*c.fx.rx, y:r.top+r.height*c.fx.ry, type:cat==='Machine'?0:(cat==='Infected'?2:1), tier:Math.max(kill?1:0, share>=0.35?2:(share>=0.15?1:0)) });
+        this.hfx.burst({ x:r.left+r.width*c.fx.rx, y:r.top+r.height*c.fx.ry, type:(cat==='Machine'||(isM&&c.mProf&&c.mProf.passive))?0:(cat==='Infected'?2:1),   /* 오브제(철문·보관함 등)도 기계 파티클(10-23 사용자) */ tier:Math.max(kill?1:0, share>=0.35?2:(share>=0.15?1:0)) });
       } }catch(e){} }
     if(typeof navigator!=='undefined' && navigator.vibrate){ try{ if(tier===2) navigator.vibrate([0,80,45,90]); else if(tier===1) navigator.vibrate(70); else if(ln.type==='hit') navigator.vibrate(50); }catch(e){} }
   }
@@ -1421,6 +1430,7 @@ class Component extends DCLogic {
     if(res.winner==='player'){
       const OBJ=!!(c.mProf&&c.mProf.passive);   // 오브제 — 퀘스트 소탕·연승·보스 확률·성장 제외 · 사토는 고정 범위(SatoMin~Max)
       if(!OBJ){ this.qOnKill(c.mProf&&c.mProf.id); this.qOnWin(); }        // 퀘스트: 소탕 카운트 + 연전 연승 누적
+      if(OBJ) this.objOnBreak(c);   // 돌파 오브제(강화 철문 등) — 부수면 다음 조우 덱을 Object.OnBreak로 고정
       const loot = this.eng.rollLoot(c.mProf.id, c.zoneId);
       { const sr=this.storyRaidOn(); if(sr&&!sr.got){ if(sr.r.noloot) loot.length=0;   // 스토리 레이드 noloot — 아이템 드랍 없음(사토는 그대로)
           const d=sr.r.drops&&sr.r.drops[String(c.encounter)]; if(d){ loot.length=0;   /* 확정 드랍이 걸린 전투는 그 아이템만(사용자 2026-10-10) */
@@ -1435,6 +1445,7 @@ class Component extends DCLogic {
           if(l.unapp&&inst.rolls&&(inst.kind==='weapon'||inst.kind==='armor')){ inst.unappraised=Object.keys(inst.rolls); inst.appraised=false; }   /* 스토리 확정 드랍 unapp — 수치 전부 가림(2번 술값) */
           c.lootDraw.push(inst); } }
       c.loot = loot;
+      this.storyGotMark(loot);   // '시설 전부 개방 뒤 첫 습득' 조건(「내려간 셔터」 · 10-23) — 드랍이 뜬 순간 기록 · 사망해도 유지
       // 사토 드롭 (Config 공식: StaminaCost × per × 배율) — 누적만, 귀환 성공 시 지급(사망 시 0)
       // 배율 = lo + (hi-lo) × rand()^curve. curve=1이면 균등, 클수록 하한에 몰리고 상한(대박)이 희귀해진다.
       // 균등분포는 평균이 항상 밴드 한가운데라 "평균은 낮은데 가끔 크게 터진다"를 만들 수 없다 — 보스 잭팟용.
@@ -2782,7 +2793,7 @@ class Component extends DCLogic {
       // 아이콘은 가로 중앙 · 세로는 몬스터=아트 블록 중앙(114/2), 플레이어=아트가 없어 카드 중앙.
       deadNow? h('div',{key:'dthi',style:{position:'absolute',left:'50%',top:isMonster?57:'50%',transform:'translate(-50%,-50%)',zIndex:8,pointerEvents:'none',animation:isMonster?'rlFade .5s ease-out both':'none'}}, isMonster? icDeath(76,'rgba(162,0,0,0.4)') : icDeath(30,'#E1E1E1')):null,
       isMonster? h('div',{style:{position:'relative',height:114,overflow:'hidden',background:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}},
-        h('img',{src:prof.isUser?PVP_COLD_ART:'assets/art/monsters/'+prof.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:prof.isUser?PVP_COLD_POS:'50% 50%',transformOrigin:'50% 100%',animation:stn?'rlSway .4s ease-in-out infinite alternate':'none'}}),
+        h('img',{src:prof.isUser?PVP_COLD_ART:'assets/art/monsters/'+prof.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:prof.isUser?PVP_COLD_POS:(MONSTER_ART_POS[prof.id]||'50% 50%'),transformOrigin:'50% 100%',animation:stn?'rlSway .4s ease-in-out infinite alternate':'none'}}),
         h('div',{style:{position:'absolute',left:12,bottom:8,fontFamily:T.mono,fontSize:9,color:prof.isUser?T.sato:T.faint,letterSpacing:'.1em'}}, prof.isUser?this.t('kicker_userdata'):(prof.passive?(this.en()?'Object · Breakable':'Object · 오브제'):((md.Category||'')+''+this.t('kicker_dot_monsters')))), prof.grade?(()=>{ const gcol=GRADECOL[String(prof.grade).toLowerCase()]||'rgb(234,235,238)'; return h('div',{key:'gtag',style:{position:'absolute',right:10,top:10,zIndex:4,isolation:'isolate',boxSizing:'border-box',background:(gcol==='rgb(234,235,238)'?'rgba(222,222,222,0.3)':gcol),clipPath:'polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)',display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'5px 9px',animation:'rlLvlPop .5s cubic-bezier(.2,.8,.2,1)'}},   /* UI 시안(10-18) 등급 칩 = 깎인 판 두 겹 */
             h('span',{style:{position:'absolute',inset:1,zIndex:-1,background:'rgba(10,11,14,0.85)',clipPath:'polygon(4.5px 0,100% 0,100% calc(100% - 4.5px),calc(100% - 4.5px) 100%,0 100%,0 4.5px)'}}),
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',marginRight:'-1.33px',color:gcol,whiteSpace:'nowrap'}}, String(prof.grade).toUpperCase())); })():null) : null,
@@ -3420,7 +3431,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       // ART 190
       h('div',{style:{position:'relative',...artP,alignSelf:'stretch',background:ART}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
-        h('img',{src:artUrl,onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}),
+        h('img',{src:artUrl,onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:MONSTER_ART_POS[m.id]||'50% 50%'}}),
         (isSpecial&&fx)? h('canvas',{key:'burst',ref:el=>this.mountBurst(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:2,pointerEvents:'none',mixBlendMode:'lighten'}}):null,
         h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,zIndex:3,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         h('div',{style:{position:'absolute',right:17,top:12,zIndex:4,isolation:'isolate',boxSizing:'border-box',background:(gcol===HI?'rgba(222,222,222,0.3)':gcol),clipPath:'polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)',display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'5px 9px',animation:fx?'rlLvlPop .5s cubic-bezier(.2,.8,.2,1)':'none'}},   /* UI 시안(10-18) 전투 카드 등급 칩과 같은 깎인 판 두 겹 */
@@ -3460,7 +3471,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       // ART 190
       h('div',{style:{position:'relative',...artP,alignSelf:'stretch',background:ART}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
-        h('img',{src:'assets/art/monsters/'+m.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}),
+        h('img',{src:'assets/art/monsters/'+m.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:MONSTER_ART_POS[m.id]||'50% 50%'}}),
         h('div',{style:{position:'absolute',left:0,bottom:0,width:340,height:80,zIndex:3,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         h('div',{style:{position:'absolute',right:17,top:12,zIndex:4,isolation:'isolate',boxSizing:'border-box',background:OC,clipPath:'polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)',display:'inline-flex',alignItems:'center',justifyContent:'center',height:16,padding:'0 8px'}},
           h('span',{style:{position:'absolute',inset:1,zIndex:-1,background:'rgba(10,11,14,0.85)',clipPath:'polygon(4.5px 0,100% 0,100% calc(100% - 4.5px),calc(100% - 4.5px) 100%,0 100%,0 4.5px)'}}),
@@ -5005,6 +5016,7 @@ void main(){
       const hit=(tr.on==='goal_done' && this.storyAllDone(q)) || (tr.on==='screen' && (this.state.screen===tr.id || (this.state.screen==='vendor' && 'vendor_'+this.state.vtab===tr.id)))
         || (tr.on==='fight_end' && this.state.screen==='combat' && this.combat && (this.combat.phase==='won'||this.combat.phase==='timeout') && this.combat.encounter===this.eng.N(tr.n,0))
         || (tr.on==='rest_empty' && this.state.screen==='combat' && this.combat && this.combat.phase==='rest' && !!this.combat.restGranted)
+        || (tr.on==='meet' && this.state.screen==='combat' && this.combat && this.combat.phase==='cards' && this.combat.flipped && !this.combat.flipAnim && this.combat.mProf && this.combat.mProf.id===tr.id)   /* 조우 무전(진행 중 임무) — 「내려간 셔터」 강화 철문(10-23) */
         || (tr.on==='item_get' && this.state.screen==='lootmanage' && !!this.state.lm && [...this.state.lm.field,...this.state.lm.bag].some(x=>x.id===tr.id&&!x.pre))
         || (this.state.screen==='lootmanage' && !!this.state.lm && this.storyLootHit(tr));
       if(!hit) continue;
@@ -5955,6 +5967,8 @@ void main(){
       // 어떤 임무를 마친 뒤 레이드가 min번 끝났다(「잡음 섞인 교신」 · 2026-10-21) — 기준선 = 완료 때 찍은 gs.story.qra[id](없으면 처음 본 지금)
       case 'quest_raids': { const m=this.storyMap(); if(!m.done[c.id]) return false; if(!m.qra||m.qra[c.id]==null){ m.qra=Object.assign({},m.qra,{[c.id]:e.N(g.sorties,0)}); this.saveGame(); } return e.N(g.sorties,0)-e.N(m.qra[c.id],0)>=n; }
       case 'fac_raids': { if(!this.facAllOpen()) return false; this.facBaseMark(); const b=this.storyMap().facAllAt; return b!=null && e.N(g.sorties,0)-b>=n; }
+      // 시설을 전부 연 뒤 그 아이템을 처음 얻었다(전리품에 뜬 순간 · 챙기지 않았거나 그 레이드에서 죽어도 성립) — 「내려간 셔터」 경찰서 키카드(10-23)
+      case 'got_after_fac': { const m=this.storyMap(); return !!(m.gotFac&&m.gotFac[c.id]); }
       default: return false; } }
   storyUnlockOk(q){ const raw=String((q&&q.Unlock)||'').trim(); if(!raw||raw==='-') return true;
     let a; try{ a=JSON.parse(raw); }catch(_){ return false; } if(!Array.isArray(a)) a=[a]; return a.every(c=>this.storyCond(c)); }
@@ -6086,6 +6100,12 @@ void main(){
   facStoryOn(){ return this.hasStory(); }
   // 시설 전부 복원(storage 제외 전부 storyFacOpen) 시점의 레이드 종료 횟수 — 주거지역 임무(fac_raids)의 기준선. 한 번만 찍는다.
   //   이미 다 복원된 옛 세이브는 비어 있으니 처음 읽을 때 찍는다(그때부터 센다).
+  // got_after_fac 감시 목록 — [일반] 임무 Unlock에 적힌 아이템 ID만 기록한다(아무 아이템이나 쌓지 않게)
+  storyGotWatch(){ if(this._gotWatch) return this._gotWatch; const ids=new Set();
+    (this.eng.storyRows?this.eng.storyRows():[]).forEach(q=>{ let a; try{ a=JSON.parse(String(q.Unlock||'')); }catch(_){ return; } (Array.isArray(a)?a:[a]).forEach(c=>{ if(c&&c.kind==='got_after_fac'&&c.id) ids.add(String(c.id)); }); });
+    return (this._gotWatch=ids); }
+  storyGotMark(loot){ if(!this.gs||!this.eng||!Array.isArray(loot)||!loot.length||!this.hasStory()||!this.facAllOpen()) return; const w=this.storyGotWatch(); if(!w.size) return;
+    const m=this.storyMap(); let hit=false; loot.forEach(l=>{ if(l&&w.has(l.id)&&!(m.gotFac&&m.gotFac[l.id])){ m.gotFac=Object.assign({},m.gotFac,{[l.id]:Date.now()}); hit=true; } }); if(hit) this.saveGame(); }
   facAllOpen(){ for(const f in FAC_RESTORE) if(!this.storyFacOpen(f)) return false; return true; }
   facBaseMark(){ const m=this.storyMap(); if(m.facAllAt!=null||!this.facAllOpen()) return; m.facAllAt=this.eng.N(this.gs.sorties,0); this.saveGame(); }
   facSt(f){ const m=this.storyMap(); if(!m.fac||typeof m.fac!=='object') m.fac={}; return m.fac[f]||(m.fac[f]={}); }
