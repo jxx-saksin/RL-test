@@ -26,6 +26,9 @@
   /* ↑ 세로 정렬 보정: 이 폰트의 한글 글리프는 기준선~0.79em에 몰려 있는데 메트릭은 ascent 0.79/descent 0.21이라
      줄 상자 안에서 글자가 위로 ~0.11em 떠 보였다(24px에서 2.7px). 위아래 여백을 같게 맞춘 값이다(2026-10-15 실측). */
   html,body{margin:0;padding:0;background:oklch(0.120 0.005 264);}
+  /* 길게 누르기 = 글자 선택·복사 말풍선 금지(10-23) — 세이브 코드 칸(textarea·input)만 예외 */
+  body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+  textarea,input{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   ::-webkit-scrollbar{width:0;height:0;}
   .rl-wrap{min-height:100dvh;display:flex;align-items:center;justify-content:center;background:oklch(0.120 0.005 264);}
@@ -196,14 +199,6 @@
   @keyframes rlEnhGOut{0%{opacity:1;transform:none}10%{transform:translateX(-3px);text-shadow:2px 0 rgba(196,103,93,.8),-2px 0 rgba(124,165,187,.8)}20%{opacity:.4;transform:translateX(2px)}35%{opacity:.9;transform:translateX(-1px)}50%{opacity:.2;transform:translateX(3px)}65%{opacity:.6}80%,100%{opacity:0}}
   @keyframes rlEnhGIn{0%{opacity:0}10%{opacity:.5;transform:translateX(3px);text-shadow:-2px 0 rgba(196,103,93,.8),2px 0 rgba(124,165,187,.8)}25%{opacity:.1}40%{opacity:.8;transform:translateX(-2px)}55%{opacity:.3;transform:translateX(1px)}70%{opacity:1;transform:translateX(-1px)}85%,100%{opacity:1;transform:none;text-shadow:none}}
   @keyframes rlEnhScan{from{top:-60px}to{top:100%}}
-  @keyframes rlEnhShake{0%{transform:translateX(0)}12%{transform:translateX(-7px)}26%{transform:translateX(6px)}40%{transform:translateX(-5px)}54%{transform:translateX(4px)}68%{transform:translateX(-2px)}82%{transform:translateX(1px)}100%{transform:translateX(0)}}
-  /* 뒷면 흔들림 5종 — 강화마다 하나를 무작위로 고른다(enFxStart · ENH_SHAKES) */
-  @keyframes rlEnhShakeWild{0.0%{transform:none}3.0%{transform:scale(1.070)}7.4%{transform:translate(-20.0px,7.0px) rotate(-4.50deg) scale(1.050)}10.9%{transform:translate(18.5px,-3.9px) rotate(4.16deg) scale(1.046)}14.3%{transform:translate(-17.4px,3.6px) rotate(-3.90deg) scale(1.043)}17.8%{transform:translate(16.4px,-5.7px) rotate(3.68deg) scale(1.040)}21.2%{transform:translate(-15.4px,3.2px) rotate(-3.46deg) scale(1.038)}24.6%{transform:translate(14.5px,-3.0px) rotate(3.26deg) scale(1.035)}28.1%{transform:translate(-13.7px,4.8px) rotate(-3.07deg) scale(1.033)}31.5%{transform:translate(12.9px,-2.7px) rotate(2.88deg) scale(1.031)}35.0%{transform:translate(-12.1px,2.5px) rotate(-2.70deg) scale(1.029)}38.4%{transform:translate(11.3px,-3.9px) rotate(2.52deg) scale(1.026)}41.8%{transform:translate(-10.5px,2.2px) rotate(-2.34deg) scale(1.024)}45.3%{transform:translate(9.7px,-2.0px) rotate(2.17deg) scale(1.022)}48.7%{transform:translate(-9.0px,3.1px) rotate(-2.00deg) scale(1.020)}52.2%{transform:translate(8.3px,-1.7px) rotate(1.84deg) scale(1.018)}55.6%{transform:translate(-7.6px,1.6px) rotate(-1.68deg) scale(1.016)}59.0%{transform:translate(6.9px,-2.4px) rotate(1.52deg) scale(1.014)}62.5%{transform:translate(-6.2px,1.3px) rotate(-1.36deg) scale(1.013)}65.9%{transform:translate(5.5px,-1.1px) rotate(1.20deg) scale(1.011)}69.4%{transform:translate(-4.8px,1.7px) rotate(-1.05deg) scale(1.009)}72.8%{transform:translate(4.1px,-0.9px) rotate(0.90deg) scale(1.007)}76.2%{transform:translate(-3.5px,0.7px) rotate(-0.74deg) scale(1.005)}79.7%{transform:translate(2.8px,-1.0px) rotate(0.59deg) scale(1.004)}83.1%{transform:translate(-2.1px,0.4px) rotate(-0.45deg)}86.6%{transform:translate(1.5px,-0.3px) rotate(0.30deg)}100.0%{transform:none}}
-  @keyframes rlEnhShakeSoft{0.0%{transform:none}7.5%{transform:translate(-2.0px,0.0px)}12.9%{transform:translate(2.3px,-0.1px) rotate(0.07deg)}18.4%{transform:translate(-2.7px,0.1px) rotate(-0.13deg)}23.8%{transform:translate(3.0px,-0.3px) rotate(0.20deg)}29.3%{transform:translate(-3.3px,0.3px) rotate(-0.27deg)}34.7%{transform:translate(3.7px,-0.3px) rotate(0.33deg)}40.2%{transform:translate(-4.0px,0.7px) rotate(-0.40deg)}45.6%{transform:translate(4.3px,-0.5px) rotate(0.47deg)}51.1%{transform:translate(-4.7px,0.5px) rotate(-0.53deg)}56.5%{transform:translate(5.0px,-1.0px) rotate(0.60deg)}63.8%{transform:translate(-6.0px,1.0px) rotate(-0.80deg)}65.6%{transform:translate(6.7px,-0.8px) rotate(0.99deg) scale(1.002)}67.5%{transform:translate(-7.3px,1.0px) rotate(-1.18deg) scale(1.004)}69.3%{transform:translate(8.0px,-2.0px) rotate(1.37deg) scale(1.007)}71.1%{transform:translate(-8.7px,1.4px) rotate(-1.56deg) scale(1.009)}72.9%{transform:translate(9.3px,-1.6px) rotate(1.74deg) scale(1.011)}74.7%{transform:translate(-10.0px,3.0px) rotate(-1.93deg) scale(1.013)}76.5%{transform:translate(10.7px,-2.0px) rotate(2.12deg) scale(1.016)}78.4%{transform:translate(-11.3px,2.2px) rotate(-2.31deg) scale(1.018)}80.2%{transform:translate(12.0px,-4.0px) rotate(2.50deg) scale(1.020)}84.0%{transform:translate(-22.0px,6.0px) rotate(-5.00deg) scale(1.080)}87.0%{transform:translate(14.0px,-4.0px) rotate(3.20deg) scale(1.030)}90.0%{transform:translate(-7.0px,2.0px) rotate(-1.50deg) scale(1.010)}93.0%{transform:translate(3.0px,0.0px) rotate(0.60deg)}96.0%{transform:none}100.0%{transform:none}}
-  @keyframes rlEnhShakeDouble{0.0%{transform:none}2.0%{transform:translate(0.0px,-6.0px) scale(0.950)}5.0%{transform:translate(0.0px,8.0px) scale(1.070)}7.0%{transform:translate(-14.0px,4.0px) rotate(-3.50deg) scale(1.040)}10.0%{transform:translate(-12.0px,4.0px) rotate(-3.00deg) scale(1.030)}12.0%{transform:translate(10.6px,-2.1px) rotate(2.61deg) scale(1.026)}14.0%{transform:translate(-9.1px,1.8px) rotate(-2.23deg) scale(1.021)}16.0%{transform:translate(7.7px,-2.5px) rotate(1.84deg) scale(1.017)}18.0%{transform:translate(-6.3px,1.2px) rotate(-1.46deg) scale(1.013)}20.0%{transform:translate(4.9px,-0.9px) rotate(1.07deg) scale(1.009)}22.0%{transform:translate(-3.4px,1.0px) rotate(-0.69deg) scale(1.004)}24.0%{transform:translate(2.0px,-0.3px) rotate(0.30deg)}30.0%{transform:none}46.0%{transform:none}48.0%{transform:translate(0.0px,-6.0px) scale(0.950)}51.0%{transform:translate(0.0px,8.0px) scale(1.070)}53.0%{transform:translate(-14.0px,4.0px) rotate(-3.50deg) scale(1.040)}56.0%{transform:translate(-12.0px,4.0px) rotate(-3.00deg) scale(1.030)}58.0%{transform:translate(10.6px,-2.1px) rotate(2.61deg) scale(1.026)}60.0%{transform:translate(-9.1px,1.8px) rotate(-2.23deg) scale(1.021)}62.0%{transform:translate(7.7px,-2.5px) rotate(1.84deg) scale(1.017)}64.0%{transform:translate(-6.3px,1.2px) rotate(-1.46deg) scale(1.013)}66.0%{transform:translate(4.9px,-0.9px) rotate(1.07deg) scale(1.009)}68.0%{transform:translate(-3.4px,1.0px) rotate(-0.69deg) scale(1.004)}70.0%{transform:translate(2.0px,-0.3px) rotate(0.30deg)}100.0%{transform:none}}
-  @keyframes rlEnhShakeTremor{0.0%{transform:none}3.0%{transform:translate(-1.0px,0.3px)}4.9%{transform:translate(1.0px,-0.2px)}6.9%{transform:translate(-1.1px,0.2px)}8.9%{transform:translate(1.1px,-0.3px) rotate(0.03deg)}10.9%{transform:translate(-1.2px,0.2px) rotate(-0.04deg)}12.8%{transform:translate(1.2px,-0.2px) rotate(0.06deg)}14.8%{transform:translate(-1.3px,0.4px) rotate(-0.08deg)}16.8%{transform:translate(1.4px,-0.3px) rotate(0.10deg)}18.7%{transform:translate(-1.5px,0.3px) rotate(-0.12deg)}20.7%{transform:translate(1.6px,-0.5px) rotate(0.15deg)}22.7%{transform:translate(-1.7px,0.3px) rotate(-0.18deg)}24.7%{transform:translate(1.9px,-0.4px) rotate(0.21deg)}26.6%{transform:translate(-2.0px,0.6px) rotate(-0.24deg)}28.6%{transform:translate(2.1px,-0.4px) rotate(0.27deg) scale(1.002)}30.6%{transform:translate(-2.3px,0.4px) rotate(-0.30deg) scale(1.003)}32.5%{transform:translate(2.4px,-0.8px) rotate(0.34deg) scale(1.003)}34.5%{transform:translate(-2.6px,0.5px) rotate(-0.38deg) scale(1.003)}36.5%{transform:translate(2.7px,-0.5px) rotate(0.42deg) scale(1.003)}38.5%{transform:translate(-2.9px,0.9px) rotate(-0.45deg) scale(1.004)}40.4%{transform:translate(3.1px,-0.6px) rotate(0.50deg) scale(1.004)}42.4%{transform:translate(-3.2px,0.6px) rotate(-0.54deg) scale(1.004)}44.4%{transform:translate(3.4px,-1.1px) rotate(0.58deg) scale(1.005)}46.3%{transform:translate(-3.6px,0.7px) rotate(-0.63deg) scale(1.005)}48.3%{transform:translate(3.8px,-0.8px) rotate(0.67deg) scale(1.006)}50.3%{transform:translate(-4.0px,1.3px) rotate(-0.72deg) scale(1.006)}52.3%{transform:translate(4.2px,-0.8px) rotate(0.77deg) scale(1.006)}54.2%{transform:translate(-4.4px,0.9px) rotate(-0.82deg) scale(1.007)}56.2%{transform:translate(4.6px,-1.5px) rotate(0.87deg) scale(1.007)}58.2%{transform:translate(-4.8px,1.0px) rotate(-0.92deg) scale(1.008)}60.1%{transform:translate(5.1px,-1.0px) rotate(0.98deg) scale(1.008)}62.1%{transform:translate(-5.3px,1.8px) rotate(-1.03deg) scale(1.009)}64.1%{transform:translate(5.5px,-1.1px) rotate(1.09deg) scale(1.009)}66.1%{transform:translate(-5.8px,1.2px) rotate(-1.14deg) scale(1.010)}68.0%{transform:translate(6.0px,-2.0px) rotate(1.20deg) scale(1.010)}72.2%{transform:translate(-14.0px,4.0px) rotate(-3.50deg) scale(1.040)}74.4%{transform:translate(12.6px,-2.2px) rotate(3.12deg) scale(1.035)}76.6%{transform:translate(-11.2px,1.9px) rotate(-2.75deg) scale(1.030)}78.8%{transform:translate(9.9px,-2.9px) rotate(2.38deg) scale(1.025)}81.0%{transform:translate(-8.5px,1.5px) rotate(-2.00deg) scale(1.020)}83.2%{transform:translate(7.1px,-1.3px) rotate(1.62deg) scale(1.015)}85.4%{transform:translate(-5.8px,1.8px) rotate(-1.25deg) scale(1.010)}87.6%{transform:translate(4.4px,-0.8px) rotate(0.88deg) scale(1.005)}89.8%{transform:translate(-3.0px,0.6px) rotate(-0.50deg)}100.0%{transform:none}}
-  @keyframes rlEnhShakeJolt{0.0%{transform:none}4.0%{transform:translate(-24.0px,5.0px) rotate(-6.00deg) scale(1.090)}9.0%{transform:translate(16.0px,-3.0px) rotate(3.50deg) scale(1.040)}14.0%{transform:translate(-9.0px,2.0px) rotate(-2.00deg) scale(1.020)}19.0%{transform:translate(5.0px,-1.0px) rotate(1.00deg) scale(1.010)}25.0%{transform:none}58.0%{transform:none}62.0%{transform:translate(-8.0px,2.0px) rotate(-1.60deg) scale(1.020)}67.0%{transform:translate(5.0px,-1.0px) rotate(1.00deg)}72.0%{transform:none}86.0%{transform:none}89.0%{transform:translate(-3.0px,0.0px) rotate(-0.50deg)}92.0%{transform:none}100.0%{transform:none}}
-  @keyframes rlEnhJit{0%{transform:none;text-shadow:none}20%{transform:translateX(-2px);text-shadow:2px 0 rgba(196,103,93,.85),-2px 0 rgba(124,165,187,.85)}40%{transform:translateX(2px)}60%{transform:translateX(-1px);opacity:.6}80%{transform:translateX(1px);opacity:1}100%{transform:none}}
   .rlGlitch{position:relative;display:inline-block;animation:rlGJit 6.2s steps(1) infinite}
   .rlGlitch::before,.rlGlitch::after{content:attr(data-t);position:absolute;left:0;top:0;width:100%;overflow:hidden;white-space:inherit;pointer-events:none;clip-path:inset(0 0 100% 0)}
   .rlGlitch::before{color:rgba(196,103,93,.8);animation:rlGSlA 5.3s steps(1) infinite;animation-delay:inherit}
@@ -396,9 +391,6 @@ const GRADECOL = { common:'rgb(234,235,238)', rare:'#83B289', unique:'#7CA5BB', 
 const gradeColOf = (g) => GRADECOL[String(g||'').toLowerCase()] || GRADECOL.common;
 // 강화 연출 배경(Ghost Fibers) 값 — 위젯에서 고른 값을 여기만 바꾼다(2026-10-15 · 원본 기본값에서 시작)
 const ENH_FIBERS = { glowColor:'#2f5bff', lineColor:'', speed:0.07, scale:3.7, rotation:0, rotationSpeed:1, layers:7, waves:0.027, twist:0.2, threads:1, spread:0.6, thickness:0.2, glow:0.6, brightness:1.4, vignette:0.8, grain:0.03 };   // 위젯 확정값(10-15) · glowColor는 연출 중 강화 단계 색으로 덮인다(enhFibersColor)
-// 강화 뒷면 흔들림 5종(키프레임 · 길이 · 감속) — 강화마다 무작위로 하나
-// 길이 1.5~3.5초(2026-10-15) — 스캔 대기는 흔들림이 끝날 때까지 늘어난다(enFxStart).
-const ENH_SHAKES = { wild:['rlEnhShakeWild','2.2s','linear'], soft:['rlEnhShakeSoft','3.5s','ease-in-out'], double:['rlEnhShakeDouble','2.6s','linear'], tremor:['rlEnhShakeTremor','3s','linear'], jolt:['rlEnhShakeJolt','1.5s','linear'] };
 const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Hands:'장갑', Feet:'신발', Medicine:'약품', Food:'음식', Junk:'정크', Valuable:'귀중품', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Enhance:'강화', Data:'데이터', DataTech:'데이터', Trade:'거래소', Blueprint:'디스크' };
 // 몬스터 아트 보유 목록 — 레이드 로딩 배경 랜덤 픽 판정용(assets/art/monsters/*.webp). 아트 추가 시 갱신.
 // 존 배경 아트 경로. ★같은 파일명으로 **교체된** 아트는 여기에 ?v=를 적어 브라우저 캐시를 끊는다
@@ -608,7 +600,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 119;
+const TITLE_VER = 120;
 const TITLE_DATE = '1023';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -859,6 +851,7 @@ class Component extends DCLogic {
   get staMax(){ const g=this.gs; if(!g||!this.eng) return 10; try{ return 10+Math.max(0,this.eng.N(this.eng.playerProfile(g,false).staMaxBonus,0)); }catch(_){ return 10; } }
   state = { ready:false, splash:true, screen:'safehouse', modalZone:null, sel:null, seg:'bag', filter:'전체', toast:null, repairSel:null, moveQty:null, vendor:null, vtab:'buy', combatSheet:null, buySel:null, buyQty:1, sellSel:null, sellQty:1 };   // splash:true 필수 — 첫 렌더가 loading()으로 새면 fillRef 가드(_bootLoadStarted)가 소비돼 게이지가 0%에 고정된다
   async componentDidMount(){
+    document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
       const eng = await import('./engine.js?v=val101');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val59');
@@ -4617,8 +4610,7 @@ void main(){
       h('div',{style:{alignSelf:'stretch',flexGrow:1,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start',minHeight:0}},
         h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',flexDirection:'row',justifyContent:'space-between',alignItems:'center'}},
           h('span',{style:{display:'inline-flex',alignItems:'center',gap:8,minWidth:0}},
-            h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap',display:'inline-block',
-              animation:(this._statFx&&this._statFx.uid===inst.uid&&this._statFx.rolling)?'rlEnhJit .18s steps(1) infinite':'none'}}, this.ttx(this.itemLabel(inst),18,20.4)),   // 상세 카드 이름 = 타이틀 폰트 18 · 강화 굴림 중엔 태그와 함께 떨린다
+            h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap',display:'inline-block'}}, this.ttx(this.itemLabel(inst),18,20.4)),   // 상세 카드 이름 = 타이틀 폰트 18
             mask==='?'? null : this.enhTag(inst,true), mask==='?'? null : this.stackTag(inst))),   // 강화 단계 [+N] — 0강은 없음 · 겹친 수 [X2]
         (!(isGear||isAcc)&&desc)?h('div',{style:{alignSelf:'stretch',flexShrink:0,padding:'8px 0 2px',fontFamily:T.sans,fontSize:12.5,lineHeight:1.5,color:SUB}}, desc):null,
         (isGear||isAcc)?h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
@@ -7884,9 +7876,8 @@ void main(){
     return plate({key:'stk',h:20,bd:'#5A5D63',bg:'#1d1f24',fg:'#EAEBEE',pad:'0 6px'}, h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.04em'}}, 'X'+n)); }
   enhTag(inst,size){ const n=this.eng.enhLevel(inst), fx=this._statFx;
     if(fx&&fx.uid===inst.uid){
-      // ①굴림(2초) — 오를지 내릴지 알 수 없게 단계 숫자가 마구 바뀌며 떨린다 ②확정 — 최종 단계가 글리치로 자리 잡는다(제자리여도 같은 연출)
-      if(!fx.rolling&&!fx.settled) return this.enhTagOne(fx.tagFrom||0,size);   // B안 착지 전 = 강화 전 단계(결과 스포일러 방지)
-      if(fx.rolling) return h('span',{key:'enhroll',style:{display:'inline-block',flexShrink:0,animation:'rlEnhJit .18s steps(1) infinite'}}, this.enhTagOne(Math.max(0,fx.roll),size,null,true));
+      // 착지 전 = 강화 전 단계(결과 스포일러 방지) → 확정 = 최종 단계가 글리치로 자리 잡는다(제자리여도 같은 연출)
+      if(!fx.settled) return this.enhTagOne(fx.tagFrom||0,size);
       if(fx.settled&&!fx.settleDone) return h('span',{key:'enhset',style:{position:'relative',display:'inline-block',height:size?20:18,minWidth:28,flexShrink:0}}, n? this.enhTagOne(n,size,'in') : this.enhTagOne(0,size,'in',true));
     }
     return this.enhTagOne(n,size); }
@@ -8326,20 +8317,19 @@ void main(){
       requestAnimationFrame(frame); };
     requestAnimationFrame(frame);
   }
-  // ===== 강화 연출 (2026-10-15 확정) — ①앞면(표시 없음) ②자동 뒤집기 0.9s ③뒷면 스캔 2.5s ④옆으로 밀어 뒤집기(75°↑ 완료)
-  //   ⑤앞면 = 강화 후 · 바뀐 줄만 카운트 + [+N] 글리치 교체 · 결과 문구 없음 → [자세히] → 변경 수치 시트 → [닫기] = 정비대 화면.
-  //   ★3D 래퍼 transform은 vdom 값(enFx.rot)이 정본이다 — 드래그 중에만 명령형으로 쓰고, 끝나면 setState로 같은 값을 넣는다(dc-imperative-style-leak).
+  // ===== 강화 연출 = B안(A0.0118 · 정본 확장_v3 §3.7-10b ⑤) — ①앞면 0.7s ②자동 뒤집기 0.9s ③길게 눌러 충전(enChargeStart) ④떼면 뒤집혀 착지(enLand) = 결과(enImpact)
+  //   ⑤바뀐 줄만 카운트 + [+N] 글리치 교체 · 결과 문구 없음 → [자세히] → 변경 수치 시트 → [닫기] = 정비대 화면.
+  //   ★3D 래퍼 transform은 vdom 값(enFx.rot)이 정본이다 — 착지 뒤집기 중에만 명령형으로 쓰고, 끝나면 setState로 같은 값을 넣는다(dc-imperative-style-leak).
   enFxClear(){ (this._enT||[]).forEach(clearTimeout); this._enT=[]; if(this._enRaf){ cancelAnimationFrame(this._enRaf); this._enRaf=null; } this._statFx=null; this._enCh=null; this._enRaysAt=null; this._enBurstAt=null; this.enChargeSoundStop(60); }
   enFxStart(inst,before,r){
     this.enFxClear();
     this._enFrom=this.itemDetailStats(before).filter(r=>r[0]!==this.t('item_durability'));   // 카드 STAT 칸과 같은 줄만(내구도 제외)
-    const sk=Object.keys(ENH_SHAKES); const shake=sk[Math.floor(Math.random()*sk.length)];   // 뒷면 흔들림 무작위
-    this.setState({enSheet:null,enRes:r,enFx:{uid:inst.uid,before,phase:'front',rot:0,anim:0,shake}});
+    this.setState({enSheet:null,enRes:r,enFx:{uid:inst.uid,before,phase:'front',rot:0,anim:0}});
     const T=(f,ms)=>this._enT.push(setTimeout(f,ms));
     T(()=>{ this.sfxFlip(); this.setState({enFx:{...this.state.enFx,phase:'flip',rot:180,anim:0.9}}); },700);
-    T(()=>this.enChargeStart(),1600);   // ★B안(10-23 시험) — 스캔·밀어 뒤집기 대신 길게 눌러 충전
+    T(()=>this.enChargeStart(),1600);
   }
-  // ===== B안 강화 연출(10-23 · 로컬 시험) — 뒤집힌 카드를 길게 누르면 게이지가 차며 떠오르고 떨린다(떼면 식음) → 가득 차면 저절로 뒤집혀 바닥에 박히며 결과.
+  // ===== 충전 — 뒤집힌 카드를 길게 누르면 게이지가 차며 떠오르고 떨린다(떼면 식음) → 가득 차면 저절로 뒤집혀 바닥에 박히며 결과.
   //   떨림·어둠·필요 시간 = 도전 단계(+1~+5)가 높을수록 크다. 들림은 카드 바깥 래퍼(_enLiftEl)에 명령형 transform — vdom엔 transform이 없으니 끝나면 직접 비운다.
   enChargeStart(){ const fx=this.state.enFx; if(!fx) return; this._enSus=0; this.enChargeSoundStop(0); this._enSnd=[this.sfxLoop('enh_charge1',{cut:700,rate:.85}), this.sfxLoop('enh_charge2',{cut:1500,rate:.85}), this.sfxLoop('enh_charge3',{cut:14000,rate:1})]; const r=this.state.enRes||{}, lv=Math.max(1,Math.min(5,(r.from||0)+1));
     this.setState({enFx:{...fx,phase:'charge',anim:0}});
@@ -8361,47 +8351,13 @@ void main(){
   // 테두리 색 — 기본 = 지금↔다음 단계 색 · 과장이 오를수록 흰색 → 프리즘 5색이 섞여 들어온다
   enChargeColors(){ const from=(this.state.enRes||{}).from||0, b=this.enChargeBoost(), out=this.enhBlinkColors(from).slice();
     if(b>.35) out.push(...this.enhLevelHex(5)); if(b>.7) out.push('#7DF9FF','#F07A6A','#E0B17A'); return out; }   // 흰색은 넣지 않는다(빛이 하얗게 타버림)
-  // ===== 유리 균열(하락) — 화면 유리에 금이 가듯: 충돌점에서 방사 균열 + 고리 균열(거미줄) + 깨진 면 음영 + 반짝임.
-  //   한 번만 오프스크린에 그려 두고, 매 프레임 '퍼지는 원'으로 잘라 보여준다(0.22s에 다 퍼짐 → 1.5s 유지 → 0.6s 페이드).
-  enGlass(cx,cy,K){ const cv=document.querySelector('canvas[data-englass]'); if(!cv) return;
-    const b=cv.getBoundingClientRect(), d=Math.min(2,window.devicePixelRatio||1), W=b.width, H=b.height; cv.width=Math.round(W*d); cv.height=Math.round(H*d);
-    const off=document.createElement('canvas'); off.width=cv.width; off.height=cv.height; const g=off.getContext('2d'); g.setTransform(d,0,0,d,0,0);
-    const maxR=Math.hypot(Math.max(cx,W-cx),Math.max(cy,H-cy)), NR=15+Math.floor(Math.random()*5), rad=[];
-    for(let i=0;i<NR;i++){ let a=(i+Math.random()*.6)/NR*Math.PI*2, r=4+Math.random()*6; const pts=[[cx+Math.cos(a)*r,cy+Math.sin(a)*r,r]]; const L=maxR*(.45+Math.random()*.6);
-      while(r<L){ const st=(8+Math.random()*14)*K; a+=(Math.random()-.5)*(r<60*K?.05:.14); r+=st; pts.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r,r]); } rad.push(pts); }
-    const at=(pts,r)=>{ for(let i=1;i<pts.length;i++) if(pts[i][2]>=r){ const p=pts[i-1],q=pts[i],t=(r-p[2])/((q[2]-p[2])||1); return [p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t]; } return null; };
-    const rings=[]; for(let r=(26+Math.random()*10)*K, k=0; r<maxR; k++){ rings.push(r); r*=1.38+Math.random()*.22; }
-    const line=(pts,w)=>{ g.beginPath(); pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1])); g.lineCap='round'; g.lineJoin='round';
-      g.save(); g.translate(.8,1); g.strokeStyle='rgba(0,0,0,.45)'; g.lineWidth=w*2; g.stroke(); g.restore();   // 그림자(틈 깊이)
-      g.save(); g.shadowColor='rgba(196,103,93,.5)'; g.shadowBlur=3; g.strokeStyle='rgba(255,255,255,'+(.55+Math.random()*.3).toFixed(2)+')'; g.lineWidth=w; g.stroke(); g.restore();   // 흰 금 + 붉은 기운
-      g.save(); g.translate(1.6,-.8); g.strokeStyle='rgba(255,255,255,.22)'; g.lineWidth=w*.6; g.stroke(); g.restore(); };   // 유리 두께 = 옅은 겹선
-    // 깨진 면 음영 — 안쪽 고리 3칸, 이웃 방사선 사이 사각형을 밝게/어둡게
-    for(let k=0;k<Math.min(3,rings.length-1);k++) for(let i=0;i<NR;i++){ if(Math.random()<.45) continue; const A=rad[i], B=rad[(i+1)%NR], r0=rings[k], r1=rings[k+1];
-      const p1=at(A,r0),p2=at(B,r0),p3=at(B,r1),p4=at(A,r1); if(!p1||!p2||!p3||!p4) continue; g.beginPath(); g.moveTo(...p1); g.lineTo(...p2); g.lineTo(...p3); g.lineTo(...p4); g.closePath();
-      g.fillStyle=Math.random()<.6?'rgba(255,255,255,'+(.03+Math.random()*.07).toFixed(3)+')':'rgba(0,0,0,'+(.08+Math.random()*.12).toFixed(3)+')'; g.fill(); }
-    // 고리 균열(거미줄) — 이웃 방사선 사이를 살짝 안쪽으로 휜 짧은 금으로 잇는다
-    rings.forEach((r,k)=>{ for(let i=0;i<NR;i++){ if(Math.random()<(k<2?.2:.3+k*.08)) continue; const A=rad[i], B=rad[(i+1)%NR], ra=r*(.78+Math.random()*.44), rb=r*(.78+Math.random()*.44), p=at(A,ra), q=at(B,rb); if(!p||!q) continue;
-      const mx=(p[0]+q[0])/2, my=(p[1]+q[1])/2, pull=.12+Math.random()*.12, c=[mx+(cx-mx)*pull, my+(cy-my)*pull], pts=[]; for(let t=0;t<=1.001;t+=.25){ const u=1-t; pts.push([u*u*p[0]+2*u*t*c[0]+t*t*q[0]+(Math.random()-.5)*1.2, u*u*p[1]+2*u*t*c[1]+t*t*q[1]+(Math.random()-.5)*1.2]); }
-      line(pts,(k<2?.75:.55)*Math.max(.8,K*.9)); } });
-    rad.forEach(pts=>{ const n=pts.length, c1=Math.ceil(n*.25), c2=Math.ceil(n*.6); line(pts.slice(0,c1),1.2*Math.max(.8,K*.9)); line(pts.slice(c1-1,c2),.85*Math.max(.8,K*.9)); line(pts.slice(c2-1),.55*Math.max(.8,K*.9)); });   // 바깥으로 갈수록 가늘게   // 방사 균열(안쪽 굵게)
-    for(let i=0;i<46;i++){ const a=Math.random()*Math.PI*2, r=Math.random()*24*K, l=(3+Math.random()*7)*K; line([[cx+Math.cos(a)*r,cy+Math.sin(a)*r],[cx+Math.cos(a+.6)*(r+l),cy+Math.sin(a+.6)*(r+l)]],.8); }   // 충돌점 잔금
-    const glints=[]; rad.forEach(pts=>{ for(let j=2;j<pts.length;j+=3+Math.floor(Math.random()*4)) if(Math.random()<.35) glints.push([pts[j][0],pts[j][1],pts[j][2],Math.random()*1000]); });
-    const ctx=cv.getContext('2d'), t0=performance.now(), GROW=220, HOLD=1500, FADE=600;
-    const step=(now)=>{ if(!cv.isConnected) return; const e=now-t0; ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height); if(e>GROW+HOLD+FADE) return;
-      const R=maxR*(1-Math.pow(1-Math.min(1,e/GROW),3)), a=e<GROW+HOLD?1:1-(e-GROW-HOLD)/FADE;
-      ctx.save(); ctx.globalAlpha=a; ctx.beginPath(); ctx.arc(cx*d,cy*d,R*d,0,Math.PI*2); ctx.clip(); ctx.drawImage(off,0,0); ctx.restore();
-      ctx.setTransform(d,0,0,d,0,0);
-      if(e<160){ const k=e/160, gr=ctx.createRadialGradient(cx,cy,0,cx,cy,(60+80*k)*K); gr.addColorStop(0,'rgba(255,255,255,'+(.9*(1-k))+')'); gr.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=gr; ctx.fillRect(0,0,W,H); }   // 충돌점 섬광
-      glints.forEach(([x,y,r,ph])=>{ if(r>R) return; const tw=Math.max(0,Math.sin((now+ph)/140)); if(tw<.3) return; const s=(1.5+tw*3)*Math.max(.8,K*.8); ctx.globalAlpha=a*tw; ctx.strokeStyle='#FFFFFF'; ctx.lineWidth=.8; ctx.beginPath(); ctx.moveTo(x-s,y); ctx.lineTo(x+s,y); ctx.moveTo(x,y-s); ctx.lineTo(x,y+s); ctx.stroke(); });   // 반짝임
-      ctx.globalAlpha=1; requestAnimationFrame(step); };
-    requestAnimationFrame(step); }
   enLiftApply(L,amp,now){ const el=this._enLiftEl; if(!el) return;
     const jx=amp?(Math.sin(now/13)+Math.sin(now/21+1)+(Math.random()-.5)*.8)*amp*.6:0, jy=amp?(Math.sin(now/17+2)+Math.sin(now/27)+(Math.random()-.5)*.8)*amp*.45:0;   // 빠른 떨림 + 잔떨림
     el.style.transform='translate('+jx.toFixed(2)+'px,'+(-30*L+jy).toFixed(2)+'px) scale('+(1+.05*L).toFixed(4)+') rotate('+(jx*.4).toFixed(2)+'deg)'; }
   // 가득 참 → 저절로 뒤집기(0.38s · 가장자리로 결과 색 빛) → 낙하(0.11s) → 착지 = 결과(enImpact)
   enLand(){ const fx=this.state.enFx, C=this._enCh; if(!fx||!C) return; this._enCh=null; this.enChargeSoundStop(80);   // 손을 떼면 0.08초에 끊고 뒤집기 소리로
     const r=this.state.enRes||{}, from=r.from||0, to=r.to==null?from:r.to, kind=to>from?'ok':to<from?'fail':'same', lv=C.lv;
-    this._statFx={uid:fx.uid, from:this._enFrom, p:0, tagFrom:from, rolling:false, roll:from, settled:false, settleDone:false};
+    this._statFx={uid:fx.uid, from:this._enFrom, p:0, tagFrom:from, settled:false, settleDone:false};
     this.setState({enFx:{...fx,phase:'land',rot:180,anim:0}});
     const el=this._enCardEl, FL=this.enFloor(), FD=380, DROP=110, t0=performance.now();
     const leak= kind==='ok'? this.enhLevelHex(to) : kind==='fail'? ['#C4675D'] : ['#8A8F97'];
@@ -8478,48 +8434,15 @@ void main(){
         for(let i=0;i<40;i++){ const p=per(), sp=(260+Math.random()*380)*K; F.SP.push({t0:now,life:300+Math.random()*300,x:p.x,y:p.y,vx:p.nx*sp+(Math.random()-.5)*120*K,vy:p.ny*sp,drag:6,len:(10+Math.random()*16)*K,w:1,c:Math.random()<.5?'#F08A7C':'#FFD2C8'}); } }   // 튀는 불티
       F.kick(); };
     cv._fl=F; return F; }
-  // ⑤ 결과 — 앞면으로 넘어온 뒤: 태그 굴림 2초(오를지 내릴지 모르게) → 최종 단계 확정(글리치·카드 이펙트 교체) → 수치 카운트 1.5초 → [자세히]
-  enFxReveal(){
-    const fx=this.state.enFx; if(!fx) return; const r=this.state.enRes||{};
-    this.sfxFlip();
-    const from=r.from||0, lo=Math.max(0,from-2), hi=Math.min(this.eng.enhMaxLevel(),from+1);
-    this._statFx={uid:fx.uid, from:this._enFrom, p:0, tagFrom:from, rolling:true, roll:from, settled:false, settleDone:false};
-    this.setState({enFx:{...fx,phase:'reveal',rot:360,anim:0.35}});
-    { const el=this._enCardEl; if(el){ el.style.transition='transform .35s cubic-bezier(.2,.8,.2,1)'; el.style.transform='rotateY(360deg)'; } }   // 명령형 각도와 vdom 정본을 맞춘다
-    const T=(f,ms)=>this._enT.push(setTimeout(f,ms));
-    let last=from;
-    const rollIv=setInterval(()=>{ const S=this._statFx; if(!S||!S.rolling){ clearInterval(rollIv); return; }
-      let v; do{ v=lo+Math.floor(Math.random()*(hi-lo+1)); }while(v===last&&hi>lo); last=v; S.roll=v; this.forceUpdate(); },90);   // 빠르게 — 0.09초마다(테두리 색 교차와 같은 박자)
-    this._enT.push(rollIv);
-    T(()=>{ const S=this._statFx; if(!S) return; S.rolling=false; S.settled=true; this.forceUpdate(); },400+2000);
-    T(()=>{ const S=this._statFx; if(!S) return; S.settleDone=true;
-      const t0=Date.now(), D=1500;
-      const step=()=>{ const S2=this._statFx; if(!S2) return; S2.p=Math.min(1,(Date.now()-t0)/D); this.forceUpdate();
-        if(S2.p<1) this._enRaf=requestAnimationFrame(step);
-        else { this._enRaf=null; T(()=>{ this._statFx=null; this.setState({enFx:{...this.state.enFx,phase:'done',rot:0,anim:0}}); },400); } };
-      this._enRaf=requestAnimationFrame(step); },400+2000+800);
-  }
-  enFxBorderOn(){ const fx=this.state.enFx; if(!fx) return false; if(['flip','scan','ready','charge'].includes(fx.phase)) return true; if(fx.phase==='land'&&!(this._statFx&&this._statFx.settled)) return true; return !!(this._statFx&&this._statFx.rolling); }
-  // 스캔 [건너뛰기] — 남은 스캔·직접 뒤집기를 건너뛰고 바로 결과(앞면 카운트)로 간다. (스캔 연출은 교체 예정 · 2026-10-15)
-  enFxSkip(){ const fx=this.state.enFx; if(fx&&fx.phase==='charge'&&this._enCh){ this._enCh.v=1; this._enCh.hold=true; return; }   // B안 — 충전 중 건너뛰기 = 바로 가득(다음 프레임에 착지로)
-    if(!fx||fx.phase!=='scan') return; (this._enT||[]).forEach(clearTimeout); this._enT=[];
-    const el=this._enCardEl; if(el){ el.style.transition='transform .35s cubic-bezier(.2,.8,.2,1)'; el.style.transform='rotateY(360deg)'; }
-    this.enFxReveal(); }
-  enFxDragBind(){ return {
-    onPointerDown:(e)=>{ const fx=this.state.enFx; if(fx&&fx.phase==='charge'&&this._enCh){ this._enCh.hold=true; try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){} return; }
-      if(!fx||fx.phase!=='ready') return; this._enDrag={x:e.clientX,rot:180,moved:0}; try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){} },
-    onPointerMove:(e)=>{ const d=this._enDrag; if(!d) return; d.moved=Math.max(d.moved,Math.abs(e.clientX-d.x)); const r=Math.max(90,Math.min(270,180+(e.clientX-d.x)*0.6)); d.rot=r;
-      const el=this._enCardEl; if(el){ el.style.transition='none'; el.style.transform='rotateY('+r+'deg)'; } },
-    onPointerUp:()=>{ if(this._enCh) this._enCh.hold=false; const d=this._enDrag; if(!d) return; this._enDrag=null; const el=this._enCardEl;
-      if(!this.state.enFx||this.state.enFx.phase!=='ready') return;   // 이미 넘어갔으면(건너뛰기 등) 손을 뗀 것으로 각도를 되돌리지 않는다
-      const tap=d.moved<8;   // 거의 안 움직이고 뗐으면 = 탭 → 그 자리에서 뒤집는다(2026-10-15 · 밀기·탭 둘 다)
-      if(tap||Math.abs(d.rot-180)>75){ if(el){ el.style.transition='transform .45s cubic-bezier(.2,.8,.2,1)'; el.style.transform='rotateY('+(tap||d.rot>180?360:0)+'deg)'; } this.enFxReveal(); }
-      else { if(el){ el.style.transition='transform .3s cubic-bezier(.2,.8,.2,1)'; el.style.transform='rotateY(180deg)'; } } },
-    onPointerCancel:()=>{ if(this._enCh) this._enCh.hold=false; this._enDrag=null; const el=this._enCardEl; if(el){ el.style.transition='transform .3s'; el.style.transform='rotateY(180deg)'; } } }; }
+  enFxBorderOn(){ const fx=this.state.enFx; if(!fx) return false; if(fx.phase==='flip'||fx.phase==='charge') return true; return fx.phase==='land'&&!(this._statFx&&this._statFx.settled); }
+  // 길게 누르기 — 충전(charge) 중 누르고 있는지만 기록한다(떼는 순간 판정은 enChargeStart의 프레임이 한다)
+  enFxDragBind(){ const up=()=>{ if(this._enCh) this._enCh.hold=false; }; return {
+    onPointerDown:(e)=>{ const fx=this.state.enFx; if(fx&&fx.phase==='charge'&&this._enCh){ this._enCh.hold=true; try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){} } },
+    onPointerUp:up, onPointerCancel:up }; }
   enFxOverlay(inst){
     const fx=this.state.enFx; if(!fx) return null;
     const flat=fx.phase==='done'||fx.phase==='detail';   // 끝나면 3D를 푼다(모바일 GPU 반투명 방지)
-    const showAfter=fx.phase==='reveal'||fx.phase==='land'||flat;
+    const showAfter=fx.phase==='land'||flat;
     const shown=showAfter? inst : fx.before;
     const card=(x)=>h('div',{style:{width:342}}, this.lootCardBig({...x,qty:1},'fit'));
     const back=h('div',{key:'bk',style:{position:'absolute',inset:0,borderRadius:8,overflow:'hidden',backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg)',
@@ -8528,28 +8451,24 @@ void main(){
     const stage = flat
       ? h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',overflowY:'auto'}}, card(inst))
       : h('div',Object.assign({style:{flex:1,minHeight:0,position:'relative',touchAction:'none',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px'}}, this.enFxDragBind()),
-          h('div',{ref:el=>{ this._enLiftEl=el; },style:{position:'relative',width:342,perspective:'1200px',animation:fx.phase==='scan'?((ENH_SHAKES[fx.shake]||ENH_SHAKES.jolt).join(' ')+' 1'):'none'}},   // 뒷면이 보인 직후 흔들림 — 강화마다 무작위 1종(격정·은은·두 번·떨림·툭)
-            // 전기 테두리 — 굴림(rolling) 동안만 켜진다. 연출 오버레이가 살아 있는 동안 캔버스를 유지해 꺼짐(0.4s)까지 그린다.
-            // 아주 얇고 빠르게(두께 0.5·속도 3.6) · 지금 단계 색 ↔ 다음 단계 색이 0.09초마다(태그 굴림과 같은 박자) 번갈아 번쩍인다(+5 다음은 프리즘 5색 순환)
-            // 뒤집혀 있는 동안(flip·scan·ready) = 같은 테두리를 아주 은은하게(세기 ×0.22) · 굴림 중 = 원래 세기 · 확정되면 꺼진다
-            (['flip','scan','ready','reveal','charge','land'].includes(fx.phase))? h('canvas',{key:'eb',ref:el=>{ if(el){ const on=()=>this.enFxBorderOn();
+          h('div',{ref:el=>{ this._enLiftEl=el; },style:{position:'relative',width:342,perspective:'1200px'}},   // 들림·떨림 = 명령형 transform(enLiftApply)
+            // 전기 테두리 — 뒤집힌 뒤(flip)부터 착지 확정까지. 아주 얇고 빠르게(두께 0.5·속도 3.6) · 0.09초마다 색 교차 · 충전할수록 세지고(level·boost) 확정되면 꺼진다(0.4s)
+            (['flip','charge','land'].includes(fx.phase))? h('canvas',{key:'eb',ref:el=>{ if(el){ const on=()=>this.enFxBorderOn();
                 this.mountElectric(el,on,{thickness:0.5,speed:3.6,glow:0.4,strands:2,chaos:0.65,spread:0.45,intensity:0.9,arcs:1.8,blink:0.09,
-                  colors:()=>this.enChargeColors(), boost:()=>this.enChargeBoost()*.5, level:()=>(this._enCh)? (.22+.5*this._enCh.v) : (this.state.enFx&&this.state.enFx.phase==='land')? 1 : (this._statFx&&this._statFx.rolling)?1:((this.state.enFx&&this.state.enFx.phase==='scan')?0.5:0.22)});   // 흔들리는 동안(scan)은 테두리도 함께 달아오른다
+                  colors:()=>this.enChargeColors(), boost:()=>this.enChargeBoost()*.5, level:()=>(this._enCh)? (.22+.5*this._enCh.v) : (this.state.enFx&&this.state.enFx.phase==='land')? 1 : 0.22});
               if(el._ebIdle&&on()&&el._ebWake) el._ebWake(); } },
               style:{position:'absolute',left:-64,top:-64,pointerEvents:'none',zIndex:3}}) : null,
             h('div',{ref:el=>{ this._enCardEl=el; },style:{position:'relative',transformStyle:'preserve-3d',transform:'rotateY('+fx.rot+'deg)',transition:fx.anim?('transform '+fx.anim+'s cubic-bezier(.2,.8,.2,1)'):'none'}},
-              h('div',{key:'fr',style:{backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',visibility:(fx.phase==='flip'||fx.phase==='scan'||fx.phase==='ready'||fx.phase==='charge')?'hidden':'visible',transition:'visibility 0s linear '+(fx.phase==='flip'?'.11s':(fx.phase==='reveal'?'.175s':'0s'))}}, card(shown)),   // ★뒤집기(0.9s, 감속 곡선)는 0.12초에 이미 90°를 넘는다 → .11s에 끈다(예전 .45s는 그 사이 이름이 비쳤다 · 2026-10-16) · ★타이틀 글자는 mask-image 스팬이라 iOS에서 backface-visibility를 무시하고 뒷면 위에 거울상으로 비친다 → 뒷면이 보이는 동안(flip 중반~ready) 앞면을 visibility로 끈다(다른 뒤집기 화면과 같은 방식)
+              h('div',{key:'fr',style:{backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',visibility:(fx.phase==='flip'||fx.phase==='charge')?'hidden':'visible',transition:'visibility 0s linear '+(fx.phase==='flip'?'.11s':'0s')}}, card(shown)),   // ★뒤집기(0.9s, 감속 곡선)는 0.12초에 이미 90°를 넘는다 → .11s에 끈다(예전 .45s는 그 사이 이름이 비쳤다 · 2026-10-16) · ★타이틀 글자는 mask-image 스팬이라 iOS에서 backface-visibility를 무시하고 뒷면 위에 거울상으로 비친다 → 뒷면이 보이는 동안(flip 중반~ready) 앞면을 visibility로 끈다(다른 뒤집기 화면과 같은 방식)
               back)),
-          fx.phase==='charge'? h('div',{key:'hintc','data-enhint':1,style:{position:'absolute',left:0,right:0,bottom:4,textAlign:'center',fontFamily:T.sans,fontSize:12,color:'#A9ABAF',pointerEvents:'none'}}, this.en()?'Press and hold to charge':'길게 눌러 충전') :
-          fx.phase==='ready'? h('div',{key:'hint',style:{position:'absolute',left:0,right:0,bottom:4,textAlign:'center',fontFamily:T.sans,fontSize:12,color:'#A9ABAF',pointerEvents:'none'}}, this.en()?'Swipe or tap to flip':'옆으로 밀거나 눌러서 뒤집기') : null);
+          fx.phase==='charge'? h('div',{key:'hintc','data-enhint':1,style:{position:'absolute',left:0,right:0,bottom:4,textAlign:'center',fontFamily:T.sans,fontSize:12,color:'#A9ABAF',pointerEvents:'none'}}, this.en()?'Press and hold to charge':'길게 눌러 충전') : null);
     // 하단 버튼 한 자리 — 상자 배경 없이 흰 테두리 둥근 버튼만(2026-10-15).
-    //   스캔 중 = [건너뛰기] · 스캔이 끝나면 같은 자리가 [자세히](연출이 끝날 때까지 비활성) · 끝나면(done) [자세히] 활성.
+    //   충전 중 = 게이지 · 그 뒤 같은 자리가 [자세히](연출이 끝날 때까지 비활성) · 끝나면(done) [자세히] 활성.
     //   자리를 처음부터 끝까지 유지해 뒤의 [뒤로가기]와 겹쳐 보일 틈을 없앤다(배경 딤 0.86).
     const OUT=(label,on,dim)=>h('button',{onClick:on||null,disabled:!on,style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,background:'transparent',
       border:'1px solid '+(dim?'rgba(75,77,82,0.9)':'rgba(234,235,238,0.85)'),color:dim?'#4B4D52':'#EAEBEE',fontFamily:T.sans,fontSize:12,cursor:on?'pointer':'default'}}, label);
     const slot=(btn)=>h('div',{style:{flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box'}}, btn);
     const bottom = (fx.phase==='front'||fx.phase==='flip')? h('div',{style:{flex:'0 0 auto',height:120}})
-      : fx.phase==='scan'? slot(OUT(this.en()?'Skip':'건너뛰기',()=>this.enFxSkip(),false))
       : fx.phase==='charge'? slot(h('div',{style:{height:48,display:'flex',alignItems:'center'}},   // 건너뛰기 없음(10-23) — 게이지만 · 자리 높이는 버튼과 같게
           h('div',{style:{flex:1,height:4,borderRadius:2,background:'rgba(75,77,82,0.6)',overflow:'hidden'}}, h('div',{'data-engauge':1,style:{height:'100%',width:'0%',borderRadius:2,background:'#EAEBEE'}}))))
       : fx.phase==='done'? slot(OUT(this.en()?'Details':'자세히',()=>this.setState({enFx:{...fx,phase:'detail'}}),false))
@@ -8562,7 +8481,6 @@ void main(){
       h('canvas',{key:'enrays','data-enrays':1,ref:el=>{ if(el){ this.mountRays(el,{params:()=>this.enRaysParams()}); if(el._lrIdle&&this._enRaysAt&&el._lrWake) el._lrWake(); } },style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:2,pointerEvents:'none'}}),   // B안 하락 잔광(Light Rays)
       h('canvas',{key:'enfloor','data-enfloor':1,style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:2,pointerEvents:'none'}}),   // B안 바닥 효과(빛·파동·먼지·금)
       h('div',{key:'fxbody',style:{position:'relative',zIndex:3,flex:1,minHeight:0,display:'flex',flexDirection:'column'}}, stage, bottom),
-      h('canvas',{key:'englass','data-englass':1,style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:5,pointerEvents:'none'}}),   // B안 하락 = 화면 유리 균열(카드 위)
       fx.phase==='detail'? this.enDetailSheet(inst) : null);
   }
   // 변경 수치 시트 — 강화 전/후 상세 수치를 줄 단위로 비교해 바뀐 줄만 보여준다. [닫기] = 정비대 화면.
