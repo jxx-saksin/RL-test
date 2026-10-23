@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val50';
-import { buildIndex } from './sheet-loader.js?v=val57';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
+import { DATA as FALLBACK } from './data/game-data.js?v=val51';
+import { buildIndex } from './sheet-loader.js?v=val58';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
 
@@ -882,7 +882,7 @@ const DEFAULT_TPL = {
   status_stun_tail: '(+{Delay}s)',
   status_rupture_msg: '상태이상 부여! {Target} 파열 발생, {Stacks}.',
   status_rupture_tail: '(공격력 -{Pct}%)',
-  status_pierce_msg: '▶ {Target} 관통 x{Stacks}.',
+  status_pierce_msg: '{Target} 관통 x{Stacks}.',
   status_pierce_tail: '(받는 피해 +{Pct}%)',
   aff_weak: '효과가 제대로 먹힌다!',
   aff_resist: '잘 통하지 않는 것 같다.',
@@ -895,8 +895,8 @@ const DEFAULT_TPL = {
   lose: '쓰러졌다… ({Elapsed}s)',
   timeout: '제한시간 초과 — {MonsterName} 을(를) 쓰러뜨리지 못했다.',
   loot: '적에게서 무언가를 획득했다.',
-  talisman_extra: '▶ ⟪징표⟫ 연격',
-  talisman_heal: '▶ ⟪징표⟫ 처치 회복 +{Amount} · HP {CurrentHP}',
+  talisman_extra: '⟪징표⟫ 연격',
+  talisman_heal: '⟪징표⟫ 처치 회복 +{Amount} · HP {CurrentHP}',
   start_object: '{MonsterName} 발견. 제한시간 {TimeLimit}s 안에 부숴라.',
   win_object: '{MonsterName} 이(가) 부서졌다. ({Elapsed}s)',
   timeout_object: '제한시간 초과 — {MonsterName} 을(를) 부수지 못했다.',
@@ -914,7 +914,7 @@ const DEFAULT_TPL_EN = {
   status_stun_tail: '(+{Delay}s)',
   status_rupture_msg: 'Status inflicted! {Target} ruptured, {Stacks}.',
   status_rupture_tail: '(ATK -{Pct}%)',
-  status_pierce_msg: '▶ {Target} pierced x{Stacks}.',
+  status_pierce_msg: '{Target} pierced x{Stacks}.',
   status_pierce_tail: '(damage taken +{Pct}%)',
   aff_weak: 'It works very well!',
   aff_resist: 'It barely seems to work.',
@@ -927,14 +927,22 @@ const DEFAULT_TPL_EN = {
   lose: 'You collapsed… ({Elapsed}s)',
   timeout: 'Time out — failed to bring down {MonsterName}.',
   loot: 'Recovered something from the enemy.',
-  talisman_extra: '▶ ⟪Charm⟫ extra strike',
-  talisman_heal: '▶ ⟪Charm⟫ kill heal +{Amount} · HP {CurrentHP}',
+  talisman_extra: '⟪Charm⟫ extra strike',
+  talisman_heal: '⟪Charm⟫ kill heal +{Amount} · HP {CurrentHP}',
   start_object: 'Found {MonsterName}. Break it within {TimeLimit}s.',
   win_object: '{MonsterName} broke apart. ({Elapsed}s)',
   timeout_object: 'Time out — failed to break {MonsterName}.',
   loot_object: 'Found something in the wreckage.',
 };
 const uiT = (k) => t(k);
+// 일반 적중 줄 변형 — CombatLog의 hit_1, hit_2 … 중 무작위(직전과 같은 건 피한다). 하나도 없으면 옛 'hit'(시트가 코드보다 늦어도 동작).
+let _lastHitId = null;
+function hitLineId() {
+  const ids = (DATA.combatLog || []).map(r => r.LineID).filter(id => /^hit_\d+$/.test(id));
+  if (!ids.length) return 'hit';
+  const pool = ids.length > 1 ? ids.filter(id => id !== _lastHitId) : ids;
+  return (_lastHitId = pool[Math.floor(Math.random() * pool.length)]);
+}
 export function logTpl(id, vars) {
   const row = (DATA.combatLog || []).find(r => r.LineID === id);
   const en = LANG === 'en';
@@ -1057,7 +1065,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     foe.hp -= final;
     if (actor.side === 'player') triggers.hitsLanded++;
     if (foe.side === 'player') triggers.hitsTaken++;
-    let text = logTpl(isCrit ? 'crit' : 'hit', { Attacker: nm, Target: fnm, Damage: final.toFixed(0), TargetHP: Math.max(0, foe.hp).toFixed(0), TargetMaxHP: foe.maxHp });
+    let text = logTpl(isCrit ? 'crit' : hitLineId(), { Attacker: nm, Target: fnm, Damage: final.toFixed(0), TargetHP: Math.max(0, foe.hp).toFixed(0), TargetMaxHP: foe.maxHp });
     if (pierceFrac > 0) text += logTpl('pierce_suffix', { PiercePct: (pierceFrac * 100).toFixed(0) });
     if (opts.talismanCrit) text += (LANG === 'en' ? '  ⟪Token⟫' : '  ⟪징표⟫');
     push(actor.side, isCrit ? 'crit' : 'hit', text, rupM < 1 ? { rup: +(1 - rupM).toFixed(2) } : undefined);   // rup = 약화율(연출: 약해진 타격 숫자 색)
