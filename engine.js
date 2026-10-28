@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val52';
-import { buildIndex } from './sheet-loader.js?v=val59';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
+import { DATA as FALLBACK } from './data/game-data.js?v=val53';
+import { buildIndex } from './sheet-loader.js?v=val60';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
 
@@ -69,6 +69,7 @@ export function t(key){
 }
 // v3 built-in fallbacks — used only when the UIString tab lacks the key (sheet wins).
 const V3_STRINGS = {
+  status_shock:['감전','Shock'],   // 5번째 상태이상(10-28) — 시트 UIString에 행이 오면 시트가 이긴다
   // 퀘스트 (일일) — 시트 UIString에 같은 키가 들어오면 시트가 이긴다
   quest_tab_daily:['일일','Daily'], quest_tab_weekly:['주간','Weekly'], quest_tab_story:['스토리','Story'],
   quest_chip_new:['신규','New'], quest_chip_run:['진행중','Active'], quest_chip_done:['완료','Done'],
@@ -533,7 +534,7 @@ export function enhanceTry(inst, opts = {}){
 //   ★재료 아이템 데이터(시트)는 다른 세션에서 만든다 — ID가 바뀌면 여기 두 맵만 고친다.
 // 소모 = 도달할 단계 기준 1회분(실패해도 소모): →1강 일반1 · →2강 일반2 · →3강 일반3 · →4강 고급1+일반3 · →5강 고급2+일반5.
 //   Config enh_cost_norm_<N> · enh_cost_adv_<N>(N=도달 단계)로 덮어쓴다.
-const ENH_W_MAT = { stun: 'stun', bleed: 'bleed', pierce: 'pierce', rupture: 'rupture', none: 'none' };   // 그 밖의 속성(절단 등 미구현)은 none(형상기억)
+const ENH_W_MAT = { stun: 'stun', shock: 'stun', bleed: 'bleed', pierce: 'pierce', rupture: 'rupture', none: 'none' };   // 감전 = 압전 공용(전기 · 10-28 사용자) · 그 밖의 속성(절단 등 미구현)은 none(형상기억)
 const ENH_A_MAT = { Fabric: 'fabric', Synthetic: 'synth', Metal: 'metal' };
 const ENH_COST = [[0, 1], [0, 2], [0, 3], [1, 3], [2, 5]];   // [고급, 일반] — 인덱스 = 현재 단계(0~4)
 export function enhMatIds(inst){
@@ -884,11 +885,13 @@ const DEFAULT_TPL = {
   status_rupture_tail: '(공격력 -{Pct}%)',
   status_pierce_msg: '{Target} 관통 x{Stacks}.',
   status_pierce_tail: '(받는 피해 +{Pct}%)',
+  status_shock_msg: '{Target}에게 전류가 흐른다.',
+  status_shock_tail: '(+{Damage})',
   aff_weak: '효과가 제대로 먹힌다!',
   aff_resist: '잘 통하지 않는 것 같다.',
   aff_immune: '{Status}이(가) 통하지 않는다.',
-  aff_bleed_blocked: '', aff_stun_blocked: '', aff_pierce_blocked: '', aff_rupture_blocked: '',
-  aff_tail_bleed0: '(0/tick)', aff_tail_stun0: '(+0.0s)', aff_tail_pierce0: '(받는 피해 +0%)', aff_tail_rupture0: '(공격력 -0%)',
+  aff_bleed_blocked: '', aff_stun_blocked: '', aff_pierce_blocked: '', aff_rupture_blocked: '', aff_shock_blocked: '',
+  aff_tail_bleed0: '(0/tick)', aff_tail_stun0: '(+0.0s)', aff_tail_pierce0: '(받는 피해 +0%)', aff_tail_rupture0: '(공격력 -0%)', aff_tail_shock0: '(+0)',
   dot_bleed: '{Target} 출혈 피해 −{Damage} (HP {CurrentHP})',
   stun_skip: '{Target} 기절 — 행동 지연',
   win: '{MonsterName} 처치. ({Elapsed}s)',
@@ -916,11 +919,13 @@ const DEFAULT_TPL_EN = {
   status_rupture_tail: '(ATK -{Pct}%)',
   status_pierce_msg: '{Target} pierced x{Stacks}.',
   status_pierce_tail: '(damage taken +{Pct}%)',
+  status_shock_msg: 'Current surges through {Target}.',
+  status_shock_tail: '(+{Damage})',
   aff_weak: 'It works very well!',
   aff_resist: 'It barely seems to work.',
   aff_immune: '{Status} has no effect.',
-  aff_bleed_blocked: '', aff_stun_blocked: '', aff_pierce_blocked: '', aff_rupture_blocked: '',
-  aff_tail_bleed0: '(0/tick)', aff_tail_stun0: '(+0.0s)', aff_tail_pierce0: '(damage taken +0%)', aff_tail_rupture0: '(ATK -0%)',
+  aff_bleed_blocked: '', aff_stun_blocked: '', aff_pierce_blocked: '', aff_rupture_blocked: '', aff_shock_blocked: '',
+  aff_tail_bleed0: '(0/tick)', aff_tail_stun0: '(+0.0s)', aff_tail_pierce0: '(damage taken +0%)', aff_tail_rupture0: '(ATK -0%)', aff_tail_shock0: '(+0)',
   dot_bleed: '{Target} bleed damage −{Damage} (HP {CurrentHP})',
   stun_skip: '{Target} stunned — action delayed',
   win: '{MonsterName} defeated. ({Elapsed}s)',
@@ -960,7 +965,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
   const A = { ...pProf, hp: playerHpStart != null ? playerHpStart : pProf.maxHp, side: 'player', next: 0, stunEnd: -1, bleed: [], ruptureStacks: 0, ruptureUntil: 0, exposeStacks: 0, exposeUntil: 0 };
   const B = { ...mProf, hp: mProf.maxHp, side: 'monster', next: 0, stunEnd: -1, bleed: [], ruptureStacks: 0, ruptureUntil: 0, exposeStacks: 0, exposeUntil: 0 };
   // 상성 — 몬스터만(플레이어·PvP 봇·오브제는 1). 대상이 받는 강도 배율을 전투 시작에 한 번 읽는다.
-  B.aff = (mProf.passive || !mProf.category) ? {} : { bleed: affinityOf(mProf.category, 'bleed'), stun: affinityOf(mProf.category, 'stun'), pierce: affinityOf(mProf.category, 'pierce'), rupture: affinityOf(mProf.category, 'rupture') };
+  B.aff = (mProf.passive || !mProf.category) ? {} : { bleed: affinityOf(mProf.category, 'bleed'), stun: affinityOf(mProf.category, 'stun'), pierce: affinityOf(mProf.category, 'pierce'), rupture: affinityOf(mProf.category, 'rupture'), shock: affinityOf(mProf.category, 'shock') };
   const triggers = { hitsLanded: 0, evades: 0, hitsTaken: 0, critsLanded: 0 };
   const ME = uiT('common_me');
   const limit = mProf.timeLimit;
@@ -1114,6 +1119,16 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
           foe.ruptureUntil = t + durScaled(N(s?.Duration, 3), actor);
           const mr = statusMsg('status_rupture_msg', 'status_rupture_tail', { Target: fnm, Stacks: foe.ruptureStacks, Pct: Math.round(Math.min(70, (0.10 + 0.05 * (foe.ruptureStacks - 1)) * am * 100)) }, fl);
           push(actor.side, 'status', mr.text, { status: 'rupture', stacks: foe.ruptureStacks, dur: +(foe.ruptureUntil - t).toFixed(2), tail: mr.tail, aff: am > 1 ? 'weak' : (am < 1 ? 'resist' : undefined) });
+        } else if (eff === 'shock') {
+          // 감전(10-28 · 확장 상태이상 5번째) — 지속 상태 없이 그 자리에서 추가 피해 한 번. 시전자 평균 한 방 × Value × 상성.
+          // 방어 무시 · 크리 미적용 · 시전자 파열(공격력 감소)과 대상 관통 노출은 받는다(추가 타격 피해 hitBonus와 같은 규칙).
+          const s = byId.status.shock;
+          let extra = (actor.minAtk + actor.maxAtk) / 2 * N(s?.Value, 0.5) * am * rupM * exposeMult(foe, t);
+          if (foe === A) extra *= playerDmgTakenMult();
+          if (N(foe.dmgCutPct) > 0) extra *= 1 - clamp(N(foe.dmgCutPct), 0, 60) / 100;
+          foe.hp -= extra;
+          const mk = statusMsg('status_shock_msg', 'status_shock_tail', { Target: fnm, Damage: extra.toFixed(0) }, fl);
+          push(actor.side, 'status', mk.text, { status: 'shock', dmg: +extra.toFixed(2), tail: mk.tail, aff: am > 1 ? 'weak' : (am < 1 ? 'resist' : undefined) });
         }
       }
     }
@@ -1137,24 +1152,29 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     }
   }
 
-  while (A.hp > 0 && B.hp > 0 && t <= limit && guard++ < 400) {
+  while (A.hp > 0 && B.hp > 0 && t <= limit && guard++ < 1200) {
+    // 출혈 틱 = 공격과 별개의 시간 이벤트(10-28) — 다음 행동보다 먼저 예정된 틱을 그 시각에 처리한다.
+    // (옛: 걸린 쪽이 다음에 행동할 때 몰아서 처리 → 느린 몬스터·기절 중엔 숫자가 뭉쳐 늦게 떴다)
+    const tNext = Math.min(A.next, B.next);
+    let tk = null;
+    for (const u of [A, B]) for (const b of u.bleed) if (b.nextTick <= b.until && b.nextTick <= tNext && (!tk || b.nextTick < tk.b.nextTick)) tk = { u, b };
+    if (tk) {
+      if (tk.b.nextTick > limit) break;
+      t = tk.b.nextTick;
+      const actor = tk.u, b = tk.b;
+      actor.hp -= b.dmg;
+      push(actor.side, 'dot', logTpl('dot_bleed', { Target: actor.side === 'player' ? ME : actor.name, Damage: b.dmg.toFixed(0), CurrentHP: Math.max(0, actor.hp).toFixed(0) }), { status: 'bleed', dmg: +b.dmg.toFixed(2) });   // dot 줄의 who = 피해를 입는 쪽(victim)
+      b.nextTick += b.interval;
+      actor.bleed = actor.bleed.filter(x => x.nextTick <= x.until);
+      continue;
+    }
+
     // whoever acts next
     const actor = A.next <= B.next ? A : B;
     const foe = actor === A ? B : A;
     t = actor.next;
     if (t > limit) break;
-
-    // bleed dot resolves as time passes on this actor
-    for (const b of actor.bleed) {
-      while (b.nextTick <= t && b.until >= b.nextTick) {
-        actor.hp -= b.dmg;
-        push(actor.side, 'dot', logTpl('dot_bleed', { Target: actor.side === 'player' ? ME : actor.name, Damage: b.dmg.toFixed(0), CurrentHP: Math.max(0, actor.hp).toFixed(0) }), { status: 'bleed', dmg: +b.dmg.toFixed(2) });   // dot 줄의 who = 피해를 입는 쪽(victim)
-        b.nextTick += b.interval;
-        if (actor.hp <= 0) break;
-      }
-    }
-    actor.bleed = actor.bleed.filter(b => b.until > t);
-    if (actor.hp <= 0) break;
+    actor.bleed = actor.bleed.filter(b => b.nextTick <= b.until);
 
     // 부적: 첫 스윙 명중+치명 확정 (플레이어 A만 · 1회 소모)
     const opts = { allowExtra: true };

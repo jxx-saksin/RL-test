@@ -290,7 +290,7 @@ const T = {
   warn:'oklch(0.740 0.085 72)', good:'oklch(0.720 0.078 148)', sato:'oklch(0.740 0.055 224)',
   hp:'oklch(0.580 0.100 25)', sta:'oklch(0.720 0.075 74)', growth:'oklch(0.660 0.045 264)',
   dur:'oklch(0.740 0.012 250)', bleed:'oklch(0.640 0.120 28)', stun:'oklch(0.800 0.090 88)',
-  pierce:'oklch(0.700 0.055 232)', rupture:'oklch(0.660 0.090 330)',
+  pierce:'oklch(0.700 0.055 232)', rupture:'oklch(0.660 0.090 330)', shock:'#79D684',
   mono:"'IBM Plex Mono',monospace", sans:"'IBM Plex Sans KR',sans-serif",
   npc:"'Diphylleia','IBM Plex Sans KR',serif",   // NPC 대사·교신(무전) 전용 — 디필레이아(400 단일 · OFL · 2026-10-15 함렛에서 교체)
   title:"'210 Jisangnagwon','IBM Plex Sans KR',sans-serif"   // 타이틀급 KR — 실제로는 구운 글자 이미지(ttx)가 그린다. 이 값은 이미지가 없을 때의 폴백(웹폰트 없음 → IBM Plex)
@@ -333,7 +333,7 @@ const CAT_FAM=(()=>{ const F={gear:'#95A2B0',trinket:'#C9A46E',cons:'#86B08C',va
    ['mat','Junk Material Enhance Module 정크 재료 강화 모듈'],['data','USB Data DataTech 데이터'],['disk','Blueprint 디스크'],['key','Key 키 키카드'],['quest','Quest 퀘스트']]
    .forEach(([f,ks])=>ks.split(' ').forEach(k=>m[k]=F[f])); return m; })();
 const PRISM='linear-gradient(100deg,#e7d3a8,#a9d6e0 35%,#c9b5ea 65%,#e9c3a4)';
-const ATTR = { bleed:{kr:'출혈',c:T.bleed}, stun:{kr:'기절',c:T.stun}, pierce:{kr:'관통',c:T.pierce}, rupture:{kr:'파열',c:T.rupture}, sever:{kr:'절단',c:T.mid} };
+const ATTR = { bleed:{kr:'출혈',c:T.bleed}, stun:{kr:'기절',c:T.stun}, pierce:{kr:'관통',c:T.pierce}, rupture:{kr:'파열',c:T.rupture}, shock:{kr:'감전',c:T.shock}, sever:{kr:'절단',c:T.mid} };
 // safe lookup — items/monsters may carry an Attribute like "none" or a value absent from the map
 const AT = (x)=> (x && ATTR[x]) ? ATTR[x] : null;
 // 장비 박스 슬롯 표시 순서(gs.equip 키 ↔ 카테고리 라벨). 미착용도 자리를 지킨다.
@@ -400,6 +400,8 @@ const zoneArt = (id) => 'assets/art/zones/'+id+'.webp'+(ZONE_ART_V[id]||'');
 const PVP_COLD_ART = 'assets/art/monsters/pvp_cold_user.webp', PVP_COLD_POS = '50% 32%';   // PvP 상대(ColdData 봇) 카드 공용 아트 — 얼굴 없는 실루엣 · 후드가 보이게 위쪽으로 맞춤(10-21)
 // 몬스터 아트 초점 — 기본은 가운데(프롬프트 규칙 = 얼굴이 세로 50%). 얼굴이 위로 치우친 그림만 여기 적는다(10-23 진압 외골격 = 머리가 위쪽).
 const MONSTER_ART_POS = { monster_riot_exosuit:'50% 14%' };
+// 아이템 카드 아트(340×190 가로 띠 = 정사각 그림의 가운데 56%)에서 핵심부가 위로 치우친 그림만 세로 위치를 올린다(10-28 · 감전 무기)
+const ITEM_ART_POS = { weapon_prod_baton:'50% 15%', weapon_accumulator_hammer:'50% 25%' };
 const MONSTER_ART = new Set(['monster_patrol_k9','monster_cell_infected','monster_riot_exosuit','monster_betrayed_exile','monster_blind_zealot','monster_bloated_toad','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_pale_lynx','monster_rogue_emergency','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_spore_gardener','monster_wandering_sentry','monster_abandoned_chihuahua',
   'monster_gravid_queen','monster_last_deputy','monster_lingering_manager','monster_tower_sentinel',
   'monster_fare_gate','monster_foreman_unit','monster_track_sweeper','monster_tunnel_drifter',
@@ -600,8 +602,8 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 120;
-const TITLE_DATE = '1023';
+const TITLE_VER = 121;
+const TITLE_DATE = '1028';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -684,6 +686,8 @@ const HIT_CS = 1.3, HIT_STOP_CRIT = 130, HIT_STOP_HEAVY = 45, HIT_STOP_KILL = 60
 const TUTO_ART_V = { 'wb_craft1-2':'?v=2', 'rs_rep1-2':'?v=2', 'loot_get1-3':'?v=2', 'loot_get1-4':'?v=2' };   // loot_get1-3/4 = 아래로 내려 잠금 그림(2026-10-16 · svg/guide-loot-move-3-1·4-1)
 
 const PATCH_NOTES = [
+  { ver:121, date:'28/Oct', lines:[
+    ['감전 상태이상 및 감전 무기 추가.','Shock status effect and shock weapons added.'] ] },
   { ver:118, date:'23/Oct', lines:[
     ['강화 및 카드 연출 개선.','Enhancement and card effects improved.'] ] },
   { ver:117, date:'23/Oct', lines:[
@@ -834,7 +838,8 @@ const STATUS_ICONS={
   bleed:{c:'#CB6D62',fill:'M4.456 7.03C4.04 6.364 4.519 5.5 5.304 5.5H11.696C12.481 5.5 12.96 6.364 12.544 7.03L9.348 12.143C8.956 12.77 8.044 12.77 7.652 12.143L4.456 7.03Z'},
   stun:{c:'#D6BB79',fill:'M8.5 3.5L9.6 7.4L13.5 8.5L9.6 9.6L8.5 13.5L7.4 9.6L3.5 8.5L7.4 7.4L8.5 3.5Z'},
   pierce:{c:'#7CA5BB',fill:'M7.626 5.073C8.007 4.388 8.993 4.388 9.374 5.073L12.675 11.014C13.045 11.681 12.563 12.5 11.8 12.5H5.2C4.437 12.5 3.955 11.681 4.325 11.014L7.626 5.073Z'},
-  rupture:{c:'#B27EAD',stroke:'M8.5 12.5C10.709 12.5 12.5 10.709 12.5 8.5C12.5 6.291 10.709 4.5 8.5 4.5C6.291 4.5 4.5 6.291 4.5 8.5C4.5 10.709 6.291 12.5 8.5 12.5Z'} };
+  rupture:{c:'#B27EAD',stroke:'M8.5 12.5C10.709 12.5 12.5 10.709 12.5 8.5C12.5 6.291 10.709 4.5 8.5 4.5C6.291 4.5 4.5 6.291 4.5 8.5C4.5 10.709 6.291 12.5 8.5 12.5Z'},
+  shock:{c:'#79D684',vb:16,fill:'M4.30758 8.54658C4.01644 8.18172 4.01644 7.66398 4.30758 7.29912L7.14114 3.74816C7.54148 3.24646 8.30409 3.24646 8.70443 3.74816L11.538 7.29912C11.8291 7.66398 11.8291 8.18172 11.538 8.54658L8.70443 12.0975C8.30409 12.5992 7.54148 12.5992 7.14114 12.0975L4.30758 8.54658Z'} };   // 감전 = svg/ic_status_shock.svg(사용자 제공 10-28 · 16×16 원본)
 const icBattle=(sz=18,c='rgb(204,162,110)')=>h('svg',{width:sz,height:sz,viewBox:'0 0 17.5 17.5',fill:c,style:{display:'block',animation:'rlSpin 3s linear infinite'}}, h('path',{fillRule:'evenodd',d:'M 8.75 0 C 9.164 0 9.5 0.336 9.5 0.75 L 9.5 3.15 C 9.5 3.564 9.164 3.9 8.75 3.9 C 8.336 3.9 8 3.564 8 3.15 L 8 0.75 C 8 0.336 8.336 0 8.75 0 Z M 14.937 2.563 C 15.23 2.856 15.23 3.331 14.937 3.623 L 13.24 5.321 C 12.947 5.613 12.472 5.613 12.179 5.321 C 11.887 5.028 11.887 4.553 12.179 4.26 L 13.877 2.563 C 14.169 2.27 14.644 2.27 14.937 2.563 Z M 2.563 2.563 C 2.855 2.27 3.33 2.27 3.623 2.563 L 5.32 4.26 C 5.613 4.553 5.613 5.028 5.32 5.321 C 5.027 5.614 4.553 5.614 4.26 5.321 L 2.563 3.624 C 2.27 3.331 2.27 2.856 2.563 2.563 Z M 0 8.75 C 0 8.336 0.336 8 0.75 8 L 3.15 8 C 3.564 8 3.9 8.336 3.9 8.75 C 3.9 9.164 3.564 9.5 3.15 9.5 L 0.75 9.5 C 0.336 9.5 0 9.164 0 8.75 Z M 13.6 8.75 C 13.6 8.336 13.936 8 14.35 8 L 16.75 8 C 17.164 8 17.5 8.336 17.5 8.75 C 17.5 9.164 17.164 9.5 16.75 9.5 L 14.35 9.5 C 13.936 9.5 13.6 9.164 13.6 8.75 Z M 5.321 12.179 C 5.613 12.472 5.613 12.947 5.321 13.24 L 3.623 14.937 C 3.331 15.23 2.856 15.23 2.563 14.937 C 2.27 14.644 2.27 14.169 2.563 13.877 L 4.26 12.179 C 4.553 11.887 5.028 11.887 5.321 12.179 Z M 12.179 12.18 C 12.472 11.887 12.947 11.887 13.24 12.18 L 14.937 13.877 C 15.23 14.17 15.23 14.644 14.937 14.937 C 14.644 15.23 14.169 15.23 13.876 14.937 L 12.179 13.24 C 11.886 12.947 11.886 12.473 12.179 12.18 Z M 8.75 13.6 C 9.164 13.6 9.5 13.936 9.5 14.35 L 9.5 16.75 C 9.5 17.164 9.164 17.5 8.75 17.5 C 8.336 17.5 8 17.164 8 16.75 L 8 14.35 C 8 13.936 8.336 13.6 8.75 13.6 Z'}));
 // 사망 표시 (svg/ic_death.svg 원본 30x30 그대로 — 스크린샷 역산값 26~30px 범위에 들어간다)
 // 도움말(?) 아이콘 icHelp — svg/ic_info.svg 원본 패스(★기존 icInfo는 다른 '!' 안내 아이콘이라 이름을 나눴다)(24 박스 안 원 2~22). viewBox를 원에 딱 맞춰(2 2 20 20) 예전 14px PNG(ic_popup_info)와 같은 크기로 그린다 · 벡터라 안 깨진다(2026-10-16).
@@ -853,8 +858,8 @@ class Component extends DCLogic {
   async componentDidMount(){
     document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
-      const eng = await import('./engine.js?v=val101');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val59');
+      const eng = await import('./engine.js?v=val102');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val60');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -1248,12 +1253,26 @@ class Component extends DCLogic {
   dmgPop(fx,target){ try{ const el=this._cardEl&&this._cardEl[target]; if(!el||!el.isConnected) return; const r=el.getBoundingClientRect(); if(!(r.width>0)) return;
     const L=this.dmgLayer(), x=r.left+r.width*fx.rx, y=r.top+r.height*fx.ry;
     if(fx.crit) this.critBurst(L,x,y,r.left+r.width*0.5,r.top+r.height*0.3);
-    const sz=this.hitNumSize(fx), col=fx.dot?'#E0473F':(fx.crit?'#FFD24A':(fx.weak?'#D79BD0':'#FF6A5A'));
+    if(fx.shock) return this.shockPop(L,x,y,this.hitNumSize(fx),fx);
+    const sz=this.hitNumSize(fx), col=fx.dot?'#E0473F':(fx.crit?'#FFD24A':(fx.expo?'#8FB6D9':(fx.weak?'#B27EAD':'#FF6A5A')));   // 출혈 진빨강 · 크리 금색 · 관통 걸린 상대 하늘색 · 파열 걸린 쪽 보라(=아이콘 색) · 일반 빨강(10-28)
     const n=document.createElement('div'); n.textContent='-'+Math.round(fx.dmg);
     n.style.cssText='position:absolute;left:'+x+'px;top:'+y+'px;white-space:nowrap;line-height:1;font-family:"Jacquarda Bastarda 9",'+T.mono+';font-weight:800;opacity:0;will-change:transform,opacity;font-size:'+sz+'px;color:'+col;
-    n.style.textShadow=this.numOutline(sz,'#FFFFFF')+(fx.crit?',0 0 12px rgba(255,210,74,.95),0 0 26px rgba(255,170,40,.6)':'')+(fx.expo?',0 0 8px #7CA5BB':'')+',0 0 6px rgba(0,0,0,.85),0 0 16px rgba(0,0,0,.6),0 4px 10px rgba(0,0,0,.75)';   // 흰 외곽선 2px + 어두운 번짐(밝은·붉은 그림 위에서도 뜨게)
-    L.appendChild(n); const a=this.numAnim(fx,target==='player'); const an=n.animate(a.fr,{duration:a.D,fill:'forwards'}); an.onfinish=()=>n.remove(); setTimeout(()=>{ if(n.isConnected) n.remove(); },a.D+400);
+    n.style.textShadow=this.numOutline(sz,fx.dot?'#FF6E62':'#FFFFFF')+(fx.dot?',0 0 8px rgba(255,72,60,.95),0 0 18px rgba(255,40,40,.55)':'')+(fx.crit?',0 0 12px rgba(255,210,74,.95),0 0 26px rgba(255,170,40,.6)':'')+(fx.expo&&!fx.crit?',0 0 8px #7CA5BB':'')+',0 0 6px rgba(0,0,0,.85),0 0 16px rgba(0,0,0,.6),0 4px 10px rgba(0,0,0,.75)';   // 흰 외곽선 2p(출혈 = 밝은 빨강 외곽선 + 붉은 빛 · 10-28) · 2px + 어두운 번짐(밝은·붉은 그림 위에서도 뜨게)
+    L.appendChild(n); const a=this.numAnim(fx,target==='player'); const an=n.animate(a.fr,{duration:a.D,fill:'forwards'});
+    if(fx.dot) n.animate([{color:'#FFFFFF',offset:0},{color:'#FFFFFF',offset:.5},{color:'#E0473F',offset:.5},{color:'#E0473F',offset:1}],{duration:200,iterations:Math.ceil(a.D/200)});   // 출혈 = 흰↔빨강 반짝임(0.1초씩 · 10-28) · 테두리는 밝은 빨강 고정 an.onfinish=()=>n.remove(); setTimeout(()=>{ if(n.isConnected) n.remove(); },a.D+400);
   }catch(e){} }
+  // 감전 숫자(10-28 확정) — 글자 #79D684 · 테두리 먹색 #0B0D0C · 처음 35%(0.45초)는 툭툭 끊기는 글리치(좌우·세로·기울기) + 흰/초록 잔상이 가로 띠로 찢김 → 위로 떠오르며 사라짐.
+  shockPop(L,x,y,sz,fx){ const D=1300, GL=.35, steps=14, txt='-'+Math.round(fx.dmg);
+    const mk=(col,ts)=>{ const n=document.createElement('div'); n.textContent=txt; n.style.cssText='position:absolute;left:'+x+'px;top:'+y+'px;white-space:nowrap;line-height:1;font-family:"Jacquarda Bastarda 9",'+T.mono+';font-weight:800;opacity:0;will-change:transform,opacity;font-size:'+sz+'px;color:'+col; if(ts) n.style.textShadow=ts; L.appendChild(n); setTimeout(()=>{ if(n.isConnected) n.remove(); },D+400); return n; };
+    const m=mk('#79D684',this.numOutline(sz,'#0B0D0C')+',0 0 6px rgba(0,0,0,.85),0 0 16px rgba(0,0,0,.6),0 4px 10px rgba(0,0,0,.75)');
+    const fr=[{offset:0,opacity:0,transform:'translate(-50%,-50%) scale(1.3)'}];
+    for(let i=1;i<=steps;i++) fr.push({offset:i/steps*GL,opacity:Math.random()<.18?.25:1,easing:'steps(1)',transform:'translate(calc(-50% + '+(Math.random()*16-8).toFixed(1)+'px),calc(-50% + '+(Math.random()*6-3).toFixed(1)+'px)) skewX('+(Math.random()*20-10).toFixed(0)+'deg)'});
+    fr.push({offset:GL+.02,opacity:1,transform:'translate(-50%,calc(-50% - 6px))'},{offset:.75,opacity:1,transform:'translate(-50%,calc(-50% - 16px))'},{offset:1,opacity:0,transform:'translate(-50%,calc(-50% - 24px))'});
+    m.animate(fr,{duration:D,fill:'forwards'});
+    [['#FFFFFF',-1],['#2EFF7A',1],['#B8FFC4',0]].forEach(([col,sd])=>{ const g=mk(col,''); g.style.mixBlendMode='screen'; const f=[{offset:0,opacity:0}];
+      for(let i=1;i<=steps;i++){ const top=Math.floor(Math.random()*70), hh=10+Math.floor(Math.random()*25), dx=(sd||1)*(6+Math.random()*12)*(Math.random()<.5?-1:1);
+        f.push({offset:i/steps*GL,opacity:Math.random()<.7?.9:0,easing:'steps(1)',clipPath:'inset('+top+'% 0 '+Math.max(0,100-top-hh)+'% 0)',transform:'translate(calc(-50% + '+dx.toFixed(1)+'px),-50%)'}); }
+      f.push({offset:GL+.01,opacity:0},{offset:1,opacity:0}); g.animate(f,{duration:D,fill:'forwards'}); }); }
   // 크리 빛(10-23 확정) — 맞은 자리에서: 흰→금 글로우 · 바깥으로 연해지는 링 · 렌즈 플레어(가로 길게·세로 짧게·대각 희미 2) · 카드 중앙 쪽 빛망울 3. screen 합성 · 속도 HIT_CS배.
   critBurst(L,x,y,cx,cy){
     const g=(w,hh,bg,fr,dur,ease,rot,dl,px,py)=>{ const e=document.createElement('div'); e.style.cssText='position:absolute;left:'+(px!=null?px:x)+'px;top:'+(py!=null?py:y)+'px;width:'+w+'px;height:'+hh+'px;margin-left:'+(-w/2)+'px;margin-top:'+(-hh/2)+'px;border-radius:50%;mix-blend-mode:screen;opacity:0;background:'+bg; L.appendChild(e);
@@ -1307,6 +1326,17 @@ class Component extends DCLogic {
       c[key]=c[key]||{}; c[key][tg]={ seq:c.fxSeq, at:Date.now(), end:Date.now()+ms, n:ln.stacks||1 };
       setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, ms+40);
       setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, 400);
+      return;
+    }
+    if(ln && ln.type==='status' && ln.status==='shock'){
+      const tg=ln.who==='player'?'monster':'player'; if(!(ln.dmg>0)) return;
+      const f=tg==='monster'?'hpM':'hpP', prev=c.res.log[idx-1], mx=(tg==='monster'?c.mProf.maxHp:c.prof.maxHp)||1, before=prev?prev[f]:mx;
+      const hf=c.fx&&c.fx.target===tg?c.fx:null;   // 방금 맞은 자리 옆에서 튄다
+      c.fxSeq=(c.fxSeq||0)+1;
+      const d={ seq:c.fxSeq, type:'shock', shock:true, target:tg, dmg:ln.dmg, share:before>0?ln.dmg/before:0, at:Date.now(), rx:Math.min(.85,(hf?hf.rx:.5)+.18), ry:(hf?hf.ry:.25)+.06 };
+      setTimeout(()=>{ if(this.combat!==c) return; this.dmgPop(d,tg);
+        c.shocks=c.shocks||{}; c.shocks[tg]=Date.now()+300; const cv=this._shockCv&&this._shockCv[tg]; if(cv&&cv._ebIdle&&cv._ebWake) cv._ebWake(); this.forceUpdate(); }, 110);
+      this.trailHit(c,tg,before/mx*100,ln[f]/mx*100,{delay:200,dur:520});
       return;
     }
     if(ln && ln.type==='status' && ln.status==='bleed'){
@@ -1654,7 +1684,7 @@ class Component extends DCLogic {
   // 강화 재료 카드 색 = 재료 소재 색(확장_v3 §3.7-10b 표 · 아트 기준) — 귀중품의 금빛 자리를 대신한다(10-15).
   //   무기 속성: 압전 노랑 · 사파이어 적색 · 다이아 은청 · 빙정 청록 · 형상기억 회백 / 방어구 재질: 아라미드 주황 · 그래핀 연두 · 실리카 보라
   enhMatColor(id){ const k=String(id||'').replace(/^enh_[wa][12]_/,'');
-    const M={stun:['#F2C230','#F3E2A6'],bleed:['#D8423A','#EDB3AC'],pierce:['#8FB6D9','#D5E4F1'],rupture:['#3CC6C0','#B4E9E5'],none:['#C9CCD1','#ECEEF1'],
+    const M={stun:['#F2C230','#F3E2A6'],bleed:['#D8423A','#EDB3AC'],pierce:['#8FB6D9','#D5E4F1'],rupture:['#3CC6C0','#B4E9E5'],shock:['#79D684','#CDEFD1'],none:['#C9CCD1','#ECEEF1'],
       fabric:['#F08A2C','#F5C9A0'],synth:['#8FD14F','#D3EDB5'],metal:['#A27BE0','#D7C6F3']};
     const c=M[k]||M.none; return {c:c[0], t:c[1], rgb:[1,3,5].map(i=>parseInt(c[0].substr(i,2),16)).join(',')}; }
   isEnhMatId(id){ return String(((this.eng.byId.item||{})[id]||{}).Category||'')==='Enhance'; }   // 강화 재료(Item.Category=Enhance) — 아트가 카드 대부분을 차지하는 틀(퀘스트 아이템 카드와 같은 342x442) · ID 접두로 판정하지 않는다(인계 메모)
@@ -2646,7 +2676,7 @@ class Component extends DCLogic {
   }
   statusIcon(key,sz){ const s=STATUS_ICONS[key]; const col=(ATTR[key]&&ATTR[key].c)||T.mid;
     if(!s) return h('svg',{width:sz,height:sz,viewBox:'0 0 24 24',fill:'none',stroke:col,strokeWidth:3,strokeLinecap:'round'},h('path',{d:'M5 12 H19'}));
-    return h('svg',{width:sz,height:sz,viewBox:'0 0 17 17',fill:'none',style:{display:'block'}}, s.fill?h('path',{d:s.fill,fill:s.c}):h('path',{d:s.stroke,fill:'none',stroke:s.c,strokeWidth:1.84})); }
+    return h('svg',{width:sz,height:sz,viewBox:'0 0 '+(s.vb||17)+' '+(s.vb||17),fill:'none',style:{display:'block'}}, s.fill?h('path',{d:s.fill,fill:s.c}):h('path',{d:s.stroke,fill:'none',stroke:s.c,strokeWidth:1.84})); }
   activeStatuses(side){
     const c=this.combat; if(!c||!c.res) return [];
     const applier = side==='player'?'monster':'player';
@@ -2752,6 +2782,9 @@ class Component extends DCLogic {
     const nums=((this.combat&&this.combat.fxs)||[]).filter(f=>f.target===side&&Date.now()-f.at<(f.life||800));
     return h('div',{ref:el=>{ if(el){ (this._cardEl=this._cardEl||{})[side]=el; }   // 타격 파티클(hitfx)이 이 카드 위치를 읽는다
       if(el && atk && el._lg!==atk.seq){ el._lg=atk.seq; el.style.setProperty('--lg',(side==='player'?-1:1)*atk.lunge+'px'); el.style.animation='none'; void el.offsetWidth; el.style.animation='rlLunge .16s ease-out'; } },style:{position:'relative'}},
+      (this.combat&&this.combat.shocks&&this.combat.shocks[side]!=null)? h('canvas',{key:'shockeb',ref:el=>{ if(!el) return; (this._shockCv=this._shockCv||{})[side]=el;
+        this.mountElectric(el,()=>{ const cc=this.combat; return !!(cc&&cc.shocks&&Date.now()<cc.shocks[side]); },{color:'#79D684',thickness:0.45,speed:3.2,glow:0.3,strands:2,chaos:0.5,spread:0.35,intensity:0.55,arcs:0.8,borderRadius:8}); },
+        style:{position:'absolute',left:-64,top:-64,pointerEvents:'none',zIndex:10}}) : null,
       h('div',{key:'afs',style:{position:'absolute',inset:0,pointerEvents:'none'}}, ...((fx&&fx.type==='miss')?[[14,0],[-22,0.06]].map(([ax,dl],i)=>h('div',{key:'af'+i+'_'+fx.seq,style:{position:'absolute',inset:0,border:'1px solid rgba(234,235,238,.5)',background:'rgba(234,235,238,.07)',borderRadius:6,pointerEvents:'none','--ax':ax+'px',opacity:0,animation:'rlAfter .4s ease-out '+dl+'s both'}})):[])),
       // MISS/DODGE만 카드 안에 · 데미지 숫자·크리 빛은 화면 맨 위 층(dmgPop — setCombatFx에서 띄움)
       h('div',{key:'nums',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9}}, ...nums.filter(fx=>fx.type==='miss').map(fx=>h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:'50%',top:'40%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:'#EAEBEE',fontSize:36,textShadow:'0 2px 9px rgba(0,0,0,.75)',animation:'rlMiss .7s ease-out forwards'}}, this.missText(fx)))),
@@ -4587,7 +4620,7 @@ void main(){
         // 모듈은 전부 같은 카드 아트를 쓴다 — 구분은 이름(부품코드)·계열이 맡는다(HexCode 폐기).
         // 제작 미리보기에서도 결과물 아트는 보여준다 — 가리는 건 **수치**뿐이다(이름·설명도 이미 보인다).
         //   아트가 없으면 onError로 숨겨져 뒤의 빗금 배경이 그대로 남는다.
-        h('img',{key:'artimg',draggable:false,src:md?'assets/art/cards/module_card.webp?v=2':('assets/art/items/'+inst.id+'.webp'),onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:md?'top':'center',pointerEvents:'none',WebkitUserDrag:'none'}}),
+        h('img',{key:'artimg',draggable:false,src:md?'assets/art/cards/module_card.webp?v=2':('assets/art/items/'+inst.id+'.webp'),onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:md?'top':(ITEM_ART_POS[inst.id]||'center'),pointerEvents:'none',WebkitUserDrag:'none'}}),
         (val&&mask!=='?')? h('canvas',{key:'vscan',ref:el=>this.mountValScan(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',mixBlendMode:'lighten'}}) : null,   /* 귀중품 = 아트 위 Scanner(전 귀중품 공통 · 사용자 2026-10-12) */
         h('div',{style:{position:'absolute',left:0,bottom:0,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         ((gtags.length||this.durGone(inst))&&mask!=='?')?h('div',{style:{position:'absolute',right:15,top:15,display:'flex',flexDirection:'row-reverse',gap:7}},
