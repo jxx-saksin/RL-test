@@ -602,7 +602,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 121;
+const TITLE_VER = 122;
 const TITLE_DATE = '1028';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -858,8 +858,8 @@ class Component extends DCLogic {
   async componentDidMount(){
     document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
-      const eng = await import('./engine.js?v=val102');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val60');
+      const eng = await import('./engine.js?v=val103');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val61');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -1326,6 +1326,7 @@ class Component extends DCLogic {
       c[key]=c[key]||{}; c[key][tg]={ seq:c.fxSeq, at:Date.now(), end:Date.now()+ms, n:ln.stacks||1 };
       setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, ms+40);
       setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, 400);
+      setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, ms+520);   // 파열 픽셀·관통 조준이 다 사라진 뒤 내린다
       return;
     }
     if(ln && ln.type==='status' && ln.status==='shock'){
@@ -1344,11 +1345,14 @@ class Component extends DCLogic {
       const sc=this.eng.N(this.eng.DATA.config.combat_playback_scale,0), ms=(ln.dur||4)*1000*(sc>0?sc:0.5), mx=this.eng.N((this.eng.byId.status.bleed||{}).MaxStack,3);
       c.bleeds=c.bleeds||{monster:[],player:[]};
       c.bleeds[tg]=c.bleeds[tg].filter(e=>e>Date.now()).concat(Date.now()+ms).slice(-mx);
+      // 상처(10-28 B안) — 스택 하나 = 카드 위 랜덤 위치·각도의 벌어진 상처 하나(최대 MaxStack). 그 스택이 끝나면 닫힌다.
+      { const R=Math.random; c.wounds=c.wounds||{monster:[],player:[]}; c.woundSeq=(c.woundSeq||0)+1;
+        c.wounds[tg]=c.wounds[tg].filter(w=>w.exp>Date.now()).concat({ id:c.woundSeq, at:Date.now(), exp:Date.now()+ms, x:18+R()*64, y:22+R()*56, ang:(R()*2-1)*38, ...(()=>{ const sc=R()<0.55? 0.42+R()*0.4 : 1.15+R()*0.85; return { sc, len:(22+R()*10)*(0.6+sc) }; })(), bend:(R()*2-1)*2.5 }).slice(-mx); }
       setTimeout(()=>{ if(this.combat===c) this.forceUpdate(); }, ms+40);
       return;
     }
     if(ln && ln.type==='dot' && ln.status==='bleed'){
-      const tg=ln.who; const f=tg==='monster'?'hpM':'hpP', prev=c.res.log[idx-1];
+      const tg=ln.who; (c.woundTick=c.woundTick||{})[tg]=Date.now();   // 상처가 틱마다 살짝 더 벌어진다 const f=tg==='monster'?'hpM':'hpP', prev=c.res.log[idx-1];
       const before=prev?prev[f]:(tg==='monster'?c.mProf.maxHp:c.prof.maxHp);
       c.fxSeq=(c.fxSeq||0)+1;
       const d={ seq:c.fxSeq, type:'bleed', dot:true, target:tg, dmg:ln.dmg||0, share:before>0?(ln.dmg||0)/before:0, at:Date.now(), rx:0.3+Math.random()*0.4, ry:0.12+Math.random()*0.22, dir:Math.random()<.5?-1:1, jit:Math.random() };
@@ -1433,7 +1437,7 @@ class Component extends DCLogic {
     // 애니메이션이 끝나면 **opacity 1로 되돌아간다** — c.fx를 남겨두면 마지막 타격을 받은 쪽 카드가
     // 34% 붉은 레이어에 덮인 채 굳는다. 승리는 곧장 전리품 화면으로 넘어가 안 보이지만,
     // 사망(dead)은 전투 화면이 그대로 남아 그대로 노출된다(2026-08-31).
-    c.fx=null; c.fxs=[]; c.stuns=null; c.stunFx=null; c.bleeds=null; c.ruptures=null; c.pierces=null; c.critFx=null; c.ghost=null; c.trail=null; clearTimeout(this._fxT1); clearTimeout(this._fxT2);
+    c.fx=null; c.fxs=[]; c.stuns=null; c.stunFx=null; c.bleeds=null; c.wounds=null; c.woundTick=null; c.ruptures=null; c.pierces=null; c.critFx=null; c.ghost=null; c.trail=null; clearTimeout(this._fxT1); clearTimeout(this._fxT2);
     this.gs.hp = res.playerHpEnd;
     { const sr=this.storyRaidOn(); if(sr&&sr.r.nodie) this.gs.hp=Math.max(1,this.gs.hp); }   // nodie — 이겨도 0.4처럼 "0"으로 보이면 죽은 것 같다
     // 전투 종료 후 몬스터 등급만큼 스태미너 소모(진입 전이 아니라 종료 후). 도주 성공은 여기 안 옴 = 소모 없음.
@@ -2788,6 +2792,7 @@ class Component extends DCLogic {
       h('div',{key:'afs',style:{position:'absolute',inset:0,pointerEvents:'none'}}, ...((fx&&fx.type==='miss')?[[14,0],[-22,0.06]].map(([ax,dl],i)=>h('div',{key:'af'+i+'_'+fx.seq,style:{position:'absolute',inset:0,border:'1px solid rgba(234,235,238,.5)',background:'rgba(234,235,238,.07)',borderRadius:6,pointerEvents:'none','--ax':ax+'px',opacity:0,animation:'rlAfter .4s ease-out '+dl+'s both'}})):[])),
       // MISS/DODGE만 카드 안에 · 데미지 숫자·크리 빛은 화면 맨 위 층(dmgPop — setCombatFx에서 띄움)
       h('div',{key:'nums',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:9}}, ...nums.filter(fx=>fx.type==='miss').map(fx=>h('div',{key:'dmg'+fx.seq,style:{position:'absolute',left:'50%',top:'40%',zIndex:9,pointerEvents:'none',opacity:0,textAlign:'center',fontFamily:"'Jacquarda Bastarda 9',"+T.mono,fontWeight:800,whiteSpace:'nowrap',color:'#EAEBEE',fontSize:36,textShadow:'0 2px 9px rgba(0,0,0,.75)',animation:'rlMiss .7s ease-out forwards'}}, this.missText(fx)))),
+      stn? h('div',{key:'stunorb'+stn.seq,ref:el=>this.mountStunOrbit(el,stn.end),style:{position:'absolute',left:'50%',top:24,width:0,height:0,zIndex:11,pointerEvents:'none'}}) : null,   // 기절 궤도 별(10-28 A안) · 카드 윗변 안쪽 — 위로 띄우면 몬스터 카드는 화면 헤더 띠(불투명·z2)에 가린다
       (stn0&&Date.now()-stn0.at<650)? h('div',{key:'ring'+stn0.seq,style:{position:'absolute',left:'50%',top:'38%',width:120,height:120,borderRadius:'50%',border:(stn0.delay>=1.5?4:2)+'px solid #D8BE78',zIndex:9,pointerEvents:'none','--rs':stn0.delay>=1.5?2.6:(stn0.delay>=0.8?2:1.5),animation:'rlRing '+(stn0.delay>=1.5?'.55s':'.4s')+' ease-out forwards'}}):null,
       h('div',{onClick:()=>this.setState({combatSheet:isMonster?'monster':'player'}),ref:el=>{ if(el && rp0 && Date.now()-rp0.at<350 && el._rup!==rp0.seq){ el._rup=rp0.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlHit .3s ease-out'; }
         if(el && fx && fx.type==='miss' && el._ms!==fx.seq){ el._ms=fx.seq; el.style.animation='none'; void el.offsetWidth; el.style.animation='rlDodge .6s ease-out'; }
@@ -2796,8 +2801,11 @@ class Component extends DCLogic {
       pxn? h('div',{key:'prcwv',style:{position:'absolute',inset:0,zIndex:3,pointerEvents:'none',background:'rgba(124,165,187,.15)',boxShadow:'inset 0 0 0 1px rgba(124,165,187,.65), inset 0 0 20px 2px rgba(124,165,187,.3)','--ro':pxn>=3?1:(pxn===2?0.85:0.65),animation:'rlRp 2.2s ease-in-out infinite'}}):null,
       (px0&&Date.now()-px0.at<350)? h('div',{key:'prcfl'+px0.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:'rgba(124,165,187,.42)',animation:'rlHitFlash .3s ease-out forwards'}}):null,
       (fx&&fx.expo&&isHit)? h('div',{key:'prcx'+fx.seq,style:{position:'absolute',inset:0,zIndex:6,pointerEvents:'none',borderRadius:6,boxShadow:'inset 0 0 0 2px #7CA5BB',animation:'rlHitFlash .3s ease-out forwards'}}):null,
+      (px0&&Date.now()<px0.end+480)? h('canvas',{key:'prcDots',ref:el=>this.mountPierceDots(el,side),style:{position:'absolute',top:0,left:0,width:'100%',height:isMonster?114:'100%',zIndex:3,pointerEvents:'none'}}):null,   // 관통 도트 격자(10-28 · DotGrid 이식) — 몬스터=아트웍 · 플레이어=카드 전체
+      (rp0&&Date.now()<rp0.end+480)? h('canvas',{key:'rupPx',ref:el=>this.mountRupturePixels(el,side),style:{position:'absolute',top:0,left:0,width:'100%',height:isMonster?114:'100%',zIndex:3,pointerEvents:'none'}}):null,   // 파열 픽셀(10-28 · PixelCard 이식) — 몬스터=아트웍 영역 · 플레이어=카드 전체
       rpn? h('div',{key:'rupwv',style:{position:'absolute',inset:0,zIndex:3,pointerEvents:'none',background:'rgba(178,126,173,.16)',boxShadow:'inset 0 0 0 1px rgba(178,126,173,.6), inset 0 0 20px 2px rgba(178,126,173,.3)','--ro':rpn>=3?1:(rpn===2?0.85:0.65),animation:'rlRp 2.2s ease-in-out infinite'}}):null,
       (rp0&&Date.now()-rp0.at<350)? h('div',{key:'rupfl'+rp0.seq,style:{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',background:'rgba(178,126,173,.5)',animation:'rlHitFlash .32s ease-out forwards'}}):null,
+      ...((this.combat&&this.combat.wounds&&this.combat.wounds[side])||[]).filter(w=>w.exp>Date.now()).map(w=>h('svg',{key:'wnd'+w.id,ref:el=>this.mountWound(el,w,side),width:w.len+16,height:22,style:{position:'absolute',left:w.x+'%',top:w.y+'%',zIndex:5,pointerEvents:'none',overflow:'visible',transform:'translate(-50%,-50%) rotate('+w.ang.toFixed(1)+'deg)'}})),   // 출혈 상처(10-28)
       bln? h('div',{key:'bleedwv',style:{position:'absolute',inset:0,zIndex:3,pointerEvents:'none',backgroundImage:'radial-gradient(ellipse at 30% 40%, rgba(184,50,45,.6), transparent 60%), radial-gradient(ellipse at 70% 65%, rgba(140,28,30,.55), transparent 60%)',backgroundSize:'170% 170%','--bo':bln>=3?0.9:(bln===2?0.7:0.5),animation:'rlBleedWave '+(bln>=3?1.2:(bln===2?1.8:2.4))+'s ease-in-out infinite'}}):null,
       stn? h('div',{key:'stint',style:{position:'absolute',inset:0,zIndex:3,pointerEvents:'none',background:'rgba(216,190,120,.14)'}}):null,
       stn? h('div',{key:'sdr'+stn.seq,style:{position:'absolute',left:0,bottom:0,height:3,zIndex:8,pointerEvents:'none',background:'#D8BE78',animation:'rlDrain '+stn.sec.toFixed(2)+'s linear forwards'}}):null,
@@ -8098,6 +8106,160 @@ void main(){
     if(!r||r.short||r.capped){ this.flash(this.t('hide_upg_lack'),true); return; }
     this.saveGame();   // ★결과 확정 즉시 저장
     this.enFxStart(inst,before,r);
+  }
+  // ===== 관통 도트 격자 (10-28 · 사용자 제공 DotGrid 효과 이식 · Canvas2D) — 관통이 걸리면 아트웍(플레이어는 카드 전체)에 파란 도트 격자가
+  //   가운데에서 바깥으로 튀어나오며(backOut) 나타난다. 피격마다 가운데에서 충격파가 퍼져 도트를 밀어내고(스프링+이웃 결합 물리 그대로)
+  //   밀린 도트는 늘어나며(stretch) 밝아진다(swell·glow). ★스택은 파장만 키운다 — 반경 90/160/240px · 세기 3/4/5. 끝나면 0.35초에 사라진다.
+  //   원본의 마우스 끌림·클릭은 뺐다. WebGL 대신 Canvas2D(도트 100개 안팎이라 충분 · 컨텍스트 수 부담 없음).
+  mountPierceDots(cv, side){
+    if(!cv || cv._dg) return; cv._dg=1;
+    const ctx=cv.getContext('2d'); if(!ctx) return;
+    const SIZE=1.6, GAP=9, BASE=[61,85,104], ACT=[207,227,245], SWELL=0.8, STRETCH=0.5, GLOW=0.5, OPA=0.85, REST_A=0.3, TRAVEL=260;   // REST_A = 쉬는 도트 불투명도(사용자: 더 투명하게) · 파장에 밀린 도트는 OPA까지 밝아진다   // 도트 1.6px(사용자: 더 작게 ×2) · 파장 속도 260px/s(원본 650은 카드 크기에서 0.14초 만에 지나가 안 보였다)
+    const RAD=[0,90,160,240], STR=[0,3,4,5];
+    const ss=t=>{ const x=Math.min(1,Math.max(0,t)); return x*x*x*(x*(x*6-15)+10); }, backOut=t=>{ const s=1.9,x=t-1; return 1+x*x*((s+1)*x+s); };
+    const zeta=1-0.85*0.6, omega=4/(zeta*0.8), K=omega*omega, D=2*zeta*omega;
+    const g={ w:0,h:0,ratio:1,cols:1,rows:1,cell:1,n:0,cx:0,cy:0,reach:1 }; let rest,off,vel,nxt,wav,en;
+    const shocks=[]; cv._shocks=shocks; let intro=performance.now(), last=0, fade=0, hitSeq=null, wasOn=false;   // hitSeq=null — 관통을 건 그 타격(아직 fxs에 남아 있음)부터 파장이 나간다
+    const build=()=>{ const r=cv.getBoundingClientRect(), w=Math.max(1,Math.round(r.width)), h=Math.max(1,Math.round(r.height)), ratio=Math.min(window.devicePixelRatio||1,2);
+      if(w===g.w&&h===g.h&&ratio===g.ratio) return; g.w=w; g.h=h; g.ratio=ratio; cv.width=Math.round(w*ratio); cv.height=Math.round(h*ratio);
+      const cell=SIZE+GAP, cols=Math.max(1,Math.floor((w+GAP)/cell)), rows=Math.max(1,Math.floor((h+GAP)/cell)), sx=(w-(cols*cell-GAP))/2+SIZE/2, sy=(h-(rows*cell-GAP))/2+SIZE/2, n=cols*rows;
+      rest=new Float32Array(n*2); off=new Float32Array(n*2); vel=new Float32Array(n*2); nxt=new Float32Array(n*2); wav=new Float32Array(n*4); en=new Float32Array(n);
+      for(let r2=0;r2<rows;r2++) for(let c=0;c<cols;c++){ const i=(r2*cols+c)*2; rest[i]=sx+c*cell; rest[i+1]=sy+r2*cell; }
+      Object.assign(g,{cols,rows,cell,n,cx:w/2,cy:h/2,reach:Math.hypot(w,h)/2}); };
+    const step=(now)=>{ if(!cv.isConnected) return; build();
+      const dt=last? Math.min(0.05,(now-last)/1000) : 1/60; last=now;
+      const c=this.combat, z=(c&&c.pierces&&c.pierces[side])||null, on=!!(z&&Date.now()<z.end), stk=on?Math.min(3,z.n||1):0;
+      if(on&&!wasOn) intro=now; wasOn=on;
+      fade+=((on?1:0)-fade)*(1-Math.exp(-dt/(on?0.08:0.12)));
+      const hf=((c&&c.fxs)||[]).filter(f=>f.target===side&&(f.type==='hit'||f.type==='crit')).pop();
+      if(hf&&hf.seq!==hitSeq){ if(on){ shocks.push({x:g.cx,y:g.cy,start:now,R:RAD[stk],S:STR[stk]}); if(shocks.length>6) shocks.shift(); } hitSeq=hf.seq; }
+      // 물리 — DotGrid step() 그대로(포인터 항 제외)
+      const width=g.cell*1.4, act=shocks.map(sh=>{ const front=(now-sh.start)/1000*TRAVEL; return { ...sh, front, amp:ss(1-front/Math.max(1,sh.R))*sh.S*g.cell*0.24 }; });
+      const coup=(0.4*900)**2/(g.cell*g.cell), visc=Math.sqrt(coup)*0.06, lim=Math.sqrt(K+8*coup)+D+8*visc, steps=Math.min(24,Math.max(1,Math.ceil(dt/Math.min(1/120,1.2/lim)))), hh=dt/steps;
+      const fx=new Float32Array(g.n*2);
+      for(let i=0;i<g.n;i++){ const ix=i*2, rx=rest[ix], ry=rest[ix+1]; let ax=0,ay=0,wx=0,wy=0,wvx=0,wvy=0;
+        for(const sh of act){ if(sh.amp<=0) continue; const ex=rx-sh.x, ey=ry-sh.y, d=Math.hypot(ex,ey), u=(d-sh.front)/width;
+          if(Math.abs(u)<3&&d>0.001){ const nx=ex/d, ny=ey/d, pf=Math.exp(-u*u), push=sh.amp*pf, rate=sh.amp*2*u*pf/width*TRAVEL; wx+=nx*push; wy+=ny*push; wvx+=nx*rate; wvy+=ny*rate; ax+=nx*push*K*0.35; ay+=ny*push*K*0.35; } }
+        fx[ix]=ax; fx[ix+1]=ay; const t4=i*4; wav[t4]=wx; wav[t4+1]=wy; wav[t4+2]=wvx; wav[t4+3]=wvy; }
+      const {cols,rows}=g, stride=cols*2;
+      for(let k=0;k<steps;k++){ for(let r2=0;r2<rows;r2++) for(let cc=0;cc<cols;cc++){ const ix=(r2*cols+cc)*2;
+          let ax=fx[ix]-K*off[ix]-D*vel[ix], ay=fx[ix+1]-K*off[ix+1]-D*vel[ix+1];
+          let lx=-4*off[ix], ly=-4*off[ix+1], mx=-4*vel[ix], my=-4*vel[ix+1];
+          if(cc>0){ lx+=off[ix-2]; ly+=off[ix-1]; mx+=vel[ix-2]; my+=vel[ix-1]; } if(cc<cols-1){ lx+=off[ix+2]; ly+=off[ix+3]; mx+=vel[ix+2]; my+=vel[ix+3]; }
+          if(r2>0){ lx+=off[ix-stride]; ly+=off[ix-stride+1]; mx+=vel[ix-stride]; my+=vel[ix-stride+1]; } if(r2<rows-1){ lx+=off[ix+stride]; ly+=off[ix+stride+1]; mx+=vel[ix+stride]; my+=vel[ix+stride+1]; }
+          ax+=coup*lx+visc*mx; ay+=coup*ly+visc*my; nxt[ix]=vel[ix]+ax*hh; nxt[ix+1]=vel[ix+1]+ay*hh; }
+        for(let i=0;i<off.length;i++){ vel[i]=nxt[i]; off[i]+=vel[i]*hh; } }
+      for(let i=0;i<g.n;i++){ const ix=i*2, t4=i*4; en[i]=Math.min(1, Math.hypot(vel[ix]+wav[t4+2],vel[ix+1]+wav[t4+3])/380*0.85 + Math.hypot(off[ix]+wav[t4],off[ix+1]+wav[t4+1])/(g.cell*2.2)*0.35); }
+      for(let i=shocks.length-1;i>=0;i--) if(act[i].front>shocks[i].R+width*3) shocks.splice(i,1);
+      // 그리기 — 둥근 도트(속도 방향으로 늘어남) + 에너지만큼 밝아지고 부푼다 + 후광
+      ctx.setTransform(g.ratio,0,0,g.ratio,0,0); ctx.clearRect(0,0,g.w,g.h);
+      if(fade>0.003){ const age=(now-intro)/1000, front=age*g.reach*1.25, band=g.cell*4; ctx.lineCap='round';
+        for(let i=0;i<g.n;i++){ const ix=i*2, t4=i*4, x=rest[ix]+off[ix]+wav[t4], y=rest[ix+1]+off[ix+1]+wav[t4+1], vx=vel[ix]+wav[t4+2], vy=vel[ix+1]+wav[t4+3];
+          let e=en[i], sc=1; const ap=Math.min(1,Math.max(0,(front-Math.hypot(rest[ix]-g.cx,rest[ix+1]-g.cy))/band)); if(ap<1){ sc=Math.max(0,backOut(ap)); e=Math.max(e,Math.sin(ap*Math.PI)*0.6); }
+          const r=0.5*SIZE*sc*(1+SWELL*e); if(r<=0.05) continue; const sp=Math.hypot(vx,vy), hl=Math.min(SIZE*2,sp*STRETCH*0.02), m=Math.min(1,e*1.2);
+          const col='rgb('+Math.round(BASE[0]+(ACT[0]-BASE[0])*m)+','+Math.round(BASE[1]+(ACT[1]-BASE[1])*m)+','+Math.round(BASE[2]+(ACT[2]-BASE[2])*m)+')';
+          const dx=sp>0.001? vx/sp*hl : 0, dy=sp>0.001? vy/sp*hl : 0;
+          if(e>0.05){ ctx.globalAlpha=OPA*fade*GLOW*e*0.5; ctx.strokeStyle=col; ctx.lineWidth=r*2*(1+GLOW*e*2.5); ctx.beginPath(); ctx.moveTo(x-dx,y-dy); ctx.lineTo(x+dx+0.01,y+dy); ctx.stroke(); }
+          ctx.globalAlpha=fade*(REST_A+(OPA-REST_A)*Math.min(1,e*1.6)); ctx.strokeStyle=col; ctx.lineWidth=r*2; ctx.beginPath(); ctx.moveTo(x-dx,y-dy); ctx.lineTo(x+dx+0.01,y+dy); ctx.stroke(); }
+        ctx.globalAlpha=1; }
+      requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
+  // ===== 파열 픽셀 (10-28 · 사용자 제공 PixelCard 효과 이식 · 보라) — 파열이 걸려 있는 동안 아트웍(플레이어는 카드 전체) 위에 보라 픽셀 격자가
+  //   가운데에서 바깥으로 0.6초에 걸쳐 튀어나오며(easeOutBack + 첫 등장 번쩍) 반짝인다(twinkle) · 은은한 보라 방사광.
+  //   스택이 쌓일 때(seq 변경)마다 가운데에서 물결(pulse)이 퍼진다 · 스택 1/2/3 = 불투명도 .05/.1/.2(사용자 10-28) ·
+  //   파열 중 피격하면 0.32초 번쩍(픽셀 크기 ×1.9·밝기 +0.75·방사광 ×3.6 · 제곱 감쇠) + 물결 · 끝나면 바깥부터 0.22초에 사라진다.
+  //   원본의 hover·click·spotlight·focus·IntersectionObserver는 뺐다(전투 카드엔 포인터 반응이 없다). DOM에서 빠지면 rAF를 멈춘다.
+  mountRupturePixels(cv, side){
+    if(!cv || cv._px) return; cv._px=1;
+    const ctx=cv.getContext('2d'); if(!ctx) return;
+    const COLORS=['#F0D2EC','#D3A6CE','#B27EAD'], GLOW=[178,126,173], GAP=6, PSZ=2.4, REVEAL=0.6, APPEAR=0.26, EXIT=0.22, FREQ=1.35;
+    const clamp=(v,a,b)=>Math.min(Math.max(v,a),b), sstep=(e0,e1,v)=>{ const t=clamp((v-e0)/(e1-e0),0,1); return t*t*(3-2*t); };
+    const easeOutBack=t=>{ const c=1.9,u=t-1; return 1+(c+1)*u*u*u+c*u*u; };
+    const st={ w:0,h:0,ratio:1,n:0,x:null,y:null,tint:null,size:null,phase:null,rate:null,jit:null,pres:null,delay:null,active:false,changed:0,time:0,last:0,far:1,pulses:[],seq:null };
+    const build=()=>{ const r=cv.getBoundingClientRect(), w=Math.max(1,Math.round(r.width)), h=Math.max(1,Math.round(r.height)), ratio=Math.min(window.devicePixelRatio||1,2);
+      if(w===st.w&&h===st.h&&ratio===st.ratio) return; st.w=w; st.h=h; st.ratio=ratio; cv.width=Math.round(w*ratio); cv.height=Math.round(h*ratio);
+      const cols=Math.floor((w-1)/GAP)+1, rows=Math.floor((h-1)/GAP)+1, ox=(w-(cols-1)*GAP)/2, oy=(h-(rows-1)*GAP)/2, n=cols*rows, prev=st.pres;
+      st.n=n; st.x=new Float32Array(n); st.y=new Float32Array(n); st.tint=new Uint8Array(n); st.size=new Float32Array(n); st.phase=new Float32Array(n); st.rate=new Float32Array(n); st.jit=new Float32Array(n); st.pres=new Float32Array(n); st.delay=new Float32Array(n);
+      let i=0; for(let c=0;c<cols;c++) for(let r2=0;r2<rows;r2++){ st.x[i]=ox+c*GAP; st.y[i]=oy+r2*GAP; st.tint[i]=Math.floor(Math.random()*COLORS.length); st.size[i]=PSZ*(0.25+Math.random()*0.75);
+        st.phase[i]=Math.random()*Math.PI*2; st.rate[i]=0.55+Math.random()*0.9; st.jit[i]=Math.random(); if(prev&&prev.length) st.pres[i]=prev[Math.min(i,prev.length-1)]; i++; }
+      sched(); };
+    const sched=()=>{ const cx=st.w/2, cy=st.h/2; let far=1; for(let i=0;i<st.n;i++) far=Math.max(far,Math.hypot(st.x[i]-cx,st.y[i]-cy)); st.far=far;
+      for(let i=0;i<st.n;i++){ const d=Math.hypot(st.x[i]-cx,st.y[i]-cy)/far; st.delay[i]=st.active? d*REVEAL*0.82+st.jit[i]*REVEAL*0.18 : (1-d)*REVEAL*0.45+st.jit[i]*REVEAL*0.1; } };
+    const step=(now)=>{ if(!cv.isConnected) return;
+      const dt=st.last? Math.min(0.05,(now-st.last)/1000) : 1/60; st.last=now; st.time+=dt; build();
+      const z=(this.combat&&this.combat.ruptures&&this.combat.ruptures[side])||null, on=!!(z&&Date.now()<z.end), n=on?(z.n||1):0;
+      if(on!==st.active){ st.active=on; st.changed=st.time; sched(); }
+      if(z && on && z.seq!==st.seq){ if(st.seq!=null) st.pulses.push({r:0,p:1}); st.seq=z.seq; }
+      const op=on? [0,0.05,0.1,0.2][Math.min(3,n)] : (st.op||0.05); if(on) st.op=op;   // 10-28 사용자: 스택 1/2/3 = 5/10/20%
+      { const hf=((this.combat&&this.combat.fxs)||[]).filter(f=>f.target===side&&(f.type==='hit'||f.type==='crit')).pop();   // 파열 중 피격 = 픽셀 번쩍(0.32초) + 물결
+        if(hf&&hf.seq!==st.hitSeq){ if(st.hitSeq!==undefined&&on){ st.hitAt=st.time; st.pulses.push({r:0,p:1}); } st.hitSeq=hf.seq; } }
+      const hk=st.hitAt!=null? Math.max(0,1-(st.time-st.hitAt)/0.32) : 0, hk2=hk*hk;
+      const spd=st.far/Math.max(0.35,REVEAL*0.9); st.pulses=st.pulses.filter(p=>{ p.r+=spd*dt; p.p=Math.max(0,1-p.r/(st.far+40)); return p.p>0; });
+      const {w,h,ratio}=st; ctx.setTransform(ratio,0,0,ratio,0,0); ctx.clearRect(0,0,w,h);
+      const el=st.time-st.changed, aS=dt/APPEAR, eS=dt/EXIT; let sum=0;
+      for(let i=0;i<st.n;i++){ const cur=st.pres[i], ready=el>=st.delay[i], tg=st.active?(ready?1:0):(ready?0:cur);
+        st.pres[i]= tg>cur? Math.min(1,cur+aS) : (tg<cur? Math.max(0,cur-eS) : cur); sum+=st.pres[i]; }
+      const avg=st.n? sum/st.n : 0;
+      if(avg>0.001){ const cx=w/2, cy=h/2, g=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(w,h)*0.85), s0=0.5*op*0.32*Math.min(1,avg*1.4)*(1+2.6*hk2), [r,gg,b]=GLOW;
+        g.addColorStop(0,'rgba('+r+','+gg+','+b+','+s0+')'); g.addColorStop(0.45,'rgba('+r+','+gg+','+b+','+(s0*0.35)+')'); g.addColorStop(1,'rgba('+r+','+gg+','+b+',0)'); ctx.fillStyle=g; ctx.fillRect(0,0,w,h); }
+      for(let c=0;c<COLORS.length;c++){ ctx.fillStyle=COLORS[c];
+        for(let i=0;i<st.n;i++){ if(st.tint[i]!==c) continue; const pr=st.pres[i]; if(pr<=0.002) continue;
+          let sz=st.size[i], al=0.5+pr*0.38; const wave=Math.sin(st.phase[i]+st.time*FREQ*st.rate[i]);
+          sz*=0.62+0.38*wave; al+=0.12*wave+(st.jit[i]>0.92?0.35*Math.max(0,wave):0);
+          sz*=easeOutBack(pr); const fl=(pr<1&&st.active)? Math.sin(pr*Math.PI) : 0; sz*=1+fl*0.9; al+=fl*0.6; sz*=1+0.9*hk2; al+=0.75*hk2;
+          for(const p of st.pulses){ const band=(Math.hypot(st.x[i]-w/2,st.y[i]-h/2)-p.r)/26, wv=Math.exp(-band*band)*p.p; sz*=1+wv*1.4; al=Math.min(1,al+wv*0.5); }
+          al=Math.min(1,al)*Math.min(1,op*(1+0.9*hk2)); if(al<=0.004||sz<=0.05) continue; ctx.globalAlpha=al; ctx.fillRect(st.x[i]-sz*0.5,st.y[i]-sz*0.5,sz,sz); } }
+      ctx.globalAlpha=1;
+      requestAnimationFrame(step); };   // 캔버스는 파열 중 + 0.48초만 붙어 있으므로 붙어 있는 동안 계속 돈다(끝나자마자 다시 걸려도 이어진다)
+    requestAnimationFrame(step);
+  }
+  // ===== 출혈 상처 (10-28 · B안 수정) — 출혈 스택 하나마다 카드 위에 랜덤으로 그어진 상처 하나(최대 3).
+  //   크기 랜덤(w.sc · 길이·벌어짐 비례 · 55% 작은 상처 0.42~0.82 / 45% 큰 상처 1.15~2.0 — 고르게 섞으면 다 비슷해 보여서 두 무리로 나눴다) · 살짝만 벌어진다(0.22초) · 안쪽은 붉게 빛나는 그라데이션(반짝임 없음) · 가장자리는 검붉은 살 · 둘레에 은은한 붉은 번짐.
+  //   틱(c.woundTick)마다 0.42초 동안 조금 더 벌어지고 번짐이 밝아진다 · 스택이 끝나기 0.35초 전부터 닫힌다.
+  mountWound(sv, w, side){
+    if(!sv || sv._wd) return; sv._wd=1;
+    const ns='http://www.w3.org/2000/svg', uid='wd'+w.id+side[0]+Math.random().toString(36).slice(2,6), L=w.len, cy=11, sx=8, ex=8+L, mx=(sx+ex)/2;
+    const mk=(t,at)=>{ const e=document.createElementNS(ns,t); for(const k in at) e.setAttribute(k,at[k]); return e; };
+    const df=mk('defs',{}), gr=mk('radialGradient',{id:uid+'g',cx:'50%',cy:'50%',r:'50%'});
+    [['0%','#FF7A5C'],['45%','#E0473F'],['100%','#5A0E0B']].forEach(([o,c])=>gr.appendChild(mk('stop',{offset:o,'stop-color':c})));
+    const fl=mk('filter',{id:uid+'b',x:'-30%',y:'-300%',width:'160%',height:'700%'}); fl.appendChild(mk('feGaussianBlur',{stdDeviation:'3'}));
+    df.appendChild(gr); df.appendChild(fl); sv.appendChild(df);
+    const halo=mk('path',{fill:'#E0473F',filter:'url(#'+uid+'b)'}), lip=mk('path',{fill:'#2a0807'}), core=mk('path',{fill:'url(#'+uid+'g)'});
+    sv.appendChild(halo); sv.appendChild(lip); sv.appendChild(core);
+    const slit=(o,pad)=>'M'+(sx-pad)+' '+cy+' Q'+mx+' '+(cy-o+w.bend).toFixed(2)+' '+(ex+pad)+' '+cy+' Q'+mx+' '+(cy+o+w.bend).toFixed(2)+' '+(sx-pad)+' '+cy+' Z';
+    const step=()=>{ if(!sv.isConnected) return; const now=Date.now(); if(now>w.exp+60) return;
+      const tk=((this.combat&&this.combat.woundTick)||{})[side]||0, dt=now-tk, pulse=(dt>=0&&dt<420)?Math.sin(Math.PI*dt/420):0;
+      const open=Math.min(1,(now-w.at)/220)*Math.max(0,Math.min(1,(w.exp-now)/350)), o=open*(2.2+1.3*pulse)*(w.sc||1);
+      halo.setAttribute('d',slit(o*1.6+1.2*open,0)); lip.setAttribute('d',slit(o+0.9*open,1.5)); core.setAttribute('d',slit(o,-2));
+      const a=Math.min(1,open*1.6); lip.style.opacity=a; core.style.opacity=a; halo.style.opacity=((0.35+0.35*pulse)*open).toFixed(3);
+      requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
+  // ===== 기절 궤도 별 (10-28 · A안) — 기절 중인 카드 머리(윗변 안쪽 가운데)를 기절 아이콘 별 3개가 기울어진 타원 궤도로 돈다.
+  //   1.1초에 한 바퀴 · 별 38px(아이콘 별 모양은 상자의 약 60%) · 노란 별 + 밝은 흰 외곽선만(뒤 패스 stroke 2.8 · 흰+먹색 → 먹색 → 흰 순으로 사용자 확정 10-28) · 궤도 66×17(흰 고리 · 앞 반원만 · 0.45) · 뒤쪽 별은 작고 흐리게(입체감) · 별도 제자리 회전 · 0.18초 퍼지며 등장 · 끝나기 0.25초 전부터 사라짐.
+  //   host = 카드 바깥 래퍼의 absolute 0×0 점. rAF는 end가 지나거나 DOM에서 빠지면 멈춘다.
+  mountStunOrbit(host, end){
+    if(!host || host._orb) return; host._orb=1;
+    const N=3, RX=66, RY=17, PER=1100, SZ=38, TILT=-8*Math.PI/180, t0=performance.now(), d0=Date.now(), ns='http://www.w3.org/2000/svg';
+    // 궤도 고리 — 별이 지나는 타원(기울기 = 별 궤도와 같은 전단 matrix) · 흰색 · 앞쪽 반원만 보이고 뒤쪽 반원은 세로 그라데이션으로 사라진다(사용자 10-28) · 뒤 별(z1)과 앞 별(z3) 사이(z2)
+    const rg=document.createElementNS(ns,'svg'); rg.setAttribute('width','1'); rg.setAttribute('height','1'); rg.style.cssText='position:absolute;left:0;top:0;overflow:visible;z-index:2;';
+    const el=document.createElementNS(ns,'ellipse'); el.setAttribute('cx','0'); el.setAttribute('cy','0'); el.setAttribute('fill','none'); const gid='stunRg'+Math.random().toString(36).slice(2,8), gr=document.createElementNS(ns,'linearGradient'); gr.setAttribute('id',gid); gr.setAttribute('gradientUnits','userSpaceOnUse'); gr.setAttribute('x1','0'); gr.setAttribute('x2','0');
+    [[0,0],[0.42,0],[0.72,0.75],[1,1]].forEach(([o,op])=>{ const st=document.createElementNS(ns,'stop'); st.setAttribute('offset',o); st.setAttribute('stop-color','#FFFFFF'); st.setAttribute('stop-opacity',op); gr.appendChild(st); });
+    const df=document.createElementNS(ns,'defs'); df.appendChild(gr); rg.appendChild(df);
+    el.setAttribute('stroke','url(#'+gid+')'); el.setAttribute('stroke-width','1.5'); el.setAttribute('transform','matrix(1,'+Math.sin(TILT).toFixed(4)+',0,1,0,0)'); rg.appendChild(el); host.appendChild(rg);
+    const stars=[]; for(let i=0;i<N;i++){ const sv=document.createElementNS(ns,'svg'); sv.setAttribute('viewBox','0 0 17 17'); sv.style.cssText='position:absolute;left:0;top:0;overflow:visible;';
+      const pk=document.createElementNS(ns,'path'); pk.setAttribute('d',STATUS_ICONS.stun.fill); pk.setAttribute('fill','#FFFFFF'); pk.setAttribute('stroke','#FFFFFF'); pk.setAttribute('stroke-width','2.8'); pk.setAttribute('stroke-linejoin','round'); sv.appendChild(pk);
+      const pa=document.createElementNS(ns,'path'); pa.setAttribute('d',STATUS_ICONS.stun.fill); pa.setAttribute('fill','#F2D27A'); sv.appendChild(pa); host.appendChild(sv); stars.push(sv); }
+    const step=(now)=>{ if(!host.isConnected || Date.now()>=end) return;
+      const fin=Math.min(1,(now-t0)/180), fout=Math.max(0,Math.min(1,(end-Date.now())/250)), a=fin*fout, pop=0.6+0.4*fin, base=(Date.now()-d0)/PER*Math.PI*2;
+      el.setAttribute('rx',(RX*pop).toFixed(1)); el.setAttribute('ry',(RY*pop).toFixed(1)); gr.setAttribute('y1',(-RY*pop).toFixed(1)); gr.setAttribute('y2',(RY*pop).toFixed(1)); rg.style.opacity=(a*0.45).toFixed(3);
+      stars.forEach((sv,i)=>{ const ang=base+i*Math.PI*2/N, x=Math.cos(ang)*RX*pop, y=Math.sin(ang)*RY*pop+x*Math.sin(TILT), dp=(Math.sin(ang)+1)/2, sz=SZ*(0.62+0.38*dp);
+        sv.setAttribute('width',sz); sv.setAttribute('height',sz);
+        sv.style.transform='translate('+(x-sz/2).toFixed(1)+'px,'+(y-sz/2).toFixed(1)+'px) rotate('+((now/1000)*360%360).toFixed(1)+'deg)';
+        sv.style.opacity=(a*(0.45+0.55*dp)).toFixed(3); sv.style.zIndex=dp>0.5?3:1; });
+      requestAnimationFrame(step); };
+    requestAnimationFrame(step);
   }
   // ===== 전기 테두리 (ElectricBorder 이식 · 2026-10-15) — 강화 결과 굴림 2초 동안 카드 테두리를 감싼다.
   //   React 컴포넌트를 raw WebGL2로 옮겼다(셰이더·경로 계산 원본 그대로 · 마우스 반응·펄스는 뺐다).
