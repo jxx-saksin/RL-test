@@ -47,8 +47,8 @@ export const DATA = {
       "sato_drop_boss_mult_max": 45,
       "sato_drop_boss_curve": 3,
       "pass_cap": 50,
-      "pass_auto_threshold": 10,
-      "pass_regen_minutes": 30,
+      "pass_auto_threshold": 5,
+      "pass_regen_minutes": 24,
       "pass_price_per": 500,
       "appraise_sato_per_proof": 100,
       "appraise_max_liquor": 3,
@@ -107,7 +107,13 @@ export const DATA = {
       "status_aff_machine_shock": 2,
       "status_aff_human_shock": 1,
       "status_aff_beast_shock": 0.5,
-      "status_aff_infected_shock": 1
+      "status_aff_infected_shock": 1,
+      "pass_bundle_size": 5,
+      "pass_bundle_daily_max": 3,
+      "pass_bundle_price_1": 3000,
+      "pass_bundle_price_2": 6000,
+      "pass_bundle_price_3": 12000,
+      "pass_bundle_cooldown_hours": 12
   },
   "primaryStats": [
     {"PrimaryStatID": "stat_str", "StatName_KR": "힘", "StatName_EN": "Strength", "Role_KR": "물리적 힘과 공격력 중심", "Role_EN": "Raw power and attack", "GrowthCondition": "공격이 적에게 명중(적중)한 횟수", "GrowthPointPerTrigger": 0.6, "Status": "Planning", "Notes": "1차 스탯", "LastUpdated": 46310},

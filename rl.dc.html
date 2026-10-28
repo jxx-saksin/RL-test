@@ -602,7 +602,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 122;
+const TITLE_VER = 123;
 const TITLE_DATE = '1028';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -858,8 +858,8 @@ class Component extends DCLogic {
   async componentDidMount(){
     document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
-      const eng = await import('./engine.js?v=val103');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val61');
+      const eng = await import('./engine.js?v=val104');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val62');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -10214,16 +10214,32 @@ void main(){
   passCap(){ return Math.max(1, this.eng.N(this.eng.DATA.config.pass_cap, 50)); }
   passThreshold(){ return Math.max(0, this.eng.N(this.eng.DATA.config.pass_auto_threshold, 10)); }
   passRegenMs(){ return Math.max(1, this.eng.N(this.eng.DATA.config.pass_regen_minutes, 10))*60000; }
-  // 회당 정액. 수량 할인 폐지(2026-08-17) — 구 pass_price_5/10/20은 Config에서 Deprecated.
-  passPricePer(){ return Math.max(0, this.eng.N(this.eng.DATA.config.pass_price_per, 500)); }
-  passPrice(qty){ return this.passPricePer()*Math.max(0,qty|0); }
+  // ★사토 구매 = 묶음(10-28 사용자 확정) — 패스 pass_bundle_size(5)개 1묶음 · 하루 pass_bundle_daily_max(3)번 · 살수록 비싸진다(pass_bundle_price_1/2/3).
+  //   하루 = 일일 퀘스트 리셋 시각까지(단 3번 다 사면 그때부터 12시간 · pass_bundle_cooldown_hours). 첫 구매 때 '다음 리셋 시각'(passBuyUntil)을 박아 두고 그 전까지만 횟수를 센다
+  //   (questPeriod는 그날 기준 인덱스라 날짜가 바뀌어도 같은 값이 나와 카운터 키로 못 쓴다). 횟수는 패스와 같은 별도 키(rl_pass_v1)에 산다.
+  passBundleSize(){ return Math.max(1, this.eng.N(this.eng.DATA.config.pass_bundle_size, 5)); }
+  passBundleMax(){ return Math.max(0, this.eng.N(this.eng.DATA.config.pass_bundle_daily_max, 3)); }
+  passBundlePrice(k){ return Math.max(0, this.eng.N(this.eng.DATA.config['pass_bundle_price_'+(k+1)], [3000,6000,12000][k]||12000)); }
+  passBoughtToday(){ const g=this.gs; return (g && g.passBuyUntil && Date.now()<g.passBuyUntil) ? Math.max(0,g.passBuyN|0) : 0; }
+  passBuyBundle(){
+    const g=this.gs, k=this.passBoughtToday(), n=this.passBundleSize(), cost=this.passBundlePrice(k), cap=this.passCap();
+    if(k>=this.passBundleMax()){ this.flash(this.en()?'No more bundles today':'오늘은 더 살 수 없습니다'); return false; }
+    if(g.pass+n>cap){ this.flash(this.en()?'Over the pass limit':'보유 한도를 넘습니다'); return false; }
+    if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return false; }
+    if(!(g.passBuyUntil && Date.now()<g.passBuyUntil)){ g.passBuyUntil=Date.now()+this.eng.questResetLeft(); g.passBuyN=0; }
+    g.sato-=cost; g.pass+=n; g.passBuyN=(g.passBuyN|0)+1;
+    // 다 사면 그 순간부터 pass_bundle_cooldown_hours(12) 뒤에 다시 열린다(10-28 사용자) — 덜 샀으면 일일 리셋에 초기화
+    if(g.passBuyN>=this.passBundleMax()) g.passBuyUntil=Date.now()+Math.max(0,this.eng.N(this.eng.DATA.config.pass_bundle_cooldown_hours,12))*3600000;
+    this.savePass(); this.saveGame(); this.forceUpdate();
+    return true;
+  }
   // 패스는 레이드과 무관한 프로토콜 지구 자산이라 런 세이브(rl_save_v1)와 **별도 키**에 즉시 저장한다.
   // 런 세이브는 레이드 중 잠기기 때문에(inSortie 가드), 거기 얹으면 레이드 직후 앱을 껐다 켰을 때 차감이 되돌아간다.
-  savePass(){ const g=this.gs; if(!g) return; try{ localStorage.setItem('rl_pass_v1', JSON.stringify({pass:g.pass, passAt:g.passAt})); }catch(_){ } }
+  savePass(){ const g=this.gs; if(!g) return; try{ localStorage.setItem('rl_pass_v1', JSON.stringify({pass:g.pass, passAt:g.passAt, buyN:g.passBuyN|0, buyUntil:g.passBuyUntil||0})); }catch(_){ } }
   readPass(){ try{ const s=localStorage.getItem('rl_pass_v1'); if(!s) return null; const o=JSON.parse(s); return (o && typeof o.pass==='number') ? o : null; }catch(_){ return null; } }
   // 별도 키가 있으면 그 값이 이긴다(세이브 초기화·처음부터 시작해도 패스는 유지 — 고정 자산).
   loadPass(){ const g=this.gs; const p=this.readPass();
-    if(p){ g.pass=Math.max(0,Math.min(this.passCap(),this.eng.N(p.pass,0))); g.passAt=this.eng.N(p.passAt,Date.now()); }
+    if(p){ g.pass=Math.max(0,Math.min(this.passCap(),this.eng.N(p.pass,0))); g.passAt=this.eng.N(p.passAt,Date.now()); g.passBuyN=this.eng.N(p.buyN,0); g.passBuyUntil=this.eng.N(p.buyUntil,0); }
     else { if(g.pass==null) g.pass=this.passThreshold(); if(!g.passAt) g.passAt=Date.now(); this.savePass(); } }
   // 실시간 경과분 정산. 보유가 threshold 이하일 때만 regen 간격마다 1회씩, threshold까지만 채운다.
   passTick(){
@@ -10236,13 +10252,6 @@ void main(){
     if(gained>0){ g.pass=Math.min(th, g.pass+gained); g.passAt = g.pass>=th ? now : g.passAt+gained*per; this.savePass(); }
   }
   passLeftMs(){ const g=this.gs; if(!g||g.pass>=this.passThreshold()) return 0; return Math.max(0, this.passRegenMs()-(Date.now()-(g.passAt||Date.now()))); }
-  passBuy(n){
-    const g=this.gs, cost=this.passPrice(n), cap=this.passCap();
-    if(g.pass+n>cap){ this.flash(this.en()?'Over the pass limit':'보유 한도를 넘습니다'); return false; }
-    if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return false; }
-    g.sato-=cost; g.pass+=n; this.savePass(); this.saveGame(); this.forceUpdate();
-    return true;
-  }
   // 레이드 시 1회 차감. TODO: 결제(태그) 연출을 만들면 그 트리거로 옮긴다.
   // savePass()는 레이드 중에도 쓰이므로 여기서 즉시 확정된다(재시작해도 되돌아가지 않음).
   usePass(){ this.passTick(); const g=this.gs; if(g.pass<=0) return false;
@@ -10254,7 +10263,7 @@ void main(){
     const g=this.gs, cap=this.passCap();
     return h('div',{style:{display:'flex',alignItems:'center',gap:6,flex:'0 0 auto'}},
       this.curPlate({code:'PASS',cc:'#C19E6F',cv:'#F0DDB8',val:g.pass,small:'/'+cap,add:true,state:g.pass<=0?'zero':g.pass>=cap?'full':null,
-        onClick:()=>{ this._passFrom=this.state.screen; this._passQty=1; this._passPhase='insert'; this.go('pass'); }}),
+        onClick:()=>{ this._passFrom=this.state.screen; this._passPhase='insert'; this.go('pass'); }}),
       this.curPlate({code:'SATO',cc:'#85B3C5',cv:'#CFE3EA',val:g.sato.toLocaleString()}));
   }
   // 깎인 판 하나 — 바깥 판(테두리색) + 1px 안쪽 판(바탕) 두 겹 위에 코드칸·값·(+)칸을 얹는다.
@@ -10367,9 +10376,6 @@ void main(){
   // ===== 프로토콜 패스 충전 화면 (screen-protocol-pass-{default,sato,max,done}.svg · 402x828) =====
   // 상단 = 카드 + 단말 고정 아트(연출 없음), 하단 = 시트. 태그 화면과 같은 402 스테이지 스케일.
   // 상태 4종은 하단 안내 박스 + LCD 밝기 + 충전 버튼 활성으로만 갈린다.
-  passQtyMax(){ return Math.max(1, this.passCap()-this.gs.pass); }
-  passQty(){ return Math.max(1, Math.min(this.passQtyMax(), this._passQty||1)); }
-  passSetQty(d){ this._passQty=Math.max(1, Math.min(this.passQtyMax(), this.passQty()+d)); this.forceUpdate(); }
   // LCD 우측 카운터·게이지는 충전 직후 한 칸씩 카운트업(1회는 즉시). _passShown이 null이면 실제 보유값.
   passCountUp(from,to){
     clearInterval(this._passUpT); this._passUpT=null;
@@ -10397,9 +10403,8 @@ void main(){
   }
   doPassBuy(){
     if(this._passPhase) return;                              // 카드를 읽기 전에는 충전 불가
-    const before=this.gs.pass, qty=this.passQty();
-    if(!this.passBuy(qty)) return;
-    this._passQty=1;
+    const before=this.gs.pass;
+    if(!this.passBuyBundle()) return;
     this.passCountUp(before, this.gs.pass);
     // 충전 중 0.5초만 버튼을 잠근다(연타 방지). 상시 비활성은 50/50일 때뿐.
     this._passBusy=true; clearTimeout(this._passBusyT);
@@ -10417,8 +10422,10 @@ void main(){
       if(this.state.screen!=='pass'){ clearInterval(this._passT); this._passT=null; return; }
       this.forceUpdate(); },1000);
     const shown = (this._passShown==null) ? g.pass : this._passShown;
-    const qty=this.passQty(), per=this.passPricePer(), cost=per*qty;
-    const full=g.pass>=cap, short=g.sato<cost, atMax=g.pass+qty>=cap;
+    const bn=this.passBundleSize(), bMax=this.passBundleMax(), bk=this.passBoughtToday(), soldOut=bk>=bMax;
+    const cost=soldOut?0:this.passBundlePrice(bk);
+    const full=g.pass>=cap, short=!soldOut&&g.sato<cost, atMax=g.pass+bn>cap;
+    const rst=(()=>{ const left=(g.passBuyUntil&&Date.now()<g.passBuyUntil)?g.passBuyUntil-Date.now():this.eng.questResetLeft(); const m=Math.ceil(left/60000); return Math.floor(m/60)+':'+String(m%60).padStart(2,'0'); })();
     const regen=g.pass<th;                                  // 자동 충전이 도는 구간에서만 LCD 좌측이 밝다
     const GRN='#30D322', DIM='#096E00', AM='#CCA26E';
     const mm=(ms)=>{ const s=Math.ceil(ms/1000); return [String(Math.floor(s/60)).padStart(2,'0'), String(s%60).padStart(2,'0')]; };
@@ -10426,18 +10433,13 @@ void main(){
     const lcdC=regen?GRN:DIM;
     // 안내 박스 — 충전 완료 > 사토 부족 > 상한 도달 > 기본 안내
     const note = (this._passDone||full) ? {t:(this.en()?'Charge complete.':'충전이 완료되었습니다.'), c:'#83B289'}
-               : short ? {t:(this.en()?'Not enough Sato.':'사토가 부족합니다.'), c:AM}
+               : soldOut ? {t:(this.en()?('All bundles bought · available again in '+rst):('모두 구매 · '+rst+' 뒤 다시 구매 가능')), c:AM}
                : atMax ? {t:(this.en()?('Charge limit '+cap):('최대 충전 제한 '+cap+'회')), c:AM}
+               : short ? {t:(this.en()?'Not enough Sato.':'사토가 부족합니다.'), c:AM}
                : {t:(this.en()? (th+' or fewer recharges every '+Math.round(this.passRegenMs()/60000)+'m')
                               : (th+'회 이하일 때 '+Math.round(this.passRegenMs()/60000)+'분 마다 자동 충전')), c:'#6B6B6B'};
-    const canBuy = !full && !this._passBusy;
-    // 스테퍼 — 치수·색은 상점 qstepper/fstepper 규격(30x30 · radius 4 · #4a4d53), 글리프만 svg 셰브론
-    const step=(dir,on)=>h('div',{key:'st'+dir, onClick:on?()=>this.passSetQty(dir):null,
-      style:{width:30,height:30,boxSizing:'border-box',border:'1px solid #4a4d53',borderRadius:4,
-        display:'flex',alignItems:'center',justifyContent:'center',opacity:on?1:.4,cursor:on?'pointer':'default'}},
-      h('svg',{width:12,height:12,viewBox:'0 0 12 12',fill:'none'},
-        h('path',{d:dir<0?'M3 4.6L6 7.6L9 4.6':'M3 7.4L6 4.4L9 7.4',
-          stroke:'#a9abaf',strokeWidth:1.3,strokeLinecap:'round',strokeLinejoin:'round'})));
+    const canBuy = !full && !soldOut && !atMax && !short && !this._passBusy;
+    const sat=(v)=>v.toLocaleString()+' '+this.t('currency_sato');
     const btn=(label,on,fn)=>h('button',{key:label,disabled:!on,onClick:on?fn:null,
       style:{flex:1,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:999,
         color:on?'#eaebee':'#4b4d52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:on?'pointer':'default'}}, label);
@@ -10478,20 +10480,23 @@ void main(){
         h('div',{key:'gauge',style:{marginBottom:16}},
           h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8}},
             h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#6f7276',letterSpacing:'.05em'}}, this.en()?'CHARGE':'충전'),
-            h('span',{style:{fontFamily:T.mono,fontSize:10,color:'#a9abaf',letterSpacing:'.05em'}}, String(shown).padStart(2,'0')+' / '+cap)),
-          h('div',{style:{height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden'}},
-            h('div',{style:{width:(cap>0?Math.max(0,Math.min(100,shown/cap*100)):0)+'%',height:'100%',background:'#a5acb2',transition:'width .09s linear'}}))),
-        // 지불 비용 + 충전 횟수 — frow 리듬(높이 36 · 상단 구분선)
+            // 살 수 있으면 '현재 + 묶음' 결과를 미리 보여 준다(10-28 사용자) — 숫자만 초록 · 게이지는 충전 바 색을 연하게(.35)
+            h('span',{style:{fontFamily:T.mono,fontSize:10,color:canBuy?GRN:'#a9abaf',letterSpacing:'.05em'}}, String(canBuy?Math.min(cap,shown+bn):shown).padStart(2,'0')+' / '+cap)),
+          h('div',{style:{position:'relative',height:6,background:'#2b2e32',borderRadius:1,overflow:'hidden'}},
+            canBuy? h('div',{key:'pv',style:{position:'absolute',top:0,bottom:0,left:(cap>0?Math.max(0,Math.min(100,shown/cap*100)):0)+'%',width:(cap>0?Math.max(0,Math.min(100,(Math.min(cap,shown+bn)-shown)/cap*100)):0)+'%',background:'#a5acb2',opacity:.35}}):null,
+            h('div',{style:{position:'relative',width:(cap>0?Math.max(0,Math.min(100,shown/cap*100)):0)+'%',height:'100%',background:'#a5acb2',transition:'width .09s linear'}}))),
+        // 사토 묶음 구매(10-28 · B안 확정) — 오늘의 묶음 3줄(가격 + SATO 칩 · 산 묶음 = 취소선 + SOLD OUT)
         h('div',{key:'rows',style:{marginBottom:16}},
-          // 보유 사토를 지불 비용 위에 — 얼마 남았는지 보고 충전 횟수를 정한다
-          this.frow(this.en()?'Owned':'보유 사토', g.sato.toLocaleString()+' '+this.t('currency_sato'), '#85b3c5', false),
-          this.frow(this.en()?'Cost':'지불 비용', cost.toLocaleString()+' '+this.t('currency_sato'), short?'#C4675D':'#85b3c5', true),
-          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:44,borderTop:'1px solid #36383c'}},
-            h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#a9abaf'}}, this.en()?'Amount':'충전횟수'),
-            h('div',{style:{display:'flex',alignItems:'center',gap:12}},
-              step(-1, qty>1),
-              h('span',{style:{fontFamily:T.mono,fontSize:13,color:'#eaebee',minWidth:45,textAlign:'center'}}, String(qty).padStart(2,'0')),
-              step(1, qty<this.passQtyMax())))),
+          this.frow(this.en()?'Owned':'보유 사토', sat(g.sato), '#85b3c5', false),
+          ...Array.from({length:bMax},(_,i)=>{ const done=i<bk, next=i===bk, col=done?'#4b4d52':(next?'#eaebee':'#6f7276');
+              // 칩(10-28 사용자): 살 수 있는 묶음 = SATO 칩(재화 칩의 사토 색) · 산 묶음 = 가격 취소선 + SOLD OUT 칩. 대기 줄은 칩째 흐리게.
+              const chip=done?['SOLD OUT','#2b2e32','#6f7276']:['SATO','#85B3C5','#0A0B0E'];
+              return h('div',{key:'tier'+i,style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:40,borderTop:'1px solid #36383C',padding:'0 6px',background:next?'#1d1f24':'transparent'}},
+                h('span',{style:{fontFamily:T.sans,fontSize:13,color:col}}, this.en()?('Pass ×'+bn):('패스 '+bn+'개')),
+                h('span',{style:{display:'flex',alignItems:'center',gap:8}},
+                  h('span',{style:{fontFamily:T.mono,fontSize:13,color:done?'#4b4d52':(next?(short?'#C4675D':'#85b3c5'):'#6f7276'),textDecoration:done?'line-through':'none'}}, this.passBundlePrice(i).toLocaleString()),
+                  h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'18px',height:18,letterSpacing:'.06em',padding:'0 7px',background:chip[1],color:chip[2],opacity:(done||next)?1:0.5,
+                    clipPath:'polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px)'}}, chip[0]))); })),
         // 안내 박스 — 수리 시트의 경고 박스와 동일
         h('div',{key:'note',style:{display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:'#1a1b21',
           borderRadius:16,padding:'10px 12px',marginBottom:16}},
@@ -10501,7 +10506,7 @@ void main(){
     const exit=this.en()?'Exit':'나가기';
     sheetKids.push(h('div',{key:'btns',style:{display:'flex',gap:8}},
       phase==='insert' ? btn(this.en()?'Insert':'삽입', true, ()=>this.passInsert())
-                       : btn(this.en()?'Charge':'충전', canBuy, ()=>this.doPassBuy()),
+                       : btn(this.en()?'Charge':'충전', canBuy, ()=>this.doPassBuy()),   // 문구는 늘 '충전'(10-28 사용자) — 사토 부족·오늘 완료·한도는 비활성 + 안내 박스로
       btn(exit, true, ()=>this.go(this._passFrom||'safehouse'))));
     return h('div',{style:{flex:1,position:'relative',overflow:'hidden',background:'#111315'}},
       // 402 기준 스테이지 — 카드(아래) + 단말(위) + LCD
