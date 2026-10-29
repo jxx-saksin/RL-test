@@ -142,6 +142,8 @@
   /* 퀘스트 대화 하단 — 기다리는 점(하나씩 천천히) */
   @keyframes rlTalkDot{0%,100%{opacity:.25}40%{opacity:1}70%{opacity:.25}}
   /* 무전기 점 — 하단 캐릭터 아이콘과 같은 박자(4~5번 깜빡 → 멈춤) */
+  /* 바인더 NEW 칩 — 무전기 점과 같은 박자(4~5번 반짝 → 멈춤) · 깎인 판이라 box-shadow 대신 drop-shadow */
+  @keyframes rlNewGlow{0%,8.33%,16.67%,25%,33.33%{filter:brightness(1.35) drop-shadow(0 0 5px rgba(193,158,111,.9))}4.17%,12.5%,20.83%,29.17%,37.5%,100%{filter:none}}
   @keyframes rlCommsDot{0%,8.33%,16.67%,25%,33.33%{opacity:1;box-shadow:0 0 6px 1px rgba(47,191,113,.9)}4.17%,12.5%,20.83%,29.17%,37.5%{opacity:.25;box-shadow:none}100%{opacity:1;box-shadow:none}}
   @keyframes rlCommsBlink{0%,8.33%,16.67%,25%,33.33%{color:#2FBF71;filter:drop-shadow(0 0 4px rgba(47,191,113,.85))}4.17%,12.5%,20.83%,29.17%,37.5%,100%{color:var(--nb);filter:none}}
   @keyframes rlBossTell{0%,100%{box-shadow:inset 0 0 30px 4px rgba(196,60,50,0)}50%{box-shadow:inset 0 0 34px 7px rgba(196,60,50,.16)}}
@@ -602,8 +604,8 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 123;
-const TITLE_DATE = '1028';
+const TITLE_VER = 124;
+const TITLE_DATE = '1029';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -686,6 +688,8 @@ const HIT_CS = 1.3, HIT_STOP_CRIT = 130, HIT_STOP_HEAVY = 45, HIT_STOP_KILL = 60
 const TUTO_ART_V = { 'wb_craft1-2':'?v=2', 'rs_rep1-2':'?v=2', 'loot_get1-3':'?v=2', 'loot_get1-4':'?v=2' };   // loot_get1-3/4 = 아래로 내려 잠금 그림(2026-10-16 · svg/guide-loot-move-3-1·4-1)
 
 const PATCH_NOTES = [
+  { ver:124, date:'29/Oct', lines:[
+    ['바인더 시스템 추가.','Specimen Binder system added.'] ] },
   { ver:121, date:'28/Oct', lines:[
     ['감전 상태이상 및 감전 무기 추가.','Shock status effect and shock weapons added.'] ] },
   { ver:118, date:'23/Oct', lines:[
@@ -858,8 +862,8 @@ class Component extends DCLogic {
   async componentDidMount(){
     document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
-      const eng = await import('./engine.js?v=val104');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val62');
+      const eng = await import('./engine.js?v=val111');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val63');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -1072,6 +1076,8 @@ class Component extends DCLogic {
     this.gs=gs; this.combat=null;
     this.loadPass();   // 패스는 별도 키가 정본(런 세이브 값보다 우선)
     eng.setUidCounter(o.uidCounter);
+    // 표본 바인더 — 옛 세이브엔 없다. 옛 해독으로 오른 스탯은 그대로 두고 바인더는 빈 채로 시작한다(사용자 10-29 · 전원 테스터)
+    if(!gs.binder||typeof gs.binder!=='object'||Array.isArray(gs.binder)) gs.binder={};
     const full=eng.playerProfile(gs,false);
     gs.maxHp=full.maxHp;
     gs.hp=(verChanged && prevMaxHp>0) ? Math.max(0,Math.min(full.maxHp,Math.round(full.maxHp*Math.max(0,Math.min(1,prevHp/prevMaxHp)))))
@@ -1456,7 +1462,7 @@ class Component extends DCLogic {
     }
     if(res.winner==='player'){
       const OBJ=!!(c.mProf&&c.mProf.passive);   // 오브제 — 퀘스트 소탕·연승·보스 확률·성장 제외 · 사토는 고정 범위(SatoMin~Max)
-      if(!OBJ){ this.qOnKill(c.mProf&&c.mProf.id); this.qOnWin(); }        // 퀘스트: 소탕 카운트 + 연전 연승 누적
+      if(!OBJ){ this.qOnKill(c.mProf&&c.mProf.id); this.qOnWin(); this.eng.binderKill(this.gs,c.mProf&&c.mProf.id); }        // 퀘스트: 소탕 카운트 + 연전 연승 누적 · 바인더 처치 기록
       if(OBJ) this.objOnBreak(c);   // 돌파 오브제(강화 철문 등) — 부수면 다음 조우 덱을 Object.OnBreak로 고정
       const loot = this.eng.rollLoot(c.mProf.id, c.zoneId);
       { const sr=this.storyRaidOn(); if(sr&&!sr.got){ if(sr.r.noloot) loot.length=0;   // 스토리 레이드 noloot — 아이템 드랍 없음(사토는 그대로)
@@ -2503,6 +2509,7 @@ class Component extends DCLogic {
     else if(s==='disk') body=this.diskListScreen();
     else if(s==='diskInsert') body=this.diskInsertScreen();
     else if(s==='decode') body=this.decodeScreen();
+    else if(s==='binder') body=this.binderScreen();
     else if(s==='craft') body=this.craftScreen();
     else if(s==='disa') body=this.disaScreen();
     else if(s==='rsrep') body=this.rsRepairScreen();
@@ -2514,7 +2521,7 @@ class Component extends DCLogic {
     else if(s==='returnheal') body=this.returnHeal();
     else if(s==='pass') body=this.passScreen();
     else if(s==='tap') body=this.tapScreen();
-    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap' && s!=='hideout' && s!=='hideFac' && s!=='disk' && s!=='diskInsert' && s!=='decode' && s!=='craft' && s!=='disa' && s!=='rsrep' && s!=='rsmod' && s!=='rsenh' && s!=='quest' && s!=='comms';
+    const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap' && s!=='hideout' && s!=='hideFac' && s!=='disk' && s!=='diskInsert' && s!=='decode' && s!=='binder' && s!=='craft' && s!=='disa' && s!=='rsrep' && s!=='rsmod' && s!=='rsenh' && s!=='quest' && s!=='comms';
     return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null, this.state.statPop?this.statPopSheet():null, this.state.tuto?this.tutoOverlay():null, this.state.wake?this.wakeOverlay():null, this.state.langPick?this.langPickOverlay():null, this.storyGuideOverlay(), this.radioOverlay(), this.diaryOverlay());
   }
 
@@ -3108,7 +3115,7 @@ class Component extends DCLogic {
   focusCard(i){ if(this.combat.flipped) return; if(i!==this.combat.cardFocus) this.sfxSwipe(); this.combat.cardFocus=i; this.forceUpdate(); }
   flipCenter(){ const c=this.combat; if(c.flipped) return; const card=c.cards[c.cardFocus]; if(!card) return;
     if(card.type==='user'){ c.pvp=card.bot; c.mProf=this.eng.coldProfile(card.bot); }
-    else { const m=this.eng.byId.monster[card.id]; if(!m) return; c.pvp=null; c.mProf=this.eng.monsterProfile(m); this.storyMeetEvent(card.id); }   // 조우 무전(MEET_AFTER) — 옛 pickCard에만 있어서 한 번도 안 불렸다(10-16)
+    else { const m=this.eng.byId.monster[card.id]; if(!m) return; c.pvp=null; c.mProf=this.eng.monsterProfile(m); this.storyMeetEvent(card.id); this.eng.binderMeet(this.gs,card.id); }   // 바인더 조우 = 카드를 뒤집은 순간(사용자 10-29 · 오브제 제외는 엔진이)   // 조우 무전(MEET_AFTER) — 옛 pickCard에만 있어서 한 번도 안 불렸다(10-16)
     c.picked=c.cardFocus; c.flipped=true; c.flipAnim=true; this.forceUpdate(); requestAnimationFrame(()=>this.encFlipFx(c)); }
   // ===== 조우 카드 뒤집기 연출(10-23 · 미리보기 9차 이식 · 로컬 확인용) — 주변 어두워짐 → 떠오름(등급 높을수록 오래 버팀·유니크↑ 텐션 떨림) → 뒤집힘(두께·면 그늘·빛 스침) → 바닥에 박힘(눌림·히트스톱·화면 흔들림) → 바닥 파동·고운 먼지
   //   등급 = 몬스터 Grade(common·rare·unique·special·boss) · PvP 상대 = unique · 오브제 = common. 카드 DOM은 명령형으로 움직이고 끝나면 vdom 정본값(rotateY(180deg))으로 되돌린다.
@@ -4466,14 +4473,15 @@ void main(){
     const mid=usb.MonsterID; const mon=mid?this.eng.byId.monster[mid]:null;
     const grade=String((mon&&mon.Grade)||'COMMON').toUpperCase();
     const artUrl=mid?('assets/art/monsters/'+mid+'.webp'):null;
-    const mins=this.eng.N(usb.UploadMinutes,1);
-    const grants=this.eng.usbGrants(usb);
+    // 표본 바인더(10-29) — EFFECT 대신 INSTALL 3행(한 행 = 1회차 · 효과마다 한 줄) · 끝난 회차는 흰색
+    const done=this.gs?this.binderInst(mid):0, nextN=done+1;
+    const mins=nextN<=3?this.eng.installMinutes(usb,nextN):0;
+    const ins=this.eng.usbInstalls(usb);
     const desc=this.eng.substUsbTokens(this.tx(usb,'Description')||usb.Description||'', usb)||'';
-    const rows=grants.length? grants.map(g=>[this.eng.statName(g.stat)||this.t('usb_permanent_growth'), '+'+g.v])
-                            : [[this.t('usb_permanent_growth'),'—']];
-    const cell=(k,v,i)=>h('div',{key:i,style:{borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'7px 0',justifyContent:'space-between',alignItems:'flex-start',boxSizing:'border-box'}},
-      h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:LO,whiteSpace:'nowrap'}}, k),
-      h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:HI,textAlign:'right',whiteSpace:'nowrap'}}, v));
+    const cell=(i)=>h('div',{key:i,style:{borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'7px 0',justifyContent:'space-between',alignItems:'center',gap:12,boxSizing:'border-box'}},
+      h('div',{style:{display:'flex',gap:3,flex:'0 0 auto'}}, ...Array.from({length:i+1},(_,j)=>h('div',{key:j,style:{width:10,height:11,borderRadius:2,background:i<done?HI:MUT}}))),   // 회차 표시 = 칸 i+1개
+      h('div',{style:{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:5}}, ...(ins[i]&&ins[i].length?ins[i]:[{stat:'-',v:0}]).map((g,j)=>
+        h('span',{key:j,style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:i<done?HI:LO,textAlign:'right',whiteSpace:'nowrap'}}, g.stat==='-'?'—':this.eng.fxLabel(g.stat,g.v)))));
     return h('div',{style:{position:'relative',width:342,height:fixed?this.lootCardH(inst):'100%',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
       h('div',{style:{position:'relative',height:246,alignSelf:'stretch',flexShrink:0,backgroundColor:ART,backgroundImage:artUrl?('url('+artUrl+')'):'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)',backgroundSize:'cover',backgroundPosition:'center',backgroundRepeat:'no-repeat'}},
         h('div',{style:{position:'absolute',left:0,top:166,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
@@ -4481,13 +4489,13 @@ void main(){
           h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',color:HI,whiteSpace:'nowrap'}}, grade)),
         h('div',{style:{position:'absolute',left:15,right:15,top:221,display:'flex',justifyContent:'space-between',alignItems:'center'}},
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:SUB}}, 'DATA'),
-          h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:SUB}}, 'UPLOAD · '+mins+' MIN'))),
+          h('span',{style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'100%',color:SUB}}, (nextN>3?'INSTALL · COMPLETE':'INSTALL · '+mins+' MIN')))),
       h('div',{style:{alignSelf:'stretch',flexGrow:1,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start',minHeight:0}},
         h('div',{style:{minHeight:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}},
           h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:HI}}, this.ttx(this.itemLabel(inst),18,20.4))),   // USB 데이터 카드 이름도 상세 카드와 같은 타이틀 폰트
         desc?h('div',{style:{alignSelf:'stretch',flexShrink:0,padding:'8px 0 2px',fontFamily:T.sans,fontSize:12.5,lineHeight:1.5,color:SUB}}, desc):null,
-        h('div',{style:{height:28,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'15px 0',display:'flex',alignItems:'flex-start'}}, h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:MUT}}, 'EFFECT')),
-        h('div',{style:{alignSelf:'stretch',flexShrink:0}}, ...rows.map((st,i)=>cell(st[0],st[1],i))),
+        h('div',{style:{height:28,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'15px 0',display:'flex',alignItems:'flex-start'}}, h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:MUT}}, 'INSTALL '+done+'/3')),
+        h('div',{style:{alignSelf:'stretch',flexShrink:0}}, ...[0,1,2].map(i=>cell(i))),
         h('div',{style:{flexGrow:1,minHeight:12}})),
       // 카드 전역 글리치 텍스트 레이어 (최상단·screen) — 아트+본문 전체에 뿌림
       h('canvas',{ref:el=>this.mountGlitch(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',mixBlendMode:'screen',opacity:0.15,pointerEvents:'none',zIndex:5}}),
@@ -7645,7 +7653,8 @@ void main(){
                                        // 분해는 대상이 없어도 잠그지 않는다 — 들어가서 '없다'를 보여주는 쪽이 맞다.
                                        {k:'disassemble',label:this.t('hide_disassemble'),locked:!can('disassemble')}); }
     if(facId==='terminal'){ list.push({k:'disk',label:this.t('hide_disk_install'),locked:!can('disk')},
-                                      {k:'decode',label:this.t('hide_data_decode'),locked:!can('decode')}); }
+                                      {k:'decode',label:this.t('hide_data_decode'),locked:!can('decode')},
+                                      {k:'binder',label:this.t('hide_specimen_binder'),locked:!can('decode')}); }   // 표본 바인더 = 데이터 인스톨 아래 · 같은 해금(사용자 10-29)
     // 업그레이드 — 다음 레벨 행이 없으면 잠금(데이터가 곧 게이트). 진행 중이면 남은 시간을 초록으로.
     if(shut) list.push({k:'restore',label:this.t('hide_restore')});
     else list.push({ k:'upgrade', locked:!up && !upg, running:!!upg,
@@ -7672,7 +7681,8 @@ void main(){
             h('span',{key:'l'}, it.label),
             // 칩은 absolute — 라벨의 가운데 정렬을 밀지 않는다.
             st? h('span',{key:'chip',style:{position:'absolute',right:16,top:'50%',transform:'translateY(-50%)',display:'flex'}},
-                 this.readyChip(this.t(st==='done'?'hide_chip_done':'hide_chip_run'), st==='done'?'#7CA5BB':'#83B289')) : null); })));
+                 this.readyChip(this.t(st==='done'?'hide_chip_done':'hide_chip_run'), st==='done'?'#7CA5BB':'#83B289')) : null,
+            (it.k==='binder'&&!it.locked&&this.binderAnyNew())? h('span',{key:'nw',style:{position:'absolute',right:16,top:'50%',transform:'translateY(-50%)',display:'flex'}}, this.qTag('new')) : null); })));   // 표본 바인더 = 새로 처치한 몬스터가 있으면 [신규](사용자 10-29)
   }
   // 시설 화면 헤더 = shopHeader와 같되 통화 칩만 아지트용으로 바꾼다.
   shopHeaderChips(title,onBack){
@@ -8328,7 +8338,7 @@ void main(){
   // ===== 성공 폭발 — Prismatic Burst (사용자 제공 React 컴포넌트 → raw WebGL2 이식 · 2026-10-23) =====
   //   버스트 셰이더 원본(rotate3d · 마우스·블룸 패스 뺌 — 기본값 glow 0이라 원본도 블룸을 안 탄다). 합성 패스 대신 셰이더 끝에서 바로 알파 출력(밝기=알파).
   //   해상도 = 화면 × dpr × 0.6(원본 quality high 0.7 근사 · 브라우저가 늘린다). canvas._burst() = 인트로(퍼지는 앞머리)+클릭 펄스+킥.
-  mountBurst(canvas, o){
+  mountEnBurst(canvas, o){
     if(!canvas || canvas._pb) return; canvas._pb=true;
     let gl; try{ gl=canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:true,antialias:false,depth:false,stencil:false}); }catch(_){}
     if(!gl){ canvas._pb=false; return; }
@@ -8427,7 +8437,7 @@ void main(){
   // ===== 강화 충전 배경 — Light Tunnel (사용자 제공 React 컴포넌트 → raw WebGL2 이식 · 2026-10-23) =====
   //   셰이더 원본 그대로(라이트 모드 분기·마우스 조향 뺌). 매 프레임 o.params()로 속도·밝기·밀도·색·불투명도를 받는다 — 충전 게이지에 묶인다.
   //   canvas._surge() = 클릭 서지(빛 고리가 터널을 타고 퍼짐) · ★DOM에서 빠지면 컨텍스트 회수.
-  mountTunnel(canvas, o){
+  mountEnTunnel(canvas, o){
     if(!canvas || canvas._lt) return; canvas._lt=true;
     let gl; try{ gl=canvas.getContext('webgl2',{alpha:true,premultipliedAlpha:true,antialias:false,depth:false,stencil:false}); }catch(_){}
     if(!gl){ canvas._lt=false; return; }
@@ -8670,9 +8680,9 @@ void main(){
       : slot(OUT(this.en()?'Details':'자세히',null,true));
     return h('div',{style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.86)',zIndex:34,display:'flex',flexDirection:'column',animation:'rlFade .18s'}},
       h('canvas',{key:'gf',ref:el=>{ if(el){ el._color=(now)=>this.enhFibersColor(now); this.mountFibers(el); } },style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:0}}),   // 배경 전체 = Ghost Fibers
-      h('canvas',{key:'lt','data-entunnel':1,ref:el=>{ if(el){ this.mountTunnel(el,{params:()=>this.enTunnelParams()}); if(el._ltIdle&&this.enTunnelParams().on&&el._ltWake) el._ltWake(); } },style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:0}}),   // B안 충전 배경 = Light Tunnel(충전 중만 · 게이지에 묶임)
+      h('canvas',{key:'lt','data-entunnel':1,ref:el=>{ if(el){ this.mountEnTunnel(el,{params:()=>this.enTunnelParams()}); if(el._ltIdle&&this.enTunnelParams().on&&el._ltWake) el._ltWake(); } },style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:0}}),   // B안 충전 배경 = Light Tunnel(충전 중만 · 게이지에 묶임)
       h('div',{key:'envig','data-envig':1,style:{position:'absolute',inset:0,zIndex:1,opacity:0,pointerEvents:'none',background:'radial-gradient(ellipse 70% 58% at 50% 44%,rgba(0,0,0,0) 30%,rgba(0,0,0,.72) 62%,rgba(0,0,0,.97) 100%)'}}),   // B안 충전 비네트(도전 단계↑ = 짙게)
-      h('canvas',{key:'enburst','data-enburst':1,ref:el=>{ if(el){ this.mountBurst(el,{params:()=>this.enBurstParams()}); if(el._pbIdle&&this._enBurstAt&&el._pbWake) el._pbWake(); } },style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:2,pointerEvents:'none'}}),   // B안 성공 폭발(Prismatic Burst)
+      h('canvas',{key:'enburst','data-enburst':1,ref:el=>{ if(el){ this.mountEnBurst(el,{params:()=>this.enBurstParams()}); if(el._pbIdle&&this._enBurstAt&&el._pbWake) el._pbWake(); } },style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:2,pointerEvents:'none'}}),   // B안 성공 폭발(Prismatic Burst)
       h('canvas',{key:'enrays','data-enrays':1,ref:el=>{ if(el){ this.mountRays(el,{params:()=>this.enRaysParams()}); if(el._lrIdle&&this._enRaysAt&&el._lrWake) el._lrWake(); } },style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:2,pointerEvents:'none'}}),   // B안 하락 잔광(Light Rays)
       h('canvas',{key:'enfloor','data-enfloor':1,style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:2,pointerEvents:'none'}}),   // B안 바닥 효과(빛·파동·먼지·금)
       h('div',{key:'fxbody',style:{position:'relative',zIndex:3,flex:1,minHeight:0,display:'flex',flexDirection:'column'}}, stage, bottom),
@@ -8951,13 +8961,13 @@ void main(){
   }
   craftMats(bp){ return this.eng.craftInputs(bp).map(m=>({ id:m.id, label:this.eng.anyName(m.id), have:this.ownedQty(m.id), need:m.qty, ok:this.ownedQty(m.id)>=m.qty })); }
   // 아지트 목록 행(89px · 분류 칩 줄 + 이름 + 설명) — 제작·분해·디스크·해독 4곳 공용. dim=true면 흐리게(.45), 지정 안 하면 opacity를 건드리지 않는다.
-  hideRow({key,guide,onClick,dim,head,headStyle,name,desc}){
+  hideRow({key,guide,onClick,dim,head,headStyle,name,nameCol,desc}){
     const props={key,onClick,style:{flexShrink:0,height:89,boxSizing:'border-box',padding:'10px 16px 0',cursor:onClick?'pointer':'default',
       ...(dim!=null?{opacity:dim?.45:1}:{}),borderBottom:'1px solid '+T.line}};
     if(guide) props['data-guide']=guide;
     return h('div',props,
       h('div',{style:{height:20,display:'flex',alignItems:'center',...(headStyle||{})}}, ...head),
-      h('div',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',fontWeight:500,color:T.hi,marginTop:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, name),
+      h('div',{style:{fontFamily:T.sans,fontSize:14,lineHeight:'20px',fontWeight:500,color:nameCol||T.hi,marginTop:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, name),
       h('div',{style:{fontFamily:T.sans,fontSize:12,color:T.lo,marginTop:7,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, desc));
   }
   craftRow(bp,slot){
@@ -9616,9 +9626,11 @@ void main(){
   dataOwned(){ return [...this.gs.bag, ...this.gs.vault].filter(i=>!!(this.eng.byId.usb&&this.eng.byId.usb[i.id])); }
   startDecode(slot,inst){
     const row=this.eng.byId.usb[inst.id]; if(!row) return;
-    const total=Math.max(1,this.eng.N(row.UploadMinutes,1))*60000;
+    const n=this.eng.binderNext(this.gs,row.MonsterID,this.installPending(row.MonsterID,slot));
+    if(n>3){ this.flash(this.t('usb_install_max')); return; }   // 몬스터당 3회 — 진행 중인 칸까지 센다
+    const total=Math.max(1,this.eng.installMinutes(row,n))*60000;   // 회차별 시간(Config binder_install_*) · 옛 UploadMinutes는 안 쓴다
     const arr=this.decodeJobs().slice(); while(arr.length<3) arr.push(null);
-    arr[slot]={ id:inst.id, uid:inst.uid, endAt:Date.now()+total, total };
+    arr[slot]={ id:inst.id, uid:inst.uid, endAt:Date.now()+total, total, n };
     this.gs.hideout.decode=arr;
     this.consumeInst(inst.uid);   // 매체는 해독 시작과 함께 소모된다
     this.setState({dataSel:null}); this.saveGame(); this.forceUpdate();
@@ -9626,14 +9638,14 @@ void main(){
   claimDecode(slot){
     const j=this.decodeJobs()[slot]; if(!j) return;
     if(Date.now() < this.eng.N(j.endAt,0)) return;
-    const row=this.eng.byId.usb[j.id];
-    // Grants는 1~3개다 — 전부 적용한다(2026-09-06 구조 변경).
-    // 적용된 것만 골라 토스트로 알린다: "힘 +1" / "힘 +1, 민첩 +1"
-    const applied=(this.eng.usbGrants(row)||[]).map(g=>({g, r:this.eng.applyUsbGrant(this.gs,g.stat,g.v)})).filter(x=>x.r);
-    const res=applied.map(x=>x.r);
-    const gainTxt=applied.map(x=>this.eng.statName(x.g.stat)+' +'+x.g.v).join(', ');
+    const row=this.eng.byId.usb[j.id]||{};
+    // 표본 바인더(10-29) — 성장 레벨에 굳히지 않고 인스톨 횟수만 올린다. 효과는 playerProfile이 시트(Install1~3)에서 매번 다시 더한다.
+    // 회차(n)가 없는 옛 작업은 '지금 횟수 + 1'로 본다 · 3회 상한
+    const rec=this.eng.binderRec(this.gs,row.MonsterID), before=Math.min(3,this.eng.N(rec.i,0));
+    const n=Math.min(3,Math.max(before+1,this.eng.N(j.n,before+1)));
+    rec.m=1; rec.k=Math.max(this.eng.N(rec.k,0),1); rec.i=Math.max(before,n);
+    const gainTxt=rec.i>before ? (this.eng.usbInstalls(row)[n-1]||[]).map(g=>this.eng.fxLabel(g.stat,g.v)).join(', ') : '';
     const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp);
-    this.gs.usbLog=(this.gs.usbLog||[]).concat(res.map(r=>({usbId:j.id,...r})));
     const arr=this.decodeJobs().slice(); arr[slot]=null; this.gs.hideout.decode=arr;
     this.saveGame(); this.forceUpdate();
     if(gainTxt) this.flash(gainTxt);
@@ -9654,10 +9666,19 @@ void main(){
           (left!=null&&left>0)? h('span',{style:{fontFamily:T.mono,fontSize:11,color:'#83B289',whiteSpace:'nowrap'}}, this.hhmmss(left).replace(/^00:/,'')) : null)}));
   }
   decodeTabs(){ return this.slotTabs(3, this.decodeSlots(), this.eng.N(this.state.decodeSlot,0), (i)=>this.setState({decodeSlot:i,dataSel:null}), (i)=>{ const j=this.decodeJob(i); return (j&&!j.done)?j.left:null; }); }
+  // ===== 표본 바인더 · 데이터 인스톨(10-29) — 몬스터당 3회 · 회차 = 인스톨 횟수 + 진행 중인 같은 몬스터 작업 수 + 1 =====
+  binderInst(mid){ const r=this.gs.binder&&this.gs.binder[mid]; return Math.min(3,this.eng.N(r&&r.i,0)); }
+  installPending(mid,skipSlot){ return this.decodeJobs().filter((j,i)=>j&&j.id&&i!==skipSlot&&(this.eng.byId.usb[j.id]||{}).MonsterID===mid).length; }
+  installNext(row){ return this.eng.binderNext(this.gs,row.MonsterID,this.installPending(row.MonsterID)); }
+  // 인스톨 칸 3개(카드 모양) — 한 칸 = 1회 · 흰 = 끝남
+  instPips(n,w,hh){ return h('div',{style:{display:'flex',gap:3,flex:'0 0 auto'}}, ...[0,1,2].map(i=>h('div',{key:i,style:{width:w||9,height:hh||10,borderRadius:2,background:i<n?'#EAEBEE':'#4B4D52'}}))); }
+  doneTag(){ const c='#85B3C5'; return plate({key:'done',bd:'color-mix(in srgb,'+c+' 70%,transparent)',bg:'#16171b',fg:c,pad:'0 6px'}, this.t('usb_install_done')); }   // 완성 = 아지트 완료 파랑
   dataRow(inst){
-    const row=this.eng.byId.usb[inst.id]||{};
-    return this.hideRow({key:inst.uid, onClick:()=>this.setState({dataSel:inst.uid}),
-      head:[this.catChip('usb_data_chip', false)], name:this.eng.tr(row,'Name'), desc:this.eng.substUsbTokens(this.tx(row,'Description'),row)});
+    const row=this.eng.byId.usb[inst.id]||{}, n=this.binderInst(row.MonsterID), done=n>=3;
+    // 3회 끝난 데이터 = 이름만 흐리게 · 누를 수 없음(판매는 상점에서) — 사용자 10-29
+    return this.hideRow({key:inst.uid, onClick:done?null:()=>this.setState({dataSel:inst.uid}), headStyle:{justifyContent:'space-between'},
+      head:[h('div',{key:'l',style:{display:'flex',gap:4,alignItems:'center'}}, this.catChip('usb_data_chip', false), done?this.doneTag():null), h('div',{key:'p'}, this.instPips(n))],
+      name:this.eng.tr(row,'Name'), nameCol:done?'#4B4D52':null, desc:this.eng.substUsbTokens(this.tx(row,'Description'),row)});
   }
   decodeScreen(){
     this.hideTick();
@@ -9689,7 +9710,8 @@ void main(){
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px'}},
         h('div',{onClick:e=>e.stopPropagation(),style:{maxHeight:'100%',overflowY:'auto'}}, this.tiltCard(this.lootCardBig({...inst,qty:1},'fit'),inst,true))),
       h('div',{onClick:e=>e.stopPropagation(),style:{...ST.botRow}},
-        h('button',{onClick:()=>this.startDecode(slot,inst),style:{...ST.btn}}, this.t('usb_decode_do')),
+        (()=>{ const row=this.eng.byId.usb[inst.id]||{}, can=this.eng.binderNext(this.gs,row.MonsterID,this.installPending(row.MonsterID,slot))<=3;   // 다른 칸에서 같은 몬스터가 돌고 있으면 회차가 밀린다
+          return h('button',{disabled:!can,onClick:can?()=>this.startDecode(slot,inst):null,style:{...ST.btn,...(can?{}:{color:'#4B4D52',cursor:'default'})}}, this.t('usb_decode_do')); })(),
         h('button',{onClick:close,style:{...ST.btn}}, this.t('hide_disk_close'))));
   }
   decodeJobSheet(job){
@@ -9698,7 +9720,9 @@ void main(){
     const done=job.done;
     const note=(txt,col)=>h('div',{style:{height:40,marginTop:22,borderRadius:16,background:'#1A1B21',display:'flex',alignItems:'center',justifyContent:'center',gap:8.5}},
       this.icAlert('hex',17,col), h('span',{style:{fontFamily:T.sans,fontSize:12,color:col}}, txt));
-    const grants=this.eng.usbGrants(row);
+    // 이번 회차 효과만(표본 바인더 10-29) — 회차 없는 옛 작업 = 지금 횟수 + 1
+    const jn=Math.min(3,this.eng.N(job.n,this.binderInst(row.MonsterID)+1));
+    const grants=(this.eng.usbInstalls(row)[jn-1]||[]).map(g=>{ const s=this.eng.fxLabel(g.stat,g.v), k=s.lastIndexOf(' '); return {name:s.slice(0,k), val:s.slice(k+1)}; });
     return h('div',{style:{position:'relative',zIndex:6,margin:'auto 16px 24px',padding:'24px 17px 25px',boxSizing:'border-box',
       border:'1px solid '+LN,borderRadius:24,background:'#18191D'}},
       h('div',{style:{height:13,display:'flex',alignItems:'center',fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:MUT}}, 'DATA'),
@@ -9710,15 +9734,176 @@ void main(){
       // 완료 화면만 효과를 펼친다 — 진행 중엔 결과를 미리 보여주지 않는다(목업 -done).
       done? h('div',{style:{marginTop:16}}, ...grants.map((g,i)=>
         h('div',{key:'g'+i,style:{height:36,display:'flex',alignItems:'center',justifyContent:'space-between',borderTop:i?('1px solid '+LN):'none'}},
-          h('span',{style:{fontFamily:T.sans,fontSize:13,color:MID}}, this.eng.statName(g.stat)),
-          h('span',{style:{fontFamily:T.mono,fontSize:13,color:'#83B289'}}, '+'+g.v)))) : null,
+          h('span',{style:{fontFamily:T.sans,fontSize:13,color:MID}}, g.name),
+          h('span',{style:{fontFamily:T.mono,fontSize:13,color:'#83B289'}}, g.val)))) : null,
       note(done?this.t('usb_decode_complete'):this.t('usb_decode_running'), done?'#83B289':LO),
       h('div',{style:{display:'flex',gap:8,marginTop:16}},
         ...(done? [h('button',{key:'ok',onClick:()=>this.claimDecode(job.i),style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:HI,fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.en()?'OK':'확인')]
           : [h('button',{key:'d',disabled:true,style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:MUT,fontFamily:T.sans,fontSize:12}}, this.t('usb_decode_do')),
              h('button',{key:'c',onClick:()=>this.openHideFac('terminal'),style:{flex:1,height:48,borderRadius:24,border:'none',background:'#212227',color:HI,fontFamily:T.sans,fontSize:12,cursor:'pointer'}}, this.t('hide_disk_close'))])));
   }
-  hideAction(facId,k){ if(k==='upgrade'||k==='restore') this.openUpg(facId); else if(k==='repair') this.setState({screen:'rsrep',repairSel:null,repairMode:'hideout'}); else if(k==='module') this.setState({screen:'rsmod',mdSel:null,mdSheet:null,mdModule:null,mdSlot:0,mdIdx:0}); else if(k==='enhance') this.setState({screen:'rsenh',enSel:null,enSheet:null,enRes:null}); else if(k==='craft') this.setState({screen:'craft',craftSlot:this.craftFreeSlot(),craftSel:null,craftConfirm:false,craftRev:null,craftFlip:false}); else if(k==='disassemble') this.setState({screen:'disa',disaSel:null,disaConfirm:false,disaRev:false,disaOpen:[],disaFocus:0}); else if(k==='disk') this.openDiskList(); else if(k==='decode') this.setState({screen:'decode',decodeSlot:0,dataSel:null}); else this.flash('TBD: '+facId+' / '+k);
+  // ===== 표본 바인더 화면(10-29 · 확장_v3 · 목업 _preview/binder-mock.js 이식) =====
+  // 단말기 메뉴 → 도시 카드 줄 + 존 탭 + 원통 캐러셀 + 정보 줄 + [상세정보]. 상세 = 아트 전체 → 스크롤하면 글 판이 아트를 절반쯤 덮는다.
+  // 카드 4단계: 미조우 = 뒷면 · 조우만 = 흑백 · 처치 = 등급 테두리·이펙트·상세(STAT·INSTALL ??) · 인스톨 1+ = 전부 공개.
+  binderSt(mid){ const r=this.gs.binder&&this.gs.binder[mid]; if(!r) return 0; const i=this.eng.N(r.i,0); return i>0?2+Math.min(3,i):(this.eng.N(r.k,0)>0?2:(r.m?1:0)); }
+  binderNew(mid){ const r=this.gs.binder&&this.gs.binder[mid]; return !!(r&&r.n); }   // 첫 처치 후 아직 상세를 안 본 몬스터
+  binderAnyNew(ids){ const B=this.gs.binder||{}; return (ids||Object.keys(B)).some(id=>B[id]&&B[id].n); }
+  // NEW 칩 = 등급 칩과 같은 깎인 판·튀어나옴(rlLvlPop) + 반짝임(rlNewGlow · 무전기 점과 같은 박자) · 색 = 퀘스트 [신규]
+  binderNewTag(key){ const c='#C19E6F';
+    return h('div',{key:'nw'+key,style:{flex:'0 0 auto',display:'inline-flex',lineHeight:0,animation:'rlNewGlow 2.4s ease-in-out infinite'}},   // 래퍼는 inline-flex — block이면 줄 상자(24px)가 생겨 등급 칩보다 2px 내려간다
+      h('div',{style:{position:'relative',isolation:'isolate',boxSizing:'border-box',background:c,clipPath:'polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)',display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'5px 9px',animation:'rlLvlPop .5s cubic-bezier(.2,.8,.2,1)'}},
+        h('span',{style:{position:'absolute',inset:1,zIndex:-1,background:'rgba(10,11,14,0.85)',clipPath:'polygon(4.5px 0,100% 0,100% calc(100% - 4.5px),calc(100% - 4.5px) 100%,0 100%,0 4.5px)'}}),
+        h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',marginRight:'-1.33px',color:c,whiteSpace:'nowrap'}}, 'NEW'))); }
+  binderNo(mid){ const u=this.eng.usbOfMonster(mid); if(u&&this.eng.N(u.BinderNo,0)>0) return this.eng.N(u.BinderNo,0);   // 시트에 BinderNo 열이 생기면 그 값이 정본
+    const i=(this.eng.DATA.usb||[]).indexOf(u); return i>=0?i+1:0; }   // 없으면 USB 탭 행 순서
+  binderNoTxt(mid){ const n=this.binderNo(mid); return n?'No.'+String(n).padStart(3,'0'):'No.---'; }
+  binderMons(zid){ const o=[]; (this.eng.DATA.spawnTable||[]).forEach(r=>{ const id=r.MonsterID; if(r.ZoneID===zid&&this.eng.byId.monster[id]&&!/^object_/.test(id)&&!o.includes(id)) o.push(id); }); return o; }
+  // 첫 진입 = 카이토 무전 한 번(NpcDialogue facility/binder_first · 사용자 10-29). 대사 행이 아직 없으면(시트 반영 전) 표시만 남기지 않고 다음에 다시 본다
+  openBinder(){ this.setState({screen:'binder',binderOpen:null});
+    if(!this.gs.binderIntro&&this.facRows('binder','first').length){ this.gs.binderIntro=1; this.saveGame(); this.facRadio('binder','first'); } }
+  // 카드 상세와 같은 등급 칩(깎인 판 · rlLvlPop)
+  binderGradeChip(gk,key){ const gcol=GRADECOL[gk]||GRADECOL.common;
+    return h('div',{key:'gc'+key,style:{position:'relative',isolation:'isolate',boxSizing:'border-box',background:gk==='common'?'rgba(222,222,222,0.3)':gcol,clipPath:'polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px)',display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'5px 9px',flex:'0 0 auto',animation:gk!=='common'?'rlLvlPop .5s cubic-bezier(.2,.8,.2,1)':'none'}},
+      h('span',{style:{position:'absolute',inset:1,zIndex:-1,background:'rgba(10,11,14,0.85)',clipPath:'polygon(4.5px 0,100% 0,100% calc(100% - 4.5px),calc(100% - 4.5px) 100%,0 100%,0 4.5px)'}}),
+      h('span',{style:{fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'1.33px',marginRight:'-1.33px',color:gcol,whiteSpace:'nowrap'}}, gk.toUpperCase())); }
+  // 아트 층 — ★스페셜 버스트(lighten)는 아트와 한 층 + isolation:isolate. 3D 카드 면에 바로 두면 바탕을 못 찾아 아트를 검게 덮는다
+  binderArt(mid,gk,key,gray){ return h('div',{key:key+'art',style:{position:'absolute',inset:0,isolation:'isolate'}},
+      h('img',{src:'assets/art/monsters/'+mid+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:MONSTER_ART_POS[mid]||'50% 50%',filter:gray?'grayscale(1) brightness(.7)':'none'}}),
+      (!gray&&gk==='special')? h('canvas',{key:key+'bu',ref:el=>this.mountBurst(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:2,pointerEvents:'none',mixBlendMode:'lighten'}}):null); }
+  // 카드 상세와 같은 등급 이펙트(비네트·테두리 플래시·보스 금빛+터널·유니크 광선)
+  binderFx(gk,key){ if(gk==='common'||gk==='object') return []; const gcol=GRADECOL[gk], boss=gk==='boss', VIGA={rare:0.16,unique:0.3,special:0.3};
+    const rgba=(hex,a)=>{const v=parseInt(String(hex).replace('#',''),16);return 'rgba('+((v>>16)&255)+','+((v>>8)&255)+','+(v&255)+','+a+')';};
+    return [ boss? h('canvas',{key:key+'tun',ref:el=>this.mountTunnel(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:5,pointerEvents:'none',mixBlendMode:'screen'}}):null,
+      gk==='unique'? h('canvas',{key:key+'bm',ref:el=>this.mountBeams(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:5,pointerEvents:'none',mixBlendMode:'screen'}}):null,
+      !boss? h('div',{key:key+'vg',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:6,borderRadius:8,boxShadow:'inset 0 0 30px 7px '+rgba(gcol,VIGA[gk]||0.16),animation:'rlVigIn .7s ease-out forwards'}}):null,
+      h('div',{key:key+'eg',style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:7,borderRadius:8,boxShadow:boss?undefined:('inset 0 0 0 1px '+gcol+', 0 0 13px -2px '+gcol),animation:boss?'rlGoldShimmer 2.2s ease-in-out infinite':'rlEdgeFlash .9s ease-out forwards'}}) ]; }
+  binderGk(mid){ return String((this.eng.byId.monster[mid]||{}).Grade||'Common').trim().toLowerCase(); }
+  // 원통 캐러셀 — 회전은 다시 그리지 않고 직접 스타일만 바꾼다(존이 바뀌면 key로 원통을 새로 만든다 · DC 노드 재사용 함정 회피)
+  binderRing(list,zkey){
+    const B=this._bnd||(this._bnd={}); const n=list.length, CW=272, CH=366, step=360/Math.max(1,n), R=Math.max(270,(CW+16)/(2*Math.sin(Math.PI/Math.max(3,n))));
+    if(B.zkey!==zkey){ B.zkey=zkey; B.ang=B.tgt=-(this.eng.N(this.state.binderAct,0))*step; B.vel=0; B.act=-1; B.sent=null; }
+    B.n=n; B.step=step; B.R=R; B.list=list;
+    // 바깥에서 binderAct를 바꿨을 때만 그 카드로 돈다 — 원통이 스스로 보낸 값(B.sent)은 무시한다.
+    // ★회전 중 setState가 반영되기 전에 다른 이유로 다시 그려지면 옛 값이 '바깥 변경'처럼 보여 원통이 되돌아갔다(10-29 버그)
+    { const want=Math.max(0,Math.min(n-1,this.eng.N(this.state.binderAct,0))); if(B.sent==null) B.sent=want;
+      if(want!==B.sent&&!B.drag){ B.sent=want; let t=-want*step; t+=360*Math.round((B.ang-t)/360); B.tgt=t; if(B.wake) setTimeout(()=>B.wake(),0); } }
+    const render=()=>{ const ring=B.ring; if(!ring||!ring.isConnected) return false; ring.style.transform='rotateY('+B.ang+'deg)';
+      for(let i=0;i<ring.children.length;i++){ const b=i*step, w=((b+B.ang)%360+540)%360-180, f=Math.cos(w*Math.PI/180); const c=ring.children[i]; c.style.transform='rotateY('+b+'deg) translateZ('+R+'px)'; const sh=c.querySelector('[data-sh]'); if(sh) sh.style.opacity=(0.8*(1-f)/2).toFixed(3); }
+      const a=((Math.round(-B.ang/step)%n)+n)%n; if(a!==B.act){ B.act=a; B.sent=a; if(this.state.binderAct!==a) this.setState({binderAct:a}); } return true; };
+    const frame=t=>{ B.raf=0; const dt=B.last?Math.min((t-B.last)/1000,.05):1/60; B.last=t; let busy=!!B.drag;
+      if(!B.drag){ const K=118,dm=2*Math.sqrt(K); let r=dt; while(r>0){ const hh=Math.min(r,1/240); B.vel+=(K*(B.tgt-B.ang)-dm*B.vel)*hh; B.ang+=B.vel*hh; r-=hh; } if(Math.abs(B.tgt-B.ang)<.01&&Math.abs(B.vel)<.05){ B.ang=B.tgt; B.vel=0; } else busy=true; }
+      if(!render()){ B.last=0; return; } if(busy) B.raf=requestAnimationFrame(frame); else B.last=0; };
+    B.wake=()=>{ if(!B.raf) B.raf=requestAnimationFrame(frame); };
+    B.go=d=>{ B.tgt=Math.round(B.ang/step)*step-d*step; B.wake(); };
+    // 상세로 들어갈 때 그 카드에 딱 멈춘다 — 돌던 중에 들어가면 남은 회전이 돌아온 순간 이어져 '카드가 돌아가 버리는' 것처럼 보였다(10-29)
+    B.openAt=i=>{ let t=-i*step; t+=360*Math.round((B.ang-t)/360); B.ang=B.tgt=t; B.vel=0; B.act=i; B.sent=i; const r=this.gs.binder&&this.gs.binder[B.list[i]]; if(r&&r.n){ r.n=0; this.saveGame(); } this.setState({binderOpen:B.list[i],binderAct:i}); };   // 상세를 열면 '신규'를 지운다
+    const down=e=>{ B.drag={x:e.clientX,a:B.ang,smp:[[performance.now(),B.ang]],m:false}; };
+    const move=e=>{ const d=B.drag; if(!d) return; const dx=e.clientX-d.x; if(!d.m&&Math.abs(dx)<10) return; if(!d.m){ d.m=true; try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){ } }
+      B.ang=d.a+dx*0.2; const now=performance.now(); d.smp.push([now,B.ang]); while(d.smp.length>2&&now-d.smp[0][0]>110) d.smp.shift(); B.wake(); };
+    const up=e=>{ const d=B.drag; if(!d) return; B.drag=null; const f=d.smp[0], l=d.smp[d.smp.length-1], sp=(l[0]-f[0])/1000, vv=sp>.008?Math.max(-600,Math.min(600,(l[1]-f[1])/sp)):0;
+      if(!d.m){ const c=e.target.closest&&e.target.closest('[data-bi]'); if(c){ const i=+c.dataset.bi, mid=B.list[i];
+          // 앞 카드 판정 = 그 카드가 지금 화면 정면에 있는지(각도) — B.act는 회전 중 한 박자 늦을 수 있다
+          const w=((i*step+B.ang)%360+540)%360-180;
+          if(this.binderSt(mid)>=2){ if(Math.abs(w)<step*0.5){ B.openAt(i); return; } let t=-i*step; t+=360*Math.round((B.ang-t)/360); B.tgt=t; } } }   // 앞 카드 = 상세 · 옆 카드 = 앞으로(처치 전 카드는 반응 없음)
+      else B.tgt=Math.round((B.ang+vv*0.3)/step)*step; B.wake(); };
+    return h('div',{key:'bv'+zkey,onPointerDown:down,onPointerMove:move,onPointerUp:up,onPointerCancel:up,style:{position:'relative',flex:'1 1 auto',minHeight:0,perspective:1200,touchAction:'pan-y',overflow:'hidden',cursor:'grab'}},
+      h('div',{style:{position:'absolute',left:'50%',top:'50%',transformStyle:'preserve-3d',transform:'translateZ('+(-R)+'px) rotateX(-3deg)'}},
+        h('div',{key:'ring'+zkey,ref:el=>{ B.ring=el; if(el){ render(); B.wake(); } },style:{transformStyle:'preserve-3d'}},
+          ...list.map((mid,i)=>{ const v=this.binderSt(mid), gk=this.binderGk(mid), on=v>=2;
+            return h('div',{key:zkey+mid,'data-bi':i,style:{position:'absolute',width:CW,height:CH,left:-CW/2,top:-CH/2,transformStyle:'preserve-3d'}},
+              h('div',{style:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',borderRadius:8,overflow:'hidden',background:'#18191D'}},   // 뒷면(back face)은 안 그린다 — 원통 뒤쪽이 가로줄로 비친다
+                v===0? h('div',{style:{position:'absolute',inset:0,background:'#18191D url(assets/art/card_back/monster_back.webp) center/cover'}}) : this.binderArt(mid,on?gk:'common',zkey+mid,v===1),
+                ...(on?this.binderFx(gk,zkey+mid):[]),
+                h('div',{style:{position:'absolute',inset:0,borderRadius:8,zIndex:8,pointerEvents:'none',boxShadow:'inset 0 0 0 1px '+((on&&gk!=='common')?GRADECOL[gk]:'#36383C')}}),   // 카드 테두리 = 등급색(처치 이후) · 그 외 일반
+                v===0?null:h('span',{style:{position:'absolute',left:10,top:10,zIndex:8,padding:'3px 6px',borderRadius:4,background:'rgba(10,11,14,0.6)',fontFamily:T.mono,fontSize:9.5,lineHeight:'100%',letterSpacing:'.5px',color:on?'#A9ABAF':'#6F7276'}}, this.binderNoTxt(mid)),   // 고유 번호(사용자 10-29) · 뒷면(미조우)엔 안 보인다
+                h('div',{'data-sh':1,style:{position:'absolute',inset:0,background:'#000',opacity:0,zIndex:9,pointerEvents:'none'}}))); }))));
+  }
+  binderScreen(){
+    if(this.state.binderOpen) return this.binderDetail(this.state.binderOpen);
+    const cities=this.eng.DATA.cities||[], ci=Math.max(0,Math.min(cities.length-1,this.eng.N(this.state.binderCity,0)));
+    const city=cities[ci]||{}, zones=(this.eng.DATA.zones||[]).filter(z=>z.CityID===city.CityID);
+    const zi=Math.max(0,Math.min(zones.length-1,this.eng.N(this.state.binderZone,0))), z=zones[zi];
+    const list=z?this.binderMons(z.ZoneID):[], act=Math.max(0,Math.min(list.length-1,this.eng.N(this.state.binderAct,0))), mid=list[act];
+    const v=mid?this.binderSt(mid):0, can=v>=2, m=mid?this.eng.byId.monster[mid]:null;
+    const cityDx=this._bndCity||(this._bndCity={});
+    return h('div',{style:{...ST.screen}},
+      this.shopHeaderChips(this.t('hide_specimen_binder'),()=>this.openHideFac('terminal')),
+      // 도시 카드 줄 — 레이드 화면 도시 카드 문법(72px로 축소) · 잠긴 도시는 넘기려 하면 흔들리기만 한다(레이드와 같은 규칙: 첫 도시만 열림)
+      h('div',{onPointerDown:e=>{ cityDx.d={x:e.clientX,y:e.clientY,done:false}; },
+        onPointerMove:e=>{ const d=cityDx.d; if(!d||d.done) return; const dx=e.clientX-d.x, dy=e.clientY-d.y;
+          if(Math.abs(dx)>18&&Math.abs(dx)>Math.abs(dy)){ d.done=true; const el=e.currentTarget; if(el.animate) el.animate([{transform:'translateX(0)'},{transform:'translateX('+(dx<0?-9:9)+'px)'},{transform:'translateX('+(dx<0?7:-7)+'px)'},{transform:'translateX('+(dx<0?-4:4)+'px)'},{transform:'translateX(2px)'},{transform:'translateX(0)'}],{duration:340,easing:'ease-out'}); } },
+        onPointerUp:()=>{ cityDx.d=null; }, onPointerCancel:()=>{ cityDx.d=null; },
+        style:{position:'relative',zIndex:1,display:'flex',gap:8,overflowX:'hidden',padding:'0 16px 10px',flex:'0 0 auto',touchAction:'pan-y'}},
+        ...cities.map((c,i)=>{ const locked=i>0, on=i===ci;
+          return h('div',{key:c.CityID,style:{flex:'0 0 92%',height:72,position:'relative',borderRadius:8,overflow:'hidden',boxShadow:'inset 0 0 0 1px '+(on?T.line2:T.line),backgroundColor:T.s3,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 7px, oklch(0.27 0.008 264) 7px 8px)'}},
+            !locked? h('img',{src:'assets/art/cities/'+c.CityID+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'50% 40%'}}):null,
+            h('div',{style:{position:'absolute',inset:0,background:locked?'linear-gradient(180deg, rgba(24,25,29,.55), rgba(24,25,29,.92))':'linear-gradient(90deg, rgba(24,25,29,.92) 0%, rgba(24,25,29,.35) 70%, rgba(24,25,29,0) 100%)'}}),
+            h('div',{style:{position:'absolute',left:16,top:0,bottom:0,display:'flex',alignItems:'center',gap:8}},
+              h('span',{style:{...this.titleF(),fontSize:26,lineHeight:'26px',color:locked?T.mid:T.hi}}, this.ttx(this.tx(c,'CityName')||c.CityID,26)),
+              locked?this.chip(this.t('zone_locked'),T.faint):null),
+            locked? h('div',{style:{position:'absolute',top:12,right:12}}, icLock(16,T.faint)) : null); })),   // 완성 수는 안 둔다(그림 위에서 안 읽힘 · 사용자 10-29)
+      // 존 탭 — 가로 스크롤 · 구운 글씨 · 완성 수/전체
+      h('div',{style:{position:'relative',zIndex:1,display:'flex',gap:18,overflowX:'auto',padding:'2px 18px 0',flex:'0 0 auto',scrollbarWidth:'none',borderBottom:'1px solid '+T.line}},
+        ...zones.map((zz,i)=>{ const on=i===zi;
+          return h('div',{key:zz.ZoneID,ref:on?(el=>{ if(el&&this._bndZoneSeen!==zz.ZoneID){ this._bndZoneSeen=zz.ZoneID; try{ el.scrollIntoView({inline:'nearest',block:'nearest'}); }catch(_){ } } }):null,onClick:()=>{ if(i!==zi) this.setState({binderZone:i,binderAct:0}); },style:{flex:'0 0 auto',display:'flex',alignItems:'center',gap:6,padding:'8px 0 10px',cursor:'pointer',color:on?T.hi:'#6F7276',boxShadow:on?'inset 0 -2px 0 '+T.hi:'none'}},
+            h('span',{style:{position:'relative',display:'inline-block',...this.titleF(),fontSize:14,lineHeight:'14px'}}, this.ttx(this.tx(zz,'ZoneName'),14),
+              this.binderAnyNew(this.binderMons(zz.ZoneID))? h('span',{key:'d',style:{position:'absolute',right:-8,top:-2,width:5,height:5,borderRadius:'50%',background:'#2FBF71',animation:'rlCommsDot 2.4s ease-in-out infinite'}}) : null)); })),   // 숫자 없이 이름만 · 신규 몬스터가 있는 존 = 무전기·교신 탭과 같은 알림 점(5px 초록 · 같은 깜빡임 · 글자 오른쪽 위)
+      list.length? this.binderRing(list,(z&&z.ZoneID)||'z') : h('div',{style:{flex:1}}),
+      // 정보 줄 — 이름(구운 글씨) · 등급 칩(카드와 같음) · 인스톨 칸 3개. 안내 문구는 두지 않는다(사용자 10-29)
+      // 이름 40(사용자 10-29 · 20의 2배) · 등급 칩은 이름 위 왼쪽 · 인스톨 칸은 이름 줄 오른쪽
+      h('div',{style:{flex:'0 0 auto',padding:'0 24px',height:80,display:'flex',flexDirection:'column',justifyContent:'flex-end',gap:4}},
+        h('div',{style:{height:22,display:'flex',alignItems:'center',gap:6}}, (v>=2&&mid&&this.binderNew(mid))? this.binderNewTag(mid) : null, v>=2&&mid? this.binderGradeChip(this.binderGk(mid),mid) : null),   // NEW = 등급 칩 왼쪽
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,minWidth:0}},
+          // 긴 이름(영문 The Lingering Manager 등)은 칸에 맞을 때까지 40→28px로 줄인다 · 줄 높이를 넉넉히 둬 g·y 아래가 안 잘리게(사용자 10-29)
+          h('span',{ref:el=>{ if(!el) return; let fs=40; el.style.fontSize=fs+'px'; while(el.scrollWidth>el.clientWidth+1&&fs>28){ fs-=2; el.style.fontSize=fs+'px'; } },
+            style:{...this.titleF(),fontSize:40,lineHeight:'48px',height:48,display:'block',flex:'1 1 auto',color:v>=2?T.hi:(v===1?'#6F7276':'#4B4D52'),whiteSpace:'nowrap',minWidth:0}}, v>=1&&m?this.ttx(this.tx(m,'MonsterName'),40,48):this.ttx(this.t('binder_unknown'),40,48)),   // 뒷면(미조우) = 알수없음 / Unknown · 흑백(조우만) = 이름을 어두운 글씨로(마주친 적은 있다 · 사용자 10-29)
+          v>=2? this.instPips(Math.max(0,v-2),11,12) : null)),
+      h('div',{style:{flex:'0 0 auto',padding:'8px 16px 28px'}},
+        h('button',{disabled:!can,onClick:can?()=>{ const B=this._bnd; if(B&&B.openAt&&B.list===list) B.openAt(act); else this.setState({binderOpen:mid}); }:null,style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:can?T.hi:'#4B4D52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:can?'pointer':'default'}}, this.t('binder_detail_btn'))));
+  }
+  binderDetail(mid){
+    const md=this.eng.byId.monster[mid]; if(!md) return null;
+    const m=this.eng.monsterProfile(md), v=this.binderSt(mid), k=Math.max(0,v-2), q=k<1, gk=this.binderGk(mid);
+    const AH=Math.round(402*684/515), TOP=AH-130, END=Math.round(AH/2);
+    const H=x=>q?'??':x, attrCol=AT(m.attribute)?((ATTR[m.attribute]&&ATTR[m.attribute].c)||'rgb(124,165,187)'):T.hi;
+    const stats=[[this.t('stat_atk'),Math.round(m.minAtk)+'~'+Math.round(m.maxAtk)],[this.t('stat_def'),String(Math.round(m.defense))],[this.t('stat_atk_speed'),(m.atkSpeed!=null?m.atkSpeed:1).toFixed(2)],[this.t('stat_accuracy'),String(Math.round(m.accuracy||0))],
+      [this.t('stat_evasion'),Math.round(m.evasion||0)+'%'],[this.t('stat_crit_chance'),Math.round(m.critChance||0)+'%'],[this.t('stat_crit_resist'),String(Math.round(m.critResist))],[this.t('stat_status_resist'),String(Math.round(m.statusResist))],
+      [this.t('status_effect'),AT(m.attribute)?this.t('status_'+m.attribute):'-',attrCol],[this.t('stat_potency'),String(Math.round(m.potency))]];
+    const ins=this.eng.usbInstalls(this.eng.usbOfMonster(mid));
+    const onScroll=e=>{ const y=e.currentTarget.scrollTop, p=Math.min(1,y/(TOP-END)); if(this._bndArt) this._bndArt.style.transform='translateY('+(-y*0.1)+'px)'; if(this._bndDim) this._bndDim.style.opacity=(p*0.35).toFixed(3); };
+    const sec=(t)=>h('div',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.5px',color:'#4B4D52',margin:'16px 0 2px'}}, t);
+    return h('div',{key:'bdet'+mid,style:{...ST.screen,background:'#111315',overflow:'hidden'}},
+      h('div',{ref:el=>{ this._bndArt=el; },style:{position:'absolute',left:0,top:0,width:'100%',height:AH,overflow:'hidden',background:'#2B2E32'}},
+        this.binderArt(mid,gk,'d'+mid,false), ...this.binderFx(gk,'d'+mid),
+        h('div',{ref:el=>{ this._bndDim=el; },style:{position:'absolute',inset:0,background:'#111315',opacity:0,zIndex:8}})),
+      h('button',{onClick:()=>this.setState({binderOpen:null}),'data-guide':'shop-back',style:{position:'absolute',left:18,top:24,zIndex:12,width:28,height:28,padding:0,borderRadius:8,border:'none',background:'rgba(10,11,14,0.6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}},
+        h('svg',{width:16,height:16,viewBox:'0 0 24 24',fill:'none',stroke:'#EAEBEE',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}, h('path',{d:'M14.5 5l-7 7 7 7'}))),
+      h('div',{style:{position:'absolute',right:17,top:26,zIndex:12}}, this.binderGradeChip(gk,'d'+mid)),
+      h('div',{onScroll,style:{position:'absolute',inset:0,overflowY:'auto',zIndex:10,scrollbarWidth:'none'}},
+        h('div',{style:{height:TOP}}),
+        h('div',{style:{position:'relative',minHeight:'calc(100% - '+END+'px)',padding:'0 24px 140px',boxSizing:'border-box'}},
+          h('div',{style:{position:'absolute',left:0,right:0,top:-140,height:140,background:'linear-gradient(180deg, rgba(17,19,21,0), #111315)',pointerEvents:'none'}}),
+          h('div',{style:{position:'absolute',inset:0,background:'#111315',zIndex:-1}}),
+          h('div',{style:{position:'relative'}},
+            h('div',{style:{marginBottom:12}}, this.instPips(k,13,14)),
+            h('div',{style:{display:'flex',justifyContent:'space-between',fontFamily:T.mono,fontSize:10.5,color:'rgb(165,172,178)',marginBottom:10}},
+              h('span',{style:{letterSpacing:'0.8px'}}, this.binderNoTxt(mid)+'  '+(md.Category||'')),   // 고유 번호 + 분류(카드 상세와 같은 자리)
+              h('span',null,'STA −'+m.staminaCost+' · '+this.t('combat_time_limit')+' '+m.timeLimit+'s')),
+            h('div',{style:{...this.titleF(),fontSize:28,lineHeight:'30px',color:T.hi,marginBottom:12}}, this.ttx(m.name,28,30)),
+            h('div',{style:{fontFamily:T.sans,fontSize:13,lineHeight:1.6,color:'#D9DADE'}}, this.tx(md,'Description')),
+            sec('STAT'),
+            h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',columnGap:18}}, ...stats.map(([l,val,c],i)=>h('div',{key:i,style:{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid #2A2C31',fontFamily:T.mono,fontSize:12}},
+              h('span',{style:{color:'rgb(111,114,118)'}}, l), h('span',{style:{color:q?'#4B4D52':(c||T.hi)}}, H(val))))),
+            sec('INSTALL'),
+            ...[0,1,2].map(i=>h('div',{key:'in'+i,style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 0',borderBottom:'1px solid #2A2C31',gap:12}},
+              h('div',{style:{display:'flex',gap:3,flex:'0 0 auto'}}, ...Array.from({length:i+1},(_,j)=>h('div',{key:j,style:{width:12,height:14,borderRadius:3,background:i<k?'#EAEBEE':'#4B4D52'}}))),
+              h('div',{style:{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:5}}, ...(q?['??']:((ins[i]&&ins[i].length)?ins[i].map(g=>this.eng.fxLabel(g.stat,g.v)):['—'])).map((t,j)=>
+                h('span',{key:j,style:{fontFamily:T.mono,fontSize:13,lineHeight:'100%',whiteSpace:'nowrap',color:q?'#4B4D52':(i<k?'#EAEBEE':'#6F7276')}}, t)))))))),
+      // 하단 [확인] = 닫기(바인더로) — 표준 하단 판(사용자 10-29)
+      h('div',{style:{...ST.botBox,position:'absolute',left:0,right:0,bottom:0,zIndex:11}},
+        h('button',{onClick:()=>this.setState({binderOpen:null}),style:{...ST.btnW}}, this.en()?'OK':'확인')));
+  }
+  hideAction(facId,k){ if(k==='binder'){ this.openBinder(); return; } if(k==='upgrade'||k==='restore') this.openUpg(facId); else if(k==='repair') this.setState({screen:'rsrep',repairSel:null,repairMode:'hideout'}); else if(k==='module') this.setState({screen:'rsmod',mdSel:null,mdSheet:null,mdModule:null,mdSlot:0,mdIdx:0}); else if(k==='enhance') this.setState({screen:'rsenh',enSel:null,enSheet:null,enRes:null}); else if(k==='craft') this.setState({screen:'craft',craftSlot:this.craftFreeSlot(),craftSel:null,craftConfirm:false,craftRev:null,craftFlip:false}); else if(k==='disassemble') this.setState({screen:'disa',disaSel:null,disaConfirm:false,disaRev:false,disaOpen:[],disaFocus:0}); else if(k==='disk') this.openDiskList(); else if(k==='decode') this.setState({screen:'decode',decodeSlot:0,dataSel:null}); else this.flash('TBD: '+facId+' / '+k);
     // 튜토리얼 — 기능 첫 진입. 화면 전환 setState 뒤 다음 틱에 건다(상점 진입과 같은 형태).
     // gs.tuto에 기록돼 한 번만 뜬다.
     const tk=HIDE_TUTO[k]; if(tk) setTimeout(()=>this.tutoOpen(tk),0); }

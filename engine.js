@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val55';
-import { buildIndex } from './sheet-loader.js?v=val62';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
+import { DATA as FALLBACK } from './data/game-data.js?v=val56';
+import { buildIndex } from './sheet-loader.js?v=val63';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
 
@@ -70,6 +70,8 @@ export function t(key){
 // v3 built-in fallbacks — used only when the UIString tab lacks the key (sheet wins).
 const V3_STRINGS = {
   status_shock:['감전','Shock'],   // 5번째 상태이상(10-28) — 시트 UIString에 행이 오면 시트가 이긴다
+  usb_install_max:['3번 모두 인스톨한 데이터다.','All 3 installs are done.'], usb_install_done:['완성','Complete'],
+  hide_specimen_binder:['표본 바인더','Specimen Binder'], binder_detail_btn:['상세정보','Details'], binder_unknown:['알수없음','Unknown'],   // 표본 바인더(10-29)
   // 퀘스트 (일일) — 시트 UIString에 같은 키가 들어오면 시트가 이긴다
   quest_tab_daily:['일일','Daily'], quest_tab_weekly:['주간','Weekly'], quest_tab_story:['스토리','Story'],
   quest_chip_new:['신규','New'], quest_chip_run:['진행중','Active'], quest_chip_done:['완료','Done'],
@@ -323,6 +325,7 @@ export function startingState() {
     hideout: { built: 0, lv: { storage: 1, repair: 1, workbench: 1, terminal: 1 }, upg: {},   // upg = 시설별 진행 중 업그레이드 맵
       disk: [], disks: [], decode: [], craft: [], disa: null },   // disk = 도면 설치 · disks = 설치 완료 BlueprintID · decode = 슬롯별 해독 · craft = 슬롯별 제작 작업
     epoch: N(C.save_epoch, 0),    // 강제 초기화 기준 — 시트 save_epoch가 이보다 크면 세이브를 버린다
+    binder: {},                   // 표본 바인더 — 몬스터별 {m 조우 · k 처치 · i 인스톨}
   };
 }
 
@@ -737,6 +740,7 @@ export function playerProfile(state, staminaZero = false) {
     applyStat(ar.Stat1, inst.stat1 != null ? inst.stat1 : N(ar.Value1_Low));
     applyStat(ar.Stat2, inst.stat2 != null ? inst.stat2 : N(ar.Value2_Low));
   }
+  for (const fx of binderEffects(state)) addStat(fx.stat, fx.v);   // 표본 바인더 인스톨 효과(영구 · 파손 없음)
   const p = { ...state.primary };
   if (staminaZero) { const k = 1 - N(C.stamina_penalty_rate, 0.5); p.str *= k; p.dex *= k; p.vit *= k; p.will *= k; }
   p.str += primAdd.str; p.dex += primAdd.dex; p.vit += primAdd.vit; p.will += primAdd.will;
@@ -1515,6 +1519,60 @@ export function usbGrants(u){
     if (g && g !== '-') { const a = JSON.parse(g); if (Array.isArray(a)) return a.filter(x => x && x.stat).map(x => ({ stat: x.stat, v: N(x.v, 1) })); }
   } catch(_) {}
   return u.GrantStat ? [{ stat: u.GrantStat, v: N(u.GrantValue, 1) }] : [];
+}
+
+// ---------- 표본 바인더(2026-10-29 · 확장_v3) ----------
+// USB.Install1~3 = 회차별 효과(JSON · Grants와 같은 {stat,v} · stat = stat_* 또는 sec_*). 열이 없는 옛 데이터는 1회차 = Grants.
+// 세이브엔 몬스터별 기록 { m: 조우 1 · k: 처치 수 · i: 인스톨 0~3 }만 둔다 — 효과는 늘 시트에서 다시 계산한다(랭킹 검증 대비).
+const parseFx = s => { try { const a = JSON.parse(String(s)); return Array.isArray(a) ? a.filter(x => x && x.stat).map(x => ({ stat: x.stat, v: N(x.v, 0) })) : []; } catch(_) { return []; } };
+export function usbInstalls(u){
+  if (!u) return [[], [], []];
+  const has = [u.Install1, u.Install2, u.Install3].some(x => x && x !== '-');
+  return has ? [parseFx(u.Install1), parseFx(u.Install2), parseFx(u.Install3)] : [usbGrants(u), [], []];
+}
+let _usbMonSrc = null, _usbMon = {};
+export function usbOfMonster(mid){
+  if (_usbMonSrc !== DATA.usb) { _usbMonSrc = DATA.usb; _usbMon = {}; (DATA.usb || []).forEach(u => { if (u.MonsterID) _usbMon[u.MonsterID] = u; }); }
+  return _usbMon[mid] || null;
+}
+// n회차(1~3) 인스톨 시간(분) — Config 공통값 · 보스는 배수
+export function installMinutes(u, n){
+  const k = Math.min(3, Math.max(1, N(n, 1)));
+  const m = u && byId.monster[u.MonsterID];
+  const boss = String((m && m.Grade) || '').trim() === 'Boss';
+  return N(C['binder_install_min_' + k], [10, 30, 60][k - 1]) * (boss ? N(C.binder_install_boss_mult, 3) : 1);
+}
+// 효과 한 줄 표기 — 1차 = 스탯 이름 · 2차 = 장비 보너스와 같은 bonusLabel(KR/EN). 소수 둘째 자리까지(크리 피해 +0.05)
+const FX_EXTRA = { sec_evasion: ['회피율', 'Evasion', '%'], sec_defense: ['방어력', 'Defense', ''], sec_status_resist: ['상태이상 저항', 'Status Resist', ''],
+  sec_crit_resist: ['크리티컬 저항', 'Crit Resist', ''], sec_min_atk: ['최소 공격력', 'Min Attack', ''], sec_max_atk: ['최대 공격력', 'Max Attack', ''] };
+export function fxLabel(stat, v){
+  let name = stat, unit = '';
+  if (PRIM[stat]) name = statName(stat);
+  else {
+    const bk = Object.keys(BONUS_SEC).find(k => BONUS_SEC[k] === stat), b = bk ? BONUS_KR[bk] : FX_EXTRA[stat];
+    if (b) { name = LANG === 'en' ? b[1] : b[0]; unit = b[2]; }
+  }
+  const n = Math.round(N(v) * 100) / 100;
+  return name + ' ' + (n >= 0 ? '+' : '') + n + unit;
+}
+// 다음 인스톨 회차(1~3) — 진행 중인 같은 몬스터 작업 수(pending)까지 센다. 4 이상 = 더 못 한다
+export function binderNext(state, mid, pending){ const r = state.binder && state.binder[mid]; return N(r && r.i, 0) + N(pending, 0) + 1; }
+export function binderRec(state, mid){
+  if (!state.binder || typeof state.binder !== 'object') state.binder = {};
+  return state.binder[mid] || (state.binder[mid] = { m: 0, k: 0, i: 0 });
+}
+const binderable = mid => !!(mid && byId.monster[mid] && !/^object_/.test(mid));   // 오브제는 바인더 대상이 아니다
+export function binderMeet(state, mid){ if (binderable(mid)) binderRec(state, mid).m = 1; }
+export function binderKill(state, mid){ if (!binderable(mid)) return; const r = binderRec(state, mid); if (!N(r.k, 0)) r.n = 1; r.m = 1; r.k = N(r.k, 0) + 1; }   // n = 첫 처치 '신규' 표시(상세를 열면 지운다)
+// 인스톨한 회차까지의 효과 전부 — playerProfile이 장비 효과와 같은 통로(addStat)로 더한다
+export function binderEffects(state){
+  const out = [], B = state && state.binder; if (!B) return out;
+  for (const mid in B) {
+    const n = Math.min(3, N(B[mid] && B[mid].i, 0)); if (!n) continue;
+    const ins = usbInstalls(usbOfMonster(mid));
+    for (let i = 0; i < n; i++) out.push(...ins[i]);
+  }
+  return out;
 }
 export function statName(id){
   const sr = DATA.primaryStats.find(r => r.PrimaryStatID === id);
