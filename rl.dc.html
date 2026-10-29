@@ -431,7 +431,7 @@ const IC_INFO = { vb:'81.5 29.2 15.6 17.2', ar:15.6/17.2, d:[
 // ===== 프로토콜 지구 환경음(2026-10-21) — 음악 대신 비 + 생활 소리 =====
 // 소스 = sound/BGM(ElevenLabs) → 크기·고음 컷·튐 억제·페이드를 **미리 구워** assets/sound/amb/*.m4a(재생은 섞기만 한다).
 // 바탕 = 비 2층(30초 주 + 10초 저음을 1.03배속으로 겹쳐 반복 무늬를 어긋나게) · 가끔 소리 = '카드 섞기' 묶음(발소리4·수다3·문2·드론1)을 8~25초마다 하나.
-// 배경 곡 = amb_bed_1~3(60초 · ElevenLabs Music) — 가끔 한 곡씩(쉼 15~30초) · 아래 AMB_BED_*.
+// 배경 곡 = amb_bed_4·5(120초 · 사용자 10-29 교체 — 옛 1~3 삭제) — 가끔 한 곡씩(쉼 15~30초) · 아래 AMB_BED_*. 굽기 = tools/bake-amb-bed.py
 // 지구 안 화면 전부에서 재생 · 레이드 흐름(로딩·전투·결과·전리품 정리)과 앱이 가려졌을 때는 서서히 끈다.
 const AMB = {
   rain:['amb_rain_1','amb_rain_2'],
@@ -439,12 +439,12 @@ const AMB = {
   murmur:['amb_murmur_1','amb_murmur_2','amb_chat_1','amb_chat_2'],
   door:['amb_door_1','amb_door_2','amb_door_3','amb_door_4'],
   drone:['amb_drone_1','amb_drone_2'],
-  bed:['amb_bed_1','amb_bed_2','amb_bed_3'],   // 배경 곡(60초) — 가끔 소리 묶음(AMB_BAG)엔 안 들어간다. 따로 ambTrack이 튼다
+  bed:['amb_bed_4','amb_bed_5'],   // 배경 곡(120초 · 4=Rainy Night Refrain · 5=Rainy Side Street) — 가끔 소리 묶음(AMB_BAG)엔 안 들어간다. 따로 ambTrack이 튼다
 };
 const AMB_BAG = ['steps','steps','steps','steps','murmur','murmur','murmur','door','door','drone'];
 const AMB_GAIN = 1.0;   // 환경음 전체 크기(효과음 마스터 대비) — 실기 청취로 조정
 const AMB_GAP = [8, 25];   // 가끔 소리 간격(초)
-// 배경 곡 — 환경음 위에 3종 중 하나씩(직전과 다른 것). 겹치지 않고 곡 사이에 쉼이 있다(사용자 2026-10-21). 파일은 RMS −38dB로 구워 둠.
+// 배경 곡 — 환경음 위에 2곡 중 하나씩(직전과 다른 것 = 번갈아). 겹치지 않고 곡 사이에 쉼이 있다(사용자 2026-10-21). 파일은 RMS −38dB로 구워 둠.
 const AMB_RAIN_GAIN = 0.25;   // 바탕 비 크기(굽기 대비 배수) — 0.25 ≈ −12dB(사용자 10-21 '비가 너무 크다'→두 번 더 낮춤)
 const AMB_BED_GAIN = 1.26;   // 곡 크기(굽기 RMS 대비 배수) — 1.26 ≈ +2dB(0.63 기준 +6dB, 사용자 10-21 '곡 +6'). 실기 청취로 조정
 const AMB_BED_GAP = [15, 30];   // 곡이 끝난 뒤 다음 곡까지 쉬는 시간(초) — 사용자 10-21: 15~30초(처음 25~70초에서 줄임)
@@ -604,7 +604,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 125;
+const TITLE_VER = 126;
 const TITLE_DATE = '1029';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -862,8 +862,8 @@ class Component extends DCLogic {
   async componentDidMount(){
     document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
-      const eng = await import('./engine.js?v=val112');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val63');
+      const eng = await import('./engine.js?v=val113');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val64');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -914,6 +914,8 @@ class Component extends DCLogic {
   }
   bootFromQuery(){
     let q; try{ q=new URLSearchParams(location.search); }catch(_){ return; }
+    // 프롤로그 미리보기(?prologue=1 · ?prologue=1&cut=3 — 3번 컷부터) — 기록·진행 없이 재생만 한다
+    if(q.get('prologue')){ const c=parseInt(q.get('cut'),10); this.prologueStart({cut:isNaN(c)?null:c}); return; }
     const screen=q.get('screen'); if(!screen) return;
     if(screen==='vendor'){ const id=q.get('vendor')||'vendor_clinic'; const vtab=q.get('vtab'); this.openVendor(id); if(vtab) this.setState({vtab}); }
     // 전리품 화면은 state.lm이 있어야 그려진다 — 샘플 카드를 채워주는 개발용 진입로(?screen=lootmanage)
@@ -1846,7 +1848,7 @@ class Component extends DCLogic {
       src.onended=()=>{ this._ambSrcs=(this._ambSrcs||[]).filter(x=>x!==src); };
     }catch(_){ }
     this.ambTimer(gen,len-X,()=>this.ambBed(gen,id,rate,false)); }
-  // 배경 곡 — 곡 하나가 끝나면 쉬었다가(AMB_BED_GAP) 3종 중 직전과 다른 곡을 튼다. 한 번에 한 곡만 — 겹치지 않는다.
+  // 배경 곡 — 곡 하나가 끝나면 쉬었다가(AMB_BED_GAP) 직전과 다른 곡을 튼다. 한 번에 한 곡만 — 겹치지 않는다.
   ambTrackNext(gen,sec){ this.ambTimer(gen,sec,()=>this.ambTrack(gen)); }
   ambTrack(gen){ const ctx=this._ac; if(!ctx||!this._ambBus) return;
     const ids=AMB.bed.filter(id=>this._ambBufs&&this._ambBufs[id]);
@@ -2524,7 +2526,7 @@ class Component extends DCLogic {
     else if(s==='pass') body=this.passScreen();
     else if(s==='tap') body=this.tapScreen();
     const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap' && s!=='hideout' && s!=='hideFac' && s!=='disk' && s!=='diskInsert' && s!=='decode' && s!=='binder' && s!=='craft' && s!=='disa' && s!=='rsrep' && s!=='rsmod' && s!=='rsenh' && s!=='quest' && s!=='comms';
-    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null, this.state.statPop?this.statPopSheet():null, this.state.tuto?this.tutoOverlay():null, this.state.wake?this.wakeOverlay():null, this.state.langPick?this.langPickOverlay():null, this.storyGuideOverlay(), this.radioOverlay(), this.diaryOverlay());
+    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null, this.state.statPop?this.statPopSheet():null, this.state.tuto?this.tutoOverlay():null, this.state.wake?this.wakeOverlay():null, this.state.langPick?this.langPickOverlay():null, this.state.prologue?this.prologueOverlay():null, this.storyGuideOverlay(), this.radioOverlay(), this.diaryOverlay());
   }
 
   // ---- safehouse ----
@@ -6346,11 +6348,30 @@ void main(){
     if(!q||m.cur||Object.keys(m.done).length) return;
     this._talkHold=true;   // 첫 대사는 눈을 뜬 뒤에(연출 뒤에서 타자기가 먼저 끝나 버리지 않게)
     const vid=String(q.GiverVendorID||'vendor_clinic'); this._wakeVid=vid;
+    if(!(this.gs&&this.gs.prologueSeen)) this.prologuePreload();   // 프롤로그 이미지(약 2MB)를 언어 고르는 동안 미리 받는다 — 새 게임에서만
     this.openVendor(vid,{silent:true});
     if(this.state.notice) this._wakePending=true; else this.wakeStart(); }
   // 눈 뜨는 연출 시작 — 상점 진입음은 마지막으로 크게 떠지는 구간(3.6s의 68% ≈ 2.45s)에 맞춰 울린다(사용자 2026-10-09)
   wakeStart(){ if(!this._langPicked){ this.setState({langPick:true}); return; }   /* 새 게임 첫 화면 = 언어 고르기(사용자 2026-10-10) → 고른 뒤 눈 뜨는 연출 */
+    if(!(this.gs&&this.gs.prologueSeen)){ this.prologueStart(); return; }   /* 언어를 고른 다음 = 인트로 프롤로그(2026-10-29) → 끝나면 gs.prologueSeen=1 로 다시 여기로 온다 */
     this.setState({wake:true}); const vid=this._wakeVid; if(vid) setTimeout(()=>this.sfx(SHOP_SFX[vid]),2450); }
+  // ===== 인트로 프롤로그(첫 실행) — 정본 확장_v3 「인트로 프롤로그」. 컷·자막·건너뛰기는 prologue.js 가 그리고, 여기서는 오버레이 상자만 만든다 =====
+  //  흐름 = 새 게임 → 언어 고르기 → 프롤로그 → 눈 뜨는 연출 → 퀘스트. 기록은 세이브 안 gs.prologueSeen(설정 [처음부터]를 하면 다시 재생 · 옛 세이브는 storyBoot를 안 타 영향 없음).
+  //  ⚠️ref 함수는 반드시 안정된 하나(prologueRefFn) — 렌더마다 새 함수를 주면 React가 null→el을 반복 호출해 프롤로그가 계속 새로 시작된다.
+  prologueRefFn(){ if(!this._proRef){ this._proRef=el=>{
+      if(el){ if(this._proBox!==el){ this._proBox=el; this.prologueMount(el); } }
+      else { if(this._proH){ try{ this._proH.destroy(); }catch(_){} this._proH=null; } this._proBox=null; } }; }
+    return this._proRef; }
+  prologueMod(){ return this._proMod||(this._proMod=import('./prologue.js?v=pro25')); }   // prologue.js 고칠 때마다 ?v= 올릴 것
+  prologueMount(el){ const dbg=this._proDbg;
+    this.prologueMod().then(m=>{ if(this._proBox!==el) return;
+      this._proH=m.mount(el,{ t:k=>this.t(k), en:this.en(), cut:dbg&&dbg.cut, onDone:()=>this.prologueEnd() }); })
+      .catch(e=>{ console.error('prologue load failed',e); this.prologueEnd(); }); }   // 못 불러오면 프롤로그를 건너뛰고 게임은 그대로 진행
+  prologueStart(dbg){ this._proDbg=dbg||null; this.setState({prologue:true}); }
+  prologueEnd(){ this.setState({prologue:false}); const dbg=this._proDbg; this._proDbg=null; if(dbg) return;   // ?prologue=1 미리보기는 기록·진행 없이 닫는다
+    if(this.gs){ this.gs.prologueSeen=1; try{ this.saveGame(); }catch(_){} } this.wakeStart(); }
+  prologuePreload(){ try{ this.prologueMod().then(m=>m.preload()).catch(()=>{}); }catch(_){} }
+  prologueOverlay(){ return h('div',{key:'prologue',ref:this.prologueRefFn(),style:{position:'absolute',inset:0,zIndex:98,background:'#000'}}); }
   // ===== 퀘스트 대화 (상점 메뉴의 퀘스트 모드 · 목업 svg/screen-clinic-npc) =====
   // 줄 묶기 = Seq 순. 같은 Seq에 choice가 있으면 선택지 지점(choice 1/2 + reaction 1/2), 반응이 끝나면 다음 Seq로 합류.
   storySteps(qid,stage){ const e=this.eng, by={}, kind=r=>String(r.Kind||'line');
@@ -8578,7 +8599,8 @@ void main(){
       this._enRaf=requestAnimationFrame(step); };
     this._enRaf=requestAnimationFrame(step); }
   enImpact(kind,to,lv){ this.enFloor().impact(kind,to,lv); this._enRaysKind=kind;
-    if(kind==='ok'){ this._enBurstAt=performance.now(); this._enBurstTo=to; const bc=document.querySelector('canvas[data-enburst]'); if(bc){ if(bc._burst) bc._burst(); if(bc._pbWake) bc._pbWake(); } }   // ★성공 = Prismatic Burst(단계 색) · LightRays는 하락 전용 { const lt=document.querySelector('canvas[data-entunnel]'); if(lt&&lt._surge){ lt._surge(); if(lt._ltWake) lt._ltWake(); } }   // 터널에 빛 고리 서지
+    if(kind==='ok'){ this._enBurstAt=performance.now(); this._enBurstTo=to; const bc=document.querySelector('canvas[data-enburst]'); if(bc){ if(bc._burst) bc._burst(); if(bc._pbWake) bc._pbWake(); } }   // ★성공 = Prismatic Burst(단계 색) · LightRays는 하락 전용
+    { const lt=document.querySelector('canvas[data-entunnel]'); if(lt&&lt._surge){ lt._surge(); if(lt._ltWake) lt._ltWake(); } }   // 터널에 빛 고리 서지 — ★A0.0118~0125 위 주석 뒤에 묻혀 한 번도 안 돌았다(10-29 복구)
     this.sfxLayer('card_land',{offset:.27,gain:kind==='same'?.6:.8+lv*.1,rate:kind==='fail'?1.15:1.35-lv*.03,pitch:.02});
     if(kind!=='same') this.sfxLayer('card_land2',{offset:.02,gain:kind==='fail'?1.1:.8+lv*.1,rate:kind==='fail'?.85:1-lv*.02,pitch:.02});
     const lift=this._enLiftEl, sh=kind==='ok'?5+lv*1.6:kind==='fail'?14:1.5;
