@@ -1563,7 +1563,7 @@ export function binderRec(state, mid){
 }
 const binderable = mid => !!(mid && byId.monster[mid] && !/^object_/.test(mid));   // 오브제는 바인더 대상이 아니다
 export function binderMeet(state, mid){ if (binderable(mid)) binderRec(state, mid).m = 1; }
-export function binderKill(state, mid){ if (!binderable(mid)) return; const r = binderRec(state, mid); if (!N(r.k, 0)) r.n = 1; r.m = 1; r.k = N(r.k, 0) + 1; }   // n = 첫 처치 '신규' 표시(상세를 열면 지운다)
+export function binderKill(state, mid, zid){ if (!binderable(mid)) return; const r = binderRec(state, mid); if (!N(r.k, 0)) { r.n = 1; if (zid) r.nz = zid; } r.m = 1; r.k = N(r.k, 0) + 1; }   // n = 첫 처치 '신규' 표시(상세를 열면 지운다) · nz = 처치한 존(신규 점·NEW는 그 존에만 · 사용자 10-29)
 // 인스톨한 회차까지의 효과 전부 — playerProfile이 장비 효과와 같은 통로(addStat)로 더한다
 export function binderEffects(state){
   const out = [], B = state && state.binder; if (!B) return out;

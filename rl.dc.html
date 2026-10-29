@@ -604,7 +604,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 124;
+const TITLE_VER = 125;
 const TITLE_DATE = '1029';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -862,7 +862,7 @@ class Component extends DCLogic {
   async componentDidMount(){
     document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
-      const eng = await import('./engine.js?v=val111');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const eng = await import('./engine.js?v=val112');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val63');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
@@ -1312,7 +1312,8 @@ class Component extends DCLogic {
     const c=this.combat;
     if(!c){ this._t=null; return; }
     if(this.state.tuto){ this._t=setTimeout(()=>this.tick(), 300); return; }   // ★튜토리얼 팝업이 떠 있는 동안은 로그를 멈춘다 — 읽는 사이 전투가 끝나버린다
-    if(c.revealed < c.res.log.length){ c.revealed++; this.setCombatFx(c); this.forceUpdate(); this._t=setTimeout(()=>this.tick(), this.combatDelay(c)); }
+    // ★연출 오류가 전투 재생을 멈추지 않게 — setCombatFx가 던져도 다음 줄 예약은 반드시 한다(A0.0125 · 출혈 틱 정지 사고)
+    if(c.revealed < c.res.log.length){ c.revealed++; try{ this.setCombatFx(c); }catch(e){ console.error('setCombatFx',e); } this.forceUpdate(); this._t=setTimeout(()=>this.tick(), this.combatDelay(c)); }
     else { this._t=null; this.finishCombat(); }
   }
   setCombatFx(c){
@@ -1358,7 +1359,8 @@ class Component extends DCLogic {
       return;
     }
     if(ln && ln.type==='dot' && ln.status==='bleed'){
-      const tg=ln.who; (c.woundTick=c.woundTick||{})[tg]=Date.now();   // 상처가 틱마다 살짝 더 벌어진다 const f=tg==='monster'?'hpM':'hpP', prev=c.res.log[idx-1];
+      const tg=ln.who; (c.woundTick=c.woundTick||{})[tg]=Date.now();   // 상처가 틱마다 살짝 더 벌어진다
+      const f=tg==='monster'?'hpM':'hpP', prev=c.res.log[idx-1];   // ★A0.0122~0124: 이 선언이 위 줄 주석 뒤에 붙어 실행되지 않았다 → 출혈 틱 줄에서 ReferenceError → 전투 재생 정지
       const before=prev?prev[f]:(tg==='monster'?c.mProf.maxHp:c.prof.maxHp);
       c.fxSeq=(c.fxSeq||0)+1;
       const d={ seq:c.fxSeq, type:'bleed', dot:true, target:tg, dmg:ln.dmg||0, share:before>0?(ln.dmg||0)/before:0, at:Date.now(), rx:0.3+Math.random()*0.4, ry:0.12+Math.random()*0.22, dir:Math.random()<.5?-1:1, jit:Math.random() };
@@ -1462,7 +1464,7 @@ class Component extends DCLogic {
     }
     if(res.winner==='player'){
       const OBJ=!!(c.mProf&&c.mProf.passive);   // 오브제 — 퀘스트 소탕·연승·보스 확률·성장 제외 · 사토는 고정 범위(SatoMin~Max)
-      if(!OBJ){ this.qOnKill(c.mProf&&c.mProf.id); this.qOnWin(); this.eng.binderKill(this.gs,c.mProf&&c.mProf.id); }        // 퀘스트: 소탕 카운트 + 연전 연승 누적 · 바인더 처치 기록
+      if(!OBJ){ this.qOnKill(c.mProf&&c.mProf.id); this.qOnWin(); this.eng.binderKill(this.gs,c.mProf&&c.mProf.id,c.zoneId); }        // 퀘스트: 소탕 카운트 + 연전 연승 누적 · 바인더 처치 기록
       if(OBJ) this.objOnBreak(c);   // 돌파 오브제(강화 철문 등) — 부수면 다음 조우 덱을 Object.OnBreak로 고정
       const loot = this.eng.rollLoot(c.mProf.id, c.zoneId);
       { const sr=this.storyRaidOn(); if(sr&&!sr.got){ if(sr.r.noloot) loot.length=0;   // 스토리 레이드 noloot — 아이템 드랍 없음(사토는 그대로)
@@ -9746,7 +9748,7 @@ void main(){
   // 단말기 메뉴 → 도시 카드 줄 + 존 탭 + 원통 캐러셀 + 정보 줄 + [상세정보]. 상세 = 아트 전체 → 스크롤하면 글 판이 아트를 절반쯤 덮는다.
   // 카드 4단계: 미조우 = 뒷면 · 조우만 = 흑백 · 처치 = 등급 테두리·이펙트·상세(STAT·INSTALL ??) · 인스톨 1+ = 전부 공개.
   binderSt(mid){ const r=this.gs.binder&&this.gs.binder[mid]; if(!r) return 0; const i=this.eng.N(r.i,0); return i>0?2+Math.min(3,i):(this.eng.N(r.k,0)>0?2:(r.m?1:0)); }
-  binderNew(mid){ const r=this.gs.binder&&this.gs.binder[mid]; return !!(r&&r.n); }   // 첫 처치 후 아직 상세를 안 본 몬스터
+  binderNew(mid,zid){ const r=this.gs.binder&&this.gs.binder[mid]; return !!(r&&r.n&&(!zid||!r.nz||r.nz===zid)); }   // 첫 처치 후 아직 상세를 안 본 몬스터 · zid를 주면 처치한 존에서만 참(여러 존 몬스터가 전부 반짝이지 않게)
   binderAnyNew(ids){ const B=this.gs.binder||{}; return (ids||Object.keys(B)).some(id=>B[id]&&B[id].n); }
   // NEW 칩 = 등급 칩과 같은 깎인 판·튀어나옴(rlLvlPop) + 반짝임(rlNewGlow · 무전기 점과 같은 박자) · 색 = 퀘스트 [신규]
   binderNewTag(key){ const c='#C19E6F';
@@ -9847,12 +9849,12 @@ void main(){
         ...zones.map((zz,i)=>{ const on=i===zi;
           return h('div',{key:zz.ZoneID,ref:on?(el=>{ if(el&&this._bndZoneSeen!==zz.ZoneID){ this._bndZoneSeen=zz.ZoneID; try{ el.scrollIntoView({inline:'nearest',block:'nearest'}); }catch(_){ } } }):null,onClick:()=>{ if(i!==zi) this.setState({binderZone:i,binderAct:0}); },style:{flex:'0 0 auto',display:'flex',alignItems:'center',gap:6,padding:'8px 0 10px',cursor:'pointer',color:on?T.hi:'#6F7276',boxShadow:on?'inset 0 -2px 0 '+T.hi:'none'}},
             h('span',{style:{position:'relative',display:'inline-block',...this.titleF(),fontSize:14,lineHeight:'14px'}}, this.ttx(this.tx(zz,'ZoneName'),14),
-              this.binderAnyNew(this.binderMons(zz.ZoneID))? h('span',{key:'d',style:{position:'absolute',right:-8,top:-2,width:5,height:5,borderRadius:'50%',background:'#2FBF71',animation:'rlCommsDot 2.4s ease-in-out infinite'}}) : null)); })),   // 숫자 없이 이름만 · 신규 몬스터가 있는 존 = 무전기·교신 탭과 같은 알림 점(5px 초록 · 같은 깜빡임 · 글자 오른쪽 위)
+              this.binderMons(zz.ZoneID).some(x=>this.binderNew(x,zz.ZoneID))? h('span',{key:'d',style:{position:'absolute',right:-8,top:-2,width:5,height:5,borderRadius:'50%',background:'#2FBF71',animation:'rlCommsDot 2.4s ease-in-out infinite'}}) : null)); })),   // 숫자 없이 이름만 · 신규 몬스터가 있는 존 = 무전기·교신 탭과 같은 알림 점(5px 초록 · 같은 깜빡임 · 글자 오른쪽 위)
       list.length? this.binderRing(list,(z&&z.ZoneID)||'z') : h('div',{style:{flex:1}}),
       // 정보 줄 — 이름(구운 글씨) · 등급 칩(카드와 같음) · 인스톨 칸 3개. 안내 문구는 두지 않는다(사용자 10-29)
       // 이름 40(사용자 10-29 · 20의 2배) · 등급 칩은 이름 위 왼쪽 · 인스톨 칸은 이름 줄 오른쪽
       h('div',{style:{flex:'0 0 auto',padding:'0 24px',height:80,display:'flex',flexDirection:'column',justifyContent:'flex-end',gap:4}},
-        h('div',{style:{height:22,display:'flex',alignItems:'center',gap:6}}, (v>=2&&mid&&this.binderNew(mid))? this.binderNewTag(mid) : null, v>=2&&mid? this.binderGradeChip(this.binderGk(mid),mid) : null),   // NEW = 등급 칩 왼쪽
+        h('div',{style:{height:22,display:'flex',alignItems:'center',gap:6}}, (v>=2&&mid&&this.binderNew(mid,z&&z.ZoneID))? this.binderNewTag(mid) : null, v>=2&&mid? this.binderGradeChip(this.binderGk(mid),mid) : null),   // NEW = 등급 칩 왼쪽
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,minWidth:0}},
           // 긴 이름(영문 The Lingering Manager 등)은 칸에 맞을 때까지 40→28px로 줄인다 · 줄 높이를 넉넉히 둬 g·y 아래가 안 잘리게(사용자 10-29)
           h('span',{ref:el=>{ if(!el) return; let fs=40; el.style.fontSize=fs+'px'; while(el.scrollWidth>el.clientWidth+1&&fs>28){ fs-=2; el.style.fontSize=fs+'px'; } },
