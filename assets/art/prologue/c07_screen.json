@@ -1,0 +1,1 @@
+{"size": [768, 1360], "screen": {"x0": 107, "x1": 664, "y0": 432, "y1": 789}, "backdrop": "c05_bg.webp tinted multiply [0.30,0.38,0.52]", "note": "screen glass is transparent in c07_fg; draw the screen animation behind it"}
