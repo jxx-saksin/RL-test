@@ -117,7 +117,8 @@ export const DATA = {
       "binder_install_min_1": 10,
       "binder_install_min_2": 30,
       "binder_install_min_3": 60,
-      "binder_install_boss_mult": 3
+      "binder_install_boss_mult": 3,
+      "pass_start": 30
   },
   "primaryStats": [
     {"PrimaryStatID": "stat_str", "StatName_KR": "힘", "StatName_EN": "Strength", "Role_KR": "물리적 힘과 공격력 중심", "Role_EN": "Raw power and attack", "GrowthCondition": "공격이 적에게 명중(적중)한 횟수", "GrowthPointPerTrigger": 0.6, "Status": "Planning", "Notes": "1차 스탯", "LastUpdated": 46310},

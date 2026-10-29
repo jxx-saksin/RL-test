@@ -444,9 +444,11 @@ const AMB = {
 const AMB_BAG = ['steps','steps','steps','steps','murmur','murmur','murmur','door','door','drone'];
 const AMB_GAIN = 1.0;   // 환경음 전체 크기(효과음 마스터 대비) — 실기 청취로 조정
 const AMB_GAP = [8, 25];   // 가끔 소리 간격(초)
+const AMB_V = { amb_bed_4:2, amb_bed_5:2 };   // 같은 이름으로 다시 구운 파일 — 캐시 끊기(10-29 폰 대역 기준 재굽기)
+const AMB_EVT_GAIN = 0.25;   // 가끔 소리 크기 배수 — 0.25 ≈ −12dB(사용자 10-29 '환경음이 커서 배경 곡이 안 들린다'→−6 · '환경음 반으로 더'→−12 · 폰 대역 실측 곡 −39~−42 vs 가끔 소리 −32~−39)
 // 배경 곡 — 환경음 위에 2곡 중 하나씩(직전과 다른 것 = 번갈아). 겹치지 않고 곡 사이에 쉼이 있다(사용자 2026-10-21). 파일은 RMS −38dB로 구워 둠.
-const AMB_RAIN_GAIN = 0.25;   // 바탕 비 크기(굽기 대비 배수) — 0.25 ≈ −12dB(사용자 10-21 '비가 너무 크다'→두 번 더 낮춤)
-const AMB_BED_GAIN = 1.26;   // 곡 크기(굽기 RMS 대비 배수) — 1.26 ≈ +2dB(0.63 기준 +6dB, 사용자 10-21 '곡 +6'). 실기 청취로 조정
+const AMB_RAIN_GAIN = 0.0625;   // 바탕 비 크기(굽기 대비 배수) — 0.0625 ≈ −24dB(사용자 10-21 '비가 너무 크다'→−12dB · 10-29 '물소리가 여전히 크다'→−18 · '환경음 반으로 더'→−24)
+const AMB_BED_GAIN = 1.26;   // 곡 크기(굽기 RMS 대비 배수 · 10-29부터 굽기 기준 = 폰 대역 300Hz~ RMS −38dB) — 1.26 ≈ +2dB(0.63 기준 +6dB, 사용자 10-21 '곡 +6'). 실기 청취로 조정
 const AMB_BED_GAP = [15, 30];   // 곡이 끝난 뒤 다음 곡까지 쉬는 시간(초) — 사용자 10-21: 15~30초(처음 25~70초에서 줄임)
 const AMB_BED_FIRST = [8, 20];   // 환경음이 시작된 뒤 첫 곡까지(초)
 const AMB_BED_FADE = [3, 4];   // 곡 페이드인·페이드아웃(초) — 파일엔 안 굽고 코드가 건다
@@ -604,7 +606,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 130;
+const TITLE_VER = 131;
 const TITLE_DATE = '1029';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -862,8 +864,8 @@ class Component extends DCLogic {
   async componentDidMount(){
     document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
-      const eng = await import('./engine.js?v=val119');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val70');
+      const eng = await import('./engine.js?v=val120');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val71');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -1826,7 +1828,7 @@ class Component extends DCLogic {
     if(!this._ambVis && typeof document!=='undefined'){ this._ambVis=true; document.addEventListener('visibilitychange',()=>this.ambSync()); }
     const want=this.ambWant(); if(want && !this._ambOn) this.ambStart(); else if(!want && this._ambOn) this.ambStop(); }
   ambLoad(){ const ctx=this._ac; if(!ctx||this._ambLoaded) return; this._ambLoaded=true; this._ambBufs={};
-    Object.values(AMB).flat().forEach(id=>{ fetch('assets/sound/amb/'+id+'.m4a').then(r=>r.arrayBuffer())
+    Object.values(AMB).flat().forEach(id=>{ fetch('assets/sound/amb/'+id+'.m4a'+(AMB_V[id]?'?v='+AMB_V[id]:'')).then(r=>r.arrayBuffer())
       .then(a=>new Promise((ok,no)=>ctx.decodeAudioData(a,ok,no))).then(b=>{ this._ambBufs[id]=b; }).catch(()=>{}); }); }
   ambStart(){ const ctx=this._ac; this.ambLoad(); this._ambOn=true; this._ambGen=(this._ambGen||0)+1; const gen=this._ambGen;
     try{ if(ctx.state==='suspended'&&ctx.resume) ctx.resume().catch(()=>{}); }catch(_){ }
@@ -1877,7 +1879,7 @@ class Component extends DCLogic {
     const ids=AMB[cat].filter(id=>this._ambBufs&&this._ambBufs[id]); if(!ids.length) return;
     this._ambLast=this._ambLast||{}; const pool=ids.length>1?ids.filter(id=>id!==this._ambLast[cat]):ids; const id=pool[Math.floor(Math.random()*pool.length)]; this._ambLast[cat]=id;
     try{ const src=ctx.createBufferSource(); src.buffer=this._ambBufs[id];
-      const g=ctx.createGain(); g.gain.value=Math.pow(10,(-3+Math.random()*5)/20);   // 크기 −3~+2dB
+      const g=ctx.createGain(); g.gain.value=AMB_EVT_GAIN*Math.pow(10,(-3+Math.random()*5)/20);   // 크기 −3~+2dB(× AMB_EVT_GAIN)
       let node=src.connect(g);
       if(ctx.createStereoPanner){ const pn=ctx.createStereoPanner(); pn.pan.value=Math.random()*1.2-0.6; node=node.connect(pn); }
       node.connect(this._ambBus); src.start(); this._ambSrcs.push(src); src.onended=()=>{ this._ambSrcs=(this._ambSrcs||[]).filter(x=>x!==src); };
@@ -6104,7 +6106,7 @@ void main(){
     if(['tap','zone','safehouse','character','inventory','vendorMenu','vendor','comms'].indexOf(s)>=0 && this.raidWarnRows().length) return null;   /* 체력·스태미너 50% 이하 = 레이드로 떠밀지 않는다(경고 무전 뒤 돌아갈지는 유저 몫) */
     if(s==='zone') return this.state.modalZone? 'zone-go' : 'zone-'+zid;
     if(s==='tap') return this._tapDone? null : 'tap-card';
-    if(s==='vendorMenu'||s==='vendor') return 'shop-back';
+    if(s==='vendorMenu'||s==='vendor') return this.shopExitG();
     if(['combat','sortieLoad','result','lootmanage','returnheal'].indexOf(s)>=0) return null;
     return 'nav-zone'; }
   // 전리품 화면 손 안내(4번 until 아이템) — 뒤집기 → 아래로 끌어 가방 → [가방] → 카드를 아래로(주머니 잠금) → [완료]
@@ -6188,7 +6190,7 @@ void main(){
   facTermCheck(){ if(!this.facTermGuideOn()||this.radio) return; const j=this.facTermJob(); if(j&&j.done) this.facTaskDone('disk'); }
   facGuide(){ const wb=this.facWbGuideOn(), tm=this.facTermGuideOn(); if(!wb&&!tm) return undefined; const s=this.state.screen;
     if(s==='hideout') return tm? 'hide-terminal' : 'hide-workbench';
-    if(s==='hideFac'){ const f=this.state.facId; if(f==='terminal'&&tm) return 'hide-btn-disk'; if(f==='workbench'&&wb) return 'hide-btn-disassemble'; return 'shop-back'; }
+    if(s==='hideFac'){ const f=this.state.facId; if(f==='terminal'&&tm) return 'hide-btn-disk'; if(f==='workbench'&&wb) return 'hide-btn-disassemble'; return 'hide-btn-exit'; }   // 나가기 = 아래 큰 [나가기](사용자 10-29 — 왼쪽 위 작은 아이콘 대신)
     if(tm&&s==='disk') return this.facTermJob()? null : 'disk-row';
     if(tm&&s==='diskInsert') return (this.facTermJob()||this.state.diskAnim)? null : 'disk-cd|up';
     if(wb&&s==='disa'){ const job=this.disaJob();
@@ -6259,7 +6261,7 @@ void main(){
   tidyGuide(){ const T=this.storyMap().tidy||{}, s=this.state.screen, seg=this.state.seg||'bag';
     if(!T.said||T.st==='intro'||T.st==='end') { if(T.st==='grip'||T.st==='vault'||T.st==='out'){ /* 아직 말 안 함 = 소지품으로 데려가기 */ } else return null; }
     if(RAID_SCREENS.indexOf(s)>=0) return null;
-    if(s==='vendorMenu'||s==='vendor') return 'shop-back';
+    if(s==='vendorMenu'||s==='vendor') return this.shopExitG();
     if(s!=='inventory') return 'nav-inventory';
     if(T.st==='out'){ if(seg!=='vault') return 'vault-tab'; if(!T.said) return null;
       if(this.state.filter!=='약품') return 'vcat-약품';   /* 약품 칩을 눌러 정렬한 뒤 */
@@ -6273,10 +6275,12 @@ void main(){
   storyCallId(q){ const r=this.storyCallRows(q)[0]; try{ return String(JSON.parse(String(r.Trigger||'')).id||''); }catch(_){ return ''; } }
   storyCallAuto(q){ return this.storyCallRows(q).some(r=>{ try{ return ['auto','inv','hub'].indexOf(JSON.parse(String(r.Trigger||'')).id)>=0; }catch(_){ return false; } }); }   /* inv도 자동 호출 — 아니면 내비가 캐릭터 화면으로 잠긴다 */
   // 무료 1회(보상 free) — gs.story.free = { heal:1 } · 쓰면 지운다
+  // 상점 나가기 손 안내 — 상점 메뉴면 아래 큰 [나가기](svc-exit · 사용자 10-29) · 대화 중(버튼이 없음)·서비스 화면은 왼쪽 위 뒤로가기
+  shopExitG(){ return (this.state.screen==='vendorMenu'&&!this.talk)? 'svc-exit' : 'shop-back'; }
   storyFreeOnce(k){ const f=this.gs&&this.gs.story&&this.gs.story.free; return !!(f&&f[k]); }
   // 상점까지 손 안내 — 다른 상점 메뉴면 뒤로 · 프로토콜 지구면 그 상점 행 · 그 밖은 하단 프로토콜 지구
   storyGuideToVendor(vid){ const s=this.state.screen;
-    if(s==='vendorMenu') return this.state.vendor===vid? null : 'shop-back';
+    if(s==='vendorMenu') return this.state.vendor===vid? null : this.shopExitG();
     if(s==='safehouse') return 'shop-'+vid;
     if(s==='vendor') return null;
     return 'nav-safehouse'; }
@@ -6290,7 +6294,7 @@ void main(){
     if(this.state.tuto||this.state.sel||this.state.wake||this.radio||this.talk||this.storyRew) return null;
     if(this.tidyActive()) return this.tidyGuide();
     { const fg=this.facGuide(); if(fg!==undefined) return fg; }   /* 조립대 분해 안내(챕터3) */
-    if(this.storyGuide()){ if(s==='inventory') return this.state.seg==='vault'? null : 'vault-tab'; return 'nav-inventory'; }
+    if(this.storyGuide()){ if(s==='inventory') return this.state.seg==='vault'? null : 'vault-tab'; if(s==='vendorMenu'||s==='vendor') return this.shopExitG(); return 'nav-inventory'; }   /* 상점 안엔 하단 내비가 없다 → 먼저 나가기(10-29) */
     if(this.storyReport()){ if(s==='comms') return this.state.commsTab==='news'? null : 'comms-move'; if(s==='character') return 'comms-btn'; if(s==='vendorMenu') return null; return 'nav-character'; }
     // 3번 레이드 — 존까지 안내 · 전투 뒤엔 누를 수 있는 버튼 · 휴식은 카드(위로 올려 사용) → [완료]
     { const sr=this.storyRaid(); if(sr){ const c=this.combat;
@@ -6321,7 +6325,7 @@ void main(){
         if(this.storyCallRows(p).length){   // 5번: 캐릭터 → 무전기 → (맥 호출) → 이동 줄 → 철물점
           if(s==='comms') return this.state.commsTab==='news'? null : 'comms-move'; if(s==='character') return 'comms-btn';
           if(RAID_SCREENS.indexOf(s)>=0) return null;
-          if(s==='vendorMenu'||s==='vendor') return this.state.vendor===gv? null : 'shop-back';
+          if(s==='vendorMenu'||s==='vendor') return this.state.vendor===gv? null : this.shopExitG();
           return 'nav-character'; }
         return this.storyGuideToVendor(gv); } }
     // 5번 수리 — 철물점 [수리하기] → 첫 장비 → [수리] → 결과 [확인] → 뒤로가기(완료 대화)
@@ -10456,7 +10460,9 @@ void main(){
   // 별도 키가 있으면 그 값이 이긴다(세이브 초기화·처음부터 시작해도 패스는 유지 — 고정 자산).
   loadPass(){ const g=this.gs; const p=this.readPass();
     if(p){ g.pass=Math.max(0,Math.min(this.passCap(),this.eng.N(p.pass,0))); g.passAt=this.eng.N(p.passAt,Date.now()); g.passBuyN=this.eng.N(p.buyN,0); g.passBuyUntil=this.eng.N(p.buyUntil,0); }
-    else { if(g.pass==null) g.pass=this.passThreshold(); if(!g.passAt) g.passAt=Date.now(); this.savePass(); } }
+    else { if(g.pass==null) g.pass=this.passStart(); if(!g.passAt) g.passAt=Date.now(); this.savePass(); } }
+  // 처음 받는 패스 — Config pass_start(사용자 10-29 · 30회) · 없으면 자동 충전 기준(옛 동작) · 상한 안으로
+  passStart(){ const N=this.eng.N, v=N(this.eng.DATA.config.pass_start, this.passThreshold()); return Math.max(0,Math.min(this.passCap(),v)); }
   // 실시간 경과분 정산. 보유가 threshold 이하일 때만 regen 간격마다 1회씩, threshold까지만 채운다.
   passTick(){
     const g=this.gs; if(!g) return;
