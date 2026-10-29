@@ -604,7 +604,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 126;
+const TITLE_VER = 127;
 const TITLE_DATE = '1029';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -904,9 +904,13 @@ class Component extends DCLogic {
     const sv=this.readSave();
     const notice=this.noticePending();
     if(sv){ this.applySave(sv); this.setState({ ready:true, resumeBanner:true, notice }); }
-    else { this.newRun(true); this.setState({ ready:true, notice }); setTimeout(()=>this.storyBoot(),0); }
+    else { this.newRun(true); const fresh=this.storyFresh();
+      // 새 게임 도입 = 로딩이 끝난 그 프레임부터 검은 언어 고르기(사용자 2026-10-29 — 뒤에 열어 둔 보건소가 비치면 안 된다) · 업데이트 공지는 첫 부팅에선 생략(다음 부팅부터 뜬다)
+      this.setState({ ready:true, notice: fresh?false:notice, langPick: fresh&&!this._langPicked }); setTimeout(()=>this.storyBoot(),0); }
     this.stopGyro();
-    if(this._forcedReset){ this._forcedReset=false; setTimeout(()=>this.flash(this.t('save_forced_reset')), 400); }
+    if(this._forcedReset){ this._forcedReset=false;
+      if(!sv&&this.storyFresh()) this._resetToastPending=true;   // 새 게임 도입 중이면 눈 뜨는 연출이 끝난 뒤 고른 언어로(wakeDone)
+      else setTimeout(()=>this.flash(this.t('save_forced_reset')), 400); }
     // 못 받은 탭이 있으면 알린다 — 조용히 구 데이터로 도는 것보다 낫다.
     if(this._skippedTabs && this._skippedTabs.length){ console.warn('sheet tabs skipped:', this._skippedTabs.join(', '));   // 어느 탭인지는 콘솔에만 — 토스트는 짧게
       setTimeout(()=>this.flash(this.t('boot_partial'), true), 900); }
@@ -5140,6 +5144,7 @@ void main(){
     return h('div',{key:'langpick',style:{position:'absolute',inset:0,zIndex:95,background:'#000',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16,animation:'rlFade .3s ease-out'}},
       b('kr','한국어'), b('en','English')); }
   wakeDone(){ if(this._wakeT){ clearTimeout(this._wakeT); this._wakeT=null; } if(this.state.wake) this.setState({wake:false});
+    if(this._resetToastPending){ this._resetToastPending=false; setTimeout(()=>this.flash(this.t('save_forced_reset')),400); }
     if(this._talkHold){ this._talkHold=false; if(this.talk&&this.talk.si<0) this.talkNext(); } }
   tutoOverlay(){
     const t=this.state.tuto, n=t?TUTO[t.k]:0; if(!n) return null;
@@ -6344,8 +6349,9 @@ void main(){
     if(['cmb_flee1','death1','cmb_boss1','loot_reget1','inv_move1','inv_move2','inv_compare1','growth_tag1','inv_merge1','buff_use1'].indexOf(k)>=0 && this.storyRaid()) return true;
     return ['inv_compare1','growth_tag1','inv_move1','inv_move2'].indexOf(k)>=0 && !!(this.storyGuide()||this.storyReport()); }
   // 새 게임 도입 — 첫 스토리 퀘스트가 살아 있으면 눈 뜨는 연출 → 기버 상점 대화
-  storyBoot(){ const q=this.storyNext(), m=this.storyMap();
-    if(!q||m.cur||Object.keys(m.done).length) return;
+  storyFresh(){ const q=this.storyNext(), m=this.storyMap(); return !!q&&!m.cur&&!Object.keys(m.done).length; }   // storyBoot이 도입(언어→프롤로그→눈 뜨기)을 탈 상태인가
+  storyBoot(){ const q=this.storyNext();
+    if(!this.storyFresh()) return;
     this._talkHold=true;   // 첫 대사는 눈을 뜬 뒤에(연출 뒤에서 타자기가 먼저 끝나 버리지 않게)
     const vid=String(q.GiverVendorID||'vendor_clinic'); this._wakeVid=vid;
     if(!(this.gs&&this.gs.prologueSeen)) this.prologuePreload();   // 프롤로그 이미지(약 2MB)를 언어 고르는 동안 미리 받는다 — 새 게임에서만
