@@ -604,7 +604,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 127;
+const TITLE_VER = 128;
 const TITLE_DATE = '1029';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -1821,7 +1821,7 @@ class Component extends DCLogic {
   // n종 중 직전(lastKey 필드)과 다른 번호 1~n — 같은 소리 연속 방지(스와이프·플립·교신·클릭·딜 공용).
   sfxPickN(n,lastKey){ let k; do{ k=1+Math.floor(Math.random()*n); }while(k===this[lastKey]); this[lastKey]=k; return k; }
   // ---- 환경음(AMB) ----
-  ambWant(){ return !!(this.state.ready && this.gs && !AMB_OFF.has(this.state.screen) && !(typeof document!=='undefined' && document.hidden)); }
+  ambWant(){ return !!(this.state.ready && this.gs && !AMB_OFF.has(this.state.screen) && !this.state.langPick && !this.state.prologue && !(typeof document!=='undefined' && document.hidden)); }   // 언어 고르기·프롤로그 동안은 끈다 — 지구 소리는 눈 뜨는 연출부터(사용자 10-29)
   ambSync(){ const ctx=this._ac; if(!ctx) return;   // 컨텍스트는 첫 제스처에서 생긴다 — 그 전엔 조용히 대기
     if(!this._ambVis && typeof document!=='undefined'){ this._ambVis=true; document.addEventListener('visibilitychange',()=>this.ambSync()); }
     const want=this.ambWant(); if(want && !this._ambOn) this.ambStart(); else if(!want && this._ambOn) this.ambStop(); }
