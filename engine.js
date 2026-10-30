@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val65';
-import { buildIndex } from './sheet-loader.js?v=val72';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
+import { DATA as FALLBACK } from './data/game-data.js?v=val68';
+import { buildIndex } from './sheet-loader.js?v=val75';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
 
@@ -72,6 +72,7 @@ const V3_STRINGS = {
   status_shock:['감전','Shock'],   // 5번째 상태이상(10-28) — 시트 UIString에 행이 오면 시트가 이긴다
   usb_install_max:['3번 모두 인스톨한 데이터다.','All 3 installs are done.'], usb_install_done:['완성','Complete'],
   hide_specimen_binder:['표본 바인더','Specimen Binder'], binder_detail_btn:['상세정보','Details'], binder_unknown:['알수없음','Unknown'],   // 표본 바인더(10-29)
+  combat_next_battle:['다음 전투','Next battle'],   // 전투 결과 카드 사이 금색 버튼(10-30)
   // 퀘스트 (일일) — 시트 UIString에 같은 키가 들어오면 시트가 이긴다
   quest_tab_daily:['일일','Daily'], quest_tab_weekly:['주간','Weekly'], quest_tab_story:['스토리','Story'],
   quest_chip_new:['신규','New'], quest_chip_run:['진행중','Active'], quest_chip_done:['완료','Done'],
@@ -211,33 +212,14 @@ const V3_STRINGS = {
   boot_tip_label:['TIP','TIP'],
   loot_reopen:['전리품 보기','View loot'],
   // 튜토리얼 팝업(B층) — 정본은 UIString 시트. 여기는 시트를 못 받았을 때의 폴백.
-  tuto_inv_move1_1:['소지품속 아이템의 핸들부분을 드래그 해서 옮겨보세요.','Drag an item by its handle to move it.'],
-  tuto_inv_move1_2:['주머니에서 가방으로, 가방에서 주머니로 옮길 수 있습니다.','You can move items between your pocket and your bag.'],
-  tuto_inv_move1_3:['주머니에 있는 아이템은 귀환에 실패, 사망해도 사라지지 않아요.','Items in your pocket survive even if you die or fail to extract.'],
-  tuto_inv_move2_1:['보관함에 있는 아이템을 밀어 소지품으로 보내세요.\\n소지품, 가방 에서도 아이템을 밀어서 꺼낼 수 있어요.','Swipe an item in the vault to send it to your belongings.\\nYou can swipe items out of your belongings and bag too.'],
   tuto_inv_compare1_1:['보관함, 소지품에서 장비 아이템을 눌러보세요.','Tap a gear item in the vault or your belongings.'],
   tuto_inv_compare1_2:['현재 착용중인 장비의 정보를 비교해 볼 수 있습니다.\\n착용 중인 장비가 있을때만 확인가능합니다.','You can compare it against the gear you have equipped.\\nThis only works when something is equipped in that slot.'],
   tuto_inv_merge1_1:['보관함을 아래로 당기면 흩어진 아이템을 하나로 합칠 수 있어요.','Pull down in the vault to merge scattered stacks into one.'],
-  tuto_loot_get1_1:['몬스터에게서 드랍한 아이템을 아래로 드래그해 가방에 넣을 수 있습니다.','Drag a dropped item down to put it in your bag.'],
-  tuto_loot_get1_2:['가방 안의 아이템을 바닥으로 꺼낼 수 있습니다.\\n더 중요한 아이템을 챙겨보세요.','You can drag items back out of your bag onto the ground.\\nMake room for what matters more.'],
-  tuto_loot_get1_3:['가방에서 우측 상단의 자물쇠를 눌러 아이템을 주머니에 보관하세요.\\n주머니에 2개의 아이템을 넣을 수 있습니다.','Tap the lock at the top right to stow an item in your pocket.\\nYour pocket holds two items.'],
-  tuto_loot_get1_4:['자물쇠를 잠가 아이템을 주머니에 보관하세요.\\n사망 시에도 아이템을 지킬 수 있습니다.','Lock an item to keep it in your pocket.\\nPocketed items survive death.'],
   tuto_death1_1:['사망 시 소지한 가방과 가방 안 내용물을 모두 잃습니다.','If you die, you lose your bag and everything inside it.'],
   tuto_death1_2:['주머니 속 아이템과 장착한 장비는 사망 시에도 지킬 수 있습니다.\\n하지만 착용한 장비의 내구도가 떨어질 수 있습니다.','Pocketed items and equipped gear survive death.\\nBut your equipped gear may lose durability.'],
   tuto_cmb_flee1_1:['전투 시 몬스터 조우 2회 이전에는 도망으로 표시되며, 확률이 낮습니다.','Before your second encounter, leaving counts as fleeing \u2014 and rarely works.'],
   tuto_cmb_flee1_2:['전투 2회 이후부터는 복귀가 안전하게 가능합니다.','From the second encounter on, you can extract safely.'],
   tuto_cmb_boss1_1:['전투가 지속될수록 해당 지역의 보스 출현율이 올라갑니다.','The longer you fight in a zone, the higher its boss chance climbs.'],
-  tuto_loot_reget1_1:['사망한 몬스터의 카드를 눌러 전리품을 다시 획득할 수 있습니다.','Tap a fallen monster\u2019s card to go back for its loot.'],
-  tuto_loot_reget1_2:['사망한 몬스터에게 미획득 전리품이 있을 경우 하단에서\\n다시 전리품을 확인하고 획득할 수 있습니다.','If a fallen monster still holds loot, the button below\\nlets you open it again and take what is left.'],
-  tuto_bar_appr1_1:['미감정 아이템이 있다면 주점에서 감정을 받아보세요.\\n감정에는 술이 필요하며 주점에서 구할 수 있습니다.','Bring unappraised items to the tavern to have them appraised.\\nAppraisal needs liquor, which the tavern also sells.'],
-  tuto_bar_appr1_2:['감정받고 싶은 미감정 아이템을 선택하세요.','Pick the unappraised item you want appraised.'],
-  tuto_bar_appr1_3:['소지 중인 술을 3개까지 선택 가능합니다.\\n술을 추가하여 감정의 폭을 증가시킬 수 있습니다.','You can add up to three bottles.\\nMore liquor widens the appraisal range.'],
-  tuto_bar_appr1_4:['감정된 아이템을 확인해보세요.\\n행운을 빕니다.','See what the appraisal turned up.\\nGood luck.'],
-  tuto_pawn_hag1_1:['귀중품을 획득했다면 전당포에서 값을 매겨보세요.','Got a valuable? Take it to the pawnshop to have it priced.'],
-  tuto_pawn_hag1_2:['원하는 귀중품을 위로 올려 값을 물어보세요.','Swipe a valuable up to hear an offer.'],
-  tuto_pawn_hag1_3:['마음에 드는 가격이라면 판매하세요.\\n총 3번의 흥정이 가능합니다.','Sell if the offer suits you.\\nYou can haggle up to three times.'],
-  tuto_pass_chg1_1:['우측 상단의 PASS를 눌러\\n레이드에 필요한 패스를 충전할 수 있습니다.','Tap PASS at the top right to top up\\nthe passes your raids need.'],
-  tuto_pass_chg1_2:['10회까지는 30분마다 무료로 충전되며,\\n사토를 쓰면 즉시 충전할 수 있습니다.','The first 10 refill free every 30 minutes.\\nSpend Sato to refill instantly.'],
 };
 export function invalidateUi(){ _uiById = null; _uiByKr = null; }
 
