@@ -883,8 +883,8 @@ class Component extends DCLogic {
   async componentDidMount(){
     document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
-      const eng = await import('./engine.js?v=val133');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val75');
+      const eng = await import('./engine.js?v=val134');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val76');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -1097,7 +1097,9 @@ class Component extends DCLogic {
       disk:Array.isArray(H.disk)?H.disk:(H.disk&&H.disk.id?[H.disk]:[]),
       disks:Array.isArray(H.disks)?H.disks:[], decode:Array.isArray(H.decode)?H.decode:[],
       craft:Array.isArray(H.craft)?H.craft:[], disa:(H.disa&&typeof H.disa==='object'&&H.disa.id)?H.disa:null,
-      lv:Object.assign({storage:1,repair:1,workbench:1,terminal:1}, H.lv||{}) };
+      lv:Object.assign({storage:1,repair:1,workbench:1,terminal:1}, H.lv||{}),
+      ...(H.storTbl!=null? {storTbl:H.storTbl} : {}) };   // ★보관함 표 기준(6번) — 빠뜨리면 다음 로드 때 새 표 Lv2를 옛 Lv2로 오인해 Lv5로 옮긴다(11-01 배포 점검에서 발견)
+    if(eng.storageTableSync) eng.storageTableSync(gs);   // 재구성한 뒤에도 한 번 더(옛 세이브에 storTbl이 없으면 여기서 기록)
     // shopStockAt 기본 0 — 옛 세이브는 재고가 영영 안 돌아오던 상태라, 다음 복귀에 바로 한 번 리셋되게 둔다
     gs.shopStockAt=eng.N(gs.shopStockAt,0);
     // 회전재고는 첫 리셋(복귀 3회) 전에도 깔려 있어야 한다 — 새 세이브·옛 세이브 모두 여기서 한 번만 뽑는다.
