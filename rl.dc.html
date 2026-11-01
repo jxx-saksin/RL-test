@@ -344,6 +344,7 @@ const glProgram=(gl,vert,frag,attr0)=>{ const sh=(t,src)=>{ const o=gl.createSha
 const BUF = '#83B289', DBF = '#C4675D';
 // ===== UI 시안 — 목록 태그 = 모서리 깎인 판(2026-10-17 · 미리보기용) =====
 // 바깥 판 = 테두리색, 1px 안쪽 판 = 바탕색 → 깎인 모서리까지 선이 따라간다. 버튼(10px)의 절반인 5px 깎임.
+const PIP_CUT='polygon(3px 0,100% 0,100% calc(100% - 3px),calc(100% - 3px) 100%,0 100%,0 3px)';   // 인스톨 회차 칸(9~13px) — 같은 깎인 판 문법 · 둥근 모서리 대신(11-02)
 const CUT5='polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px)', CUT4='polygon(3.5px 0,100% 0,100% calc(100% - 3.5px),calc(100% - 3.5px) 100%,0 100%,0 3.5px)';   // 높이 16 판(10-17 '태그가 너무 커' → 20에서 축소)
 const plate=(o,...kids)=>h('span',{key:o.key,style:{display:'inline-flex',flex:'0 0 auto',height:o.h||16,boxSizing:'border-box',padding:1,background:o.bd||'#34373d',clipPath:CUT5}},
   h('span',{style:{display:'inline-flex',alignItems:'center',gap:4,height:'100%',boxSizing:'border-box',padding:o.pad||'0 5px',background:o.bg||'#1d1f24',clipPath:CUT4,
@@ -626,8 +627,8 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 133;
-const TITLE_DATE = '1030';
+const TITLE_VER = 134;
+const TITLE_DATE = '1102';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -883,8 +884,8 @@ class Component extends DCLogic {
   async componentDidMount(){
     document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
-      const eng = await import('./engine.js?v=val134');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val76');
+      const eng = await import('./engine.js?v=val135');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val77');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -4174,6 +4175,9 @@ void main(){
     const deltaTxt=k=>{ const g=gains(k); return g.length? g.map(x=>fmtG(x,1)).join('  ·  ') : null; };
     // 아래 줄 표시 — 약어·구분점은 어두운 회색, 오른 숫자만 밝은 회색(10-30 사용자)
     const deltaEl=k=>{ const g=gains(k), out=[]; g.forEach((x,i)=>{ if(i) out.push(h('span',{key:'s'+i,style:{color:'#55585E'}},'  ·  ')); out.push(h('span',{key:'l'+i,style:{color:'#6F7276'}},x.lb+' '), h('span',{key:'v'+i,style:{color:'#C9CBD0'}},'+'+x.v.toFixed(x.d)+x.u)); }); return out; };
+    // 성장 배수 태그(11-02 A안) — 윗줄 오른쪽 끝 고정 칸. 태그가 하나라도 있으면 네 줄 모두 칸을 비워 둬서 바 길이가 같다.
+    const gtbOf=k=>this.eng.growthMultiplier(this.gs,k)-this.eng.N(this.eng.DATA.config.growth_tag_mult_base,0.5);
+    const anyTag=prim.some(([k])=>gtbOf(k)>0.001);
     return h('div',{ref:el=>this.runGrowthSeq(el),style:{alignSelf:'stretch',margin:'0 16px',background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:'4px 16px'}},
       ...prim.map(([k,kr],idx)=>{
         const g=this.gs.growth[k]; const pct=this.eng.growthPct(this.gs,k);
@@ -4195,13 +4199,15 @@ void main(){
             h('div',{'data-joinbar':'1',style:{flex:1,minWidth:0,position:'relative',height:5,overflow:'hidden',background:'rgb(43,46,50)'}},
               h('div',{'data-fill':'1',style:{position:'absolute',left:0,top:0,height:'100%',width:toP+'%',background:FILL,willChange:'width'}}),
               h('div',{'data-shimmer':'1',style:{position:'absolute',inset:0,pointerEvents:'none',transform:'translateX(-100%)',background:'linear-gradient(90deg, rgba(165,172,178,0) 0%, rgba(165,172,178,0.5) 50%, rgba(165,172,178,0) 100%)'}})),
-            h('span',{'data-num':'1',style:{flex:'0 0 auto',width:30,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:1,color:'#B4B7BD',fontVariantNumeric:'tabular-nums'}}, Math.floor(toP)+'%')),   // 칸 30(바를 길게) · 연한 회색(10-30)
-          // 아래 줄 = 오른 수치(바 시작점에 맞춤) · 성장 태그 칩(X1.5)은 오른쪽
-          ((lvUp>0&&deltaTxt(k))||gtb>0.001)?h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginTop:-4,paddingLeft:92}},   /* 바가 26px 칩의 가운데라 아래로 ~10px 여유 — -4로 바→줄 약 7px · 왼쪽은 칩(82)에서 10px 떨어짐(92) */
-            (lvUp>0&&deltaTxt(k))?h('div',{'data-delta':'1',style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'14px',whiteSpace:'pre',transition:'opacity .35s ease-out'}}, ...deltaEl(k)):h('span'),
-            gtb>0.001?h('span',{style:{fontFamily:T.mono,fontSize:11,color:'#7683F3',background:'#212327',borderRadius:4,padding:'3px 8px',lineHeight:'100%'}}, 'X'+(1+gtb).toFixed(1)):null):null);   // ★표시만 1.0 기준이다 — GROWTH_CHIP 참조
+            h('span',{'data-num':'1',style:{flex:'0 0 auto',width:30,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:1,color:'#B4B7BD',fontVariantNumeric:'tabular-nums'}}, Math.floor(toP)+'%'),   // 칸 30(바를 길게) · 연한 회색(10-30)
+            anyTag? h('span',{style:{flex:'0 0 auto',width:44,display:'flex',justifyContent:'flex-end'}}, gtb>0.001? this.growTag(gtb) : null) : null),   // ★표시만 1.0 기준이다 — GROWTH_CHIP 참조
+          // 아래 줄 = 오른 수치(바 시작점에 맞춤) · 성장 태그는 윗줄로 옮김(11-02 — 아래 줄에 있으면 줄 높이가 스탯마다 달라졌다)
+          (lvUp>0&&deltaTxt(k))?h('div',{style:{display:'flex',alignItems:'center',gap:8,marginTop:-4,paddingLeft:92}},   /* 바가 26px 칩의 가운데라 아래로 ~10px 여유 — -4로 바→줄 약 7px · 왼쪽은 칩(82)에서 10px 떨어짐(92) */
+            h('div',{'data-delta':'1',style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'14px',whiteSpace:'pre',transition:'opacity .35s ease-out'}}, ...deltaEl(k))):null);
       }));
   }
+  // 성장 배수 태그 [X1.5](11-02) — 목록 태그와 같은 깎인 판 · 남색 테두리. 결과 성장·캐릭터 스탯 줄·스탯 팝업 공용(값 = 1+gtb · GROWTH_CHIP)
+  growTag(gtb){ return plate({h:18,bd:'#4E56A8',bg:'#1a1c26',fg:'#9AA3F7',pad:'0 5px'}, h('span',{style:{fontFamily:T.mono,fontSize:11,lineHeight:1}}, 'X'+(1+gtb).toFixed(1))); }
   // 스탯 칩(1-9 · 10-30 1안) — 성장 줄 왼쪽의 깎인 판 [스탯 이름 | 레벨] · 상단 재화 판(curPlate)과 같은 문법. 레벨업 때는 lvPulse가 칩을 키웠다 되돌린다.
   //   경험치 %는 줄 오른쪽 끝(내림 정수 — 99.6%가 '100%'로 보였다가 레벨이 안 넘어가면 안 되니까).
   lvTag(name,lv){ const C5='polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px)', C4='polygon(3.5px 0,100% 0,100% calc(100% - 3.5px),calc(100% - 3.5px) 100%,0 100%,0 3.5px)';
@@ -4538,7 +4544,7 @@ void main(){
     const ins=this.eng.usbInstalls(usb);
     const desc=this.eng.substUsbTokens(this.tx(usb,'Description')||usb.Description||'', usb)||'';
     const cell=(i)=>h('div',{key:i,style:{borderBottom:'1px solid '+LN,display:'flex',flexDirection:'row',padding:'7px 0',justifyContent:'space-between',alignItems:'center',gap:12,boxSizing:'border-box'}},
-      h('div',{style:{display:'flex',gap:3,flex:'0 0 auto'}}, ...Array.from({length:i+1},(_,j)=>h('div',{key:j,style:{width:10,height:11,borderRadius:2,background:i<done?HI:MUT}}))),   // 회차 표시 = 칸 i+1개
+      h('div',{style:{display:'flex',gap:3,flex:'0 0 auto'}}, ...Array.from({length:i+1},(_,j)=>h('div',{key:j,style:{width:10,height:11,clipPath:PIP_CUT,background:i<done?HI:MUT}}))),   // 회차 표시 = 칸 i+1개
       h('div',{style:{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:5}}, ...(ins[i]&&ins[i].length?ins[i]:[{stat:'-',v:0}]).map((g,j)=>
         h('span',{key:j,style:{fontFamily:T.mono,fontSize:12,lineHeight:'100%',color:i<done?HI:LO,textAlign:'right',whiteSpace:'nowrap'}}, g.stat==='-'?'—':this.eng.fxLabel(g.stat,g.v)))));
     return h('div',{style:{position:'relative',width:342,height:fixed?this.lootCardH(inst):'100%',boxSizing:'border-box',background:C1,border:'1px solid '+LN,borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',boxShadow:'0 14px 44px rgba(0,0,0,.5)'}},
@@ -5753,7 +5759,7 @@ void main(){
               h('div',{onClick:()=>this.setState({statPop:k}),style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,cursor:'pointer'}},
                 h('div',{style:{display:'inline-flex',alignItems:'center',gap:5,...this.titleF(),fontSize:14,color:T.hi}}, this.ttx(kr,14),
                   icHelp(12)),   // 누르면 statPopSheet — 2차 능력치 설명 · 12px(2026-10-16 사용자)
-                gtb>0.001?h('span',{style:{fontFamily:T.mono,fontSize:11,color:'#7683F3',background:'#212327',borderRadius:4,padding:'3px 8px',lineHeight:'100%'}}, 'X'+(1+gtb).toFixed(1)):null),   // ★표시만 1.0 기준이다 — GROWTH_CHIP 참조
+                gtb>0.001?this.growTag(gtb):null),   // ★표시만 1.0 기준이다 — GROWTH_CHIP 참조
               h('div',{style:{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:6}},
                 h('div',{style:{display:'flex',alignItems:'baseline',gap:6}},
                   h('span',{style:{fontFamily:T.mono,fontSize:12,color:T.mid}}, 'Lv '+g.growth[k].level),
@@ -7996,7 +8002,7 @@ void main(){
     body.push(h('div',{key:'k',style:{height:13,display:'flex',alignItems:'center',fontFamily:T.sans,fontSize:10,color:MUT}}, role));
     body.push(h('div',{key:'n',style:{height:19,marginTop:8,display:'flex',alignItems:'center',justifyContent:'space-between'}},
       h('span',{style:{display:'inline-flex',alignItems:'center',gap:8,fontFamily:T.sans,fontSize:16,fontWeight:500,color:HI}}, name,
-        gtb>0.001? h('span',{style:{fontFamily:T.mono,fontSize:11,fontWeight:400,color:'#7683F3',background:'#212327',borderRadius:4,padding:'3px 8px',lineHeight:'100%'}}, 'X'+(1+gtb).toFixed(1)) : null),
+        gtb>0.001? this.growTag(gtb) : null),
       h('span',{style:{fontFamily:T.mono,fontSize:13,color:MID}}, 'Lv '+g.growth[k].level)));
     body.push(h('div',{key:'hd',style:{height:14,marginTop:18.5,display:'flex',alignItems:'center',justifyContent:'space-between'}},
       h('span',{style:{fontFamily:T.sans,fontSize:10,color:LO}}, this.en()?'Per point':'1 오를 때 증가'),
@@ -9880,7 +9886,7 @@ void main(){
   installPending(mid,skipSlot){ return this.decodeJobs().filter((j,i)=>j&&j.id&&i!==skipSlot&&(this.eng.byId.usb[j.id]||{}).MonsterID===mid).length; }
   installNext(row){ return this.eng.binderNext(this.gs,row.MonsterID,this.installPending(row.MonsterID)); }
   // 인스톨 칸 3개(카드 모양) — 한 칸 = 1회 · 흰 = 끝남
-  instPips(n,w,hh){ return h('div',{style:{display:'flex',gap:3,flex:'0 0 auto'}}, ...[0,1,2].map(i=>h('div',{key:i,style:{width:w||9,height:hh||10,borderRadius:2,background:i<n?'#EAEBEE':'#4B4D52'}}))); }
+  instPips(n,w,hh){ return h('div',{style:{display:'flex',gap:3,flex:'0 0 auto'}}, ...[0,1,2].map(i=>h('div',{key:i,style:{width:w||9,height:hh||10,clipPath:PIP_CUT,background:i<n?'#EAEBEE':'#4B4D52'}}))); }
   doneTag(){ const c='#85B3C5'; return plate({key:'done',bd:'color-mix(in srgb,'+c+' 70%,transparent)',bg:'#16171b',fg:c,pad:'0 6px'}, this.t('usb_install_done')); }   // 완성 = 아지트 완료 파랑
   dataRow(inst){
     const row=this.eng.byId.usb[inst.id]||{}, n=this.binderInst(row.MonsterID), done=n>=3;
@@ -10067,7 +10073,7 @@ void main(){
           h('span',{ref:el=>{ if(!el) return; let fs=40; el.style.fontSize=fs+'px'; while(el.scrollWidth>el.clientWidth+1&&fs>28){ fs-=2; el.style.fontSize=fs+'px'; } },
             style:{...this.titleF(),fontSize:40,lineHeight:'48px',height:48,display:'block',flex:'1 1 auto',color:v>=2?T.hi:(v===1?'#6F7276':'#4B4D52'),whiteSpace:'nowrap',minWidth:0}}, v>=1&&m?this.ttx(this.tx(m,'MonsterName'),40,48):this.ttx(this.t('binder_unknown'),40,48)),   // 뒷면(미조우) = 알수없음 / Unknown · 흑백(조우만) = 이름을 어두운 글씨로(마주친 적은 있다 · 사용자 10-29)
           v>=2? this.instPips(Math.max(0,v-2),11,12) : null)),
-      h('div',{style:{flex:'0 0 auto',padding:'8px 16px 28px'}},
+      h('div',{style:{flex:'0 0 auto',padding:'16px 16px 28px'}},   // 이름↔버튼 8→16(사용자 11-02 '너무 가까워')
         h('button',{disabled:!can,onClick:can?()=>{ const B=this._bnd; if(B&&B.openAt&&B.list===list) B.openAt(act); else this.setState({binderOpen:mid}); }:null,style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:can?T.hi:'#4B4D52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:can?'pointer':'default'}}, this.t('binder_detail_btn'))));
   }
   binderDetail(mid){
