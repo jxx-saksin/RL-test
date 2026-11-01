@@ -10,6 +10,18 @@ export let DATA = FALLBACK;
 export let byId = buildIndex(FALLBACK).byId;
 let C = DATA.config;
 export function anyItem(id){ return byId.item[id] || byId.weapon[id] || byId.armor[id] || byId.artifact[id] || (byId.talisman && byId.talisman[id]) || (byId.bag && byId.bag[id]) || null; }
+// 공용 재료 변형(2026-11-01 · 12번) — Item.VariantOf = 공용 재료 ID인 행이 그 재료의 '그림·설명' 변형이다.
+// 이름·스택·쓰임은 공용 재료 행 하나를 따르고, 인스턴스의 v(변형 행 ID)가 그림·설명만 바꾼다.
+// 한 칸에 섞여 쌓이며 칸에는 마지막에 들어간 카드의 v가 보인다(rl.dc stackAdd).
+let _variants = null, _variantsData = null;
+export function variantsOf(id){
+  if (_variantsData !== DATA) { _variants = {}; _variantsData = DATA;
+    for (const r of DATA.items || []) { const p = String(r.VariantOf || '').trim(); if (p && p !== '-') (_variants[p] = _variants[p] || []).push(r.ItemID); } }
+  return _variants[id] || [];
+}
+export function pickVariant(id){ const vs = variantsOf(id); return vs.length ? vs[Math.floor(Math.random() * vs.length)] : null; }
+// 화면에 그릴 행(그림·설명) — 변형이 있으면 변형 행, 없으면 본 행
+export function displaySrc(inst){ return (inst && inst.v && byId.item[inst.v]) || anyItem(inst && inst.id) || {}; }
 export function anyName(id){
   const o = anyItem(id);
   if (o){
@@ -73,6 +85,11 @@ const V3_STRINGS = {
   usb_install_max:['3번 모두 인스톨한 데이터다.','All 3 installs are done.'], usb_install_done:['완성','Complete'],
   hide_specimen_binder:['표본 바인더','Specimen Binder'], binder_detail_btn:['상세정보','Details'], binder_unknown:['알수없음','Unknown'],   // 표본 바인더(10-29)
   combat_next_battle:['다음 전투','Next battle'],   // 전투 결과 카드 사이 금색 버튼(10-30)
+  btn_relief:['긴급 구호','Emergency Aid'],
+  enh_guard_use:['순간 경화제 사용','Use Instant Hardener'], enh_guard_count:['보유 {n} / 필요 {k}','Have {n} / Need {k}'], enh_guard_hint:['암시장에서 구할 수 있다','Available at the Black Market'], enh_guard_saved:['경화제가 굳어 단계를 지켰다.','The hardener held — no level lost.'],   // 6번 사토 소비처(11-01)
+  repair_kit_use:['정밀 수리 키트 사용','Use Precision Repair Kit'], repair_kit_rate:['성공률 {a}% → {b}%','Success {a}% → {b}%'], repair_kit_hint:['철물점에서 구할 수 있다','Available at the Hardware Store'],
+  repair_hold_c15:['아직은 괜찮아. 한 번 더 나갔다 와.','Still holding up. Go out once more.'],   // M3(11-01) — 1-4 뒤 ~ 1-5 수락 전 철물점 수리 잠금(맥)   // 2번 파산 바닥(10-31) — 사토가 비용보다 적을 때 치료·배식 버튼
+  relief_info_heal:['사토가 부족하여 구호치료 합니다','Not enough Sato — free relief care'], relief_info_feed:['사토가 부족하여 구호배식 합니다','Not enough Sato — free relief meal'],   // 안내 상자 · 뒤에 'n/3'
   // 퀘스트 (일일) — 시트 UIString에 같은 키가 들어오면 시트가 이긴다
   quest_tab_daily:['일일','Daily'], quest_tab_weekly:['주간','Weekly'], quest_tab_story:['스토리','Story'],
   quest_chip_new:['신규','New'], quest_chip_run:['진행중','Active'], quest_chip_done:['완료','Done'],
@@ -367,7 +384,14 @@ export function isStarterItem(id){
   return _starterSet.has(String(id));
 }
 // v3 instance: 베이스ID · sockets[] · unappraised[] · rolls{} · growthTags[] · dur/maxDur
+// 변형 행 ID(Item.VariantOf가 걸린 옛 낱개 정크·강화 재료)로 지급·드랍되면 공용 ID + 그 그림(v)으로 바꾼다 — 통합 점검(11-01)에서 발견:
+//   송신탑 전용 몬스터가 구리 전선을 낱개 ID로 떨어뜨려 '전자 부품'으로 안 세어졌다. 드랍표·보상·상점 어디서 와도 여기서 한 번에 정규화.
+export function normVariant(id, v){
+  const r = byId.item && byId.item[id], p = r && String(r.VariantOf || '').trim();
+  return (p && p !== '-' && byId.item[p]) ? { id: p, v: v || id } : { id, v };
+}
 export function mkInstance(id, qty = 1, opts = {}) {
+  { const n = normVariant(id, opts.v); if (n.id !== id) { id = n.id; opts = Object.assign({}, opts, { v: n.v }); } }
   const w = byId.weapon[id], a = byId.armor[id], it = byId.item[id], af = byId.artifact[id], tal = byId.talisman && byId.talisman[id], bg = byId.bag && byId.bag[id];
   let kind = 'item', maxDur = 0;
   if (w) { kind = 'weapon'; maxDur = N(w.MaxDurability); }
@@ -390,6 +414,7 @@ export function mkInstance(id, qty = 1, opts = {}) {
     // 도수는 opts.proof가 오면 그걸 쓴다 — 상점 진열분은 재고 1주기 동안 같은 병이어야 한다
     // (안 그러면 미리보기를 열 때마다, 그리고 실제로 살 때 또 한 번 새로 굴려진다).
     if (liq) { inst.proof = (opts.proof != null) ? N(opts.proof) : liquorProof(liq); }   // 용량(Volume) 폐지 2026-08-18 — 감정 1회 = 1병
+    if (it) { const v = opts.v || pickVariant(id); if (v) inst.v = v; }   // 공용 재료 변형(그림·설명)
     return inst; // plain item / liquor / module chip
   }
 
@@ -474,10 +499,10 @@ export function rollArmorBonus(inst){
 // ---------- 무기 강화 (확장_v3 §3.7-10) — 도박형 업그레이드 코어 ----------
 // 무기 인스턴스의 inst.enh = { rec:[{stat, m}, ...] } : 강화 이력 스택(길이 = 강화 단계). 비용·시설·UI는 호출 쪽(미정)이고 여기는 '판정'과 '효과'만 있다.
 // 모든 수치는 Config enh_* 로 덮어쓸 수 있다(없으면 아래 기본 = 설계 확정값).
-//  · 성공 확률 enh_p_1..5 = 80/70/50/30/10% · 단계 배율 enh_mult_1..5 = 0.8/1/1.3/4/10
-//  · 실패: 1~3강 시도는 제자리(하락 없음) · enh_drop_from(4)강 이상 시도 실패는 이력 0~enh_drop_max(2)개 균등 하락 — 가장 최근 이력부터 되돌린다(재등반 때 스탯·양을 새로 뽑는다)
-//  · 뽑히는 스탯은 매번 균등 랜덤, 한 번에 오르는 양 = 스탯 기본 폭 × 그 단계 배율
-const ENH_P = [0.8, 0.7, 0.5, 0.3, 0.1], ENH_M = [0.8, 1.0, 1.3, 4.0, 10.0];
+//  · (2026-11-01 · 13번 +9) 성공 확률 enh_p_1..9 = 95/90/85/65/30/25/20/15/3% · 단계 배율 enh_mult_1..9 = 0.6/0.7/0.8/1/1.3/1.6/2.2/3/4
+//  · 실패: 1~3강 시도는 제자리 · enh_drop_from(4)강 이상 시도 실패는 enh_drop_chance(50%) 확률로 1단계 하락 — 가장 최근 이력부터 되돌린다(재등반 때 스탯을 새로 뽑는다)
+//  · 뽑히는 스탯은 매번 균등 랜덤, 한 번에 오르는 양 = 스탯 기본 폭 × 그 단계 배율. 배율은 이력의 m이 아니라 **단계 순번으로 매번 다시 읽는다**(옛 +5 장비도 새 표로 자동 재계산)
+const ENH_P = [0.95, 0.90, 0.85, 0.65, 0.30, 0.25, 0.20, 0.15, 0.03], ENH_M = [0.6, 0.7, 0.8, 1.0, 1.3, 1.6, 2.2, 3.0, 4.0];
 const ENH_STEP = { dmg: 0.15, asp: 0.15, crit: 12, cmult: 0.3, acc: 8, hitdmg: 0.5 };   // 한 방 +15% · 공속 +15% · 크리 +12 · 크리배수 +0.3 · 적중 +8 · 추가타 +0.5 (1배당)
 // 방어구 풀(2026-10-15 확정) — 방어 계열만 · 1배당 폭 = 기준안의 80%(투구+갑옷 2개 합산 보정). 무기 키와 이름이 겹치지 않는다(Config enh_step_<키> 공용).
 const ENH_STEP_A = { def: 2.4, eva: 1.6, hp: 16, dmgcut: 4, res: 6.4 };   // 방어 +2.4 · 회피 +1.6 · 최대 체력 +16 · 받는 피해 감소 +4% · 상태저항 +6.4
@@ -485,14 +510,15 @@ export const ENH_STATS = Object.keys(ENH_STEP);
 export const ENH_STATS_A = Object.keys(ENH_STEP_A);
 export function enhPool(inst){ return (inst && inst.kind === 'armor') ? ENH_STATS_A : ENH_STATS; }
 export function enhable(inst){ return !!inst && (inst.kind === 'weapon' || inst.kind === 'armor'); }   // 장신구·징표·가방은 강화 대상 아님
-export function enhMaxLevel(){ return Math.max(1, Math.min(5, Math.round(N(C.enh_max_level, 5)))); }
+export function enhMaxLevel(){ return Math.max(1, Math.min(ENH_P.length, Math.round(N(C.enh_max_level, ENH_P.length)))); }
+export function enhMult(i){ return N(C['enh_mult_' + (i + 1)], ENH_M[Math.min(i, ENH_M.length - 1)]); }   // i = 0부터(1강 = 0)
 export function enhLevel(inst){ return (inst && inst.enh && Array.isArray(inst.enh.rec)) ? inst.enh.rec.length : 0; }
 export function enhStep(stat){ return N(C['enh_step_' + stat], (stat in ENH_STEP) ? ENH_STEP[stat] : ENH_STEP_A[stat]); }
-export function enhChance(level){ return clamp(N(C['enh_p_' + (level + 1)], ENH_P[level]), 0, 1); }   // level = 현재 단계(0~4) → 다음 단계로 오를 확률
+export function enhChance(level){ return clamp(N(C['enh_p_' + (level + 1)], ENH_P[level]), 0, 1); }   // level = 현재 단계(0~8) → 다음 단계로 오를 확률
 // 합산 효과 — 무기 {dmg, asp, crit, cmult, acc, hitdmg}(dmg·asp는 비율, 나머지는 가산) · 방어구 {def, eva, hp, dmgcut, res}(전부 가산, dmgcut은 %)
 export function enhEffects(inst){
   const out = { dmg: 0, asp: 0, crit: 0, cmult: 0, acc: 0, hitdmg: 0, def: 0, eva: 0, hp: 0, dmgcut: 0, res: 0 };
-  if (inst && inst.enh && Array.isArray(inst.enh.rec)) for (const e of inst.enh.rec) if (e && e.stat in out) out[e.stat] += enhStep(e.stat) * N(e.m, 1);
+  if (inst && inst.enh && Array.isArray(inst.enh.rec)) inst.enh.rec.forEach((e, i) => { if (e && e.stat in out) out[e.stat] += enhStep(e.stat) * enhMult(i); });
   return out;
 }
 // 한 번 시도한다(재료 차감은 호출 쪽). 반환: { ok, from, to, entry?, dropped, capped? }
@@ -504,26 +530,31 @@ export function enhanceTry(inst, opts = {}){
   const p = clamp(enhChance(from) + N(opts.bonusChance), 0, 1);
   if (Math.random() < p){
     const pool = enhPool(inst);
-    const entry = { stat: pool[randInt(0, pool.length - 1)], m: N(C['enh_mult_' + (from + 1)], ENH_M[from]) };
+    const entry = { stat: pool[randInt(0, pool.length - 1)], m: enhMult(from) };
     inst.enh.rec.push(entry);
     return { ok: true, from, to: from + 1, entry, dropped: 0 };
   }
   let dropped = 0;
-  if (from + 1 >= Math.round(N(C.enh_drop_from, 4))) dropped = Math.min(from, randInt(0, Math.max(0, Math.round(N(C.enh_drop_max, 2)))));
+  if (from + 1 >= Math.round(N(C.enh_drop_from, 4)) && Math.random() < clamp(N(C.enh_drop_chance, 0.5), 0, 1)) dropped = Math.min(from, 1);
+  const guarded = dropped > 0 && !!opts.protect;   // 하락이 굴려졌지만 순간 경화제가 막았다(6번 · 11-01) — 토스트용
   if (dropped > 0 && !opts.protect) inst.enh.rec.splice(inst.enh.rec.length - dropped, dropped); else dropped = 0;
-  return { ok: false, from, to: from - dropped, dropped };
+  return { ok: false, from, to: from - dropped, dropped, guarded };
 }
 
 // ---- 강화 재료(2026-10-15 사용자 확정) ----
 // 재료는 장비가 정한다(플레이어 선택 없음): 무기 = Attribute별 / 방어구 = Material별. 일반(1~3강) `enh_w1_*`·`enh_a1_*` · 고급(4~5강) `enh_w2_*`·`enh_a2_*`.
 //   ★재료 아이템 데이터(시트)는 다른 세션에서 만든다 — ID가 바뀌면 여기 두 맵만 고친다.
-// 소모 = 도달할 단계 기준 1회분(실패해도 소모): →1강 일반1 · →2강 일반2 · →3강 일반3 · →4강 고급1+일반3 · →5강 고급2+일반5.
-//   Config enh_cost_norm_<N> · enh_cost_adv_<N>(N=도달 단계)로 덮어쓴다.
+// 소모 = 도달할 단계 기준 1회분(실패해도 소모) — (13번) [고급, 일반] = 0/1 · 0/1 · 0/2 · 1/2 · 1/3 · 1/3 · 2/3 · 2/4 · 1/2 + 사토 100~3,000(아래 ENH_SATO).
+//   Config enh_cost_norm_<N> · enh_cost_adv_<N> · enh_cost_sato_<N>(N=도달 단계)로 덮어쓴다.
+// (13번) 재료는 4종으로 통합 — 접합 본드(enh_w1)·접합 퍼티(enh_w2)·코팅 스프레이(enh_a1)·코팅 겔(enh_a2). 옛 16종은 VariantOf로 그림·설명 변형.
+//   시트에 통합 행이 아직 없으면(배포 직후 스테이지 적용 전) 옛 속성·재질별 ID로 떨어진다.
 const ENH_W_MAT = { stun: 'stun', shock: 'stun', bleed: 'bleed', pierce: 'pierce', rupture: 'rupture', none: 'none' };   // 감전 = 압전 공용(전기 · 10-28 사용자) · 그 밖의 속성(절단 등 미구현)은 none(형상기억)
 const ENH_A_MAT = { Fabric: 'fabric', Synthetic: 'synth', Metal: 'metal' };
-const ENH_COST = [[0, 1], [0, 2], [0, 3], [1, 3], [2, 5]];   // [고급, 일반] — 인덱스 = 현재 단계(0~4)
+const ENH_COST = [[0, 1], [0, 1], [0, 2], [1, 2], [1, 3], [1, 3], [2, 3], [2, 4], [1, 2]];   // [고급, 일반] — 인덱스 = 현재 단계(0~8)
+const ENH_SATO = [100, 200, 300, 500, 800, 1200, 2000, 3000, 2000];
 export function enhMatIds(inst){
   if (!enhable(inst)) return null;
+  if (byId.item && byId.item.enh_w1) return inst.kind === 'weapon' ? { norm: 'enh_w1', adv: 'enh_w2' } : { norm: 'enh_a1', adv: 'enh_a2' };
   if (inst.kind === 'weapon'){ const w = byId.weapon[inst.id] || {}; const k = ENH_W_MAT[String(w.Attribute || '').trim()] || 'none';
     return { norm: 'enh_w1_' + k, adv: 'enh_w2_' + k }; }
   const a = byId.armor[inst.id] || {}; const k = ENH_A_MAT[String(a.Material || '').trim()];
@@ -540,15 +571,34 @@ export function enhCost(state, inst){
   if (norm > 0) out.push({ id: ids.norm, qty: norm, have: countItem(state, ids.norm) });
   return out;
 }
+// 다음 단계 시도 1회 사토 — 최대 단계거나 대상이 아니면 0
+export function enhSato(inst){
+  if (!enhable(inst)) return 0; const from = enhLevel(inst); if (from >= enhMaxLevel()) return 0;
+  return Math.max(0, Math.round(N(C['enh_cost_sato_' + (from + 1)], ENH_SATO[from] || 0)));
+}
+// (6번 · 11-01) 순간 경화제 — 강화 하락 방지. 암시장 판매 · 쓰기로 하면 성공·실패 무관 소모.
+//   필요 개수 = Config enh_guard_qty(+4·+5·…·+9 도전 순서 · 쉼표 목록) · 하락이 없는 단계는 0(옵션 자체가 안 보인다).
+export const ENH_GUARD_ID = 'item_instant_hardener';
+const ENH_GUARD_QTY = [1, 1, 2, 2, 3, 3];
+export function enhGuardQty(inst){
+  if (!enhable(inst)) return 0; const from = enhLevel(inst); if (from >= enhMaxLevel()) return 0;
+  const start = Math.round(N(C.enh_drop_from, 4)), to = from + 1; if (to < start) return 0;
+  const L = configList('enh_guard_qty') || ENH_GUARD_QTY, i = Math.min(to - start, L.length - 1);
+  return Math.max(0, Math.round(N(L[i], 0)));
+}
 // 재료를 내고 한 번 시도한다 — 모자라면 아무것도 안 하고 {ok:false, short:true}. 성공·실패 모두 재료는 소모(실패 보정 없음).
 //   반환 = enhanceTry 결과 + cost. ★판정은 여기서 확정된다 — 호출 쪽은 바로 저장할 것(연출 도중 새로고침으로 결과 무르기 방지).
 export function enhanceWithCost(state, inst, opts = {}){
   const cost = enhCost(state, inst);
   if (!cost) return { ok: false, capped: true, from: enhLevel(inst), to: enhLevel(inst), dropped: 0 };
-  if (!cost.every(x => x.have >= x.qty)) return { ok: false, short: true, cost, from: enhLevel(inst), to: enhLevel(inst), dropped: 0 };
+  const sato = enhSato(inst);
+  const gq = opts.guard ? enhGuardQty(inst) : 0;
+  if (!cost.every(x => x.have >= x.qty) || N(state.sato) < sato || (gq > 0 && countItem(state, ENH_GUARD_ID) < gq)) return { ok: false, short: true, cost, sato, from: enhLevel(inst), to: enhLevel(inst), dropped: 0 };
   for (const x of cost) consumeItems(state, x.id, x.qty);
-  const r = enhanceTry(inst, opts);
-  return Object.assign({}, r, { cost });
+  if (gq > 0) consumeItems(state, ENH_GUARD_ID, gq);
+  state.sato = N(state.sato) - sato;
+  const r = enhanceTry(inst, Object.assign({}, opts, { protect: opts.protect || gq > 0 }));
+  return Object.assign({}, r, { cost, sato, guardUsed: gq });
 }
 
 // 부호 붙은 수치 표기 — 정수면 그대로, 소수(크리 피해 0.4 등)는 한 자리. 단위는 키 접미(_pct)나 명시 unit.
@@ -649,6 +699,18 @@ export function facilityUnlocks(state, facId){
 export function facilityLevel(state, facId){
   const lv = state && state.hideout && state.hideout.lv ? state.hideout.lv[facId] : 1;
   return Math.max(1, N(lv, 1));
+}
+// (6번 · 11-01) 보관함 표 3단계 → 10단계 이전. 옛 표 Lv2(100칸)·Lv3(150칸)은 새 표 Lv5·Lv10과 칸이 같다.
+//   새 표 = 시트에 storage Lv4 행이 있다. 세이브가 어느 표 기준인지 hideout.storTbl(3|10)로 기록해 두고, 새 표인데 옛 기준이면 한 번만 옮긴다
+//   (진행 중 업그레이드 목표도 같이). 배포·스테이지 적용 순서가 어긋나도 안전하다 — 새 게임·업그레이드 시작 때도 기록한다.
+export function storageTableSync(state){
+  const H = state && state.hideout; if (!H) return;
+  if (!facilityRow('storage', 4)) { if (H.storTbl == null) H.storTbl = 3; return; }
+  if (H.storTbl === 10) return;
+  const MAP = { 2: 5, 3: 10 };
+  if (H.lv && MAP[N(H.lv.storage)]) H.lv.storage = MAP[N(H.lv.storage)];
+  if (H.upg && H.upg.storage && MAP[N(H.upg.storage.to)]) H.upg.storage.to = MAP[N(H.upg.storage.to)];
+  H.storTbl = 10;
 }
 // 다음 레벨 행 — 없으면 null(= 업그레이드 잠금)
 export function facilityNext(state, facId){ return facilityRow(facId, facilityLevel(state, facId) + 1); }
@@ -1360,7 +1422,21 @@ export function bossChanceUp(grade) {
 // 등급별 누적 %p로 바꿨다. 시트 값이 곧 %p라 몇 % 오르는지 시트만 봐도 안다.
 // ★상한(boss_chance_max)은 반드시 여기서 클램프한다 — 칩에서만 자르면 표시는 15%인데
 //   실제 굴림은 20%가 되는 어긋남이 생긴다. 표시와 굴림이 같은 계산을 써야 한다.
-export function spawnDistribution(zoneId, bossUp = 0) {
+// 깊이 배율(2026-10-30) — 몇 번째 전투인지에 따라 Rare·Unique·Special의 SpawnChance를 곱한다.
+// 3전까지는 고급 몬스터를 눌러 두고(3전부터 귀환 100%라 여기까지가 '안전한 편'), 4전부터 계단식으로 올린다.
+// Config depth_curve_<grade> = 1전~N전 배율 목록(N전 이후는 마지막 값 유지). Common·Boss·오브제는 배율 없음.
+// 행이 없거나 depth를 안 넘기면 배율 1 = 개편 전과 똑같다 — 시트와 코드 배포 순서가 어긋나도 안전하다.
+function configList(key) {
+  const v = C[key]; if (v == null || v === '') return null;
+  const a = String(v).split(/[,;\s]+/).filter(x => x !== '').map(Number).filter(n => isFinite(n));
+  return a.length ? a : null;
+}
+export function depthMult(grade, depth) {
+  const d = Math.floor(N(depth, 0)); if (d < 1) return 1;
+  const a = configList('depth_curve_' + String(grade || '').trim().toLowerCase());
+  return a ? a[Math.min(d, a.length) - 1] : 1;
+}
+export function spawnDistribution(zoneId, bossUp = 0, depth = 0) {
   const rows = (DATA.spawnTable || []).filter(r => r.ZoneID === zoneId && byId.monster[r.MonsterID]);
   if (!rows.length) return null;
   const base = rows.find(r => N(r.IsBase) === 1);
@@ -1369,16 +1445,38 @@ export function spawnDistribution(zoneId, bossUp = 0) {
   const bossRows = specials.filter(r => isBoss(r.MonsterID));
   // 존 기본% 합 + 누적분을, 존과 무관하게 boss_chance_max(15%)로 자른다
   const bossBase = bossRows.reduce((s, r) => s + N(r.SpawnChance), 0);
-  const capped = clamp(bossBase + Math.max(0, N(bossUp)), 0, N(C.boss_chance_max, 15));
+  const grade = id => String((byId.monster[id] || {}).Grade || '').trim();
+  // 보스 깊이 게이트(2026-10-31) — boss_depth_start(4)전 전까지 보스 0. 그 사이 처치 누적(bossUp)은 계속 쌓이고,
+  // 시작 전투부터 기본% + 누적 + boss_depth_bonus(3%p)로 열린다(상한은 그대로). 3전까지 = 안전한 편, 4전부터 = 보스를 감수하는 선택.
+  // 행이 없으면 4·3 = 이 규칙 그대로 — 시트와 코드 배포 순서가 어긋나도 같다.
+  const open = Math.floor(N(depth, 0)) >= N(C.boss_depth_start, 4);
+  const capped = !open ? 0 : clamp(bossBase + Math.max(0, N(bossUp)) + N(C.boss_depth_bonus, 3), 0, N(C.boss_chance_max, 15));
   const scale = bossBase > 0 ? capped / bossBase : 0;   // 보스가 여럿이면 기본 비율대로 나눠 갖는다
-  const dist = specials.map(r => ({ id: r.MonsterID, chance: isBoss(r.MonsterID) ? N(r.SpawnChance) * scale : N(r.SpawnChance) }));
+  const dist = specials.map(r => ({ id: r.MonsterID, chance: isBoss(r.MonsterID) ? N(r.SpawnChance) * scale : N(r.SpawnChance) * depthMult(grade(r.MonsterID), depth) }));
   const specialSum = dist.reduce((s, d) => s + d.chance, 0);
   if (base) dist.push({ id: base.MonsterID, chance: Math.max(0, 100 - specialSum), base: true });
   return dist.filter(d => d.chance > 0);
 }
+// DANGER 칩 값(%) — 다음 전투 카드 1장이 Unique·Special·Boss로 나올 확률. 굴림과 같은 spawnDistribution을 쓴다.
+// 깊은 전투에서 스페셜 합이 100을 넘으면 기본 몫이 0이 되고 합계로 정규화된다(drawMonster와 같다).
+export function dangerPct(zoneId, bossUp = 0, depth = 0) {
+  const dist = spawnDistribution(zoneId, bossUp, depth);
+  if (!dist || !dist.length) return null;
+  const total = dist.reduce((s, d) => s + d.chance, 0);
+  if (total <= 0) return null;
+  const hi = dist.filter(d => ['Unique', 'Special', 'Boss'].includes(String((byId.monster[d.id] || {}).Grade || '').trim()))
+    .reduce((s, d) => s + d.chance, 0);
+  return hi / total * 100;
+}
+// 0 LOW · 1 MID · 2 HIGH · 3 EXTREME — 경계 = Config danger_thresholds(기본 11,26,40)
+export function dangerLevel(pct) {
+  const t = configList('danger_thresholds') || [11, 26, 40];
+  let lv = 0; for (const x of t) if (N(pct, 0) >= x) lv++;
+  return Math.min(lv, 3);
+}
 // one weighted draw; falls back to any same-zone/legacy monster if no table
-export function drawMonster(zoneId, bossUp = 0) {
-  const dist = spawnDistribution(zoneId, bossUp);
+export function drawMonster(zoneId, bossUp = 0, depth = 0) {
+  const dist = spawnDistribution(zoneId, bossUp, depth);
   if (!dist || !dist.length) {
     const pool = DATA.monsters.filter(m => String(m.SpawnZones || '').split(',').map(s => s.trim()).includes(zoneId));
     const use = pool.length ? pool : DATA.monsters;
@@ -1390,8 +1488,9 @@ export function drawMonster(zoneId, bossUp = 0) {
   return dist[dist.length - 1].id;
 }
 // n independent draws (cards may repeat) for the pre-combat card pick
-export function drawCards(zoneId, n, bossUp = 0) {
-  const out = []; for (let i = 0; i < Math.max(1, n); i++) out.push(drawMonster(zoneId, bossUp)); return out;
+// depth = 이번에 뽑는 카드가 몇 번째 전투인지(1부터) — 깊이 배율용
+export function drawCards(zoneId, n, bossUp = 0, depth = 0) {
+  const out = []; for (let i = 0; i < Math.max(1, n); i++) out.push(drawMonster(zoneId, bossUp, depth)); return out;
 }
 
 // ---------- loot ----------
@@ -1440,7 +1539,15 @@ export function growthMultiplier(state, stat) {
   return N(C.growth_tag_mult_base, 0.5) + N(C.growth_tag_mult_step, 0.5) * tags;
 }
 export function growthReq(level) { return N(C.growth_A, 5) * Math.pow(N(C.growth_r, 1.35), level - 1); }
-const POINT_PER = { str: 1, dex: 2, vit: 1.5, will: 4 };
+// 트리거 1회당 성장 포인트 — 정본 = 시트 PrimaryStat.GrowthPointPerTrigger(2026-10-30 배선).
+// 그전엔 이 코드 값만 돌고 시트 값(0.6/2/0.8/3)은 무시됐다 → 시트를 코드 값으로 맞춘 뒤 시트를 읽게 바꿨다.
+// 시트에 값이 없거나 0 이하면 아래 기본값.
+const POINT_PER_DEFAULT = { str: 1, dex: 2, vit: 1.5, will: 4 };
+function pointPer(stat) {
+  const r = (DATA.primaryStats || []).find(x => x.PrimaryStatID === 'stat_' + stat);
+  const v = r ? Number(r.GrowthPointPerTrigger) : NaN;
+  return isFinite(v) && v > 0 ? v : POINT_PER_DEFAULT[stat];
+}
 // 힘·의지는 '내가 때린 횟수'가 트리거라 타수 많은 빠른 무기가 성장도 몇 배 빠르다(확장_v3 §3.7-12).
 // 한 판 포인트를 무기 공속과 무관하게 맞추려고 1타당 포인트에 (기준 공속 ÷ 장착 무기 공속)을 곱한다.
 // 무기 롤의 atkSpeed만 본다 — DEX 보정·버프까지 넣으면 민첩을 올릴수록 힘이 덜 크는 역설이 생긴다.
@@ -1458,7 +1565,7 @@ export function applyGrowth(state, triggers) {
   for (const stat of ['str', 'dex', 'vit', 'will']) {
     const n = map[stat]; if (!n) continue;
     const g = state.growth[stat];
-    g.points += n * POINT_PER[stat] * growthMultiplier(state, stat) * ((stat === 'str' || stat === 'will') ? speedF : 1);
+    g.points += n * pointPer(stat) * growthMultiplier(state, stat) * ((stat === 'str' || stat === 'will') ? speedF : 1);
     let leveled = 0;
     while (g.points >= growthReq(g.level)) { g.points -= growthReq(g.level); g.level++; leveled++; }
     if (leveled) { state.primary[stat] = g.level; ups.push({ stat, to: g.level, by: leveled }); }
@@ -1724,6 +1831,9 @@ export function disassembleRoll(spec){ return (spec || []).filter(s => s.chance 
 // ===== 아지트 · 정비대 =====
 // 수리 성공률(점당) = Facility 탭 repair_rate. Lv1이 기준선이고 위 레벨은 그 차이를 보너스로 보여준다.
 export function repairRate(state){ return N(facilityEffectValue(state, 'repair', 'repair_rate', 90), 90); }
+// (6번 · 11-01) 정밀 수리 키트 — 철물점 판매 · 정비대 수리 옵션 · 수리 1회 1개 · 점당 성공률 +EffectValue%p(시설 레벨 무관 · 상한 99).
+export const REPAIR_KIT_ID = 'item_precision_kit';
+export function repairKitBonus(){ const r = byId.item && byId.item[REPAIR_KIT_ID]; return r ? Math.max(0, N(r.EffectValue, 4)) : 0; }
 export function repairRateBase(){ const r = facilityRow('repair', 1); const e = facilityEffects(r).find(x => x && x.key === 'repair_rate'); return e ? N(e.to, 90) : 90; }
 
 // 수리 재료 — 정비대는 사토가 아니라 정크를 받는다. 두 축(재질 + 유형)을 각각
@@ -1733,6 +1843,8 @@ const REPAIR_MAT_JUNK = {
   '금속':'item_welding_rod', '목재':'item_wood_board', '섬유':'item_repair_thread', '합성':'item_patch_resin',
   Metal:'item_welding_rod', Wood:'item_wood_board', Fabric:'item_repair_thread', Synthetic:'item_patch_resin' };
 const REPAIR_EDGE_ATTR = new Set(['bleed','pierce']);      // 날붙이 — 나머지(stun/rupture/none)는 타격
+const REPAIR_MAT_COMMON = { Metal:'item_mat_metal', Wood:'item_mat_fiber', Fabric:'item_mat_fiber', Synthetic:'item_mat_synth',
+  '금속':'item_mat_metal', '목재':'item_mat_fiber', '섬유':'item_mat_fiber', '합성':'item_mat_synth' };
 export function repairInputs(inst){
   if (!inst) return [];
   const worn = Math.max(0, N(inst.maxDur) - N(inst.dur));
@@ -1740,6 +1852,12 @@ export function repairInputs(inst){
   const qty = Math.max(1, Math.ceil(worn / Math.max(1, N(C.repair_durability_per_junk, 5))));
   const tbl = byId[inst.kind], src = tbl ? tbl[inst.id] : null;
   if (!src) return [];
+  // 공용 재료(2026-11-01 · 12번) — 재질의 공용 재료 1종만. 유형축(날붙이/타격/방어구)은 폐지. 목재 = 섬유 재질 · 장신구 = 금속 부품.
+  //   시트에 공용 재료 행이 아직 없으면(배포 직후 스테이지 적용 전) 아래 옛 두 축으로 떨어진다.
+  if (byId.item && byId.item[REPAIR_MAT_COMMON.Metal]) {
+    const m = inst.kind === 'artifact' ? REPAIR_MAT_COMMON.Metal : REPAIR_MAT_COMMON[String(src.Material || '').trim()];
+    return m ? [{ id: m, qty }] : [];
+  }
   if (inst.kind === 'artifact') return [{ id: 'item_fine_parts', qty }];   // 장신구는 정밀 부품 단독
   const out = [];
   const mat = REPAIR_MAT_JUNK[String(src.Material || '').trim()];

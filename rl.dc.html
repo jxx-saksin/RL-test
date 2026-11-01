@@ -172,6 +172,7 @@
     50%{box-shadow:inset 0 0 0 1px rgba(229,100,91,.62),inset 0 0 13px 2px rgba(229,100,91,.34),0 0 13px 3px rgba(229,100,91,.28)}
   }
   /* 타이틀 아트 — 아주 느린 확대(켄번즈). 기준점을 바닥으로 잡아야 프레임 아래에 틈이 안 생긴다. */
+  @keyframes rlDangerUp{0%{filter:brightness(1.9) drop-shadow(0 0 6px rgba(255,255,255,.45))}100%{filter:brightness(1) drop-shadow(0 0 0 rgba(255,255,255,0))}}   /* 위험도 칩 단계 상승 1회(10-30) */
   @keyframes rlBossMaxF{0%,100%{filter:drop-shadow(0 0 3px rgba(229,100,91,.25))}50%{filter:drop-shadow(0 0 8px rgba(229,100,91,.6))}}   /* 깎인 판용 MAX 숨쉬기(10-18) */
   @keyframes rlTitleZoom{from{transform:scale(1)}to{transform:scale(1.08)}}
   /* 태그 단말 LED — 대기=붉게 숨쉬기 / 인증=초록 빠른 점멸 */
@@ -247,6 +248,7 @@
   div[style*="overflow: hidden"]:is([style*="height: 4px"],[style*="height: 5px"],[style*="height: 6px"])>div{position:relative;border-radius:0 !important}
   div[style*="overflow: hidden"]:is([style*="height: 4px"],[style*="height: 5px"],[style*="height: 6px"])>div::after{
     content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(135deg,rgba(0,0,0,.2) 0 2px,transparent 2px 6px)}
+  div[data-joinbar]{clip-path:polygon(0 0,100% 0,calc(100% - 6px) 100%,0 100%) !important}   /* 성장 패널 바(10-30) — 왼쪽 끝은 스탯 칩에 곧게 이어진다(사선 X · 사용자) · 오른쪽은 스킨 사선 그대로 */
   /* ===== UI 시안 스킨 — 버튼 2개 한 줄(2026-10-18) =====
      나란히 놓인 버튼 2개(flex:1)를 '이어진 한 판'으로 — 가운데만 사선(/)으로 나눈다. 두 번째 버튼이 사선 폭(12px)만큼 겹쳐 틈 0 · 선은 두 판의 0.5px가 겹쳐 1줄. */
   div:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"]):not(:has(> button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"] + button[style*="height: 48px"][style*="flex: 1"])){gap:0 !important}
@@ -388,7 +390,8 @@ const BAG_VIEW = {
   bag_canvas_sling:{ar:1.3273,rect:[0.2,0.8,0.3,0.78]},
   bag_rigger_pack:{ar:1.5,rect:[0.2389,0.7659,0.2296,0.7307]},
   bag_manager_case:{ar:1.3273,rect:[0.1791,0.8118,0.2476,0.7081]},
-  bag_exile_duffel:{ar:1.3273,rect:[0.1964,0.7491,0.1652,0.7339],pad:1.1}
+  bag_exile_duffel:{ar:1.3273,rect:[0.1964,0.7491,0.1652,0.7339],pad:1.1},
+  bag_folding_shopper:{ar:1.0,rect:[0.27,0.73,0.25,0.72]}
 };
 const EQ_SLOTS = ['weapon','head','body','hands','feet','artifact1','artifact2','bag'];
 const EQ_GEAR = ['weapon','head','body','hands','feet','artifact1','artifact2'];
@@ -417,11 +420,11 @@ const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Hands:'장갑', F
 const ZONE_ART_V = { city_01_mall:'?v=2', city_01_houses:'?v=2' };
 const zoneArt = (id) => 'assets/art/zones/'+id+'.webp'+(ZONE_ART_V[id]||'');
 const PVP_COLD_ART = 'assets/art/monsters/pvp_cold_user.webp', PVP_COLD_POS = '50% 32%';   // PvP 상대(ColdData 봇) 카드 공용 아트 — 얼굴 없는 실루엣 · 후드가 보이게 위쪽으로 맞춤(10-21)
-// 몬스터 아트 초점 — 기본은 가운데(프롬프트 규칙 = 얼굴이 세로 50%). 얼굴이 위로 치우친 그림만 여기 적는다(10-23 진압 외골격 = 머리가 위쪽).
-const MONSTER_ART_POS = { monster_riot_exosuit:'50% 14%' };
+// 몬스터 아트 초점 — 기본은 가운데(프롬프트 규칙 = 얼굴이 세로 50%). 얼굴이 위로 치우친 그림만 여기 적는다(10-23 진압 외골격 = 머리가 위쪽 · 10-30 검침원).
+const MONSTER_ART_POS = { monster_riot_exosuit:'50% 14%', monster_meter_reader:'50% 22%' };
 // 아이템 카드 아트(340×190 가로 띠 = 정사각 그림의 가운데 56%)에서 핵심부가 위로 치우친 그림만 세로 위치를 올린다(10-28 · 감전 무기)
 const ITEM_ART_POS = { weapon_prod_baton:'50% 15%', weapon_accumulator_hammer:'50% 25%' };
-const MONSTER_ART = new Set(['monster_patrol_k9','monster_cell_infected','monster_riot_exosuit','monster_betrayed_exile','monster_blind_zealot','monster_bloated_toad','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_pale_lynx','monster_rogue_emergency','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_spore_gardener','monster_wandering_sentry','monster_abandoned_chihuahua',
+const MONSTER_ART = new Set(['monster_rooftop_lookout','monster_meter_reader','monster_patrol_k9','monster_cell_infected','monster_riot_exosuit','monster_betrayed_exile','monster_blind_zealot','monster_bloated_toad','monster_broken_hauler','monster_concrete_crow','monster_drifter_raider','monster_feral_dog','monster_feral_dogpack','monster_gutter_roach','monster_pale_lynx','monster_rogue_emergency','monster_rust_boar','monster_security_camera','monster_sewer_rat','monster_sewer_swarm','monster_smile_mannequin','monster_spore_gardener','monster_wandering_sentry','monster_abandoned_chihuahua',
   'monster_gravid_queen','monster_last_deputy','monster_lingering_manager','monster_tower_sentinel',
   'monster_fare_gate','monster_foreman_unit','monster_track_sweeper','monster_tunnel_drifter',
   'monster_self_cart','monster_squatter',
@@ -623,7 +626,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 132;
+const TITLE_VER = 133;
 const TITLE_DATE = '1030';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -702,6 +705,10 @@ const HIT_CS = 1.3, HIT_STOP_CRIT = 130, HIT_STOP_HEAVY = 45, HIT_STOP_KILL = 60
 const TUTO_ART_V = { 'wb_craft1-2':'?v=2', 'rs_rep1-2':'?v=2' };
 
 const PATCH_NOTES = [
+  { ver:133, date:'01/Nov', lines:[
+    ['모든 지역, 몬스터 리워크 패치.','All zones and monsters reworked.'],
+    ['제작 시스템 개선.','Crafting system improved.'],
+    ['아이템 강화 시스템 개편.','Item enhancement system overhauled.'] ] },
   { ver:124, date:'29/Oct', lines:[
     ['바인더 시스템 추가.','Specimen Binder system added.'] ] },
   { ver:121, date:'28/Oct', lines:[
@@ -876,7 +883,7 @@ class Component extends DCLogic {
   async componentDidMount(){
     document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
-      const eng = await import('./engine.js?v=val126');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const eng = await import('./engine.js?v=val133');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
       const loader = await import('./sheet-loader.js?v=val75');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
@@ -917,7 +924,8 @@ class Component extends DCLogic {
     this._bootReady=true;
     const sv=this.readSave();
     const notice=this.noticePending();
-    if(sv){ this.applySave(sv); this.setState({ ready:true, resumeBanner:true, notice }); }
+    if(sv){ this.applySave(sv); const fresh=this.storyFresh();   // M1(11-01) — 첫 퀘스트를 받기 전에 세이브가 생겼으면 도입(언어→프롤로그→첫 대화)을 다시 탄다
+      this.setState({ ready:true, resumeBanner:!fresh, notice: fresh?false:notice, langPick: fresh&&!this._langPicked }); if(fresh) setTimeout(()=>this.storyBoot(),0); }
     else { this.newRun(true); const fresh=this.storyFresh();
       // 새 게임 도입 = 로딩이 끝난 그 프레임부터 검은 언어 고르기(사용자 2026-10-29 — 뒤에 열어 둔 보건소가 비치면 안 된다) · 업데이트 공지는 첫 부팅에선 생략(다음 부팅부터 뜬다)
       this.setState({ ready:true, notice: fresh?false:notice, langPick: fresh&&!this._langPicked }); setTimeout(()=>this.storyBoot(),0); }
@@ -1023,6 +1031,10 @@ class Component extends DCLogic {
     // 방어: 현재 시트에 없는 id 인스턴스 제거 → 빈 장착 슬롯 null
     const known=(inst)=> !!(inst && inst.id && (eng.anyItem(inst.id) || (eng.byId.liquor&&eng.byId.liquor[inst.id]) || (eng.byId.module&&eng.byId.module[inst.id]) || (eng.byId.usb&&eng.byId.usb[inst.id])));
     gs.bag=(gs.bag||[]).filter(known); gs.vault=(gs.vault||[]).filter(known);
+    // 공용 재료·강화 재료 통합(2026-11-01 · 12·13번) — 옛 낱개(Item.VariantOf가 걸린 변형 행 ID) → 공용 ID + 그림 변형 v. 레시피·강화는 공용 ID만 센다.
+    //   시트에 VariantOf가 없으면(옛 데이터·폴백) 아무것도 안 바뀐다. 진행 중인 스토리가 옛 낱개를 요구하던 경우(1-4 가죽·2-4 회로 기판)는 새 퀘스트 아이템으로 다시 줍는다.
+    { const vmig=x=>{ const r=x&&eng.byId.item[x.id], p=r&&String(r.VariantOf||'').trim(); if(p&&p!=='-'&&eng.byId.item[p]){ x.v=x.id; x.id=p; } }; gs.bag.forEach(vmig); gs.vault.forEach(vmig); }
+    if(eng.storageTableSync) eng.storageTableSync(gs);   // (6번 · 11-01) 보관함 3단계 → 10단계 이전(Lv2→5 · Lv3→10)
     // 정합: 스테일 데이터로 잘못 생성된 인스턴스 복구 — id가 실제 장비인데 필드가 비면 온전히 재생성(uid·qty 보존)
     const rebuild=(inst)=>{ if(!inst) return inst;
       const rk = eng.byId.weapon[inst.id]?'weapon':eng.byId.armor[inst.id]?'armor':eng.byId.artifact[inst.id]?'artifact':null;
@@ -1135,6 +1147,7 @@ class Component extends DCLogic {
     const full = this.eng.playerProfile(gs,false);
     gs.maxHp = full.maxHp; gs.hp = full.maxHp; gs.sta = this.staMax; gs.balanceVer = this.eng.balanceVer();
     this.gs = gs; this.combat = null;
+    if(this.eng.storageTableSync) this.eng.storageTableSync(gs);   // 새 게임은 지금 표 기준으로 기록(나중에 옛 레벨로 오인해 옮기지 않게)
     // ★새 게임도 회전재고를 한 번 뽑아야 한다 — 안 뽑으면 첫 재고 리셋(복귀 3회) 전까지
     //   당첨자가 없어서 그룹 전체가 그대로 깔린다(옛 코드에선 '4종 다 보임'으로 숨어 있던 구멍).
     this.eng.applyStockRotation(gs);
@@ -1181,7 +1194,7 @@ class Component extends DCLogic {
     // ⚠️ 여기서 gs.buffs를 비우지 말 것 — 안전지대에서 먹은 버프까지 같이 날아가
     //    아이템만 소모되고 아무 일도 안 일어났다(2026-08-31). 만료는 endSortie 한 곳에서만 한다.
     this.combat = { zoneId, encounter:0, runLoot:[], runLootInsts:[], satoGained:0, bossUp:0 };
-    this._bcShown=null; if(this._bcRaf){cancelAnimationFrame(this._bcRaf);this._bcRaf=null;} this._bcTo=null;   // 보스 칩 카운트업 상태 리셋
+    this._dgLv=null; this._dgUpAt=0;   // 위험도 칩 — 새 레이드는 반짝임 없이 LOW부터
     // 귀환 화면 성장 그래프용 — 레이드 시작 시점 스냅샷
     this.combat.gSnap = Object.fromEntries(['str','dex','vit','will'].map(k=>[k,{ level:this.gs.growth[k].level, pct:this.eng.growthPct(this.gs,k) }]));
     // 레이드 로딩 화면(강제 2.5초) → beginSortieCombat에서 실제 카드 드로우
@@ -1209,7 +1222,7 @@ class Component extends DCLogic {
     const isPvp = this.isPvpZone(zone);
     const userChance = this.pvpChance(zone)/100;
     // 조우 카드: PvP 존에서는 각 카드가 UserDataChance(%)로 몬스터/유저(콜드데이터) 확정 (§6-6)
-    let cards = this.eng.drawCards(this.combat.zoneId, n, this.combat.bossUp||0).map(id=>{
+    let cards = this.eng.drawCards(this.combat.zoneId, n, this.combat.bossUp||0, (this.combat.encounter||0)+1).map(id=>{
       if(isPvp && Math.random()<userChance){
         const bot=this.eng.pickColdOpponent(this.gs, zone.CityID);
         if(bot) return { type:'user', bot };
@@ -1485,7 +1498,8 @@ class Component extends DCLogic {
       if(OBJ) this.objOnBreak(c);   // 돌파 오브제(강화 철문 등) — 부수면 다음 조우 덱을 Object.OnBreak로 고정
       const loot = this.eng.rollLoot(c.mProf.id, c.zoneId);
       { const sr=this.storyRaidOn(); if(sr&&!sr.got){ if(sr.r.noloot) loot.length=0;   // 스토리 레이드 noloot — 아이템 드랍 없음(사토는 그대로)
-          const d=sr.r.drops&&sr.r.drops[String(c.encounter)]; if(d){ loot.length=0;   /* 확정 드랍이 걸린 전투는 그 아이템만(사용자 2026-10-10) */
+          const dk=sr.r.drops? Object.keys(sr.r.drops).map(Number).filter(n=>n<=(c.encounter||0)&&!(c.sdGot&&c.sdGot[n])).sort((a,b)=>a-b)[0] : null;   /* M4(11-01) — 정확히 n전이 아니라 n전 이후 첫 승리(놓친 전투가 있어도 다음 승리에 나온다) */
+          const d=dk!=null? sr.r.drops[String(dk)] : null; if(d){ c.sdGot=Object.assign({},c.sdGot,{[dk]:1}); loot.length=0;   /* 확정 드랍이 걸린 전투는 그 아이템만(사용자 2026-10-10) */
             for(const id in d){ if(this.eng.byId.item[id]||(this.eng.byId.weapon&&this.eng.byId.weapon[id])||(this.eng.byId.armor&&this.eng.byId.armor[id])||(this.eng.byId.usb&&this.eng.byId.usb[id])) loot.unshift({id, qty:Math.max(1,this.eng.N(d[id],1)), unapp:!!sr.r.unapp}); } } } }   // drops = n전 확정 드랍 · 맨 앞 카드(손 안내가 바로 가리키게)
       { const kd=this.storyKillDrop(c.mProf.id); if(kd){ loot.length=0; loot.unshift({id:kd.id, qty:kd.qty}); } }
       { const fd=this.facKillDrops(c.mProf.id, c.zoneId); if(fd.length){ loot.length=0; fd.forEach(id=>loot.push({id, qty:1})); } }
@@ -1533,8 +1547,11 @@ class Component extends DCLogic {
   maxStack(id){ const s=this.eng.byId.item[id]; return Math.max(1, this.eng.N(s&&s.MaxStack,1)); }
   // add `qty` of `id` into `arr`, never exceeding MaxStack per stack — overflow spills into new stacks
   stackAdd(arr, id, qty, opts){
+    { const n=this.eng.normVariant? this.eng.normVariant(id, opts&&opts.v) : {id}; if(n.id!==id){ id=n.id; opts={...(opts||{}), v:n.v}; } }   // 변형 행 ID로 들어와도 공용 스택에 합친다(구리 전선 → 전자 부품)
     const max=this.maxStack(id); const made=[]; let left=qty;
-    if(max>1){ for(const ex of arr){ if(ex.id!==id) continue; const room=max-(ex.qty||1); if(room>0){ const take=Math.min(room,left); ex.qty=(ex.qty||1)+take; left-=take; if(made.indexOf(ex)<0) made.push(ex); } if(left<=0) break; } }
+    // 공용 재료(12번): 섞여 쌓이고 칸에는 마지막에 들어간 카드의 변형(v)이 보인다 — 변형을 안 넘긴 지급은 새로 굴린다
+    const nv=(opts&&opts.v)||this.eng.pickVariant(id);
+    if(max>1){ for(const ex of arr){ if(ex.id!==id) continue; const room=max-(ex.qty||1); if(room>0){ const take=Math.min(room,left); ex.qty=(ex.qty||1)+take; left-=take; if(nv) ex.v=nv; if(made.indexOf(ex)<0) made.push(ex); } if(left<=0) break; } }
     while(left>0){ const take=max>1?Math.min(max,left):1; const inst=this.eng.mkInstance(id,take,opts||{}); if(max>1) inst.qty=take; arr.push(inst); made.push(inst); left-=take; }
     return made;
   }
@@ -1614,7 +1631,7 @@ class Component extends DCLogic {
   moveItem(uid){
     const inVault0=this.gs.vault.find(x=>x.uid===uid); const cap0=inVault0?this.slotRoomFor(inVault0):null;
     if(cap0){ if(cap0.room<=0){ this.flash(cap0.label+(this.en()?(' slots full ('+cap0.max+')'):(' 소지 한도 '+cap0.max+'개'))); return; } if((inVault0.qty||1)>cap0.room){ this.moveStack(uid, cap0.room); return; } }
-    const merge=(dst,inst)=>{ if(this.maxStack(inst.id)>1){ this.stackAdd(dst, inst.id, inst.qty||1, {unappraisedMult:inst.unappraisedMult, rareZone:inst.rareZone}); return true; } return false; };
+    const merge=(dst,inst)=>{ if(this.maxStack(inst.id)>1){ this.stackAdd(dst, inst.id, inst.qty||1, {unappraisedMult:inst.unappraisedMult, rareZone:inst.rareZone, v:inst.v}); return true; } return false; };
     const inV = this.gs.vault.findIndex(x=>x.uid===uid);
     if(inV>=0){ const it=this.gs.vault[inV];
       // 스택 아이템이고 소지품에 같은 더미가 있으면 거기 병합(새 칸 안 먹음)
@@ -2256,7 +2273,7 @@ class Component extends DCLogic {
     return h('div',{style:{position:'absolute',left:0,right:0,bottom:0,zIndex:15,pointerEvents:'none'}},
       h('div',{style:{display:'flex',alignItems:'stretch',height:76,background:'#131418',borderTop:'1px solid #2A2C31',pointerEvents:'auto'}},
         ...items.map(k=>{ const on=this.state.screen===k || (k==='zone'&&this.state.screen==='combat'); const raid=k==='zone';
-          const lockN=!!allow && k!==allow;   // 스토리 안내 중엔 안내하는 칸만 열린다(사용자 2026-10-09)
+          const lockN=!!allow && k!==allow && k!=='settings';   // 스토리 안내 중엔 안내하는 칸만 열린다(사용자 2026-10-09) · 설정은 예외(M5 · 11-01 — 언어·처음부터를 막지 않는다)
           const col=raid ? (on?'#FFE4DF':'#9A524B') : (on?'#F4F5F7':'#5F6268');
           const lit=raid?'232,133,122':'234,235,238';   // 켜진 빛의 색(rgb)
           const bg=raid?'repeating-linear-gradient(135deg,rgba(232,133,122,0.045) 0 9px,transparent 9px 18px),#1C1416':'transparent';   // 레이드 칸 = 위험지역 표시 같은 굵은 빗금, 아주 옅게(사용자 10-17)
@@ -2339,60 +2356,28 @@ class Component extends DCLogic {
       : {position:'absolute',inset:0,backgroundImage:'linear-gradient(180deg,#111315 0%,#111315 10.75%,rgba(17,19,21,0) 49.2%,#111315 100%), '+art};
     return h('div',{key:'zonebg'+(mode||'full'),style:Object.assign({zIndex:0,pointerEvents:'none',backgroundSize:'cover',backgroundPosition:'center'},st)});
   }
-  // 보스 확률 칩 — 헤더 우측. 알약 142x27 r8(black 50%) + 배지 82x17 r4 #6B6B6B.
-  // 값 = 이번 조우에서 보스가 뜰 '실제 확률'. 존 SpawnTable의 보스 기본 %에서 시작해
-  // 처치한 몬스터의 등급별 상승치(boss_chance_up_*)가 누적되고, boss_chance_max(15%)에서 멈춘다.
-  // 예) 무너진 상가 5.0% → Common 처치마다 +1%p → 15%에서 'MAX'.
-  // ★계산은 engine.spawnDistribution 한 곳에서만 한다 — 칩에서 따로 더하거나 자르면
-  //   표시와 실제 굴림이 어긋난다(표시 15%인데 굴림은 20%가 되는 식).
-  bossChip(){
+  // 위험도 칩(DANGER) — 헤더 우측 · 2026-10-30 BOSS CHANCE 칩을 대체(보스 % 표시는 없앴다 — 위험도가 전부 대신한다).
+  // 값 = 다음 전투 카드 1장이 Unique·Special·Boss로 나올 확률을 4단계로(LOW·MID·HIGH·EXTREME · 경계 Config danger_thresholds).
+  // 깊이 = 다음에 뽑을 카드가 몇 번째 전투인가(encounter+1). 카드 화면에선 지금 깔린 카드, 전투 중엔 그다음 카드다 —
+  //   3전 중에 4전의 단계가 보이므로 '귀환하느냐 더 들어가느냐'를 정하는 순간에 위험이 보인다.
+  // ★계산은 engine.dangerPct(=spawnDistribution) 한 곳에서만 — 굴림과 표시가 같은 식을 써야 어긋나지 않는다.
+  dangerChip(){
     const c=this.combat; if(!c) return null;
-    if(this.storyRaidOn()) return null;   // 스토리 레이드는 조우 고정 — 보스가 안 나온다
-    // PvP 존에는 보스가 없다 — 같은 자리에 유저 조우 확률(PVP CHANCE)을 띄운다.
+    if(this.storyRaidOn()) return null;   // 스토리 레이드는 조우 고정 — 위험도가 의미 없다
     const z=this.eng.byId.zone[c.zoneId];
-    if(this.isPvpZone(z)) return this.pvpChip(z);
-    const N=(v,d)=>this.eng.N(v,d);
-    // 보스 확률을 확정할 수 없으면 '??%'. 두 경우 모두 해당한다:
-    //  · SpawnTable이 없는 존(도시2·3) — drawMonster가 폴백 풀로 굴려서 확률을 계산할 수 없다
-    //  · 테이블에 Boss 등급 행이 없는 존 — 보스가 없는 맵
-    // 0.0%로 찍으면 "보스가 확실히 안 나온다"는 단정이 되므로 쓰지 않는다.
-    const dist=this.eng.spawnDistribution(c.zoneId, c.bossUp||0);
-    const isBoss=id=>String((this.eng.byId.monster[id]||{}).Grade||'').trim()==='Boss';
-    const pct=(dist&&dist.length)?dist.filter(d=>isBoss(d.id)).reduce((s,d)=>s+N(d.chance),0):0;
-    const cap=N(this.eng.DATA.config.boss_chance_max, 15);
-    if(pct<=0) return this.bossChipEl('??%', false);
-    // 카운트업 — 표시값(_bcShown)을 vdom에 그대로 넣고 rAF가 그 값을 올린다.
-    // 명령형으로 textContent를 쓰면 DC 노드 재사용 때 눌어붙으므로(값이 같으면 diff가 스킵된다)
-    // vdom과 DOM이 항상 같은 값을 보게 하는 이 방식이 안전하다 — 감정 카운트업(aprAnimate)과 같은 패턴.
-    this.bcSync(pct);
-    const v=this._bcShown==null?pct:this._bcShown;
-    const maxed = v>=cap-0.05;
-    // 상한에 닿으면 숫자 대신 MAX% — 더 잡아도 안 오른다는 신호. 부동소수 오차를 감안해 0.05 여유.
-    return this.bossChipEl(maxed?'MAX%':v.toFixed(1)+'%', maxed);
-  }
-  // 목표치가 바뀌면 0.52초 easeOut으로 따라 올라간다. 리셋(감소)은 연출 없이 즉시 — 보스 조우로
-  // 화면이 어차피 바뀌는 순간이라, 내려가는 카운트다운은 오히려 눈에 걸린다.
-  bcSync(target){
-    if(this._bcShown==null){ this._bcShown=target; return; }
-    if(Math.abs(this._bcShown-target)<0.005) return;
-    if(target<this._bcShown){ this._bcShown=target; if(this._bcRaf){cancelAnimationFrame(this._bcRaf);this._bcRaf=null;} return; }
-    if(this._bcTo!=null && Math.abs(this._bcTo-target)<0.005) return;   // 이미 그 목표로 달리는 중
-    if(this._bcRaf) cancelAnimationFrame(this._bcRaf);
-    const from=this._bcShown, to=target, t0=performance.now(), dur=520;
-    this._bcTo=to;
-    const step=(now)=>{ const p=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-p,3);
-      this._bcShown=from+(to-from)*e; this.forceUpdate();
-      if(p<1) this._bcRaf=requestAnimationFrame(step);
-      else { this._bcRaf=null; this._bcTo=null; this._bcShown=to; this.forceUpdate(); } };
-    this._bcRaf=requestAnimationFrame(step);
-  }
-  // 칩 본체. MAX면 배지가 빨강+노랑 글자로 바뀌고 테두리가 숨쉰다.
-  bossChipEl(label, maxed){
-    // 좌우 패딩 9→6: MAX 링이 상시 노출되는 요소가 되면서 상하(5px)와의 여백 차이가 드러났다.
-    // 6이면 상하와 1px 차이라 링이 균등하게 둘러싼다. 헤더 우측 정렬이라 폭이 줄어도 레이아웃 영향 없음.
-    // UI 시안(10-18) — 상단 재화 판(curPlate)과 같은 [코드 | 값] 깎인 판. MAX = 빨간 판 + 바깥 붉은 빛이 숨쉼(rlBossMaxF · clip-path라 box-shadow 대신 drop-shadow)
-    return h('div',{style:{display:'flex',animation:maxed?'rlBossMaxF 2.6s ease-in-out infinite':'none'}},
-      this.curPlate({code:'BOSS CHANCE',codeW:84,h:24,codeFs:9,valFs:12.5,cc:maxed?'#C4675D':'#8A8C91',cv:'#EAEBEE',val:label,state:maxed?'zero':null}));
+    if(this.isPvpZone(z)) return this.pvpChip(z);   // PvP 존은 같은 자리에 유저 조우 확률
+    const pct=this.eng.dangerPct(c.zoneId, c.bossUp||0, (c.encounter||0)+1);
+    // SpawnTable이 없는 존(도시2·3)은 폴백 풀로 굴려서 확률을 낼 수 없다 → '??'
+    if(pct==null) return this.curPlate({code:'DANGER',codeW:52,h:24,codeFs:9,valFs:12.5,cc:'#8A8C91',cv:'#EAEBEE',val:'??'});
+    const lv=this.eng.dangerLevel(pct), now=performance.now();
+    if(this._dgLv!=null && lv>this._dgLv) this._dgUpAt=now;   // 오를 때만 반짝 — 새 레이드의 LOW 복귀는 조용히
+    this._dgLv=lv;
+    const up=this._dgUpAt && now-this._dgUpAt<700;
+    if(up && !this._dgUpT) this._dgUpT=setTimeout(()=>{ this._dgUpT=null; this.forceUpdate(); },720);   // 반짝임이 끝나면 애니메이션을 걷는다
+    const L=[['LOW','#8A8C91','#EAEBEE'],['MID','#D9B451','#F0D98A'],['HIGH','#E08A3C','#F2B077'],['EXTREME','#C4675D','#EAEBEE']][lv];
+    const anim=[up?'rlDangerUp .7s ease-out':'', lv===3?'rlBossMaxF 2.6s ease-in-out infinite':''].filter(Boolean).join(', ')||'none';
+    return h('div',{key:'dg'+lv,style:{display:'flex',animation:anim}},
+      this.curPlate({code:'DANGER',codeW:52,h:24,codeFs:9,valFs:12.5,cc:L[1],cv:L[2],val:L[0],state:lv===3?'zero':null}));
   }
   // PvP 확률 칩 — svg/screen-battle-pvp-*.svg. 알약 122x27 r8 · 배지 76x17 r4 #C4675D.
   // 값 = Zone.UserDataChance(%) — drawCards가 조우 카드를 유저로 굴릴 때 쓰는 바로 그 확률.
@@ -2969,7 +2954,7 @@ class Component extends DCLogic {
         h('div',{style:{position:'absolute',inset:0,background:'linear-gradient(180deg, #0A0B0E 0%, rgba(10,11,14,0.5) 40%, rgba(17,19,21,0) 70%)'}})):null,
       // 배경 = 존 아트가 하단 360px(로그 뒤)에만 (screen-battle-log.svg)
       this.zoneBg(c.zoneId,'log'),
-      this.battleHeader(head.kicker, head.title, this.bossChip()),
+      this.battleHeader(head.kicker, head.title, this.dangerChip()),
       // 카드 블록 — svg: 몬스터 89.5~309.5 · 타임바 325~345 · 플레이어 360~468 (헤더 바로 아래 붙음)
       h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 16px'}},
         this.combatantCard(c.mProf,true,this.combatHp('monster'),c.phase==='fighting'),
@@ -3123,7 +3108,7 @@ class Component extends DCLogic {
       // 회복 시 화면 테두리 이너글로우 (ref 직접 제어, 평소 opacity 0)
       h('div',{ref:el=>this._restGlowEl=el,style:{position:'absolute',inset:0,pointerEvents:'none',zIndex:60,opacity:0,boxShadow:'inset 0 0 60px 6px #83B289'}}),
       this.zoneBg(c.zoneId),
-      this.battleHeader(head.kicker, head.title, this.bossChip()),
+      this.battleHeader(head.kicker, head.title, this.dangerChip()),
       this.countChips([
         [this.en()?'Meds':'의약품', String(catQty('Medicine')), '#83B289'],
         [this.en()?'Food':'음식', String(catQty('Food')), '#D8B25A']]),
@@ -3641,7 +3626,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       hw?h('canvas',{key:'hpwarn',ref:el=>this.mountHpWarn(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:5,mixBlendMode:'plus-lighter',opacity:hw.op,transition:'opacity .6s ease-out'}}):null,
       // 배경 = 존 아트 + 상하 페이드 (screen-battle-card-draw.svg). 헤더는 그 위에 불투명하게 고정.
       this.zoneBg(c.zoneId),
-      this.battleHeader(head.kicker, head.title, this.bossChip()),
+      this.battleHeader(head.kicker, head.title, this.dangerChip()),
       h('div',{key:'fdark','data-flipdark':1,style:{position:'absolute',inset:0,zIndex:3,pointerEvents:'none',opacity:0,background:'radial-gradient(ellipse 70% 58% at 50% 44%,rgba(0,0,0,0) 30%,rgba(0,0,0,.72) 62%,rgba(0,0,0,.97) 100%)'}}),   // 뒤집기 연출 — 비네트(화면 전체 · 하단 버튼 영역까지 · 카드 z20 아래)
       h('canvas',{key:'ffloor','data-flipfloor':1,style:{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:4,pointerEvents:'none'}}),   // 뒤집기 연출 — 바닥 그림자·파동·먼지(화면 전체 · 하단 버튼 박스 위 · 카드 영역 z5 아래)
       h('div',{onPointerDown:(e)=>{this._sx=e.clientX;this._moved=false;},onPointerMove:(e)=>{if(this._sx!=null&&Math.abs(e.clientX-this._sx)>8)this._moved=true;},onPointerUp:(e)=>{if(this._sx==null)return;const dx=e.clientX-this._sx;this._sx=null;if(this.combat.flipped)return;if(Math.abs(dx)>30){ if(dx<0)this.focusCard(Math.min(this.combat.cards.length-1,this.combat.cardFocus+1)); else this.focusCard(Math.max(0,this.combat.cardFocus-1)); }},style:{flex:1,position:'relative',overflow:'hidden',zIndex:5}},   /* zIndex 5 = 비네트(z3) 위 — 착지 흔들림(transform)이 쌓임 맥락을 만들어도 카드가 비네트 밑으로 안 깔린다 */
@@ -3714,7 +3699,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     const foot=ok?(this.en()?'Back to the Protocol in 3s.':'3초 뒤 프로토콜 지구로 이동합니다.'):this.t('combat_flee_fail_encounter');
     return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       this.zoneBg(c.zoneId),
-      this.battleHeader(head.kicker, head.title, this.bossChip()),
+      this.battleHeader(head.kicker, head.title, this.dangerChip()),
       h('div',{onPointerDown:(e)=>{this._fx=e.clientX;this._fmoved=false;},onPointerMove:(e)=>{if(this._fx!=null&&Math.abs(e.clientX-this._fx)>8)this._fmoved=true;},onPointerUp:(e)=>{if(this._fx==null)return;const dx=e.clientX-this._fx;this._fx=null;if(c.fleeFlipped)return;if(Math.abs(dx)>30){ const p0=c.fleeFocus||0; if(dx<0)c.fleeFocus=Math.min(2,p0+1); else c.fleeFocus=Math.max(0,p0-1); if(c.fleeFocus!==p0) this.sfxSwipe(); this.forceUpdate(); }},style:{flex:1,position:'relative',overflow:'hidden'}},
         [0,1,2].map(i=>{ const off=i-(c.fleeFocus==null?1:c.fleeFocus), abs=Math.abs(off), isC=off===0; const x=off*250; let o=1; if(flipped&&!isC)o=0; const rot=(flipped&&isC)?180:0; const settled=this.flipSettled(c,'flee'+i,flipped&&isC); const flat=settled||!(flipped&&isC);
           return h('div',{key:i,onClick:()=>{ if(this._fmoved||flipped)return; isC?this.flipFlee():(c.fleeFocus=i,this.forceUpdate()); },style:{position:'absolute',left:'50%',top:'50%',width:342,height:'min(442px, 100%)',transform:'translate(calc(-50% + '+x+'px), -50%) scale('+(isC?1:0.9)+')',opacity:isC?1:o,filter:isC?'none':'brightness(0.9)',zIndex:isC?20:10-abs,transition:isC?'transform .4s cubic-bezier(.16,1,.3,1)':'transform .4s cubic-bezier(.16,1,.3,1),opacity .3s',cursor:flipped?'default':'pointer',touchAction:'none',...(flat?null:{perspective:'1200px'}),pointerEvents:(flipped&&!isC)?'none':'auto'}},
@@ -3947,7 +3932,7 @@ void main(){
     return h('div',{style:{position:'relative',flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
       // 배경 = 존 아트 (screen-battle-pvp-*.svg) · 헤더는 다른 전투 화면과 같은 규격
       this.zoneBg(c.zoneId),
-      this.battleHeader(head.kicker, head.title, this.bossChip()),
+      this.battleHeader(head.kicker, head.title, this.dangerChip()),
       // 승리 드로우는 전리품을 얻을 수 있는 화면이라 소지품 칩을 띄운다(패배 트랙은 없음)
       win? this.belongingsChips() : null,
       h('div',{ref:(el)=>{ if(el&&el.clientHeight&&el.clientHeight!==this._pvpStageH){ this._pvpStageH=el.clientHeight; this.forceUpdate(); } },onPointerDown:(e)=>{this._px=e.clientX;this._pmoved=false;},onPointerMove:(e)=>{if(this._px!=null&&Math.abs(e.clientX-this._px)>8)this._pmoved=true;},onPointerUp:(e)=>{if(this._px==null)return;const dx=e.clientX-this._px;this._px=null;if(pc.picked!=null)return;if(Math.abs(dx)>30){ if(dx<0)this.focusPvp(focus+1); else this.focusPvp(focus-1); }},style:{zIndex:1,flex:win?'0 1 502px':'1 1 auto',minHeight:0,position:'relative',overflow:'hidden'}},
@@ -4168,6 +4153,25 @@ void main(){
     const snap=(this.combat&&this.combat.gSnap)||null;
     const prim=[['str',this.t('stat_str')],['dex',this.t('stat_dex')],['vit',this.t('stat_vit')],['will',this.t('stat_will')]];
     const FILL='rgb(132,146,175)';
+    // 레벨업 수치(1-8 · 2026-10-30) — 레벨이 오른 스탯 줄 아래에 '공격력 14.5 → 15.3' 식으로 연동 2차 수치를 보여준다.
+    // 장비는 지금 그대로 두고 **그 스탯 하나만** 레이드 시작 레벨(gSnap)로 되돌려 비교한다 — 방어력처럼 힘·체력 두 곳에서
+    // 오는 수치도 줄마다 제 몫만 보이고, 사망으로 장비가 망가진 손해도 '레벨업 수치'에 섞이지 않는다. 레이드마다 한 번만 계산한다.
+    const c=this.combat;
+    if(c && snap && !c.gDelta){
+      const now=this.eng.playerProfile(this.gs,false), was={};
+      for(const k of ['str','dex','vit','will']) was[k]=this.eng.playerProfile({...this.gs, primary:{...this.gs.primary, [k]:snap[k].level}},false);
+      c.gDelta={ was, now };
+    }
+    // 표기 = 영문 약어 + 오른 양만(사용자 10-30 — '얼마에서 얼마로'가 아니라 '+얼마'). 한/영 화면 공통.
+    const atk=p=>(p.minAtk+p.maxAtk)/2;
+    const DL={ str:[['ATK',atk,1,''],['DEF',p=>p.defense,1,'']], dex:[['EVA',p=>p.evasion,1,'%'],['ACC',p=>p.accuracy,1,'%']],
+      vit:[['HP',p=>p.maxHp,0,''],['DEF',p=>p.defense,1,'']], will:[['CRIT',p=>p.critChance,1,'%'],['RES',p=>p.statusResist,1,'%']] };
+    const gains=k=>{ if(!c||!c.gDelta) return []; const now=c.gDelta.now, was=c.gDelta.was[k];
+      return DL[k].map(([lb,f,d,u])=>({lb,v:f(now)-f(was),d,u})).filter(x=>Math.abs(x.v)>1e-6); };
+    const fmtG=(x,div)=>x.lb+' +'+(x.v/div).toFixed(x.d)+x.u;
+    const deltaTxt=k=>{ const g=gains(k); return g.length? g.map(x=>fmtG(x,1)).join('  ·  ') : null; };
+    // 아래 줄 표시 — 약어·구분점은 어두운 회색, 오른 숫자만 밝은 회색(10-30 사용자)
+    const deltaEl=k=>{ const g=gains(k), out=[]; g.forEach((x,i)=>{ if(i) out.push(h('span',{key:'s'+i,style:{color:'#55585E'}},'  ·  ')); out.push(h('span',{key:'l'+i,style:{color:'#6F7276'}},x.lb+' '), h('span',{key:'v'+i,style:{color:'#C9CBD0'}},'+'+x.v.toFixed(x.d)+x.u)); }); return out; };
     return h('div',{ref:el=>this.runGrowthSeq(el),style:{alignSelf:'stretch',margin:'0 16px',background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px rgb(54,56,60)',padding:'4px 16px'}},
       ...prim.map(([k,kr],idx)=>{
         const g=this.gs.growth[k]; const pct=this.eng.growthPct(this.gs,k);
@@ -4182,18 +4186,51 @@ void main(){
         const toLv=g.level, toP=Math.max(0,Math.min(100,pct));
         const lvUp=Math.max(0,toLv-fromLv);
         const grew=(toLv>fromLv)||(toP>fromP+0.005);
-        return h('div',{key:k,'data-grow':idx,'data-fl':fromLv,'data-fp':fromP.toFixed(4),'data-tl':toLv,'data-tp':toP.toFixed(4),'data-gain':grew?'1':'0',style:{padding:'12px 0',borderTop:idx>0?'1px solid rgb(54,56,60)':'none'}},
-          h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
-            h('div',{style:{fontFamily:T.sans,fontSize:12.5,fontWeight:500,color:'rgb(234,235,238)'}}, kr),
-            gtb>0.001?h('span',{style:{fontFamily:T.mono,fontSize:11,color:'#7683F3',background:'#212327',borderRadius:4,padding:'3px 8px',lineHeight:'100%'}}, 'X'+(1+gtb).toFixed(1)):null),   // ★표시만 1.0 기준이다 — GROWTH_CHIP 참조
-          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:24}},
-            h('span',{'data-lvl':'1',style:{fontFamily:T.mono,fontSize:11,display:'inline-flex',alignItems:'center',lineHeight:'12px',color:'rgb(169,171,175)'}}, 'Lv ', h('span',{'data-lvlbox':'1',style:{display:'inline-block',overflow:'hidden',height:'12px',lineHeight:'12px'}}, String(toLv))),
-            h('span',{'data-num':'1',style:{fontFamily:T.mono,fontSize:10.5,display:'inline-block',transformOrigin:'right center',willChange:'transform',color:grew?'rgb(131,178,137)':'rgb(75,77,82)'}}, toP.toFixed(2)+'%')),
-          h('div',{style:{position:'relative',height:5,borderRadius:1,overflow:'hidden',background:'rgb(43,46,50)'}},
-            h('div',{'data-fill':'1',style:{position:'absolute',left:0,top:0,height:'100%',width:toP+'%',background:FILL,willChange:'width'}}),
-            h('div',{'data-shimmer':'1',style:{position:'absolute',inset:0,pointerEvents:'none',transform:'translateX(-100%)',background:'linear-gradient(90deg, rgba(165,172,178,0) 0%, rgba(165,172,178,0.5) 50%, rgba(165,172,178,0) 100%)'}})));
+        return h('div',{key:k,'data-grow':idx,'data-pops':(lvUp>0&&gains(k).length)?JSON.stringify((({lb,v,d,u})=>({lb,v:v/lvUp,d,u}))(gains(k)[0])):'','data-fl':fromLv,'data-fp':fromP.toFixed(4),'data-tl':toLv,'data-tp':toP.toFixed(4),'data-gain':grew?'1':'0',style:{padding:'12px 0'}},   // 스탯 사이 구분선 없음(10-30 사용자)
+          // 1안(10-30) — 왼쪽 스탯 칩 [힘 | 7] · 바는 칩 세로 가운데에서 이어져 오른쪽으로 · 오른쪽 끝 = 경험치 %(내림 정수)
+          h('div',{style:{display:'flex',alignItems:'center'}},
+            this.lvTag(({str:'STR',dex:'DEX',vit:'VIT',will:'WIL'})[k],toLv),   // 한/영 상관없이 영문 약어(10-30 사용자)
+            h('div',{'data-joinbar':'1',style:{flex:1,minWidth:0,position:'relative',height:5,overflow:'hidden',background:'rgb(43,46,50)'}},
+              h('div',{'data-fill':'1',style:{position:'absolute',left:0,top:0,height:'100%',width:toP+'%',background:FILL,willChange:'width'}}),
+              h('div',{'data-shimmer':'1',style:{position:'absolute',inset:0,pointerEvents:'none',transform:'translateX(-100%)',background:'linear-gradient(90deg, rgba(165,172,178,0) 0%, rgba(165,172,178,0.5) 50%, rgba(165,172,178,0) 100%)'}})),
+            h('span',{'data-num':'1',style:{flex:'0 0 auto',width:30,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:1,color:'#B4B7BD',fontVariantNumeric:'tabular-nums'}}, Math.floor(toP)+'%')),   // 칸 30(바를 길게) · 연한 회색(10-30)
+          // 아래 줄 = 오른 수치(바 시작점에 맞춤) · 성장 태그 칩(X1.5)은 오른쪽
+          ((lvUp>0&&deltaTxt(k))||gtb>0.001)?h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginTop:-4,paddingLeft:92}},   /* 바가 26px 칩의 가운데라 아래로 ~10px 여유 — -4로 바→줄 약 7px · 왼쪽은 칩(82)에서 10px 떨어짐(92) */
+            (lvUp>0&&deltaTxt(k))?h('div',{'data-delta':'1',style:{fontFamily:T.mono,fontSize:10.5,lineHeight:'14px',whiteSpace:'pre',transition:'opacity .35s ease-out'}}, ...deltaEl(k)):h('span'),
+            gtb>0.001?h('span',{style:{fontFamily:T.mono,fontSize:11,color:'#7683F3',background:'#212327',borderRadius:4,padding:'3px 8px',lineHeight:'100%'}}, 'X'+(1+gtb).toFixed(1)):null):null);   // ★표시만 1.0 기준이다 — GROWTH_CHIP 참조
       }));
   }
+  // 스탯 칩(1-9 · 10-30 1안) — 성장 줄 왼쪽의 깎인 판 [스탯 이름 | 레벨] · 상단 재화 판(curPlate)과 같은 문법. 레벨업 때는 lvPulse가 칩을 키웠다 되돌린다.
+  //   경험치 %는 줄 오른쪽 끝(내림 정수 — 99.6%가 '100%'로 보였다가 레벨이 안 넘어가면 안 되니까).
+  lvTag(name,lv){ const C5='polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px)', C4='polygon(3.5px 0,100% 0,100% calc(100% - 3.5px),calc(100% - 3.5px) 100%,0 100%,0 3.5px)';
+    // 폭 고정 82 = 이름 칸 46 + 레벨 칸 36(두 자리 여유 · 10-30 '두 자리면 너무 타이트') — 레벨이 12가 돼도 줄마다 바 시작·끝이 같다. 이름 = STR/DEX/VIT/WIL(영어 제목 글꼴 · 한/영 공통) · 이름 칸 = 하단 48px 버튼과 같은 금속판(선 #62646A→#33353A · 바탕 가는 가로 결 + #2C2D33→#1C1D21) + 흰 글자
+    return h('div',{'data-lvtag':'1',style:{position:'relative',display:'inline-flex',alignItems:'stretch',flex:'0 0 auto',width:82,height:26,background:'linear-gradient(180deg,#62646A,#33353A)',clipPath:C5,transformOrigin:'left center',willChange:'transform'}},
+      h('span',{style:{position:'absolute',inset:.5,background:'rgba(14,15,18,0.92)',clipPath:C4}}),
+      h('span',{style:{position:'relative',display:'flex',alignItems:'center',justifyContent:'center',width:46,margin:'.5px 0 .5px .5px',paddingRight:3,boxSizing:'border-box',background:'repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px),linear-gradient(180deg,#2C2D33,#1C1D21)',color:'#EAEBEE',clipPath:'polygon(0 0,100% 0,calc(100% - 5px) 100%,0 100%)'}},
+        h('span',{style:{fontFamily:"'Big Shoulders Display',"+T.sans,fontWeight:800,fontSize:15,lineHeight:1,letterSpacing:'.04em'}}, name)),
+      h('span',{'data-lvlbox':'1',style:{position:'relative',flex:1,display:'flex',alignItems:'center',justifyContent:'center',paddingRight:2,fontFamily:T.mono,fontSize:15,fontWeight:500,lineHeight:1,color:'#EAEBEE',fontVariantNumeric:'tabular-nums'}}, String(lv))); }
+  // 레벨업 순간 — 숫자를 다음 레벨로 올리고(여러 레벨이면 넘어갈 때마다 하나씩 = 카운트업) 태그가 1.25배로 커졌다 0.32초에 돌아온다 + 파란 빛
+  lvPulse(tag,box,level){ if(box) box.textContent=String(level); if(!tag||!tag.animate) return;
+    tag.animate([{transform:'scale(1)',filter:'drop-shadow(0 0 0 rgba(140,196,255,0))'},{offset:.35,transform:'scale(1.25)',filter:'drop-shadow(0 0 7px rgba(140,196,255,.9))'},{transform:'scale(1)',filter:'drop-shadow(0 0 0 rgba(140,196,255,0))'}],{duration:320,easing:'ease-out'}); }
+  // 레벨업 숫자(1-9 · 2026-10-30) — 레벨이 넘어가는 순간 진행 바 끝 쪽에서 그 스탯의 대표 수치(ATK·EVA·HP·CRIT)가 튀어 올라 떠오른다.
+  //   스탯당 숫자 하나 — 레벨이 또 오르면 새로 띄우지 않고 같은 숫자를 합계로 바꿔 다시 튀긴다(+0.8 → +1.6 · 겹쳐 뜨지 않게).
+  //   전투 데미지 숫자와 같은 움직임(튀었다 떠오름 · dmgLayer 맨 위 층) · 글꼴은 영어 제목 글꼴 · 색 = 밝은 파랑 #8CC4FF + 먹색 외곽선 + 파란 빛
+  //   (초록은 어두운 패널 위에서 잘 안 보였다 · 사용자 10-30). 아래 고정 줄(ATK +1.6 …)은 밝은 회색 #C9CBD0.
+  growPop(bar,p,k,el){ try{ if(!bar||!bar.isConnected||!p) return el||null; const sz=19, txt='+'+(p.v*k).toFixed(p.d)+p.u;
+    // 글꼴 = 영어 화면 제목 글꼴 Big Shoulders Display 800(사용자 10-30 — 데미지 글꼴은 장식체라 영문 약어가 안 읽힌다).
+    // 자리 = 레벨 태그 바로 왼쪽, 이름 줄 높이(태그 위에 띄우면 윗줄 태그와 겹친다 · 10-30).
+    // 2.8초 — 튀어 오른 뒤 천천히 떠오르며 오래 머문다(사용자 10-30 '너무 빨리 사라져서 다 확인이 안 돼'). 다시 불리면 같은 자리에서 다시 튄다.
+    const tx=(bar.hasAttribute&&bar.hasAttribute('data-lvtag'))?'0px':'-100%';   // 칩 기준 = 칩 오른쪽에서 왼쪽 정렬 · 바 기준 = 오른쪽 정렬
+    const fr=[{opacity:0,transform:'translate('+tx+',8px) scale(.6)'},{offset:.07,opacity:1,transform:'translate('+tx+',-2px) scale(1.15)'},{offset:.16,opacity:1,transform:'translate('+tx+',-6px) scale(1)'},{offset:.8,opacity:1,transform:'translate('+tx+',-22px) scale(1)'},{opacity:0,transform:'translate('+tx+',-30px) scale(1)'}], D=2800;
+    if(el&&el.isConnected){ el._nv.textContent=txt; el.getAnimations().forEach(x=>x.cancel()); clearTimeout(el._kill);
+      fr[0]={opacity:1,transform:'translate('+tx+',-2px) scale(.9)'}; el.animate(fr,{duration:D,fill:'both'}); el._kill=setTimeout(()=>{ if(el.isConnected) el.remove(); },D+300); return el; }
+    const r=bar.getBoundingClientRect(); if(!(r.width>0)) return null; const L=this.dmgLayer(), ol=this.numOutline(sz,'#0B0D0C')+',0 0 8px rgba(110,178,255,.95),0 0 18px rgba(70,140,255,.7),0 0 30px rgba(70,140,255,.4)';   // 먹색 외곽선 + 파란 빛(사용자 10-30 '초록이 잘 안 보여 → 블루 + 빛나게')
+    const n=document.createElement('div'); n.setAttribute('data-growpop','1');
+    const onTag=bar.hasAttribute&&bar.hasAttribute('data-lvtag'); n.style.cssText='position:absolute;left:'+(onTag?r.right+8:r.right-72)+'px;top:'+(onTag?r.top-8:r.top-30)+'px;display:flex;align-items:baseline;gap:5px;white-space:nowrap;line-height:1;opacity:0;will-change:transform,opacity;transform-origin:'+(onTag?'left':'right')+' center;color:#8CC4FF;text-shadow:'+ol;
+    const lb=document.createElement('span'); lb.textContent=p.lb; lb.style.cssText='font-family:\'Big Shoulders Display\','+T.sans+';font-size:15px;font-weight:800;letter-spacing:.03em';
+    const nv=document.createElement('span'); nv.textContent=txt; nv.style.cssText='font-family:\'Big Shoulders Display\','+T.sans+';font-size:'+sz+'px;font-weight:800';
+    n.appendChild(lb); n.appendChild(nv); n._nv=nv; L.appendChild(n);
+    n.animate(fr,{duration:D,fill:'both'}); n._kill=setTimeout(()=>{ if(n.isConnected) n.remove(); },D+300); return n; }catch(e){ return el||null; } }
   runGrowthSeq(el){
     if(!el || el._seq) return; el._seq=1;
     this._growthEl=el; this._resAnimating=true; this._resSkip=false;   // 스킵 제어: 연출 진행 중 플래그
@@ -4202,9 +4239,10 @@ void main(){
     rows.forEach(r=>{
       const num=r.querySelector('[data-num]'), box=r.querySelector('[data-lvlbox]'), fill=r.querySelector('[data-fill]');
       const fromLv=r.getAttribute('data-fl'), fromP=parseFloat(r.getAttribute('data-fp'))||0;
-      if(num) num.textContent=fromP.toFixed(2)+'%';
+      if(num) num.textContent=Math.floor(fromP)+'%';
       if(box) box.textContent=String(fromLv);
       if(fill) fill.style.width=fromP+'%';
+      const dl=r.querySelector('[data-delta]'); if(dl) dl.style.opacity='0';
     });
     if(!rows.length){ this.runSatoCount(el); return; }   // 성장한 스탯 없음 → 바로 사토
     const easeOut=t=>1-Math.pow(1-t,4);   // 뒤로 갈수록 느려짐
@@ -4214,9 +4252,9 @@ void main(){
       const fromLv=parseInt(row.getAttribute('data-fl'),10)||0, fromP=parseFloat(row.getAttribute('data-fp'))||0;
       const toLv=parseInt(row.getAttribute('data-tl'),10)||0, toP=parseFloat(row.getAttribute('data-tp'))||0;
       const span=(toLv>fromLv)?((100-fromP)+(toLv-fromLv-1)*100+toP):Math.max(0,toP-fromP);
-      if(num){ num.style.transition='transform .2s ease-out'; num.style.transform='scale(1.2)'; }
       if(shim) shim.style.animation='rlShimmer 1.4s linear infinite';
-      return {num,box,fill,shim,fromLv,fromP,toLv,toP,span,lastLv:fromLv};
+      let pop=null; try{ pop=JSON.parse(row.getAttribute('data-pops')||'null'); }catch(_){}
+      return {num,box,fill,shim,tag:row.querySelector('[data-lvtag]'),dl:row.querySelector('[data-delta]'),pop,popK:0,popEl:null,bar:fill&&fill.parentNode,fromLv,fromP,toLv,toP,span,lastLv:fromLv};
     });
     const dur=2500; let st=null;
     const tick=now=>{
@@ -4229,33 +4267,23 @@ void main(){
         if(t>=1){ level=a.toLv; p=a.toP; }
         const pc=Math.max(0,Math.min(100,p));
         if(a.fill) a.fill.style.width=pc+'%';
-        if(a.num) a.num.textContent=pc.toFixed(2)+'%';
-        if(level!==a.lastLv){ const prev=a.lastLv; a.lastLv=level; this.rollLevel(a.box, prev, level); }
+        if(a.num) a.num.textContent=Math.floor(pc)+'%';
+        if(level!==a.lastLv){ const prev=a.lastLv; a.lastLv=level; this.lvPulse(a.tag, a.box, level); if(a.dl) a.dl.style.opacity='1';
+          if(a.pop){ a.popK+=level-prev; a.popEl=this.growPop(a.tag||a.bar,a.pop,a.popK,a.popEl); } }   // 스탯당 숫자 하나 — 레벨이 또 오르면 같은 숫자가 합계로 바뀌며 다시 튄다(겹쳐 뜨지 않게 · 사용자 10-30)
       });
       if(t<1) requestAnimationFrame(tick);
       else{
         anims.forEach(a=>{
-          if(a.num){ a.num.textContent=a.toP.toFixed(2)+'%'; a.num.style.transform='scale(1)'; }
+          if(a.num) a.num.textContent=Math.floor(a.toP)+'%';
           if(a.box) a.box.textContent=String(a.toLv);
           if(a.fill) a.fill.style.width=a.toP+'%';
           if(a.shim) a.shim.style.animation='';
+          if(a.dl) a.dl.style.opacity='1';
         });
         setTimeout(()=>this.runSatoCount(el), 220);   // 4스탯 전부 끝난 뒤 사토 연출
       }
     };
     requestAnimationFrame(tick);
-  }
-  rollLevel(box, from, to){
-    if(!box) return;
-    box.textContent='';
-    const strip=document.createElement('span');
-    strip.style.display='block'; strip.style.transform='translateY(0)';
-    const mk=v=>{ const s=document.createElement('span'); s.style.display='block'; s.style.height='12px'; s.style.lineHeight='12px'; s.textContent=String(v); return s; };
-    strip.appendChild(mk(from)); strip.appendChild(mk(to));
-    box.appendChild(strip);
-    void strip.offsetWidth;
-    strip.style.transition='transform .32s cubic-bezier(.2,.85,.2,1)';
-    strip.style.transform='translateY(-12px)';
   }
   // 사토 보상 박스 — 성장 스테이지에서 스탯 연출 종료 후 카운트업 (runSatoCount)
   resultSato(){
@@ -4263,12 +4291,13 @@ void main(){
     if(!(gain>0)) return null;
     const before=Math.max(0, this.eng.N(this.gs.sato,0)-gain);
     const HI='rgb(234,235,238)', LN='rgb(54,56,60)', MUT='rgb(75,77,82)', WAL='rgb(169,171,175)';
-    const SATO='oklch(0.740 0.055 224)', EDGE='oklch(0.740 0.055 224 / .5)', DIM='oklch(0.740 0.055 224 / .16)';
+    const SATO='oklch(0.740 0.055 224)', DIM='oklch(0.740 0.055 224 / .16)';
     return h('div',{'data-sato':'1','data-gain':String(gain),'data-before':String(before),
       style:{position:'relative',margin:'12px 16px 0',background:'rgb(24,25,29)',borderRadius:8,boxShadow:'inset 0 0 0 1px '+LN,padding:16,overflow:'hidden',transition:'box-shadow .5s ease-out'}},
       h('div',{'data-satohalo':'1',style:{position:'absolute',inset:0,pointerEvents:'none',opacity:0,transition:'opacity .5s ease-out',background:'radial-gradient(120% 90% at 50% 120%, '+DIM+', transparent 62%)'}}),
       h('div',{style:{position:'relative',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}},
-        h('span',{style:{fontFamily:T.mono,fontSize:9.5,letterSpacing:'1.33px',color:SATO,border:'1px solid '+EDGE,borderRadius:4,padding:'2px 8px',lineHeight:1}}, 'SATO'),
+        // 상단 재화 판(curPlate)의 SATO 코드 칸과 같은 깎인 판(10-30 — 옛 테두리 알약에서 교체)
+        h('span',{style:{display:'inline-flex',alignItems:'center',height:20,padding:'0 10px 0 9px',background:'linear-gradient(180deg,rgba(255,255,255,.2),transparent 55%),#85B3C5',color:'#121418',fontFamily:T.mono,fontSize:9,fontWeight:600,letterSpacing:'.06em',lineHeight:1,clipPath:'polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px)'}}, 'SATO'),
         h('div',{style:{display:'flex',alignItems:'baseline',gap:5}},
           h('span',{style:{fontFamily:T.mono,fontSize:14,color:SATO,lineHeight:1}}, '+'),
           h('span',{'data-satonum':'1',style:{fontFamily:T.mono,fontWeight:600,fontSize:19,lineHeight:1,color:HI,letterSpacing:'-.01em',transformOrigin:'right center',willChange:'transform'}}, '0'))),
@@ -4368,11 +4397,13 @@ void main(){
         if(r.getAttribute('data-gain')!=='1') return;
         const num=r.querySelector('[data-num]'), box=r.querySelector('[data-lvlbox]'), fill=r.querySelector('[data-fill]'), shim=r.querySelector('[data-shimmer]');
         const toLv=r.getAttribute('data-tl'), toP=parseFloat(r.getAttribute('data-tp'))||0;
-        if(num){ num.textContent=toP.toFixed(2)+'%'; num.style.transition=''; num.style.transform='scale(1)'; }
+        if(num) num.textContent=Math.floor(toP)+'%';
         if(box) box.textContent=String(toLv);
         if(fill) fill.style.width=toP+'%';
         if(shim) shim.style.animation='';
+        const dl=r.querySelector('[data-delta]'); if(dl) dl.style.opacity='1';
       });
+      document.querySelectorAll('[data-growpop]').forEach(n=>n.remove());   // 떠오르던 레벨업 숫자는 즉시 걷는다
       const sbox=el.parentNode&&el.parentNode.querySelector('[data-sato]');
       if(sbox){
         sbox._sato=1;
@@ -4537,7 +4568,7 @@ void main(){
     if(this.isBlueprint(inst)) return 'assets/art/cards/blueprint_disc.webp';
     if(e.byId.module&&e.byId.module[id]) return 'assets/art/cards/module_card.webp?v=2';
     if(this.isKeycard(inst)) return 'assets/art/cards/'+id+'.webp';
-    return 'assets/art/items/'+id+'.webp'; }
+    return 'assets/art/items/'+(inst.v||id)+'.webp'; }
   // 도면(디스크) 카드 — 목업 card-blueprint-disk.svg 실측(342x442):
   //   아트 340x317 풀블리드(+상단 80px 페이드) · '디스크' y296 x18 · INSTALL y297 우측 · 제목 y334 · 설명 y362 2줄
   // 아트는 **전 도면 공용** 한 장이라 id별 파일을 찾지 않는다(①: 같은 아트웍).
@@ -4565,11 +4596,11 @@ void main(){
   questCardBig(inst,fixed,opt){
     const it=this.eng.byId.item[inst.id]||{}; const o=opt||{};
     const C1='rgb(24,25,29)', LN='rgb(54,56,60)', SUB='#A5ACB2', HI='#EAEBEE', MUT='#4B4D52';
-    const em=this.isEnhMatId(inst.id)? this.enhMatColor(inst.id) : null;   // 강화 재료 = 귀중품과 같은 효과(테두리·호흡 빛·스캐너), 색만 재료색
+    const em=this.isEnhMatId(inst.id)? this.enhMatColor(inst.v||inst.id) : null;   // 강화 재료 = 귀중품과 같은 효과(테두리·호흡 빛·스캐너), 색만 재료색
     return h('div',{style:{position:'relative',width:342,height:fixed?this.lootCardH(inst):'100%',boxSizing:'border-box',background:C1,border:'1px solid '+(em?'rgba('+em.rgb+',0.28)':'rgba(206,212,220,0.23)'),...(em?{'--gc':em.rgb}:{}),borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:em?'rlGlowVar 4.8s ease-in-out infinite':'rlGlowSilver 4.8s ease-in-out infinite'}},
       h('div',{style:{position:'relative',height:316,flexShrink:0,overflow:'hidden',background:'#0F1013'}},
         h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
-        h('img',{key:'qart',draggable:false,src:'assets/art/items/'+inst.id+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',pointerEvents:'none',WebkitUserDrag:'none'}}),
+        h('img',{key:'qart',draggable:false,src:'assets/art/items/'+(inst.v||inst.id)+'.webp',onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',pointerEvents:'none',WebkitUserDrag:'none'}}),
         em? h('canvas',{key:'escan'+inst.id,ref:el=>this.mountValScan(el,[em.c,em.t,'#FFFFFF']),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',mixBlendMode:'lighten'}}) : null,   // 귀중품 Scanner와 같은 셰이더 · 재료색
         o.tunnel===false? null : h('canvas',{key:'qtun',ref:el=>this.mountQuestTunnel(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',mixBlendMode:'lighten'}}),
         h('div',{style:{position:'absolute',left:0,right:0,bottom:0,height:80,background:'linear-gradient(180deg, rgba(24,25,29,0) 0%, #18191D 100%)'}}),
@@ -4578,7 +4609,7 @@ void main(){
           h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.08em',color:SUB}}, 'MAX STACK '+this.maxStack(inst.id)))),
       h('div',{style:{padding:'17px 17px 0',display:'flex',flexDirection:'column',gap:12}},
         h('div',{style:{display:'flex',alignItems:'center',gap:8}}, h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20px',color:HI}}, this.ttx(this.itemLabel(inst),18,20)), this.stackTag(inst)),
-        h('span',{style:{fontFamily:T.sans,fontSize:12,lineHeight:1.6,color:MUT}}, this.tx(it,'Description'))));
+        h('span',{style:{fontFamily:T.sans,fontSize:12,lineHeight:1.6,color:MUT}}, this.tx(this.eng.displaySrc(inst),'Description'))));
   }
   // 키카드 카드 = 프레임/텍스트 없이 아트 풀블리드(assets/art/cards/<id>.webp). 정보는 인벤 분류로 충분.
   keycardBig(inst,fixed){
@@ -4640,7 +4671,7 @@ void main(){
     // 귀중품 가치는 흥정 전까지 완전 숨김(미감정 원칙) — 흥정 후에만 확정값 노출
     const allStats=val?[[this.en()?'Value':'가치', (inst.value!=null? Math.round(this.eng.N(inst.value)).toLocaleString() : (this.en()?'Unknown':'알 수 없음')), (inst.value!=null&&inst.valueUp===false)?'#C4675D':'#83B289']]:(isBag?[[this.en()?'Slots':'슬롯',String(this.eng.N(s.Capacity)),'#83B289']]:(isAcc?accRows():((isGear||liq||md||s.Category==='Medicine'||s.Category==='Food')?this.itemDetailStats(inst):[])));
     const stats=this.enhStatFx(inst, allStats.filter(([k])=>k!==this.t('item_durability')));   // 강화 연출 중이면 바뀐 줄만 카운트(enhStatFx)
-    const desc=this.tx(s,'Description')||(inst.kind==='talisman'&&(this.tx(s,'EffectDesc')||s.EffectDesc_KR))||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||(md&&this.t(String(md.Tag)==='weapon'?'module_fits_weapon':'module_fits_armor'))||'';
+    const desc=this.tx(this.eng.displaySrc(inst),'Description')||(inst.kind==='talisman'&&(this.tx(s,'EffectDesc')||s.EffectDesc_KR))||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||(md&&this.t(String(md.Tag)==='weapon'?'module_fits_weapon':'module_fits_armor'))||'';
     // ★소켓 개수는 **제작 순간에 굴려진다**(engine.mkInstance: randInt(0,SocketMax)).
     //   제작 미리보기(mask==='?')가 굴린 값은 결과물과 무관하므로 보여주면 거짓말이 된다
     //   (목업 screen-hideout-workbench-create2에도 MODULE 섹션이 없다). 섹션을 통째로 감춘다.
@@ -4662,7 +4693,7 @@ void main(){
         // 모듈은 전부 같은 카드 아트를 쓴다 — 구분은 이름(부품코드)·계열이 맡는다(HexCode 폐기).
         // 제작 미리보기에서도 결과물 아트는 보여준다 — 가리는 건 **수치**뿐이다(이름·설명도 이미 보인다).
         //   아트가 없으면 onError로 숨겨져 뒤의 빗금 배경이 그대로 남는다.
-        h('img',{key:'artimg',draggable:false,src:md?'assets/art/cards/module_card.webp?v=2':('assets/art/items/'+inst.id+'.webp'),onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:md?'top':(ITEM_ART_POS[inst.id]||'center'),pointerEvents:'none',WebkitUserDrag:'none'}}),
+        h('img',{key:'artimg',draggable:false,src:md?'assets/art/cards/module_card.webp?v=2':('assets/art/items/'+(inst.v||inst.id)+'.webp'),onError:e=>{e.target.style.display='none';},style:{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:md?'top':(ITEM_ART_POS[inst.id]||'center'),pointerEvents:'none',WebkitUserDrag:'none'}}),
         (val&&mask!=='?')? h('canvas',{key:'vscan',ref:el=>this.mountValScan(el),style:{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',mixBlendMode:'lighten'}}) : null,   /* 귀중품 = 아트 위 Scanner(전 귀중품 공통 · 사용자 2026-10-12) */
         h('div',{style:{position:'absolute',left:0,bottom:0,width:'100%',height:80,background:'linear-gradient(180deg, rgba(0,0,0,0) 0%, '+C1+' 100%)'}}),
         ((gtags.length||this.durGone(inst))&&mask!=='?')?h('div',{style:{position:'absolute',right:15,top:15,display:'flex',flexDirection:'row-reverse',gap:7}},
@@ -5057,11 +5088,21 @@ void main(){
     }, 0);
   }
   // ===== 스토리 무전 (QuestDialogue Stage=radio · Trigger) — 목업 svg/screen-npc-comms =====
-  //   Trigger(JSON) 어휘: goal_done(목표 달성 직후) · screen{id}(그 화면 첫 진입) — 레이드용(raid_start·fight_end·item_get·monster_appear·zone_enter)은 레이드 퀘스트 때.
+  //   Trigger(JSON) 어휘: goal_done(목표 달성 직후) · screen{id}(그 화면 첫 진입) · wait(다음 메인이 잠겨 있는 동안 1회 · 10-30) — 레이드용(raid_start·fight_end·item_get·monster_appear·zone_enter)은 레이드 퀘스트 때.
   //   같은 Trigger 줄들을 Seq 순으로 · 퀘스트당 한 번(gs.story.cur.radio에 기록) · 무전이 떠 있는 동안 손 안내는 숨는다.
   storyRadioCheck(){ if(this.radio||this.talk||this.state.tuto||this.state.wake||!this.gs||!this.eng||!this.eng.storyLines) return;
     if(this.state.screen==='tap' && !this._tapWarned){ this._tapWarned=true; const rows=this.raidWarnRows(); if(rows.length){ setTimeout(()=>{ if(!this.state.tuto&&!this.radio) this.radioOpen(rows[0]._vid,rows); else this._tapWarned=false; },0); return; } }
     const c=this.storyMap().cur;
+    // 공백 안내 무전(Trigger {"on":"wait"} · 2026-10-30) — 다음 메인 임무가 시작 조건(quest_raids 등)으로 아직 잠겨 있으면
+    //   그 임무의 wait 무전을 지구 화면에서 한 번만 띄운다. 퀘스트가 아니라 '몇 번 다녀오며 적응해 둬' 같은 안내다(사용자 10-30).
+    //   기록 = gs.story.waited[QuestID]. 조건이 풀리면 원래의 call 무전이 다음 단계를 부른다.
+    if(!c){ const nq=this.storyNext(), m0=this.storyMap();
+      if(nq && !this.storyUnlockOk(nq) && !(m0.waited&&m0.waited[nq.QuestID])){
+        const wr=this.eng.storyLines(nq.QuestID,'radio').filter(r=>{ try{ return JSON.parse(String(r.Trigger||'')).on==='wait'; }catch(_){ return false; } }).sort((a,b)=>this.eng.N(a.Seq,0)-this.eng.N(b.Seq,0));
+        const free0=RAID_SCREENS.indexOf(this.state.screen)<0 && !this.storyRew && !this.state.notice && !!this.state.ready && !this.tidyActive();
+        if(wr.length && free0){ m0.waited=Object.assign({},m0.waited,{[nq.QuestID]:1}); this.saveGame();
+          setTimeout(()=>{ if(this.state.tuto||this.state.notice||this.radio||this.talk){ delete m0.waited[nq.QuestID]; return; } this.radioOpen(String(nq.GiverVendorID||''),wr); },900);
+          return; } } }
     if(!c){ let pq=this.storyPending(), rows=pq?this.storyCallRows(pq):[]; const m=this.storyMap();
       if(!rows.length){ const alt=this.storyGenAll().find(x=>this.storyCallRows(x).length&&!(m.called&&m.called[x.QuestID])); if(alt){ pq=alt; rows=this.storyCallRows(alt); } }   /* 호출 대사가 있는 다른 [일반] 임무(잡음 섞인 교신) */   // 받기 전 호출 — 교신 화면에서 1회 · id:auto면 레이드 밖 아무 화면에서
       const free=RAID_SCREENS.indexOf(this.state.screen)<0 && !this.storyRew && !this.state.notice && !!this.state.ready;
@@ -5079,10 +5120,10 @@ void main(){
     this.eng.storyLines(c.id,'radio').forEach(r=>{ const k=String(r.Trigger||'').trim(); if(!k||k==='-') return; (groups[k]||(groups[k]=[])).push(r); });
     for(const k in groups){ if(fired[k]) continue; let tr; try{ tr=JSON.parse(k); }catch(_){ continue; }
       const hit=(tr.on==='goal_done' && this.storyAllDone(q)) || (tr.on==='screen' && (this.state.screen===tr.id || (this.state.screen==='vendor' && 'vendor_'+this.state.vtab===tr.id)))
-        || (tr.on==='fight_end' && this.state.screen==='combat' && this.combat && (this.combat.phase==='won'||this.combat.phase==='timeout') && this.combat.encounter===this.eng.N(tr.n,0))
+        || (tr.on==='fight_end' && this.state.screen==='combat' && this.combat && (this.combat.phase==='won'||this.combat.phase==='timeout') && this.combat.encounter===this.eng.N(tr.n,0) && (!tr.got || this.storyOwns(String(((this.eng.questObjective(q)||{}).raid||{}).until||''))))   /* got:true = 그 퀘스트 아이템을 이미 가졌을 때만(2-4 '됐어. 나와.' · 11-01) */
         || (tr.on==='rest_empty' && this.state.screen==='combat' && this.combat && this.combat.phase==='rest' && !!this.combat.restGranted)
         || (tr.on==='meet' && this.state.screen==='combat' && this.combat && this.combat.phase==='cards' && this.combat.flipped && !this.combat.flipAnim && this.combat.mProf && this.combat.mProf.id===tr.id)   /* 조우 무전(진행 중 임무) — 「내려간 셔터」 강화 철문(10-23) */
-        || (tr.on==='item_get' && this.state.screen==='lootmanage' && !!this.state.lm && [...this.state.lm.field,...this.state.lm.bag].some(x=>x.id===tr.id&&!x.pre))
+        || (tr.on==='item_get' && this.state.screen==='lootmanage' && !!this.state.lm && [...this.state.lm.field.filter(x=>this.state.lm.opened&&this.state.lm.opened.has(x.uid)),...this.state.lm.bag].some(x=>x.id===tr.id&&!x.pre))   /* M4(11-01) — 카드를 뒤집은 뒤에(뒷면일 땐 무전이 먼저 오면 앞뒤가 안 맞다) */
         || (this.state.screen==='lootmanage' && !!this.state.lm && this.storyLootHit(tr));
       if(!hit) continue;
       const rows=groups[k].slice().sort((a,b)=>this.eng.N(a.Seq,0)-this.eng.N(b.Seq,0));
@@ -5259,7 +5300,7 @@ void main(){
     );
   }
   // ===== 소지품 슬롯 뷰(주머니/배낭/장비) — 승인 프로토(inv_slot_proto) 이식. 데이터=gs.bag의 inst.loc('pocket'|'bag') =====
-  shortDesc(inst){ const s=this.eng.anyItem(inst.id)||{}; return this.tx(s,'Description')||''; }
+  shortDesc(inst){ return this.tx(this.eng.displaySrc(inst),'Description')||''; }
   belongings(catOf){
     // 소지품 = 이미지 2장(주머니·가방) 위에 슬롯을 겹쳐 놓는다. 섹션 이름·칸 수 칩·사망 규칙 문구는 두지 않는다(2026-10-21 사용자).
     // 가방은 6줄 기준으로 크기를 고정한다 — 칸이 모자란 줄은 '사용 불가'. 가방이 없으면 주머니 그림과 같은 크기의 점선 박스.
@@ -5286,7 +5327,8 @@ void main(){
         const t=Math.min(0,Math.max(ch-gh, ch/2-cyW)), cyC=cyW+t;   // 그림 위 오프셋(W) · 입구 중심의 컨테이너 내 위치(W)
         secs.push(h('div',{key:'bg:'+bagInst.id,style:{padding:'14px 12px 0'}},   // 주머니와 같은 좌우 여백 — 폭 기준(W)이 같아야 슬롯 크기가 같다
           h('div',{style:{position:'relative',width:'100%',height:0,paddingBottom:(ch*100)+'%',overflow:'hidden',background:'#101114'}},
-            art('assets/art/ui/bagview/'+bagInst.id+'.webp',{position:'absolute',width:(z*100)+'%',left:(-off*100)+'%',top:(t/ch*100)+'%',height:'auto'}),
+            art('assets/art/ui/bagview/'+bagInst.id+'.webp?v=2',{   /* ?v=2 = 11-01 배경을 화면 배경색(#111216)으로 평탄화 */
+              position:'absolute',width:(z*100)+'%',left:(-off*100)+'%',top:(t/ch*100)+'%',height:'auto'}),
             h('div',{style:{position:'absolute',left:((cx-INV_SLOT.w/2)*100)+'%',right:((1-cx-INV_SLOT.w/2)*100)+'%',top:((cyC-rhW/2)/ch*100)+'%',bottom:((1-(cyC+rhW/2)/ch)*100)+'%',display:'flex',flexDirection:'column'}}, rows))));
       } else {   // 폴백 — 공용 6칸 그림 위에 6줄 고정, 남는 줄은 '사용 불가'
         const n=Math.max(ROWS,cap); const rows=[];
@@ -5436,7 +5478,7 @@ void main(){
     const attr = s.Attribute;
     const st = this.eng.itemState(inst);
     const gearSub=(inst.kind==='weapon'||inst.kind==='armor')?[this.eng.materialLabel(s.Material),(AT(s.Attribute)?this.t('status_'+s.Attribute):null)].filter(Boolean).join(' · '):'';
-    const desc=this.tx(s,'Description')||(inst.kind==='talisman'&&(this.tx(s,'EffectDesc')||s.EffectDesc_KR))||(liq&&(this.tx(this.eng.byId.liquor[inst.id],'Description')||this.tx(this.eng.byId.liquor[inst.id],'Notes')))||(md&&(this.eng.tr(md,'TargetStat')+' +'+md.Value_Min+'~'+md.Value_Max))||(usb&&this.eng.substUsbTokens(this.tx(usb,'Description')||usb.Description||'', usb))||gearSub||'';
+    const desc=this.tx(this.eng.displaySrc(inst),'Description')||(inst.kind==='talisman'&&(this.tx(s,'EffectDesc')||s.EffectDesc_KR))||(liq&&(this.tx(this.eng.byId.liquor[inst.id],'Description')||this.tx(this.eng.byId.liquor[inst.id],'Notes')))||(md&&(this.eng.tr(md,'TargetStat')+' +'+md.Value_Min+'~'+md.Value_Max))||(usb&&this.eng.substUsbTokens(this.tx(usb,'Description')||usb.Description||'', usb))||gearSub||'';
     return h('div',{key:inst.uid,'data-guide':'invrow-'+inst.uid,
       onPointerDown:(e)=>{ if(equipped) return; this._sw={uid:inst.uid,x0:e.clientX,el:e.currentTarget,moved:false}; },
       onPointerMove:(e)=>{ if(!this._sw||this._sw.uid!==inst.uid) return; let dx=e.clientX-this._sw.x0; const allowR=seg==='bag',allowL=seg==='vault'; if((dx>0&&!allowR)||(dx<0&&!allowL)) dx=0; if(Math.abs(dx)>6)this._sw.moved=true; this._sw.el.style.transition='none'; this._sw.el.style.transform='translateX('+Math.max(-120,Math.min(120,dx))+'px)'; },
@@ -5746,7 +5788,7 @@ void main(){
           h('polygon',{points:'7,0.75 99.25,0.75 99.25,143 93,149.25 0.75,149.25 0.75,7',fill:'rgba(255,255,255,.025)',stroke:'rgba(190,192,198,.28)','stroke-width':1.3,'stroke-dasharray':'5 4','vector-effect':'non-scaling-stroke','stroke-linejoin':'round'})),
         h('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:T.mono,fontSize:8.5,letterSpacing:'.05em',color:'rgba(190,192,198,.55)',pointerEvents:'none'}}, cat==='Accessory'?'ACC':cat.toUpperCase()));
       // 테두리 = 강화 단계 — +0 은은한 회색 · +1 밝은 회색 · +2 은색 · +3 호박(빛 한 줄기) · +4 붉은빛(두 줄기) · +5 프리즘. 카드 이펙트와 같은 색·움직임을 사선 틀을 따라 그린다.
-      const n=Math.min(5,this.eng.enhLevel(inst)); const SILVER='linear-gradient(135deg,#F2F4F7 0%,#9EA3AB 35%,#E6E9EE 55%,#8A8F97 80%,#D9DCE1 100%)';
+      const n=this.enhTier(this.eng.enhLevel(inst)); const SILVER='linear-gradient(135deg,#F2F4F7 0%,#9EA3AB 35%,#E6E9EE 55%,#8A8F97 80%,#D9DCE1 100%)';
       const rb=['rgba(255,255,255,.2)','rgba(214,216,220,.75)',SILVER,'rgba(204,162,110,.8)','rgba(196,103,93,.85)',null][n];
       const spin=[null,null,null,'conic-gradient(from var(--rlA),rgba(204,162,110,0) 0deg,rgba(204,162,110,0) 250deg,rgba(255,214,150,.98) 330deg,rgba(204,162,110,0) 360deg)','conic-gradient(from var(--rlA),rgba(196,103,93,0) 0deg,rgba(255,140,120,1) 40deg,rgba(196,103,93,0) 90deg,rgba(196,103,93,0) 180deg,rgba(255,140,120,1) 220deg,rgba(196,103,93,0) 270deg)','conic-gradient(from var(--rlA),#F4B3CB,#F3D7A2,#BFEFCB,#A6D9F3,#C8B3F2,#F4B3CB)'][n];
       const dur=[0,0,0,3.2,2.4,3][n]; const glow=[null,null,null,'rgba(204,162,110,.35)','rgba(196,103,93,.4)','rgba(200,179,242,.45)'][n];
@@ -5775,7 +5817,9 @@ void main(){
     const hide=this.state.repairMode==='hideout';
     let mats=[];
     if(hide){ mats=this.rsRepairMats(inst); if(!mats.length||!mats.every(m=>m.ok)){ this.flash(this.t('hide_upg_lack'),true); return; } }   // 빈 배열도 불가 — every()가 true라 그냥 두면 재료 없이 수리된다
-    const r=hide? this.eng.repair(this.gs,inst,{free:true,fail:1-this.eng.repairRate(this.gs)/100}) : this.eng.repair(this.gs,inst);
+    const kit=hide&&this.repairKitOn();   // (6번 · 11-01) 정밀 수리 키트 — 정비대만 · 수리 1회 1개 · 결과 무관 소모
+    const r=hide? this.eng.repair(this.gs,inst,{free:true,fail:1-this.repairRateEff(kit)/100}) : this.eng.repair(this.gs,inst);
+    if(r.ok&&kit) this.eng.consumeItems(this.gs,this.eng.REPAIR_KIT_ID,1);
     if(!r.ok){ this.flash(r.reason==='sato'?this.t('shop_insufficient_sato'):r.reason==='full'?this.t('repair_not_needed'):this.t('item_destroyed_norepair')); this.setState({repairSel:null}); return; }
     if(hide) mats.forEach(m=>this.eng.consumeItems(this.gs,m.id,m.need));
     const result={ name:this.itemLabel(inst), cost:r.cost, restored:r.restored, fails:r.fails, maxLoss:r.maxLoss, dur:r.dur, maxDur:r.maxDur, fromDur };
@@ -5827,7 +5871,7 @@ void main(){
     // 칩은 공용 헬퍼만 쓴다 — 목업(screen-hardware-fix-item.svg)의 칩은 배경 #212327 + 1px 테두리다.
     // 전용 chip()으로 테두리 없이 그리면 통짜 블록으로 보인다(감정 리스트 aprItemRow와 같은 조합으로 통일).
     // ⚠️ flexShrink:0 필수 — 부모가 flex column + overflow라 없으면 행이 눌려 게이지와 디바이더 사이 16px이 먹힌다.
-    return h('div',{key:inst.uid,'data-guide':'rep-row-'+i,onClick:()=>this.setState({repairSel:inst.uid}),
+    return h('div',{key:inst.uid,'data-guide':'rep-row-'+i,onClick:()=>this.setState({repairSel:inst.uid,repairKit:false}),
       style:{flexShrink:0,height:104,boxSizing:'border-box',padding:'9px 16px 0',cursor:'pointer',borderBottom:'1px solid '+T.line}},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',height:20}},
         h('div',{style:{display:'flex',alignItems:'center',gap:6}}, this.catChip(CATKR[src.Category]||src.Category||'', eqp), eqp?this.eqTag():null, this.gtagPill(inst)),
@@ -5838,6 +5882,9 @@ void main(){
         h('span',{style:{fontFamily:T.mono,fontSize:12,lineHeight:'13px',color:'#A9ABAF'}}, this.durTxt(inst,' / '))),
       h('div',{style:{height:5,marginTop:8,background:'#2B2E32',borderRadius:2.5,overflow:'hidden'}}, h('div',{style:{width:pct+'%',height:'100%',background:'#A5ACB2'}})));
   }
+  repairKitHave(){ return this.eng.REPAIR_KIT_ID? this.eng.countItem(this.gs,this.eng.REPAIR_KIT_ID) : 0; }
+  repairKitOn(){ return !!this.state.repairKit && this.state.repairMode==='hideout' && this.eng.repairKitBonus && this.eng.repairKitBonus()>0 && this.repairKitHave()>=1; }
+  repairRateEff(kit){ const r=this.eng.repairRate(this.gs); return kit? Math.min(99, r+this.eng.repairKitBonus()) : r; }   // 키트를 써도 1%는 남긴다(사용자 11-01)
   repairConfirm(){
     const inst=this.eng.instById(this.gs,this.state.repairSel); if(!inst) return null;
     const hide=this.state.repairMode==='hideout';   // 아지트 정비대 = 사토 대신 재료
@@ -5846,6 +5893,7 @@ void main(){
     const rate=this.eng.repairRate(this.gs), rbase=this.eng.repairRateBase();
     const fp=hide? (1-rate/100) : this.eng.repairFailChance(inst);
     const mats=hide? this.rsRepairMats(inst) : [];
+    const kitBonus=hide&&this.eng.repairKitBonus? this.eng.repairKitBonus() : 0, kitHave=kitBonus>0? this.repairKitHave() : 0, kitOn=kitBonus>0&&this.repairKitOn();
     const aff=hide? (mats.length>0&&mats.every(m=>m.ok)) : this.gs.sato>=cost;
     // 성공률은 '점당' 확률 그대로 보여준다(정비대 90 / 철물점·장신구 85).
     // ⚠️ 예전엔 (1-fp)^마모 = '전 구간 무실패 확률'을 띄웠는데, 마모가 크면 6%·11%로 떨어져
@@ -5866,12 +5914,15 @@ void main(){
         hide? h('div',{style:{marginTop:16}},
           ...mats.map((m,i)=>this.frow(this.matName(m.id, m.label, {fontFamily:T.sans,fontSize:13,color:'#A9ABAF'}), h('span',{style:{color:m.ok?'#EAEBEE':'#CCA26E'}}, m.have+'/'+m.need), '#EAEBEE', i>0)),
           h('div',{style:{height:13,marginTop:16,display:'flex',alignItems:'center',fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:'#4B4D52'}}, this.t('hide_upg_effect')),
-          this.frow(this.t('hide_rep_rate'), h('span',null, rbase+'%', h('span',{style:{color:(rate-rbase)>0?'#83B289':'#4B4D52'}}, '(+'+(rate-rbase)+'%)')), '#EAEBEE', false))
+          this.frow(this.t('hide_rep_rate'), kitOn? h('span',null, h('span',{style:{color:'#6F7276'}}, rate+'%'), h('span',{style:{color:'#4B4D52'}}, '  →  '), h('span',{style:{color:'#83B289'}}, this.repairRateEff(true)+'%'))
+            : h('span',null, rbase+'%', h('span',{style:{color:(rate-rbase)>0?'#83B289':'#4B4D52'}}, '(+'+(rate-rbase)+'%)')), '#EAEBEE', false),
+          kitBonus>0? this.optToggleRow('kit', this.eng.REPAIR_KIT_ID, this.t('repair_kit_use'), this.t('enh_guard_count').replace('{n}',kitHave).replace('{k}',1), kitOn, kitHave>=1, ()=>this.setState({repairKit:!this.state.repairKit})) : null,
+          (kitBonus>0&&kitHave<1)? this.optHint('kh', this.t('repair_kit_hint')) : null)
         : h('div',{style:{marginTop:16}},
           this.frow(this.t('hide_rep_rate'), successPct+'%','#EAEBEE',false),
           this.frow(this.en()?'Durability to repair':'수리할 내구도', String(worn),'#A9ABAF',true),
           this.frow(this.t('repair_cost'), cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85B3C5':'#C4675D', true)),
-        aff? this.infoBox('nosato', hide?this.t('hide_rep_confirm'):this.t('repair_fail_warn')) : this.infoBox('nosato', hide?this.t('hide_upg_lack'):this.t('shop_insufficient_sato')),
+        aff? this.infoBox('nosato', hide?(kitOn?(this.en()?'The kit is used up even if the repair fails.':'수리에 실패해도 키트는 소모됩니다.'):this.t('hide_rep_confirm')):this.t('repair_fail_warn')) : this.infoBox('nosato', hide?this.t('hide_upg_lack'):this.t('shop_insufficient_sato')),
         h('div',{style:{display:'flex',gap:8,marginTop:16}},
           h('button',{disabled:!aff,'data-guide':'rep-go',onClick:aff?()=>this.doRepair(inst):null,style:{flex:1,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:24,color:aff?'#EAEBEE':'#4B4D52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:aff?'pointer':'default'}}, this.en()?'Repair':'수리'),
           h('button',{onClick:()=>this.setState({repairSel:null}),style:{flex:1,height:48,boxSizing:'border-box',background:'#212227',border:'none',borderRadius:24,color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_cancel')))));
@@ -5880,11 +5931,12 @@ void main(){
   // ===== 상점 메뉴 (svg/screen-clinic-menu.svg) =====
   // 상점 아트 배경 + 하단 패널. 항목은 Vendor.Services에서 만든다 —
   // 서비스(치료/수리/…) → 거래하기(구매·판매 통합) → 퀘스트(잠금) → 나가기 순.
+  repairHeldByStory(){ if(!this.gs||!this.hasStory||!this.hasStory()) return false; const m=this.storyMap(); return !!(m.done['quest_story_c1_04'] && !m.done['quest_story_c1_05'] && !(m.cur&&m.cur.id==='quest_story_c1_05')); }
   vendorMenuItems(v){
     const svc=this.services(v), out=[];
     const add=(k,label,locked)=>out.push({k,label,locked:!!locked});
     if(svc.includes('Heal')) add('heal', this.t('heal_treat'));
-    if(svc.includes('Repair')) add('repair', this.en()?'Repair':'수리하기');
+    if(svc.includes('Repair')){ add('repair', this.en()?'Repair':'수리하기', this.repairHeldByStory()); if(this.repairHeldByStory()) out[out.length-1].msg=this.t('repair_hold_c15'); }   // M3(11-01) — 1-4 뒤 '나중에 고치러 와' ~ 1-5 수락 전엔 잠금(먼저 고치면 1-5 조건이 깨진다)
     if(svc.includes('Feed')||svc.includes('Distribute')) add('feed', this.en()?'Rations':'배식하기');
     if(svc.includes('Appraisal')) add('appraise', this.en()?'Appraise':'감정받기');
     if(svc.includes('Haggle')) add('haggle', this.en()?'Haggle':'흥정하기');   // Buyout은 별도 항목 없이 흥정 화면의 [판매하기]
@@ -5929,8 +5981,8 @@ void main(){
       // 패널 — svg x16.5 y516.5 369x287 r24 · 버튼 333x48 r24 간격 16
       h('div',{style:{position:'absolute',zIndex:1,left:16,right:16,bottom:24,padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',flexDirection:'column',gap:16}},
         ...items.map(it=>{ const qc=(it.k==='quest'&&!it.locked)? this.qVendorChip(v.VendorID) : null;
-          return h('button',{key:it.k,'data-guide':'svc-'+it.k,disabled:it.locked,
-          onClick:it.locked?null:()=>{ if(it.k==='exit') this.go('safehouse'); else if(it.k==='quest') this.openQuest(); else if(it.k==='trade') this.openVendorTab((this.services(v).includes('Buy')||this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID))?'buy':'sell'); else this.openVendorTab(it.k); },
+          return h('button',{key:it.k,'data-guide':'svc-'+it.k,disabled:it.locked&&!it.msg,
+          onClick:it.locked?(it.msg?()=>this.flash(it.msg):null):()=>{ if(it.k==='exit') this.go('safehouse'); else if(it.k==='quest') this.openQuest(); else if(it.k==='trade') this.openVendorTab((this.services(v).includes('Buy')||this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID))?'buy':'sell'); else this.openVendorTab(it.k); },
           style:{position:'relative',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:it.locked?'#6F7276':'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:it.locked?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
           it.locked? icLock(15,'#6F7276') : null,   // 자물쇠 = 프로젝트 공용 icLock(목업 svg 패스) — 임의 아이콘 금지
           h('span',{key:'l'}, it.label),
@@ -6245,7 +6297,8 @@ void main(){
     .sort((a,b)=>this.eng.N(a.VariantNo,0)-this.eng.N(b.VariantNo,0)).map(r=>Object.assign({},r,{LineID:r.DialogueID})); }
   tidyItems(){ const g=this.gs, free=g.bag.filter(x=>!this.isEquipped(x.uid)); return {pocket:free.filter(x=>x.loc==='pocket'), bag:free.filter(x=>x.loc!=='pocket'), cap:this.eng.equippedBagCapacity?this.eng.equippedBagCapacity(g):0}; }
   tidyPick(st){ const T=this.storyMap().tidy, it=this.tidyItems();
-    if(st==='grip'){ const pl=it.pocket.find(x=>x.id===TIDY_KEEP)||it.pocket[0]; if(pl) return {uid:pl.uid,from:'pocket'};   /* 주머니 → 배낭(반창고 우선) */
+    if(st==='grip'){ if(!it.cap) return null;   /* M2(11-01) — 가방이 없으면(사망 분실·여분 없음) 끌 곳이 없다 → 이 단계는 건너뛴다(보관함 단계는 주머니로 된다) */
+      const pl=it.pocket.find(x=>x.id===TIDY_KEEP)||it.pocket[0]; if(pl) return {uid:pl.uid,from:'pocket'};   /* 주머니 → 배낭(반창고 우선) */
       const up=it.bag.find(x=>this.canPocket(x)); return up?{uid:up.uid,from:'bag'}:null; }
     if(st==='vault'){ const x=it.pocket[0]||it.bag[0]; return x?{uid:x.uid,id:x.id}:null; }   /* 가방·주머니를 전부 비운다(하나씩) */
     if(st==='out'){ const x=this.gs.vault.find(v=>v.id===TIDY_KEEP)||(T.id&&this.gs.vault.find(v=>v.id===T.id))||this.gs.vault.find(v=>v.kind!=='bag'); return x?{uid:x.uid,id:x.id,have:this.tidyQty(x.id)}:null; }   /* 반창고만 다시 챙긴다 */   /* 쌓이는 물건은 보관함에서 합쳐져 uid가 바뀐다 → id·수량으로 본다 */
@@ -6264,7 +6317,8 @@ void main(){
     const inv=s==='inventory', seg=this.state.seg||'bag';
     if(T.st==='out'&&!this.gs.vault.some(v=>v.id===TIDY_KEEP)&&!this.gs.bag.some(x=>x.id===TIDY_KEEP)){ const pi=this.eng.mkInstance(TIDY_KEEP,1); pi.qty=1; this.gs.vault.push(pi); T.uid=pi.uid; T.id=TIDY_KEEP; T.have=this.tidyQty(TIDY_KEEP); this.saveGame(); }   /* 이미 진행 중인 세이브 — 꺼낼 반창고가 없으면 보관함에 1개 */
     if(T.st==='intro'){ if(!T.said&&s==='zone'){ this.tidyGrantKeep(); say('intro',()=>this.tidyGo('grip')); } return; }
-    if(T.st==='grip'){ const x=this.gs.bag.find(i=>i.uid===T.uid); if(!x){ this.tidyGo('grip'); return; }
+    if(T.st==='grip'){ if(!this.tidyItems().cap){ this.tidyGo('vault'); return; }   /* M2 — 진행 중에 가방을 잃었으면 다음 단계로 */
+      const x=this.gs.bag.find(i=>i.uid===T.uid); if(!x){ this.tidyGo('grip'); return; }
       if(((x.loc==='pocket')?'pocket':'bag')!==T.from){ this.tidyGo('vault'); return; }
       if(!T.said&&inv&&seg==='bag') say('grip'); return; }
     if(T.st==='vault'){ if(!this.gs.bag.some(i=>i.uid===T.uid)){ const nx=this.tidyPick('vault'); if(nx){ Object.assign(T,nx); this.saveGame(); setTimeout(()=>this.forceUpdate(),0); } else this.tidyGo('out'); return; }   /* 남은 게 있으면 다음 줄로 손만 옮긴다 */   /* 소지품에서 빠졌으면 = 보관함으로 갔다(합쳐졌을 수 있음) */
@@ -6305,8 +6359,9 @@ void main(){
   storyNavAllow(){ if(this.storyGuide()) return 'inventory'; if(this.storyReport()) return 'character'; { const pq=this.storyPending(); if(pq&&!this.storyCallAuto(pq)&&!this.storyQuietStart(pq)){ if(!this.storyCallRows(pq).length) return 'safehouse'; const cm=this.storyMap().called; if(cm&&cm[pq.QuestID]) return 'safehouse'; return this.storyCallId(pq)==='nav'? null : 'character'; } } if(this.storyActRun('feed')||this.storyActRun('repair')) return 'safehouse'; { const sr=this.storyRaid(); if(sr&&sr.r.nodie) return sr.got?'safehouse':'zone'; } return null; }   /* 내비 잠금은 nodie(챕터1 안내형) 레이드만 — 챕터2는 자유 */
   // 손 안내 대상(data-guide) — 스크린샷 흐름(사용자 2026-10-09): [보관함] 탭 → (착용) → 캐릭터 → 무전기 → 교신 이동 줄(보건소)
   storyGuideTarget(){ const s=this.state.screen;
-    if(this.state.tuto||this.state.sel||this.state.wake||this.radio||this.talk||this.storyRew) return null;
+    if(this.state.tuto||this.state.sel||this.state.wake||this.radio||this.talk||this.storyRew||(this.state.screen==='comms'&&this.state.commsQ)) return null;   /* 퀘스트 상세를 보는 동안엔 손 안내(어둡게)를 끈다 — 9번 */
     if(this.tidyActive()) return this.tidyGuide();
+    { const c=this.storyMap().cur, q=c&&c.s==='rw'&&this.eng.storyRow(c.id); if(q){ const vid=String(q.GiverVendorID||''); return ((s==='vendorMenu'||s==='vendor')&&this.state.vendor===vid)? null : this.storyGuideToVendor(vid); } }   /* M7(11-01) — 보상 카드를 안 받고 앱을 닫았으면 그 상점으로 */
     { const fg=this.facGuide(); if(fg!==undefined) return fg; }   /* 조립대 분해 안내(챕터3) */
     if(this.storyGuide()){ if(s==='inventory') return this.state.seg==='vault'? null : 'vault-tab'; if(s==='vendorMenu'||s==='vendor') return this.shopExitG(); return 'nav-inventory'; }   /* 상점 안엔 하단 내비가 없다 → 먼저 나가기(10-29) */
     if(this.storyReport()){ if(s==='comms') return this.state.commsTab==='news'? null : 'comms-move'; if(s==='character') return 'comms-btn'; if(s==='vendorMenu') return null; return 'nav-character'; }
@@ -6364,6 +6419,7 @@ void main(){
   // 1번 퀘스트(지급품 착용 · 보고 전)까지 미루는 튜토리얼 — 장비 비교·성장 태그·소지품 핸들 드래그·보관함 밀기(사용자 2026-10-09)
   // 스토리 레이드 퀘스트(3·4번) 동안 미루는 팝업 — 도망·사망·보스·되찾기(3번 규칙과 어긋남) + 소지품 계열(귀환 후 소지품 착지 때 뜸) · 퀘스트당 팝업 1개(loot_get1만)
   storyTutoHold(k){ if(['inv_compare1','inv_merge1'].indexOf(k)>=0 && this.tidyActive()) return true;
+    { const sr=this.storyRaid(); if(sr && ['cmb_flee1','death1'].indexOf(k)>=0 && !(sr.r&&(sr.r.nodie||sr.r.safe))) return false; }   /* M6(11-01) — 실제로 죽거나 도망칠 수 있는 레이드(챕터2)에선 규칙을 바로 알린다 */
     if(['cmb_flee1','death1','cmb_boss1','inv_compare1','growth_tag1','inv_merge1','buff_use1'].indexOf(k)>=0 && this.storyRaid()) return true;
     return ['inv_compare1','growth_tag1'].indexOf(k)>=0 && !!(this.storyGuide()||this.storyReport()); }
   // 새 게임 도입 — 첫 스토리 퀘스트가 살아 있으면 눈 뜨는 연출 → 기버 상점 대화
@@ -6705,7 +6761,8 @@ void main(){
         tab, k=>this.setState({commsTab:k})),
       h('div',{key:'cb:'+tab,style:{flex:'1 1 auto',minHeight:0,overflowY:'auto',padding:'0 0 24px',boxSizing:'border-box'}},
         tab==='mission'? this.commsMission() : this.commsNews()),
-      this.commsCloseBox());
+      this.commsCloseBox(),
+      (tab==='mission'&&this.state.commsQ)? this.commsQuestDetail(this.state.commsQ) : null);
   }
   // ===== 임무 탭 = 스토리 기록 (목업 screen-comms-story · screen-comms-story-empty) =====
   // ★교신은 기록 화면이다 — 스토리 진행은 상점 스토리 탭(NPC 대화)에서 일어나고 여기엔 결과만 쌓인다.
@@ -6801,7 +6858,7 @@ void main(){
     const o=this.eng.questObjective(q), need=o?o.targets.reduce((a,t)=>a+t.count,0):1, pr=x.done?[need]:this.storyProg(q), cnt=(x.done?need:Math.min(need,(pr||[]).reduce((a,n)=>a+n,0)))+'/'+need;
     const desc=x.done? this.storyDoneDesc(q) : (run? this.storySummary(q) : this.tx(q,'Description')), dest=x.done?null:this.storyDest(q);
     return this.shopRow({key:'gen_'+q.QuestID, cat:this.shopName(v.ShopID,v), name:this.tx(q,'Name'), desc,
-      right:x.done? this.commsChip(this.t('quest_chip_done'),'#85B3C5') : this.commsChip(cnt,'#757575'), onClick:dest?()=>dest.go():undefined}); }
+      right:x.done? this.commsChip(this.t('quest_chip_done'),'#85B3C5') : this.commsChip(cnt,'#757575'), onClick:()=>this.setState({commsQ:q.QuestID,commsQAll:false})}); }   /* 9번(11-01) — 이동은 상세의 [이동] 버튼으로 */
   commsGeneralRow(x){ if(x.sq) return this.commsStoryGeneralRow(x); const v=this.eng.byId.vendor[FAC_RESTORE[x.f].npc]||{};
     // 복원 = 목표는 재료별 보유/필요 · 칩은 재료 합계(넘친 건 안 셈)
     const cnt=x.restore? x.mats.reduce((a,m)=>a+Math.min(m.have,m.need),0)+'/'+x.mats.reduce((a,m)=>a+m.need,0) : '0/1';
@@ -6833,9 +6890,9 @@ void main(){
     const pick=(i)=>this.setState({commsPick:Object.assign({},this.state.commsPick||{},{[key]:i})});
     const mono=(fs,col)=>({fontFamily:T.mono,fontSize:fs,lineHeight:fs+'px',color:col});
     const move=(!past && !qDone && q.dest)? q.dest : null;
-    const body=h('div',{key:'b',style:{background:'#18191D',border:'1px solid #36383C',borderRadius:move?'8px 8px 0 0':8,padding:'15px 16px 16px'}},
+    const body=h('div',{key:'b',onClick:q.id?()=>this.setState({commsQ:q.id,commsQAll:false}):null,style:{background:'#18191D',border:'1px solid #36383C',borderRadius:move?'8px 8px 0 0':8,padding:'15px 16px 16px',cursor:q.id?'pointer':'default'}},   /* 9번(11-01) — 누르면 퀘스트 상세(의뢰인·대화·지금 할 일) */
       this.commsChapterHead(c,past, h('span',{key:'r',style:Object.assign({flex:'0 0 auto'},mono(11,'#A9ABAF'))}, c.done+'/'+n),
-        past? ()=>this.setState({commsOpen:null}) : null),
+        past? (ev)=>{ if(ev&&ev.stopPropagation) ev.stopPropagation(); this.setState({commsOpen:null}); } : null),
       h('div',{key:'qn',style:{marginTop:18,fontFamily:T.sans,fontSize:14,lineHeight:'14px',color:'#EAEBEE'}}, q.name||''),
       // 목표 = 한 줄(일일·기본) 또는 여러 줄(objs — 스토리 착용 목표는 아이템마다)
       ...((Array.isArray(q.objs)&&q.objs.length)? q.objs : [{text:q.obj||'',cur,need}]).map((ob,oi)=>
@@ -6845,7 +6902,7 @@ void main(){
       // 칸 h4 · 폭 균등 · 간격 13.8(목업 6칸 = 44×6 + 13.8×5 = 333). 터치 영역은 위아래 8씩 넓힌다.
       h('div',{key:'bar',style:{marginTop:18,display:'flex',gap:13.8}},
         ...c.quests.map((_,i)=>{ const can=i<=lim;
-          return h('div',{key:i,onClick:can?()=>pick(i):null,style:{flex:1,height:20,margin:'-8px 0',display:'flex',alignItems:'center',cursor:can?'pointer':'default'}},
+          return h('div',{key:i,onClick:can?(ev)=>{ ev.stopPropagation(); pick(i); }:null,style:{flex:1,height:20,margin:'-8px 0',display:'flex',alignItems:'center',cursor:can?'pointer':'default'}},
             h('div',{style:{flex:1,height:4,borderRadius:2,background:i<c.done?'#83B289':'#6F7276',opacity:(pk!=null&&i!==sel)?0.4:1,transition:'opacity .15s'}})); })),
       q.desc? h('div',{key:'ds',style:Object.assign({marginTop:16,whiteSpace:'pre-line',wordBreak:'keep-all'},mono(10,'#A9ABAF'),{lineHeight:'13px'})}, q.desc) : null);
     return h('div',{key:'sc'+key,style:{margin:mt+'px 18px 0'}},
@@ -6856,6 +6913,82 @@ void main(){
         h('svg',{key:'i',width:6.2,height:12.8,viewBox:'357.5 421.5 6.2 12.8',fill:'none',style:{display:'block',flex:'0 0 auto'}},
           h('path',{fillRule:'evenodd',clipRule:'evenodd',fill:'#A9ABAF',d:'M357.809 421.744C358.061 421.528 358.44 421.558 358.655 421.809L363.455 427.409C363.648 427.634 363.648 427.965 363.455 428.19L358.655 433.79C358.44 434.042 358.061 434.071 357.809 433.855C357.558 433.64 357.528 433.261 357.744 433.009L362.209 427.8L357.744 422.59C357.528 422.338 357.558 421.96 357.809 421.744Z'}))) : null);
   }
+  // ===== 9번(11-01) 퀘스트 상세 — 교신 임무 탭에서 퀘스트를 누르면. 의뢰인(초상·이름·상점) · 대화(시작·받은 무전·완료) · 지금 할 일(+이동) =====
+  //   데이터는 전부 기존 것(StoryQuest·QuestDialogue·진행 기록) — 새 시트 열 없음. 얼굴 = 무전과 같은 초상 크롭(NPC_COMMS_CROP).
+  commsFace(vid,size,face){ const cr=NPC_COMMS_CROP[vid]; if(!cr) return h('div',{style:{width:size,height:size,borderRadius:8,background:'#212227',flex:'0 0 auto'}});
+    const sc=size/(cr[2]-cr[0]), hh=Math.round((cr[3]-cr[1])*sc);
+    return h('div',{style:{position:'relative',width:size,height:hh,overflow:'hidden',borderRadius:8,background:'#0F1013',flex:'0 0 auto'}},
+      h('img',{src:'assets/art/npc/'+vid+'_'+this.npcFaceKey(face)+'.webp',alt:'',draggable:false,onError:ev=>{ ev.target.src='assets/art/npc/'+vid+'_neutral.webp'; },
+        style:{position:'absolute',left:-cr[0]*sc,top:-cr[1]*sc,width:768*sc,height:1360*sc,maxWidth:'none',pointerEvents:'none'}})); }
+  // 지금 할 일 한 줄 + 부연 + 이동 — 손 안내와 같은 목적지(storyDest)로 보낸다
+  josaRo(w){ const c=String(w||'').trim().slice(-1).charCodeAt(0)-0xAC00; return (c>=0&&c<11172&&c%28&&c%28!==8)?'으로':'로'; }   // 받침 있으면 '으로'(ㄹ 받침 제외)
+  storyNextStep(q){ const e=this.eng, m=this.storyMap(), c=m.cur, id=q.QuestID, en=this.en();
+    const vid=String(q.GiverVendorID||''), v=e.byId.vendor[vid]||{}, nm=this.tx(v,'VendorName')||'', shop=this.shopName(v.ShopID,v)||'';
+    const wrap=d=>d? {label:d.label, go:()=>{ this.setState({commsQ:null}); d.go&&d.go(); }} : null;
+    const toV=wrap({label:shop, go:()=>this.openVendor(vid)});
+    if(m.done[id]) return {title:en?'Completed':'완료', sub:this.storyDoneDesc(q), dest:null, done:true};
+    if(!c||c.id!==id) return {title:en?('Go talk to '+nm):(nm+'에게 가서 이야기 듣기'), sub:en?('At '+shop):(shop+'에서 기다리고 있다'), dest:toV};
+    if(c.s==='rw') return {title:en?'Collect your reward':'보상 받기', sub:en?('From '+nm+' at '+shop):(shop+'에서 '+nm+'에게 받는다'), dest:toV};
+    if(this.storyAllDone(q)) return {title:en?('Report back to '+nm):(nm+'에게 보고하기'), sub:en?('At '+shop):(shop+this.josaRo(shop)+' 돌아간다'), dest:toV};
+    const o=e.questObjective(q)||{}, sr=this.storyRaid();
+    if(sr&&sr.q&&sr.q.QuestID===q.QuestID){ const z=e.byId.zone[sr.zid]||{}, zn=this.tx(z,'ZoneName')||'', it=this.storyRaidItem(sr.r), itn=(it&&it[0]!=='@')?(e.anyName(it)||''):'';
+      const nF=Array.isArray(sr.r.spawn)?sr.r.spawn.length:0;
+      if(!sr.got) return {title:itn?(en?('Find '+itn+' in '+zn):(zn+'에서 '+itn+' 찾기')):this.storySummary(q),
+        sub:en?((nF?nF+' fights · ':'')+(itn?'Pocket it and return safely':'Return safely')):((nF?nF+'전 · ':'')+(itn?'찾으면 주머니에 넣고 귀환':'끝까지 버티고 귀환')), dest:wrap({label:zn, go:()=>this.go('zone')})};
+      const V={bring:en?'Bring it to ':'가져다주기 — ', sell:en?'Sell it to ':'팔기 — ', haggle:en?'Haggle at ':'흥정하기 — ', appraise:en?'Get it appraised at ':'감정받기 — '}[o.what]||(en?'Go to ':'가져가기 — ');
+      return {title:en?(V+nm):(V+nm), sub:itn?(en?(itn+' in hand'):(itn+' 확보')):null, dest:toV}; }
+    const d=this.storyDest(q); return {title:this.storySummary(q), sub:null, dest:wrap(d)}; }
+  // 대화 기록 — 시작 대화(NPC 말만) → 받은 무전(호출·진행 중 무전) → 완료 대화. 고른 선택지는 기록이 없어 NPC 줄만 보인다.
+  storyTalkLog(q){ const e=this.eng, m=this.storyMap(), c=m.cur, id=q.QuestID, seq=(a,b)=>e.N(a.Seq,0)-e.N(b.Seq,0);
+    const L=(st)=>e.storyLines(id,st).filter(r=>String(r.Kind||'line')==='line').sort(seq);
+    const out=[], push=(rows,kind)=>rows.forEach(r=>out.push({text:this.tx(r,'Line')||r.Line_KR||'',face:r.Expression,kind}));
+    const radio=e.storyLines(id,'radio').sort(seq), trig=r=>{ try{ return JSON.parse(String(r.Trigger||'')); }catch(_){ return {}; } };
+    if(m.called&&m.called[id]) push(radio.filter(r=>trig(r).on==='call'),'radio');
+    const started=m.done[id]||(c&&c.id===id); if(started) push(L('start'),'talk');
+    if(c&&c.id===id&&c.radio){ const f=c.radio; push(radio.filter(r=>f[String(r.Trigger||'').trim()]&&trig(r).on!=='call'),'radio'); }
+    if(m.done[id]) push(L('done'),'talk');
+    return out.filter(x=>x.text); }
+  commsQuestDetail(qid){ const e=this.eng, q=e.storyRow&&e.storyRow(qid); if(!q) return null;
+    const en=this.en(), B=this.craftSheetBits(), vid=String(q.GiverVendorID||''), v=e.byId.vendor[vid]||{};
+    const close=()=>this.setState({commsQ:null,commsQAll:false});
+    const ns=this.storyNextStep(q), log=this.storyTalkLog(q), all=!!this.state.commsQAll, shown=all? log : log.slice(-2);
+    const m=this.storyMap(), run=!!(m.cur&&m.cur.id===qid&&m.cur.s==='run'), done=!!m.done[qid];   /* 보상 대기(rw)엔 목표 줄을 안 보인다 */
+    // 목표 줄(진행도) — 진행 중일 때만
+    const o=e.questObjective(q); let objs=run&&o? ((this.storyObjLines(q,true,false))||[{text:this.storySummary(q),cur:Math.min(o.targets.reduce((a,t)=>a+t.count,0),(this.storyProg(q)||[]).reduce((a,n)=>a+n,0)),need:o.targets.reduce((a,t)=>a+t.count,0)}]) : [];
+    if(objs.length&&o){ const ids=(o.what==='equip')? o.targets.flatMap(t=>t.ids||[]) : o.targets.map(t=>(t.ids||[])[0]); objs=objs.map((ob,i)=>Object.assign({},ob,{id:ids[objs.length===1?0:i]||null})); }   /* 아이템 목표 = (?) 카드 팝업 */
+    const isItem=id=>!!(id&&e.anyItem(id));
+    const ch=e.N(q.Chapter,0), chLbl=(ch>0&&ch<100)? this.t('comms_chapter').replace('{N}',ch)+' · '+this.t('story_ch'+String(ch).padStart(2,'0')) : (en?'Mission':'일반 임무');
+    const mono=(fs,col)=>({fontFamily:T.mono,fontSize:fs,color:col});
+    const body=[ B.kicker(chLbl),
+      h('div',{key:'qn',style:{marginTop:8,fontFamily:T.sans,fontSize:17,fontWeight:500,color:B.HI}}, this.tx(q,'Name')),
+      // 의뢰인
+      h('div',{key:'gv',style:{marginTop:16,display:'flex',alignItems:'center',gap:12}},
+        this.commsFace(vid,56,'neutral'),
+        h('div',{style:{minWidth:0,display:'flex',flexDirection:'column',gap:4}},
+          h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:B.MUT}}, en?'CLIENT':'의뢰인'),
+          h('span',{style:{fontFamily:T.sans,fontSize:14,color:B.HI}}, this.tx(v,'VendorName')||''),
+          h('span',{style:{fontFamily:T.sans,fontSize:11,color:B.LO}}, this.shopName(v.ShopID,v)||''))),
+      // 대화
+      log.length? h('div',{key:'tk',style:{marginTop:14,display:'flex',flexDirection:'column',gap:8,maxHeight:all?220:'none',overflowY:all?'auto':'visible'}},
+        ...shown.map((ln,i)=>h('div',{key:'l'+i,style:{display:'flex',gap:8,alignItems:'flex-start'}},
+          this.commsFace(vid,28,ln.face),
+          h('div',{style:{flex:1,minWidth:0,padding:'8px 10px',borderRadius:'2px 10px 10px 10px',background:'#212227',fontFamily:T.sans,fontSize:12,lineHeight:1.5,color:'#D9DADE',wordBreak:'keep-all'}},
+            ln.kind==='radio'? h('span',{style:{...mono(9,'#85B3C5'),marginRight:6,letterSpacing:'.08em'}}, en?'RADIO':'무전') : null, ln.text)))) : null,
+      (log.length>2)? h('div',{key:'more',onClick:()=>this.setState({commsQAll:!all}),style:{marginTop:8,textAlign:'right',fontFamily:T.sans,fontSize:11,color:B.MID,cursor:'pointer'}}, all?(en?'Show less':'접기'):(en?'Full conversation ›':'대화 전체 보기 ›')) : null,
+      // 지금 할 일
+      h('div',{key:'nx',style:{marginTop:16,padding:'12px 14px',borderRadius:12,background:done?'#1A1B21':'#1F2A24',border:'1px solid '+(done?'#2A2C31':'#36503F')}},
+        h('div',{style:{...mono(10,done?B.MUT:'#83B289'),letterSpacing:'.1em'}}, done?(en?'RESULT':'결과'):(en?'NEXT':'지금 할 일')),
+        // 메인 = 목표 줄(진행도) — 아이템이면 (?) 눌러 카드 · 목표가 없을 때(호출·보고·보상)만 안내 문장이 메인 (사용자 11-01)
+        ...(objs.length? objs : [{text:ns.title,cur:null,need:null}]).map((ob,i)=>{ const ts={fontFamily:T.sans,fontSize:14,fontWeight:500,color:B.HI,wordBreak:'keep-all'};
+          return h('div',{key:'ob'+i,style:{marginTop:i?8:6,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}},
+            isItem(ob.id)? this.matName(ob.id, ob.text||'', ts) : h('span',{style:ts}, ob.text||''),
+            ob.need!=null? h('span',{style:mono(12,ob.cur>=ob.need&&ob.need>0?'#83B289':'#A9ABAF')}, ob.cur+'/'+ob.need) : null); }),
+        (objs.length&&ns.title&&!(objs.length===1&&objs[0].text===ns.title))? h('div',{key:'nt',style:{marginTop:6,fontFamily:T.sans,fontSize:11,color:B.LO,wordBreak:'keep-all'}}, ns.title) : null,   /* 어디서·누구에게 — 작게 */
+        (done&&ns.sub)? h('div',{style:{marginTop:6,fontFamily:T.sans,fontSize:11,lineHeight:1.5,color:B.LO,whiteSpace:'pre-line',wordBreak:'keep-all'}}, ns.sub) : null) ];
+    const goLbl=ns.dest? (en?'Quick Travel':'빠른 이동') : null;   /* 목적지는 '지금 할 일' 안내 문장에 있다(사용자 11-01) */
+    const footer=[ ns.dest? B.btn(goLbl, ns.dest.go, false, 'qgo') : null, B.btn(en?'Close':'닫기', close, false, 'qclose') ].filter(Boolean);
+    return h('div',{key:'cqd',onClick:close,style:{...ST.dim}},
+      h('div',{onClick:ev=>ev.stopPropagation(),style:{marginTop:'auto',maxHeight:'100%',overflowY:'auto'}}, B.wrap(body,footer))); }
   // 소식 탭 = 알림(최신 1건) → 일일 → 주간. 비어 있는 구역은 라벨째 숨기고, 전부 비면 빈 상태 카드 하나.
   commsNews(){
     const al=this.commsAlerts()[0], out=[];
@@ -7765,6 +7898,7 @@ void main(){
     this.eng.facilityCostItems(info.next).forEach(m=>this.eng.consumeItems(this.gs,m.id,this.eng.N(m.qty,0)));
     const total=Math.max(1,info.minutes)*60000;
     // endAt(절대 시각)으로 저장 — 앱을 꺼도 시간이 흐른다(§3.5 "시간형·오프라인 진행").
+    if(this.eng.storageTableSync) this.eng.storageTableSync(this.gs);
     this.gs.hideout.upg[facId]={ to:this.eng.N(info.next.Level,0), endAt:Date.now()+total, total };
     this.saveGame(); this.forceUpdate();
   }
@@ -7954,14 +8088,16 @@ void main(){
       def:this.t('stat_def'),eva:this.t('stat_evasion'),hp:b('hp'),dmgcut:b('dmgcut'),res:this.t('stat_status_resist')})[k]||k; }
   enhStatVal(k,v){ const r=Math.round(v*100)/100; return '+'+((k==='dmg'||k==='asp')?Math.round(v*1000)/10+'%':(k==='dmgcut'?r+'%':String(r))); }
   // [+N] 태그 — 단계 색(+1 밝은 회색 · +2 은색 · +3 호박 · +4 빨강 · +5 프리즘). 강화 연출 중이면 옛 값→새 값을 글리치로 겹쳐 바꾼다.
-  enhTagOne(n,size,anim,force){ if(!n&&!force) return null;
+  // (13번 +9) 색·테두리는 단계 묶음(enhTier) — +1~2 · +3~4 · +5~6 · +7~8 · +9(프리즘·MAX). 글자는 실제 단계.
+  enhTier(lv){ const n=Math.max(0,Math.round(lv||0)); return n<=0?0 : n<=2?1 : n<=4?2 : n<=6?3 : n<=8?4 : 5; }
+  enhTagOne(n,size,anim,force){ if(!n&&!force) return null; const tr=this.enhTier(n);
     const SILVER='linear-gradient(135deg,#F2F4F7 0%,#9EA3AB 35%,#E6E9EE 55%,#8A8F97 80%,#D9DCE1 100%)';
-    const C={0:['#6F7276','rgba(111,114,118,0.45)'],1:['#D6D8DC','rgba(214,216,220,0.55)'],2:['#E6E9EE',null],3:['#CCA26E','rgba(204,162,110,0.6)'],4:['#E8857A','rgba(196,103,93,0.7)'],5:[null,null]}[Math.min(5,Math.max(0,n))];
-    const ring = n===2? h('span',{key:'r',className:'rlEnhTRing',style:{background:SILVER}}) : n>=5? h('span',{key:'r',className:'rlEnhTRing rlEnhPrism'}) : null;
+    const C={0:['#6F7276','rgba(111,114,118,0.45)'],1:['#D6D8DC','rgba(214,216,220,0.55)'],2:['#E6E9EE',null],3:['#CCA26E','rgba(204,162,110,0.6)'],4:['#E8857A','rgba(196,103,93,0.7)'],5:[null,null]}[tr];
+    const ring = tr===2? h('span',{key:'r',className:'rlEnhTRing',style:{background:SILVER}}) : tr>=5? h('span',{key:'r',className:'rlEnhTRing rlEnhPrism'}) : null;
     return h('span',{key:'enh'+n+(anim||''),style:{position:anim?'absolute':'relative',left:0,top:0,flexShrink:0,display:'inline-flex',alignItems:'center',height:size?20:18,boxSizing:'border-box',padding:'0 6px',borderRadius:4,
       background:'rgba(10,11,14,0.55)',border:C[1]?('1px solid '+C[1]):'1px solid transparent',fontFamily:T.mono,fontSize:size?11:10,lineHeight:'100%',color:C[0]||'#EAEBEE',whiteSpace:'nowrap',
       animation:anim==='out'?'rlEnhGOut .75s steps(1) forwards':anim==='in'?'rlEnhGIn .75s steps(1) forwards':'none'}},
-      ring, n>=5? h('span',{key:'t',className:'rlEnhPText'}, 'MAX') : h('span',{key:'t'}, '+'+n)); }   // +5 = MAX(2026-10-15)
+      ring, tr>=5? h('span',{key:'t',className:'rlEnhPText'}, 'MAX') : h('span',{key:'t'}, '+'+n)); }   // 최대 단계(+9) = MAX(2026-10-15 · 11-01 +9)
   // 겹친 카드 뒤판 — qty장이면 뒤에 (min(qty,5)-1)장을 아래로 조금씩 밀고 작게·어둡게 깐다(10-21 · 사용자 '최대 5장까지 뒤로')
   //   lootManage가 카드 바로 뒤(형제 div · zIndex 카드-1)에 깐다 · 카드 실제 그림은 그리지 않는다(빈 판)
   //   face=true(가운데 카드) → 바로 뒤 한 장엔 같은 카드를 실제로 그린다 — 맨 위를 들어 올리면 '다음 장'이 보인다(태그 = 남는 수)
@@ -7982,14 +8118,14 @@ void main(){
   // 강화 배경(Ghost Fibers) 색 = 강화 단계 색 — 결과 확정 전엔 도전 단계(지금+1) 색, 확정 뒤엔 결과 단계 색(0강이면 +1 회색). +5는 프리즘 5색을 천천히 순환.
   enhFibersColor(now){ const r=this.state.enRes||{}, S=this._statFx, fx=this.state.enFx;
     const settled=(fx&&(fx.phase==='done'||fx.phase==='detail'))||(S&&S.settled);
-    const n=Math.max(1,Math.min(5, settled? (r.to||0) : (r.from||0)+1));
+    const n=Math.max(1,Math.min(9, settled? (r.to||0) : (r.from||0)+1));
     const list=this.enhLevelHex(n), rgb=(c)=>hex01(c);
     if(list.length<=1) return rgb(list[0]);
     const t=(now/1000)/1.2, i=Math.floor(t)%list.length, f=t-Math.floor(t), a=rgb(list[i]), b=rgb(list[(i+1)%list.length]);
     return a.map((v,k)=>v+(b[k]-v)*f); }
   // 강화 단계 색(전기 테두리용 단색 hex) — +0 회색 · +1 밝은 회색 · +2 은색 · +3 호박 · +4 빨강 · +5 프리즘(5색)
-  enhLevelHex(n){ return ({0:['#8A8F97'],1:['#D6D8DC'],2:['#EEF1F5','#9EA3AB'],3:['#E0B17A'],4:['#F07A6A'],5:['#F4B3CB','#F3D7A2','#BFEFCB','#A6D9F3','#C8B3F2']})[Math.max(0,Math.min(5,n))]; }
-  enhBlinkColors(from){ const a=this.enhLevelHex(from), b=this.enhLevelHex(Math.min(5,from+1)); const out=[]; const n=Math.max(a.length,b.length); for(let i=0;i<n;i++){ out.push(a[i%a.length], b[i%b.length]); } return out; }
+  enhLevelHex(lv){ const n=this.enhTier(lv); return ({0:['#8A8F97'],1:['#D6D8DC'],2:['#EEF1F5','#9EA3AB'],3:['#E0B17A'],4:['#F07A6A'],5:['#F4B3CB','#F3D7A2','#BFEFCB','#A6D9F3','#C8B3F2']})[Math.max(0,Math.min(5,n))]; }
+  enhBlinkColors(from){ const a=this.enhLevelHex(from), b=this.enhLevelHex(Math.min(9,from+1)); const out=[]; const n=Math.max(a.length,b.length); for(let i=0;i<n;i++){ out.push(a[i%a.length], b[i%b.length]); } return out; }
   // 목록 줄 이름 + [+N] — 강화된 장비만 감싼다(0강은 글자 그대로 → 기존 줄 레이아웃 불변). 부모의 글꼴을 그대로 물려받는다.
   enhName(inst,label){ const lab=label!=null?label:this.itemLabel(inst); if(!inst||!this.eng.enhLevel(inst)) return lab;
     return h('span',{style:{display:'inline-flex',alignItems:'center',gap:6,maxWidth:'100%',verticalAlign:'middle'}},
@@ -7998,10 +8134,10 @@ void main(){
   //   색 = 카드 테두리 색: 강화 +1~+4 단계 색 · +5 무지개(테두리를 따라 색이 흐름) · 귀중품 금빛 · 그 외(일반·미강화) 은은한 회색.
   //   (처음엔 자이로 기울기를 따라 맺혔다 — 10-15 사용자 지시로 기울기 효과 삭제 → 시간 기반 순환.) ★DOM 이탈 시 컨텍스트 회수(tiltReg 루프가 처리).
   shineSpec(inst){ if(!inst) return {color:'#A9ABAF',k:0.55,prism:0};
-    const n=Math.min(5,this.eng.enhLevel(inst)); if(n>=5) return {color:'#FFFFFF',k:1,prism:1};
+    const n=this.enhTier(this.eng.enhLevel(inst)); if(n>=5) return {color:'#FFFFFF',k:1,prism:1};
     if(n>0) return {color:({1:'#E2E4E8',2:'#F2F5F9',3:'#E8B97F',4:'#F28B7C'})[n],k:1,prism:0};
     if(this.eng.byId.valuable&&this.eng.byId.valuable[inst.id]) return {color:'#E3C48A',k:0.9,prism:0};
-    if(this.isEnhMatId(inst.id)) return {color:this.enhMatColor(inst.id).t,k:0.9,prism:0};   // 강화 재료 = 귀중품과 같은 세기 · 재료색(밝은 쪽)
+    if(this.isEnhMatId(inst.id)) return {color:this.enhMatColor(inst.v||inst.id).t,k:0.9,prism:0};   // 강화 재료 = 귀중품과 같은 세기 · 재료색(밝은 쪽)
     return {color:'#A9ABAF',k:0.55,prism:0}; }
   mountShine(canvas,spec){
     if(!canvas) return; canvas._spec=spec; if(canvas._sh) return;
@@ -8072,7 +8208,7 @@ void main(){
       out.push([r[0], lerp(f,r[1]), sum(r[1])>=sum(f)?'#83B289':'#C4675D']); }
     if(p<1) for(const [k,v] of fx.from) if(!stats.some(r=>r[0]===k)) out.push([k, lerp(v,zero(v)), '#C4675D']);   // 사라진 줄 — 0까지 내려간 뒤 빠진다
     return out; }
-  enhFxLayers(inst){ const n=Math.min(5,this.enhShownLevel(inst)); if(!n) return [];
+  enhFxLayers(inst){ const n=this.enhTier(this.enhShownLevel(inst)); if(!n) return [];
     const SILVER='linear-gradient(135deg,#F2F4F7 0%,#9EA3AB 35%,#E6E9EE 55%,#8A8F97 80%,#D9DCE1 100%)';
     const L=[], z={position:'absolute',inset:0,borderRadius:7,pointerEvents:'none',zIndex:8};
     if(n===1) L.push(h('div',{key:'e1',className:'rlEnhRing',style:{zIndex:8,background:'rgba(214,216,220,0.55)'}}));
@@ -8120,13 +8256,15 @@ void main(){
       h('div',{style:{flex:1,minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px'}},
         h('div',{onClick:e=>e.stopPropagation(),style:{width:342,maxHeight:'100%',overflowY:'auto'}}, this.tiltCard(this.lootCardBig({...inst,qty:1},'fit'),inst,true))),
       h('div',{onClick:e=>e.stopPropagation(),style:{...ST.botRow}},
-        h('button',{onClick:max?null:()=>this.setState({enSheet:'confirm'}),disabled:max,style:{...bs,color:max?'#4B4D52':'#EAEBEE',cursor:max?'default':'pointer'}}, max?'MAX':(this.en()?'Enhance':'강화')),
+        h('button',{onClick:max?null:()=>this.setState({enSheet:'confirm',enGuard:false}),disabled:max,style:{...bs,color:max?'#4B4D52':'#EAEBEE',cursor:max?'default':'pointer'}}, max?'MAX':(this.en()?'Enhance':'강화')),
         h('button',{onClick:close,style:{...bs,color:'#EAEBEE',cursor:'pointer'}}, this.t('hide_disk_close'))));
   }
   enConfirmSheet(inst){
     const B=this.craftSheetBits(), e=this.eng, C=e.DATA.config;
-    const lv=e.enhLevel(inst), cost=e.enhCost(this.gs,inst)||[], ok=cost.length>0&&cost.every(c=>c.have>=c.qty);
-    const p=Math.round(e.enhChance(lv)*100), drops=(lv+1)>=Math.round(e.N(C.enh_drop_from,4)), dmax=Math.round(e.N(C.enh_drop_max,2));
+    const lv=e.enhLevel(inst), cost=e.enhCost(this.gs,inst)||[], sato=e.enhSato?e.enhSato(inst):0, satoOk=e.N(this.gs.sato)>=sato, ok=cost.length>0&&cost.every(c=>c.have>=c.qty)&&satoOk;
+    // (6번 · 11-01) 순간 경화제 — 하락이 생기는 단계(+4~)에서만 줄이 생긴다 · 기본 OFF · 모자라면 스위치 잠김 + 암시장 안내
+    const gq=e.enhGuardQty?e.enhGuardQty(inst):0, gHave=gq>0?e.countItem(this.gs,e.ENH_GUARD_ID):0, gOn=gq>0&&!!this.state.enGuard&&gHave>=gq;
+    const p=Math.round(e.enhChance(lv)*100), drops=(lv+1)>=Math.round(e.N(C.enh_drop_from,4)), dch=Math.round(Math.min(1,Math.max(0,e.N(C.enh_drop_chance,0.5)))*100);
     const eff=e.enhEffects(inst), pool=e.enhPool(inst), have=pool.filter(k=>eff[k]);
     const rowR=(l,v,key,col)=>h('div',{key:key,style:{height:36,display:'flex',alignItems:'center',justifyContent:'space-between',borderTop:'1px solid '+B.LN}},
       h('span',{style:{fontFamily:T.sans,fontSize:13,color:B.MID}}, l), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col||B.HI}}, v));
@@ -8136,12 +8274,17 @@ void main(){
         this.enhTagOne(lv+1,true)),   // 도전할 단계 태그(문구 대신)
       h('div',{key:'pr',style:{marginTop:16}},
         rowR(this.en()?'Success chance':'성공 확률', p+'%', 'p'),
-        rowR(this.en()?'On failure':'실패 시', drops? (this.en()?('Drop 0–'+dmax+' levels'):('0~'+dmax+'단계 하락')) : (this.en()?'No change':'변화 없음'), 'f', drops?'#C4675D':B.MID)),
+        /* '실패 시' 줄은 삭제(사용자 11-01 · 하락 여부는 경화제 스위치 줄이 대신한다) */
+        gq>0? this.optToggleRow('guard', e.ENH_GUARD_ID, this.t('enh_guard_use'), this.t('enh_guard_count').replace('{n}',gHave).replace('{k}',gq), gOn, gHave>=gq, ()=>this.setState({enGuard:!this.state.enGuard}), B.LN) : null,
+        (gq>0&&gHave<gq)? this.optHint('gh', this.t('enh_guard_hint')) : null),
       h('div',{key:'mk',style:{height:13,marginTop:16,display:'flex',alignItems:'center',fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:B.MUT}}, this.en()?'MATERIALS':'재료'),
       h('div',{key:'mats',style:{marginTop:4}}, ...cost.map((m,i)=>
         h('div',{key:'m'+i,style:{height:36,display:'flex',alignItems:'center',justifyContent:'space-between',borderTop:i?('1px solid '+B.LN):'none'}},
           this.matName(m.id, this.eng.anyName(m.id)||m.id, {fontFamily:T.sans,fontSize:13,color:B.MID}),
-          h('span',{style:{fontFamily:T.mono,fontSize:13,color:B.HI}}, h('span',{style:{color:m.have>=m.qty?B.HI:'#CCA26E'}}, String(m.have)), '/'+m.qty)))) ];
+          h('span',{style:{fontFamily:T.mono,fontSize:13,color:B.HI}}, h('span',{style:{color:m.have>=m.qty?B.HI:'#CCA26E'}}, String(m.have)), '/'+m.qty)))),
+      sato>0? h('div',{key:'sato',style:{height:36,display:'flex',alignItems:'center',justifyContent:'space-between',borderTop:'1px solid '+B.LN}},   // (13번) 강화 사토
+        h('span',{style:{fontFamily:T.sans,fontSize:13,color:B.MID}}, 'SATO'),
+        h('span',{style:{fontFamily:T.mono,fontSize:13,color:satoOk?B.HI:'#CCA26E'}}, sato.toLocaleString())) : null ];
     // 현재 강화 효과 = 모듈 슬롯 시트(mdSlotSheet)와 같은 레이아웃 — 'ENHANCE' 키커 + 42px 둥근 상자 줄. 줄 = 강화 기록 1건(단계 태그 [+N] · 그 단계에서 오른 스탯·양)
     const recs=(inst.enh&&Array.isArray(inst.enh.rec))? inst.enh.rec : [];
     if(recs.length){ body.push(h('div',{key:'ek',style:{height:13,marginTop:18,display:'flex',alignItems:'center',fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:B.MUT}}, 'ENHANCE'));
@@ -8149,8 +8292,8 @@ void main(){
         this.enhTagOne(i+1,false),
         h('span',{style:{fontFamily:T.mono,fontSize:11.5,color:'#A9ABAF',whiteSpace:'nowrap'}}, this.enhStatLabel(rc.stat)),
         h('div',{style:{flex:1}}),
-        h('span',{style:{fontFamily:T.mono,fontSize:11.5,color:'#83B289',whiteSpace:'nowrap'}}, this.enhStatVal(rc.stat, e.enhStep(rc.stat)*e.N(rc.m,1))))))); }
-    body.push(ok? B.note(this.en()?'Materials are used up even on failure.':'실패해도 재료는 소모됩니다.',B.LO) : B.note(this.t('hide_upg_lack'),'#CCA26E',true));
+        h('span',{style:{fontFamily:T.mono,fontSize:11.5,color:'#83B289',whiteSpace:'nowrap'}}, this.enhStatVal(rc.stat, e.enhStep(rc.stat)*(e.enhMult?e.enhMult(i):e.N(rc.m,1)))))))); }
+    body.push(ok? B.note(gOn?(this.en()?'Materials and hardener are used up even on failure.':'실패해도 재료와 경화제는 소모됩니다.'):(this.en()?'Materials are used up even on failure.':'실패해도 재료는 소모됩니다.'),B.LO) : B.note(this.t('hide_upg_lack'),'#CCA26E',true));
     const cancel=()=>this.setState({enSheet:null});
     const footer=[B.btn(this.en()?'Enhance':'강화',ok?()=>this.doEnhance(inst):null,!ok,'go'), B.btn(this.en()?'Cancel':'취소',cancel,false,'no')];
     return h('div',{onClick:cancel,style:{...ST.dim}},
@@ -8159,7 +8302,7 @@ void main(){
   // [강화] 확정 — 판정·재료 차감·저장을 먼저 끝내고(새로고침해도 결과 유지) 연출은 그 뒤에 '강화 전 모습'으로 시작한다.
   doEnhance(inst){
     const before=JSON.parse(JSON.stringify(inst));   // 연출 1~4단계에 보여줄 강화 전 카드
-    const r=this.eng.enhanceWithCost(this.gs,inst);
+    const r=this.eng.enhanceWithCost(this.gs,inst,{guard:!!this.state.enGuard&&(this.eng.enhGuardQty?this.eng.enhGuardQty(inst):0)>0});
     if(!r||r.short||r.capped){ this.flash(this.t('hide_upg_lack'),true); return; }
     this.saveGame();   // ★결과 확정 즉시 저장
     this.enFxStart(inst,before,r);
@@ -8432,7 +8575,7 @@ void main(){
   // 성공 폭발 값 — 결과 단계 색 그라데이션(단계색 · 밝은 심 · 짙은 단계색 · +5 = 프리즘 5색) · 착지 직후 1.4초 최대 → 1.6초에 걸쳐 사라짐 · 중심 = 카드 중심
   enBurstParams(){ const t0=this._enBurstAt; if(!t0) return {on:false};
     const e=(performance.now()-t0)/1000; if(e>3.2) return {on:false};
-    const to=Math.max(1,Math.min(5,this._enBurstTo||1)), L=this.enhLevelHex(to);
+    const to=Math.max(1,Math.min(9,this._enBurstTo||1)), L=this.enhLevelHex(to);
     const cols= L.length>1? L.concat(['#FFFFFF']) : (()=>{ const v=hex01(L[0]); const hx=(a)=>'#'+a.map(x=>Math.round(Math.max(0,Math.min(1,x))*255).toString(16).padStart(2,'0')).join(''); return [L[0], hx(v.map(x=>x+(1-x)*.6)), hx(v.map(x=>x*.55)), L[0]]; })();
     let center=[0,0]; const cv=document.querySelector('canvas[data-enburst]'), el=this._enCardEl;
     if(cv&&el){ const a=cv.getBoundingClientRect(), b=el.getBoundingClientRect(); center=[(b.left+b.width/2)-(a.left+a.width/2), (a.top+a.height/2)-(b.top+b.height/2)]; }
@@ -8530,7 +8673,7 @@ void main(){
     const landing=fx&&fx.phase==='land'&&!(this._statFx&&this._statFx.settled);
     const on=!!(C||landing), v=C? C.v : landing? 1 : 0, e=v*v*(3-2*v);
     const sus=(C&&C.full&&C.fullAt)? Math.min(1,(performance.now()-C.fullAt)/3000) : landing? (this._enSus||0) : 0; if(C) this._enSus=sus;   // 가득 찬 뒤 계속 누르면 3초에 걸쳐 더 과장(상한 1)
-    const list=this.enhLevelHex(Math.max(1,Math.min(5,(r.from||0)+1))), col=list[Math.floor(performance.now()/260)%list.length];
+    const list=this.enhLevelHex(Math.max(1,Math.min(9,(r.from||0)+1))), col=list[Math.floor(performance.now()/260)%list.length];
     let center=[0,0]; const cv=document.querySelector('canvas[data-entunnel]'), el=this._enCardEl;
     if(cv&&el){ const a=cv.getBoundingClientRect(), b=el.getBoundingClientRect(); center=[(b.left+b.width/2)-(a.left+a.width/2), (a.top+a.height/2)-(b.top+b.height/2)]; }
     return { on, center, speed:0.1+0.6*e+0.9*sus, pulseSpeed:1.2+6.5*e+7*sus, density:Math.min(1,0.25+0.65*e+0.1*sus), brightness:0.55+1.1*e+1*sus, glow:0.8+1.4*e+1.4*sus, pulseLength:0.22+0.2*e+0.25*sus, thickness:0.3+0.25*e+0.25*sus, bend:0.4+0.5*e+0.7*sus, size:1+0.18*sus, count:56+Math.round(28*sus), cable:'#9EA3AB', pulse:col, tunnel:col, body:0.04+0.1*e+0.12*sus, intro:0.9 }; }
@@ -8602,7 +8745,7 @@ void main(){
   enChargeBoost(){ const C=this._enCh; if(C) return C.full?1:Math.pow(Math.max(0,(C.v-.3)/.7),1.5); const fx=this.state.enFx; return (fx&&fx.phase==='land'&&!(this._statFx&&this._statFx.settled))?1:0; }
   // 테두리 색 — 기본 = 지금↔다음 단계 색 · 과장이 오를수록 흰색 → 프리즘 5색이 섞여 들어온다
   enChargeColors(){ const from=(this.state.enRes||{}).from||0, b=this.enChargeBoost(), out=this.enhBlinkColors(from).slice();
-    if(b>.35) out.push(...this.enhLevelHex(5)); if(b>.7) out.push('#7DF9FF','#F07A6A','#E0B17A'); return out; }   // 흰색은 넣지 않는다(빛이 하얗게 타버림)
+    if(b>.35) out.push(...this.enhLevelHex(9)); if(b>.7) out.push('#7DF9FF','#F07A6A','#E0B17A'); return out; }   // 흰색은 넣지 않는다(빛이 하얗게 타버림)
   enLiftApply(L,amp,now){ const el=this._enLiftEl; if(!el) return;
     const jx=amp?(Math.sin(now/13)+Math.sin(now/21+1)+(Math.random()-.5)*.8)*amp*.6:0, jy=amp?(Math.sin(now/17+2)+Math.sin(now/27)+(Math.random()-.5)*.8)*amp*.45:0;   // 빠른 떨림 + 잔떨림
     el.style.transform='translate('+jx.toFixed(2)+'px,'+(-30*L+jy).toFixed(2)+'px) scale('+(1+.05*L).toFixed(4)+') rotate('+(jx*.4).toFixed(2)+'deg)'; }
@@ -8753,6 +8896,7 @@ void main(){
             h('span',{style:{fontFamily:T.mono,fontSize:13,display:'flex',gap:6,alignItems:'center'}},
               h('span',{style:{color:B.LO}}, a==null?'-':String(a)), h('span',{style:{color:B.MUT}}, '→'), h('span',{style:{color:up?'#83B289':'#C4675D'}}, z==null?'-':String(z)))); })
         : [h('div',{key:'none',style:{height:36,display:'flex',alignItems:'center',fontFamily:T.sans,fontSize:13,color:B.MID}}, this.en()?'No change':'변화 없음')])) ];
+    if(r.guarded) body.push(B.note(this.t('enh_guard_saved'),'#83B289'));   // (6번) 실패 + 하락 굴림을 순간 경화제가 막음
     return h('div',{style:{position:'absolute',inset:0,background:'rgba(3,3,4,0.5)',zIndex:36,display:'flex',flexDirection:'column',justifyContent:'flex-end',animation:'rlFade .18s'}},
       B.wrap(body,[B.btn(this.t('hide_disk_close'),close,false,'c')]));
   }
@@ -9081,6 +9225,20 @@ void main(){
         h('button',{onClick:close,style:{...ST.btn}}, this.t('hide_disk_close'))));
   }
   // 시트 공통 조각 — 업그레이드 시트와 같은 실측값(키커10 · 이름16 · 라벨10 · 행13 · 노트 336x40 r16).
+  // (6번 · 11-01) 소모품 옵션 줄 — 강화(순간 경화제)·정비대 수리(정밀 수리 키트) 공용. 왼쪽 = 아이템 이름((?) 카드 팝업) · 오른쪽 = 보유/필요 + ON/OFF 상자.
+  //   스위치는 새 아이콘 없이 시설 카드 Lv. 배지와 같은 테두리 글자 상자. able=false(보유 부족)면 잠김.
+  optToggleRow(key,itemId,label,count,on,able,onTap,ln){
+    // 스위치 = 사용자 B안(11-01) 깎인 판 슬라이드 · 두 겹(바깥 판 = 선 색 · 1px 안쪽 = 바탕)이라 사선 모서리에도 테두리가 보인다. 손잡이 = 작은 깎인 판.
+    const CP=(c)=>'polygon('+c+'px 0,100% 0,100% calc(100% - '+c+'px),calc(100% - '+c+'px) 100%,0 100%,0 '+c+'px)';
+    const pill=h('span',{style:{position:'relative',isolation:'isolate',display:'inline-block',width:46,height:24,flexShrink:0,background:on?'#83B289':'#36383C',clipPath:CP(6),opacity:able?1:0.45,transition:'background .18s'}},
+      h('span',{style:{position:'absolute',inset:1,zIndex:-1,background:on?'#1F2822':'#212227',clipPath:CP(5.4),transition:'background .18s'}}),
+      h('span',{style:{position:'absolute',top:4,left:on?25:3,width:18,height:16,background:on?'#83B289':'#6F7276',clipPath:CP(4),transition:'left .18s cubic-bezier(.2,.8,.2,1), background .18s'}}));
+    return h('div',{key:'opt-'+key,'data-guide':'opt-'+key,onClick:able?onTap:null,style:{height:40,display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,borderTop:'1px solid '+(ln||'#36383C'),cursor:able?'pointer':'default'}},
+      h('span',{onClick:ev=>ev.stopPropagation(),style:{minWidth:0}}, this.matName(itemId, label, {fontFamily:T.sans,fontSize:13,color:'#A9ABAF'})),
+      h('span',{style:{display:'flex',alignItems:'center',gap:10,flexShrink:0}},
+        h('span',{style:{fontFamily:T.mono,fontSize:12,color:able?'#A9ABAF':'#CCA26E'}}, count), pill));
+  }
+  optHint(key,txt){ return h('div',{key:'opth-'+key,style:{marginTop:-4,paddingBottom:6,textAlign:'right',fontFamily:T.sans,fontSize:11,color:'#6F7276'}}, txt); }
   craftSheetBits(){
     const LN='#36383C', MUT='#4B4D52', HI='#EAEBEE', LO='#6F7276', MID='#A9ABAF';
     return { LN,MUT,HI,LO,MID,
@@ -9207,6 +9365,7 @@ void main(){
   // 착용 중인 장비도 목록에 넣고 **맨 위 + 착용중 태그**(다른 목록과 같은 규칙 · 2026-10-16). 분해하면 착용이 먼저 풀린다(startDisa).
   disaOwned(){ return [...this.gs.bag, ...this.gs.vault].filter(i=>
     (i.kind==='weapon'||i.kind==='armor'||i.kind==='artifact'||i.kind==='bag')
+    && this.eng.disassembleSpec(i).length>0   /* 산출물이 없는 장비(무료 지급 배트 · DisassembleOutputs '-')는 목록에서 뺀다(10-31) */
     && (!this.facWbGuideOn() || i.uid===this.storyMap().fac.workbench.uid))   /* 분해 안내 중엔 유리의 쇠파이프만(챕터3) */
     .sort((a,b)=>(this.isEquipped(b.uid)?1:0)-(this.isEquipped(a.uid)?1:0)); }
   disaJob(){
@@ -10265,10 +10424,16 @@ void main(){
   recoverGlow(col){ this.glowPulse('_rcvGlowEl','_rcvGlowT',col); }
   vendorRecoverScreen(v,kind){
     const sp=this.recoverSpec(kind);
-    const full=sp.cur>=sp.max, aff=this.gs.sato>=sp.cost, can=!full&&aff&&!sp.done;
+    const full=sp.cur>=sp.max, aff=this.gs.sato>=sp.cost;
+    // 구호 — 돈이 모자라면 버튼이 '긴급 구호'로 바뀌고 무료로 채운다(24시간에 3번 · 남은 횟수는 안내 상자 · 0/3이면 버튼 잠김)
+    const relief=!full&&!aff&&!sp.done, rLeft=relief?this.reliefLeft(kind):0, rMax=this.reliefMax(kind);
+    const can=!full&&!sp.done&&(aff||(relief&&rLeft>0));
     const pct=sp.max>0?Math.max(0,Math.min(100,sp.cur/sp.max*100)):0;
-    const ik=sp.done?'done':(full?'full':(aff?'default':'nosato'));
-    const info=ik==='nosato'?this.t('shop_insufficient_sato'):sp.info[ik];
+    const ik=sp.done?'done':(full?'full':(aff?'default':(rLeft>0?'default':'nosato')));
+    // 버튼은 '긴급 구호' 하나 · 남은 횟수는 위 안내 상자에(사용자 10-31 — '사토가 부족하여 구호치료 합니다 3/3')
+    const info=relief? this.t(kind==='feed'?'relief_info_feed':'relief_info_heal')+' '+rLeft+'/'+rMax : (ik==='nosato'?this.t('shop_insufficient_sato'):sp.info[ik]);   // 0/3이면 버튼만 잠긴다
+    const btnLabel=relief? this.t('btn_relief') : sp.btn;
+    const act=relief? (()=>kind==='feed'?this.doFeed(true):this.doHeal(true)) : sp.act;
     const row=(label,val,col,first)=>h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',height:36,borderTop:first?'none':'1px solid #36383C'}},
       h('span',{style:{fontFamily:T.sans,fontSize:13,color:'#A9ABAF'}},label), h('span',{style:{fontFamily:T.mono,fontSize:13,color:col}},val));
     return h('div',{style:{...ST.screen}},
@@ -10289,10 +10454,10 @@ void main(){
           h('div',{className:'rcv-shim'})),
         h('div',{style:{marginTop:16}},
           row(this.t('heal_amount'), sp.amountLabel+Math.round(sp.max-sp.cur)+')', sp.accent, true),
-          row(sp.costLabel, sp.cost.toLocaleString()+' '+this.t('currency_sato'), aff?'#85B3C5':T.danger, false)),
+          row(sp.costLabel, (relief&&rLeft>0? '0' : sp.cost.toLocaleString())+' '+this.t('currency_sato'), (aff||(relief&&rLeft>0))?'#85B3C5':T.danger, false)),
         this.infoBox(ik, info),
         h('div',{style:{display:'flex',gap:8,marginTop:16}},
-          h('button',{disabled:!can,onClick:can?sp.act:null,'data-guide':kind+'-btn',style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:can?'#EAEBEE':'#4B4D52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:can?'pointer':'default'}}, sp.btn),
+          h('button',{disabled:!can,onClick:can?act:null,'data-guide':kind+'-btn','data-relief':relief?'1':null,style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:can?'#EAEBEE':'#4B4D52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:can?'pointer':'default'}}, btnLabel),
           h('button',{onClick:()=>this.vendorBack(),'data-guide':kind+'-leave',style:{flex:1,height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.en()?'Leave':'나가기'))));
   }
   // 서비스 화면 → 메뉴 — 그 사이 스토리 목표를 채웠으면 바로 완료 대화(2번: 배식 후 [나가기])
@@ -10409,9 +10574,18 @@ void main(){
     const groups=this.sellGroups(v);
     return h('div',{style:{flex:1,overflowY:'auto',padding:'0 0 20px',display:'flex',flexDirection:'column'}},
       groups.length? groups.map(g=>{ const inst=g.rep; const eq=this.isEquipped(inst.uid); const liq=this.eng.byId.liquor&&this.eng.byId.liquor[inst.id]; const md=this.eng.byId.module&&this.eng.byId.module[inst.id]; const usb=this.eng.byId.usb&&this.eng.byId.usb[inst.id]; const src=this.eng.anyItem(inst.id)||liq||md||usb||{}; const cat=liq?'술':md?'모듈':usb?'데이터':(CATKR[src.Category]||src.Category||'');
-        return this.shopRow({key:g.uids[0],guide:'sell-'+inst.id,cat,name:this.enhName(inst),desc:this.tx(src,'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'',priceLabel:'SELL '+g.price.toLocaleString(),priceColor:'rgb(204,162,110)',countLabel:(this.en()?'Owned ':'소지 ')+String(g.total).padStart(2,'0'),onClick:()=>this.openSell(g),dim:eq,eqTag:eq,gtag:this.gtagPill(inst)}); })
+        return this.shopRow({key:g.uids[0],guide:'sell-'+inst.id,cat,name:this.enhName(inst),desc:this.tx(this.eng.displaySrc(inst),'Description')||(liq&&(this.tx(liq,'Description')||this.tx(liq,'Notes')))||'',priceLabel:'SELL '+g.price.toLocaleString(),priceColor:'rgb(204,162,110)',countLabel:(this.en()?'Owned ':'소지 ')+String(g.total).padStart(2,'0'),onClick:()=>this.openSell(g),dim:eq,eqTag:eq,gtag:this.gtagPill(inst)}); })
         : this.emptyRow(this.en()?'No items to sell.':'판매 가능한 아이템이 없습니다.'));
   }
+  // 구호 치료·구호 배식(2번 파산 바닥 · 10-31) — 보유 사토가 비용보다 적으면 버튼이 '긴급 구호'로 바뀌고 무료로 100% 채운다.
+  //   치료·배식 각각 relief_<kind>_daily(기본 3)번 · 첫 사용부터 24시간이 지나면 다시 3번으로 충전(충전 시각은 따로 안 보인다 · 사용자 10-31)
+  //   기록 gs.relief[kind]={t:창 시작 ms, n:쓴 횟수} · 고의든 아니든 파산한 유저가 게임을 이어갈 수 있게 하는 바닥이다.
+  reliefMax(kind){ return Math.max(0,this.eng.N(this.eng.DATA.config['relief_'+kind+'_daily'],3)); }
+  reliefRec(kind){ const R=this.gs.relief&&typeof this.gs.relief==='object'?this.gs.relief:null, r=R&&R[kind];
+    return (r&&typeof r==='object'&&Date.now()-this.eng.N(r.t,0)<86400000)? r : null; }   // 24시간이 지났으면 없는 것으로(=충전)
+  reliefLeft(kind){ const r=this.reliefRec(kind); return Math.max(0,this.reliefMax(kind)-(r?this.eng.N(r.n,0):0)); }
+  reliefUse(kind){ const g=this.gs; if(!g.relief||typeof g.relief!=='object'||'d' in g.relief) g.relief={}; const r=this.reliefRec(kind);
+    g.relief[kind]= r? {t:r.t, n:this.eng.N(r.n,0)+1} : {t:Date.now(), n:1}; }
   healCost(){ if(this.storyFreeOnce('heal')) return 0; return Math.max(0, Math.ceil((this.gs.maxHp - this.gs.hp) * this.eng.N(this.eng.DATA.config.heal_cost_per_hp, 2))); }
   // 게이지 차오름 애니메이션: fill width + 숫자 카운트업 + 샤이머/리딩엣지(rcv-on) + 완료 펄스(rcv-done)
   animRecover(fillEl,numEl,barEl,startVal,endVal,maxVal){
@@ -10437,8 +10611,9 @@ void main(){
       requestAnimationFrame(tick);
     });
   }
-  doHeal(){ const g=this.gs; if(g.hp>=g.maxHp){ this.flash(this.t('heal_already_full')); return; } const cost=this.healCost(); if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
-    if(this._rcvAnim) return; const startHp=g.hp; g.sato-=cost; this._rcvAnim=true;
+  doHeal(free){ const g=this.gs; if(g.hp>=g.maxHp){ this.flash(this.t('heal_already_full')); return; } const cost=free?0:this.healCost(); if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
+    if(free&&this.reliefLeft('heal')<=0) return;
+    if(this._rcvAnim) return; const startHp=g.hp; g.sato-=cost; if(free) this.reliefUse('heal'); this._rcvAnim=true;
     this.recoverGlow('#83B289');
     this.animRecover(this._hpFill,this._hpNum,this._hpBar,startHp,g.maxHp,g.maxHp).then(()=>{
       g.hp=g.maxHp; this._rcvAnim=false; this._healDone=true; if(this.storyFreeOnce('heal')) delete g.story.free.heal; this.flash(this.t('heal_done')); this.forceUpdate(); this.saveGame(); }); }
@@ -10827,8 +11002,9 @@ void main(){
           btn(this.en()?'Skip':'건너뛰기','#EAEBEE',!busy,()=>this.goAfterRaid()))));
   }
   feedCost(){ if(this.storyFree('feed')) return 0; return Math.max(0, Math.ceil((this.staMax - this.gs.sta) * this.eng.N(this.eng.DATA.config.stamina_cost_per_point, 2))); }
-  doFeed(){ const g=this.gs; if(g.sta>=this.staMax){ this.flash(this.en()?'Stamina already full':'스태미너가 가득 찼습니다'); return; } const cost=this.feedCost(); if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
-    if(this._rcvAnim) return; const startSta=g.sta; g.sato-=cost; this._rcvAnim=true;
+  doFeed(free){ const g=this.gs; if(g.sta>=this.staMax){ this.flash(this.en()?'Stamina already full':'스태미너가 가득 찼습니다'); return; } const cost=free?0:this.feedCost(); if(g.sato<cost){ this.flash(this.t('shop_insufficient_sato')); return; }
+    if(free&&this.reliefLeft('feed')<=0) return;
+    if(this._rcvAnim) return; const startSta=g.sta; g.sato-=cost; if(free) this.reliefUse('feed'); this._rcvAnim=true;
     this.recoverGlow('#C19E6F');
     this.animRecover(this._staFill,this._staNum,this._staBar,startSta,this.staMax,this.staMax).then(()=>{
       g.sta=this.staMax; this._rcvAnim=false; this._feedDone=true; this.storyAct('feed',this.state.vendor); this.flash(this.t('feed_done')); this.forceUpdate(); this.saveGame(); }); }
