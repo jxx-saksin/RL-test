@@ -128,7 +128,9 @@ export const DATA = {
       "enh_guard_qty": "1,1,2,2,3,3",
       "relief_heal_daily": 3,
       "relief_feed_daily": 3,
-      "general_quest_max": 3
+      "general_quest_max": 3,
+      "test_bag_armor_def": 12,
+      "test_bag_evade_eva": 20
   },
   "primaryStats": [
     {"PrimaryStatID": "stat_str", "StatName_KR": "힘", "StatName_EN": "Strength", "Role_KR": "물리적 힘과 공격력 중심", "Role_EN": "Raw power and attack", "GrowthCondition": "공격이 적에게 명중(적중)한 횟수", "GrowthPointPerTrigger": 1, "Status": "Planning", "Notes": "1차 스탯", "LastUpdated": 46325},
@@ -1673,7 +1675,6 @@ export const DATA = {
     {"StringID": "hide_rep_empty", "Text_KR": "수리할 아이템이 없다.", "Text_EN": "No items can be repaired", "Category": "hide", "UIRole": "empty", "Status": "Planning", "Notes": "정비대 수리 빈 목록", "LastUpdated": 46272},
     {"StringID": "quest_tab_daily", "Text_KR": "일일", "Text_EN": "Daily", "Category": "quest", "UIRole": "tab", "Status": "Planning", "Notes": "-", "LastUpdated": 46274},
     {"StringID": "quest_tab_weekly", "Text_KR": "주간", "Text_EN": "Weekly", "Category": "quest", "UIRole": "tab", "Status": "Planning", "Notes": "-", "LastUpdated": 46274},
-    {"StringID": "quest_tab_story", "Text_KR": "스토리", "Text_EN": "Story", "Category": "quest", "UIRole": "tab", "Status": "Planning", "Notes": "-", "LastUpdated": 46274},
     {"StringID": "quest_chip_new", "Text_KR": "신규", "Text_EN": "New", "Category": "quest", "UIRole": "chip", "Status": "Planning", "Notes": "-", "LastUpdated": 46274},
     {"StringID": "quest_chip_run", "Text_KR": "진행중", "Text_EN": "Active", "Category": "quest", "UIRole": "chip", "Status": "Planning", "Notes": "-", "LastUpdated": 46274},
     {"StringID": "quest_chip_done", "Text_KR": "완료", "Text_EN": "Done", "Category": "quest", "UIRole": "chip", "Status": "Planning", "Notes": "-", "LastUpdated": 46274},

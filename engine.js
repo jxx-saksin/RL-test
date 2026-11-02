@@ -1,8 +1,8 @@
 // RL Prototype — pure game engine. No DOM.
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
-import { DATA as FALLBACK } from './data/game-data.js?v=val72';
-import { buildIndex } from './sheet-loader.js?v=val79';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
+import { DATA as FALLBACK } from './data/game-data.js?v=val73';
+import { buildIndex } from './sheet-loader.js?v=val80';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
 
@@ -1121,7 +1121,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
     let text = logTpl(isCrit ? 'crit' : hitLineId(), { Attacker: nm, Target: fnm, Damage: final.toFixed(0), TargetHP: Math.max(0, foe.hp).toFixed(0), TargetMaxHP: foe.maxHp });
     if (pierceFrac > 0) text += logTpl('pierce_suffix', { PiercePct: (pierceFrac * 100).toFixed(0) });
     if (opts.talismanCrit) text += (LANG === 'en' ? '  ⟪Token⟫' : '  ⟪징표⟫');
-    push(actor.side, isCrit ? 'crit' : 'hit', text, rupM < 1 ? { rup: +(1 - rupM).toFixed(2) } : undefined);   // rup = 약화율(연출: 약해진 타격 숫자 색)
+    push(actor.side, isCrit ? 'crit' : 'hit', text, rupM < 1 ? { rup: +(1 - rupM).toFixed(2), dmg: +final.toFixed(2) } : { dmg: +final.toFixed(2) });   // rup = 약화율(연출: 약해진 타격 숫자 색) · dmg = 실제 피해(소수 · 정비대 성능 시험 집계 11-02)
 
     // status application (옛 관통은 위 피해 계산 경로에서 이미 처리됨)
     if (actor.attribute && !foe.passive && (actor.attribute !== 'pierce' || pierceExpose()) && foe.hp > 0 && !immune(foe, actor.attribute)) {
