@@ -635,7 +635,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 138;
+const TITLE_VER = 139;
 const TITLE_DATE = '1102';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -894,8 +894,8 @@ class Component extends DCLogic {
   async componentDidMount(){
     document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
-      const eng = await import('./engine.js?v=val138');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val80');
+      const eng = await import('./engine.js?v=val139');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val81');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -3643,10 +3643,10 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
     const isM=this.state.combatSheet==='monster';
     const prof=isM?c.mProf:(c.prof||this.eng.playerProfile(this.gs,false));
     if(!prof) return null;
-    const card = this.tiltCard(isM? (c.pvp? this.userFront(prof) : this.monsterFront(prof,true,true)) : this.playerFront(prof,true));   // 전투 중 상세 카드도 테두리 빛 순환
+    const card = this.tiltCard(isM? (c.pvp? this.userFront(prof) : this.monsterFront(prof,true,true)) : this.playerFront(prof,true), undefined, true);   // 전투 중 상세 카드도 테두리 빛 순환 · clip = 스크롤 상자 안이라 빛 캔버스가 스크롤 영역을 넓혀 카드가 손으로 밀리던 것 막음(11-02 실기 제보)
     return h('div',{onClick:()=>this.setState({combatSheet:null}),style:{position:'absolute',inset:0,background:'oklch(0.100 0.005 264 / 0.72)',display:'flex',flexDirection:'column',zIndex:34,animation:'rlFade .18s'}},
       h('div',{style:{flex:'1 1 auto',minHeight:0,display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px'}},
-        h('div',{onClick:e=>e.stopPropagation(),style:{maxHeight:'100%',overflowY:'auto',animation:'rlIn .22s cubic-bezier(.2,.8,.2,1)'}}, card)),
+        h('div',{onClick:e=>e.stopPropagation(),style:{maxHeight:'100%',overflowY:'auto',overflowX:'hidden',overscrollBehavior:'contain',animation:'rlIn .22s cubic-bezier(.2,.8,.2,1)'}}, card)),
       null);   // [전리품 보기]는 결과 패널 [가방]으로 옮겼다(10-30)
   }
   cardScreen(){
@@ -3847,6 +3847,9 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
         const clone=this.eng.cloneGearInstance(prize); clone.qty=1; clone.locked=false;
         pc.got=clone; pc.prize=prize; c.runLoot.push({id:clone.id,qty:1}); c.pvpLootPending=clone;
         setTimeout(()=>this.openPvpLoot(), 900);   // 카드 플립 연출을 보여준 뒤 전환
+      } else {
+        // 꽝 — 「탐색 실패」 카드를 잠깐 보여준 뒤 일반 전투 종료 화면으로(사용자 11-02 · 일반 전투와 같은 흐름)
+        setTimeout(()=>{ if(this.combat===c && c.phase==='pvpWin'){ c.phase='won'; this.forceUpdate(); } }, 1200);
       }
     } else {
       if(i===pc.hit&&pc.lossUid){
@@ -3866,7 +3869,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
   // 사전 소지품을 lm.bag으로 옮기는 부분까지 finishCombat와 같다(커밋 시 되돌아온다).
   openPvpLoot(){
     const c=this.combat, clone=c&&c.pvpLootPending; if(!clone) return;
-    c.pvpLootPending=null;
+    c.pvpLootPending=null; c.phase='won';   // 담고 돌아오면 일반 전투 종료 화면([가방]·[휴식] + [다음 전투]/[귀환]) — 11-02
     const lm={view:'field',focus:0,fromCombat:true,field:[clone],bag:[],opened:new Set([clone.uid])};
     this.lmLoadBag(lm); this.setState({screen:'lootmanage'});
   }
@@ -3983,13 +3986,10 @@ void main(){
         (!done? cardNav(focus, pc.n, ()=>this.focusPvp(focus-1), ()=>this.focusPvp(focus+1)) : null)),
       !done? h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',display:'flex',justifyContent:'center',gap:8,padding:'0 0 14px'}}, ...Array.from({length:pc.n}).map((_,i)=>h('div',{key:i,style:{width:12,height:2,borderRadius:1,background:i===focus?T.mid:T.s3}}))) : null,
       win? h('div',{style:{flex:'1 1 auto',minHeight:0}}) : null,
-      done? h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 16px 26px'}},
+      // 승리는 뒤집은 뒤 일반 전투 종료 화면(phase 'won')으로 넘어가므로 버튼이 없다(11-02) — 패배 트랙만 여기서 끝낸다.
+      (done&&!win)? h('div',{style:{position:'relative',zIndex:1,flex:'0 0 auto',padding:'0 16px 26px'}},
         h('div',{style:{background:'#18191D',border:'1px solid #36383C',borderRadius:24,padding:24,display:'flex',gap:8}},
-          win?h('button',{onClick:()=>this.drawCards(),style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_continue')):null,
-          // 이탈 버튼: 몬스터 전투와 같은 규칙 — 해당 회차에 도망 확률 행이 있으면 [도망가기](도주 카드 판정).
-          // 패배(!win)는 도망 대상이 아니다(사망 처리로 직행).
-          ((()=>{ const fo=win&&this.fleeChance()!=null;
-            return h('button',{onClick:fo?()=>this.attemptFlee():()=>{ win?this.extract():this.death(); },style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:win?'#EAEBEE':'#C4675D',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t(fo?'btn_flee_out':'btn_return')); })()))) : null);
+          h('button',{onClick:()=>this.death(),style:{flex:1,height:48,boxSizing:'border-box',borderRadius:999,border:'none',background:'#212227',color:'#C4675D',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:'pointer'}}, this.t('btn_return')))) : null);
   }
 
 
@@ -10041,8 +10041,10 @@ void main(){
   // 단말기 메뉴 → 도시 카드 줄 + 존 탭 + 원통 캐러셀 + 정보 줄 + [상세정보]. 상세 = 아트 전체 → 스크롤하면 글 판이 아트를 절반쯤 덮는다.
   // 카드 4단계: 미조우 = 뒷면 · 조우만 = 흑백 · 처치 = 등급 테두리·이펙트·상세(STAT·INSTALL ??) · 인스톨 1+ = 전부 공개.
   binderSt(mid){ const r=this.gs.binder&&this.gs.binder[mid]; if(!r) return 0; const i=this.eng.N(r.i,0); return i>0?2+Math.min(3,i):(this.eng.N(r.k,0)>0?2:(r.m?1:0)); }
-  binderNew(mid,zid){ const r=this.gs.binder&&this.gs.binder[mid]; return !!(r&&r.n&&(!zid||!r.nz||r.nz===zid)); }   // 첫 처치 후 아직 상세를 안 본 몬스터 · zid를 주면 처치한 존에서만 참(여러 존 몬스터가 전부 반짝이지 않게)
-  binderAnyNew(ids){ const B=this.gs.binder||{}; return (ids||Object.keys(B)).some(id=>B[id]&&B[id].n); }
+  binderNew(mid,zid){ const r=this.gs.binder&&this.gs.binder[mid]; return !!(r&&r.n&&(!zid||!r.nz||r.nz===zid||!this.binderMonsC(r.nz).includes(mid))); }   // 처치한 존 목록에 그 몬스터가 없으면(스토리 고정 레이드 등 · 11-02) 그 몬스터가 나오는 모든 존에서 신규   // 첫 처치 후 아직 상세를 안 본 몬스터 · zid를 주면 처치한 존에서만 참(여러 존 몬스터가 전부 반짝이지 않게)
+  // ★단말기 메뉴 [신규] = 바인더 화면에 실제로 보이는 몬스터만 센다(11-02 실기 제보 — 화면에 없는 기록(옛 ID 등)의 n은 지울 길이 없어 [신규]가 안 사라졌다)
+  binderShown(){ if(this._bShown&&this._bShown.d===this.eng.DATA) return this._bShown.s; const s=new Set(); (this.eng.DATA.zones||[]).forEach(z=>this.binderMons(z.ZoneID).forEach(id=>s.add(id))); this._bShown={d:this.eng.DATA,s}; return s; }
+  binderAnyNew(ids){ const B=this.gs.binder||{}, S=this.binderShown(); return (ids||Object.keys(B)).some(id=>B[id]&&B[id].n&&S.has(id)); }
   // NEW 칩 = 등급 칩과 같은 깎인 판·튀어나옴(rlLvlPop) + 반짝임(rlNewGlow · 무전기 점과 같은 박자) · 색 = 퀘스트 [신규]
   binderNewTag(key){ const c='#C19E6F';
     return h('div',{key:'nw'+key,style:{flex:'0 0 auto',display:'inline-flex',lineHeight:0,animation:'rlNewGlow 2.4s ease-in-out infinite'}},   // 래퍼는 inline-flex — block이면 줄 상자(24px)가 생겨 등급 칩보다 2px 내려간다
@@ -10052,6 +10054,7 @@ void main(){
   binderNo(mid){ const u=this.eng.usbOfMonster(mid); if(u&&this.eng.N(u.BinderNo,0)>0) return this.eng.N(u.BinderNo,0);   // 시트에 BinderNo 열이 생기면 그 값이 정본
     const i=(this.eng.DATA.usb||[]).indexOf(u); return i>=0?i+1:0; }   // 없으면 USB 탭 행 순서
   binderNoTxt(mid){ const n=this.binderNo(mid); return n?'No.'+String(n).padStart(3,'0'):'No.---'; }
+  binderMonsC(zid){ const c=(this._bMonsC&&this._bMonsC.d===this.eng.DATA)?this._bMonsC:(this._bMonsC={d:this.eng.DATA,m:{}}); return c.m[zid]||(c.m[zid]=this.binderMons(zid)); }   // 존별 목록 캐시(데이터가 바뀌면 다시)
   binderMons(zid){ const o=[]; (this.eng.DATA.spawnTable||[]).forEach(r=>{ const id=r.MonsterID; if(r.ZoneID===zid&&this.eng.byId.monster[id]&&!/^object_/.test(id)&&!o.includes(id)) o.push(id); }); return o; }
   // 첫 진입 = 카이토 무전 한 번(NpcDialogue facility/binder_first · 사용자 10-29). 대사 행이 아직 없으면(시트 반영 전) 표시만 남기지 않고 다음에 다시 본다
   openBinder(){ this.setState({screen:'binder',binderOpen:null});
@@ -10154,7 +10157,7 @@ void main(){
             style:{...this.titleF(),fontSize:40,lineHeight:'48px',height:48,display:'block',flex:'1 1 auto',color:v>=2?T.hi:(v===1?'#6F7276':'#4B4D52'),whiteSpace:'nowrap',minWidth:0}}, v>=1&&m?this.ttx(this.tx(m,'MonsterName'),40,48):this.ttx(this.t('binder_unknown'),40,48)),   // 뒷면(미조우) = 알수없음 / Unknown · 흑백(조우만) = 이름을 어두운 글씨로(마주친 적은 있다 · 사용자 10-29)
           v>=2? this.instPips(Math.max(0,v-2),11,12) : null)),
       h('div',{style:{flex:'0 0 auto',padding:'16px 16px 28px'}},   // 이름↔버튼 8→16(사용자 11-02 '너무 가까워')
-        h('button',{disabled:!can,onClick:can?()=>{ const B=this._bnd; if(B&&B.openAt&&B.list===list) B.openAt(act); else this.setState({binderOpen:mid}); }:null,style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:can?T.hi:'#4B4D52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:can?'pointer':'default'}}, this.t('binder_detail_btn'))));
+        h('button',{disabled:!can,onClick:can?()=>{ const B=this._bnd; if(B&&B.openAt&&B.list===list) B.openAt(act); else { const r=this.gs.binder&&this.gs.binder[mid]; if(r&&r.n){ r.n=0; this.saveGame(); } this.setState({binderOpen:mid}); } }:null,style:{width:'100%',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:can?T.hi:'#4B4D52',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:can?'pointer':'default'}}, this.t('binder_detail_btn'))));
   }
   binderDetail(mid){
     const md=this.eng.byId.monster[mid]; if(!md) return null;
