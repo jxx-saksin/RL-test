@@ -47,7 +47,7 @@ export const DATA = {
       "sato_drop_boss_mult_max": 45,
       "sato_drop_boss_curve": 3,
       "pass_cap": 50,
-      "pass_auto_threshold": 5,
+      "pass_auto_threshold": 10,
       "pass_regen_minutes": 24,
       "pass_price_per": 500,
       "appraise_sato_per_proof": 100,
@@ -1858,7 +1858,9 @@ export const DATA = {
     {"StringID": "btn_relief", "Text_KR": "긴급 구호", "Text_EN": "Emergency Aid", "Category": "shop", "UIRole": "button", "Status": "Planning", "Notes": "사토 < 치료비·식사비일 때 보건소·급식소 버튼(10-31)", "LastUpdated": 46326},
     {"StringID": "relief_info_heal", "Text_KR": "사토가 부족하여 구호치료 합니다", "Text_EN": "Not enough Sato — free relief care", "Category": "shop", "UIRole": "info", "Status": "Planning", "Notes": "보건소 안내 상자 · 뒤에 남은 횟수 n/3(코드)", "LastUpdated": 46326},
     {"StringID": "relief_info_feed", "Text_KR": "사토가 부족하여 구호배식 합니다", "Text_EN": "Not enough Sato — free relief meal", "Category": "shop", "UIRole": "info", "Status": "Planning", "Notes": "급식소 안내 상자 · 뒤에 남은 횟수 n/3(코드)", "LastUpdated": 46326},
-    {"StringID": "repair_hold_c15", "Text_KR": "아직은 괜찮아. 한 번 더 나갔다 와.", "Text_EN": "Still holding up. Go out once more.", "Category": "shop", "UIRole": "button", "Status": "Planning", "Notes": "7번 M3(11-01) — 1-4 완료 ~ 1-5 수락 전 철물점 [수리하기] 잠금 시 맥", "LastUpdated": 46327}
+    {"StringID": "repair_hold_c15", "Text_KR": "아직은 괜찮아. 한 번 더 나갔다 와.", "Text_EN": "Still holding up. Go out once more.", "Category": "shop", "UIRole": "button", "Status": "Planning", "Notes": "7번 M3(11-01) — 1-4 완료 ~ 1-5 수락 전 철물점 [수리하기] 잠금 시 맥", "LastUpdated": 46327},
+    {"StringID": "wpn_broken_toast", "Text_KR": "착용 중 무기 파손", "Text_EN": "Equipped weapon broken", "Category": "Combat", "UIRole": "toast", "Status": "Planning", "Notes": "11-02 · 전투 종료 시 착용 무기 내구도 0(붉은 경고 토스트)", "LastUpdated": 46328},
+    {"StringID": "wpn_dur_low_toast", "Text_KR": "착용 중 무기 내구도 경고", "Text_EN": "Equipped weapon durability low", "Category": "Combat", "UIRole": "toast", "Status": "Planning", "Notes": "11-02 · 최대 내구도 20% 이하로 처음 내려간 전투 끝(호박색 경고 토스트 · 수치 없음)", "LastUpdated": 46328}
   ],
   "usb": [
     {"USBID": "usb_gutter_roach", "Name_KR": "거대 바퀴 데이터", "Name_EN": "Gutter Roach", "MonsterID": "monster_gutter_roach", "Grants": "[{\"stat\":\"stat_will\",\"v\":1}]", "UploadMinutes": 5, "Description": "극한에서도 살아남는 끈질긴 생존의 본능.", "Description_EN": "The relentless survival instinct that endures any extreme.", "SellPrice": 5000, "Install1": "[{\"stat\":\"stat_dex\",\"v\":1}]", "Install2": "[{\"stat\":\"sec_max_hp\",\"v\":8}]", "Install3": "[{\"stat\":\"sec_dmg_cut_pct\",\"v\":3}]", "Status": "Planning", "Notes": "-", "LastUpdated": 46324},

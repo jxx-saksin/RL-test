@@ -627,7 +627,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 134;
+const TITLE_VER = 135;
 const TITLE_DATE = '1102';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -884,8 +884,8 @@ class Component extends DCLogic {
   async componentDidMount(){
     document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
-      const eng = await import('./engine.js?v=val135');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val77');
+      const eng = await import('./engine.js?v=val136');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val78');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -1170,11 +1170,19 @@ class Component extends DCLogic {
   }
   // 위치는 flash 시점(DOM이 안정된 상태)에 재둔다 — 렌더 중에 재면 시트가 아직 높이 0이라 빗나간다.
   flash(msg,warn){ this._toastAnc=this.toastAnchor(); clearTimeout(this._ft); clearTimeout(this._ftOut);
-    this.setState({toast:msg,toastOut:false,toastWarn:!!warn});
+    this.setState({toast:msg,toastOut:false,toastWarn:warn||false});   // warn = true(붉은 경고) · 'amber'(호박색 경고 · 11-02)
     this._ft=setTimeout(()=>this.setState({toastOut:true}),2500);          // 2.5초 유지 후(10-30 · 1초 → 2.5초)
     this._ftOut=setTimeout(()=>this.setState({toast:null,toastOut:false}),3000);  // 0.5초 페이드 아웃
     this.saveGame(); }
   // 화면 아무 데나 터치하면 즉시 사라진다 (componentDidMount에서 캡처 단계로 연결)
+  // 착용 무기 내구도 토스트(11-02 · A안) — 이번 전투로 부서짐 = 붉은 경고 · 최대치 20% 이하로 **처음** 내려감 = 호박색 경고(수치 없음).
+  //   이미 20% 아래였으면 다시 안 띄운다(매 전투 반복 X). 사망은 결과 화면이 파손을 따로 보여주므로 제외.
+  weaponDurToast(ch,winner){ if(winner==='monster') return; const wu=this.gs.equip&&this.gs.equip.weapon; const d=wu&&(ch||[]).find(x=>x.uid===wu); if(!d) return;
+    const inst=this.eng.instById(this.gs,wu), max=this.eng.N(inst&&inst.maxDur,0); if(max<=0) return;
+    const lim=max*0.2, F={wpn_broken_toast:['착용 중 무기 파손','Equipped weapon broken'],wpn_dur_low_toast:['착용 중 무기 내구도 경고','Equipped weapon durability low']};
+    const tx=k=>{ const v=this.t(k); return v===k?F[k][this.en()?1:0]:v; };   // 시트 행이 없을 때(번들 폴백) 대비
+    if(d.broke) this.flash(tx('wpn_broken_toast'),true);
+    else if(d.to<=lim && d.from>lim) this.flash(tx('wpn_dur_low_toast'),'amber'); }
   hideToast(){ if(!this.state.toast) return; clearTimeout(this._ft); clearTimeout(this._ftOut); this.setState({toast:null,toastOut:false}); }
 
   // ---------- sortie / combat ----------
@@ -1484,6 +1492,7 @@ class Component extends DCLogic {
     // 전투 종료 후 몬스터 등급만큼 스태미너 소모(진입 전이 아니라 종료 후). 도주 성공은 여기 안 옴 = 소모 없음.
     this.gs.sta = Math.max(0, this.gs.sta - this.eng.N(c.mProf.staminaCost, 0));
     c.durChanges = this.eng.applyDurabilityWear(this.gs, res.triggers) || [];
+    this.weaponDurToast(c.durChanges, res.winner);
     this.tickBuffs();   // 소모품 유지력 −1 (PvP 분기보다 위 — 모든 전투 종료가 여길 지난다)
     // ---- PvP(콜드데이터) 승패는 카드 트랙으로만 처리 (§6-6, death_durability_loss 미적용) ----
     if(c.pvp){
@@ -2485,7 +2494,7 @@ class Component extends DCLogic {
     }catch(_){ return D; }
   }
   toastEl(){ if(!this.state.toast) return null; const a=this._toastAnc||{top:21,left:16,right:16}; const out=!!this.state.toastOut;
-    const warn=!!this.state.toastWarn, TC=warn?'#AE615C':'#111317';   // 일반 = 밝은 회색 판 + 검정 글자 · 경고 = 어두운 판 + 붉은 글자(10-30)
+    const warn=!!this.state.toastWarn, TC=warn?(this.state.toastWarn==='amber'?'#C19E6F':'#AE615C'):'#111317';   // 호박색 = 패스·스태미너와 같은 색(11-02)   // 일반 = 밝은 회색 판 + 검정 글자 · 경고 = 어두운 판 + 붉은 글자(10-30)
     // key를 바꿔 새 노드로 마운트 — 노드가 재활용돼도 페이드 아웃이 항상 처음부터 재생된다
     return h('div',{key:out?'toast-out':'toast-in','data-toast':warn?'warn':'info',style:{position:'absolute',top:a.top,left:a.left,right:a.right,display:'flex',alignItems:'center',justifyContent:'center',gap:9,height:this.TOAST_H,boxSizing:'border-box',padding:'0 20px',background:'#18191D',color:TC,fontFamily:T.mono,fontSize:12,fontWeight:500,lineHeight:1.35,textAlign:'center',animation:out?'rlToastOut .5s ease-out forwards':'rlFade .2s',zIndex:70,pointerEvents:'none'}},
     warn? h('span',{key:'ic',style:{flex:'0 0 auto',display:'flex'}}, this.icAlert('tri',16,TC)) :
