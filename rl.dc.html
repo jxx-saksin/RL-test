@@ -420,6 +420,8 @@ const HAGGLE_TPL = {
 const OBJ_DUR = 'rgb(176,180,186)';   // 오브제 내구도 바(밝은 회색) — 생명력 빨강과 구분
 const GRADECOL = { common:'rgb(234,235,238)', rare:'#83B289', unique:'#7CA5BB', special:'#B27EAD', boss:'#D6BB79', object:'#9AA6AF' };   // object = 오브제 조우 카드(등급 아님 · 이펙트 없음)
 const gradeColOf = (g) => GRADECOL[String(g||'').toLowerCase()] || GRADECOL.common;
+// 특수 제작 재료(12번 · 공용 4종이 아닌 것) — 카드에 레어 몬스터와 같은 초록 테두리·비네트(사용자 11-02)
+const SPECIAL_MATS = new Set(['item_sign_plate','item_rebar_bundle','item_fine_parts','item_tainted_crystal','item_curved_claw','item_animal_tallow','item_mesh_screen','item_brass_casing','item_spore_sac','item_kevlar_scrap','item_medical_alcohol']);
 // 강화 연출 배경(Ghost Fibers) 값 — 위젯에서 고른 값을 여기만 바꾼다(2026-10-15 · 원본 기본값에서 시작)
 const ENH_FIBERS = { glowColor:'#2f5bff', lineColor:'', speed:0.07, scale:3.7, rotation:0, rotationSpeed:1, layers:7, waves:0.027, twist:0.2, threads:1, spread:0.6, thickness:0.2, glow:0.6, brightness:1.4, vignette:0.8, grain:0.03 };   // 위젯 확정값(10-15) · glowColor는 연출 중 강화 단계 색으로 덮인다(enhFibersColor)
 const CATKR = { Weapon:'무기', Head:'투구', Body:'갑옷', Hands:'장갑', Feet:'신발', Medicine:'약품', Food:'음식', Junk:'정크', Valuable:'귀중품', Quest:'퀘스트', Key:'키', Accessory:'장신구', Talisman:'징표', Bag:'가방', USB:'USB', Material:'재료', Enhance:'강화', Data:'데이터', DataTech:'데이터', Trade:'거래소', Blueprint:'디스크' };
@@ -635,7 +637,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 139;
+const TITLE_VER = 140;
 const TITLE_DATE = '1102';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -894,8 +896,8 @@ class Component extends DCLogic {
   async componentDidMount(){
     document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
-      const eng = await import('./engine.js?v=val139');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val81');
+      const eng = await import('./engine.js?v=val140');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val82');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -4731,6 +4733,7 @@ void main(){
     const nRows=Math.max(1,Math.ceil(stats.length/2));
     return h('div',{style:{width:342,height:fixed==='fit'?'auto':(fixed?this.lootCardH(inst):'100%'),minHeight:fixed==='fit'?460:'auto',boxSizing:'border-box',background:C1,border:'1px solid '+(val?'rgba(214,178,112,0.28)':LN),borderRadius:8,overflow:'hidden',display:'flex',flexDirection:'column',alignItems:'flex-start',position:'relative',boxShadow:'0 14px 44px rgba(0,0,0,.5)',animation:val?'rlGlowGold 4.8s ease-in-out infinite':((mask!=='?'&&this.enhShownLevel(inst)>=5)?'rlEnhPrismShadow 3s linear infinite':'none')}},
       ...(mask==='?'? [] : this.enhFxLayers(inst)),   // 강화 단계 카드 이펙트(맨 앞에 두되 zIndex로 위에 올린다)
+      ...((mask!=='?'&&SPECIAL_MATS.has(inst.id))? this.binderFx('rare','smat') : []),   // 특수 재료 = 레어 등급 테두리·비네트
       // ART 190
       h('div',{style:{position:'relative',...artP,alignSelf:'stretch',background:md?C1:ART}},
         md?null:h('div',{style:{position:'absolute',inset:0,backgroundImage:'repeating-linear-gradient(135deg, transparent 0 6px, oklch(0.27 0.008 264) 6px 7px)'}}),
@@ -5857,7 +5860,7 @@ void main(){
 
   // ---- repair (S9 · 철물점) ----
   // 미감정 장비는 수리 대상에서 제외한다 — 최대 내구도를 모르는 물건은 수리량·비용을 산정할 수 없다(감정 후 가능).
-  repairables(){ return [...this.gs.bag, ...this.gs.vault].filter(i=>(i.kind==='weapon'||i.kind==='armor'||i.kind==='artifact') && this.eng.N(i.maxDur)>0 && !this.eng.isHidden(i,'maxDur') && (this.eng.N(i.maxDur)-this.eng.N(i.dur))>0).sort((a,b)=>((b.maxDur-b.dur)-(a.maxDur-a.dur))); }
+  repairables(){ return [...this.gs.bag, ...this.gs.vault].filter(i=>(i.kind==='weapon'||i.kind==='armor'||i.kind==='artifact') && this.eng.N(i.maxDur)>0 && !this.eng.isHidden(i,'maxDur') && (this.eng.N(i.maxDur)-this.eng.N(i.dur))>0).sort((a,b)=>((this.isEquipped(b.uid)?1:0)-(this.isEquipped(a.uid)?1:0)) || ((b.maxDur-b.dur)-(a.maxDur-a.dur))); }   // 착용 중이 항상 위(11-02) · 그 안에서 닳은 만큼 많은 순
   durBar(inst){ const pct=inst.maxDur>0?Math.max(0,Math.min(100,(inst.dur/inst.maxDur)*100)):0; const st=this.eng.itemState(inst); const col=st==='destroyed'?T.danger:st==='broken'?T.warn:(pct<35?T.warn:T.dur);
     return h('div',{style:{height:5,background:T.s3,borderRadius:1,overflow:'hidden',marginTop:6}}, h('div',{style:{width:pct+'%',height:'100%',background:col}})); }
   doRepair(inst){ if(this._rcvAnim) return; const fromDur=this.eng.N(inst.dur);
@@ -9449,11 +9452,13 @@ void main(){
   }
   // ===== 조립대 · 분해 (svg/screen-hideout-workbench-disassemble*.svg) =====
   // 슬롯이 없다(목록에 Slot 탭이 없음) — 한 번에 한 건, 실패도 없다. 3초 연출이 끝나면 곧바로 완료다.
-  DISA_ROLL_MS(){ return 3000; }
+  DISA_ROLL_MS(){ return 1000; }   // 3초 → 1초(사용자 11-02)
+  // 최초 지급 무기·갑옷·투구(Config start_vault_items 중 장비) — 판매 0원·분해 산출 없음이지만 둘 다 할 수 있다(사용자 11-02)
+  starterGear(inst){ return !!inst && (inst.kind==='weapon'||inst.kind==='armor') && this.eng.isStarterItem(inst.id); }
   // 착용 중인 장비도 목록에 넣고 **맨 위 + 착용중 태그**(다른 목록과 같은 규칙 · 2026-10-16). 분해하면 착용이 먼저 풀린다(startDisa).
   disaOwned(){ return [...this.gs.bag, ...this.gs.vault].filter(i=>
     (i.kind==='weapon'||i.kind==='armor'||i.kind==='artifact'||i.kind==='bag')
-    && this.eng.disassembleSpec(i).length>0   /* 산출물이 없는 장비(무료 지급 배트 · DisassembleOutputs '-')는 목록에서 뺀다(10-31) */
+    && (this.eng.disassembleSpec(i).length>0 || this.starterGear(i))   /* 산출물이 없는 장비(DisassembleOutputs '-')는 뺀다(10-31) — 최초 지급 장비만 예외(산출 없이 분해 · 11-02) */
     && (!this.facWbGuideOn() || i.uid===this.storyMap().fac.workbench.uid))   /* 분해 안내 중엔 유리의 쇠파이프만(챕터3) */
     .sort((a,b)=>(this.isEquipped(b.uid)?1:0)-(this.isEquipped(a.uid)?1:0)); }
   disaJob(){
@@ -9482,8 +9487,10 @@ void main(){
   disaScreen(){
     this.hideTick(); this.disaRollTick();
     const job=this.disaJob();
-    const list=this.disaOwned();
-    const sel=this.state.disaSel? list.find(x=>x.uid===this.state.disaSel) : null;
+    const all=this.disaOwned();
+    const dc=this.catFilterChips(all.map(x=>x.id), this.state.disaCat||'전체', id=>this.setState({disaCat:id}), 'dcat-');   // 분류 칩(제작 화면과 같은 칩 · 있는 분류만 · 11-02)
+    const list=all.filter(x=>this.invCatMatch(this.invCatOfId(x.id), dc.eff));
+    const sel=this.state.disaSel? all.find(x=>x.uid===this.state.disaSel) : null;
     const rev=!!this.state.disaRev && job && job.phase==='done';
     return h('div',{style:{...ST.screen}},
       h('div',{key:'wart2',style:{position:'absolute',left:0,right:0,top:0,height:116,zIndex:0,pointerEvents:'none',
@@ -9492,6 +9499,7 @@ void main(){
       this.shopHeaderChips(this.hideFacName('workbench'), ()=>this.openHideFac('workbench')),
       h('div',{style:{flex:'0 0 auto',height:26}}),
       this.disaLabelBar(),
+      all.length? dc.el : null,
       h('div',{style:{position:'relative',zIndex:1,flex:1,minHeight:0,overflowY:'auto',display:'flex',flexDirection:'column'}},
         list.length? list.map(inst=>this.disaRow(inst))
           : h('div',{style:{padding:'40px 0',textAlign:'center',fontFamily:T.sans,fontSize:13,color:T.faint}}, this.t('hide_disa_empty'))),
@@ -9524,15 +9532,18 @@ void main(){
           h('span',{style:{fontFamily:T.mono,fontSize:13,color:B.HI}}, s.chance!=null? (Math.round(s.chance*100)+'%') : (s.min+' - '+s.max))))),   // 확률 산출(강화 재료) = 'N%'
       (spec.length&&this.isEquipped(inst.uid))
         ? B.note(this.tOr('hide_disa_equipped',this.en()?'This is equipped. Disassembling will unequip it first.':'착용 중인 장비입니다. 분해하면 착용이 해제됩니다.'),'#CCA26E',false)   // UIString 행 없음 → 폴백
-        : B.note(spec.length? this.t('hide_disa_confirm') : this.t('hide_disa_none'), spec.length?B.LO:'#CCA26E', !spec.length) ];
-    // 산출 목록이 비면(DisassembleOutputs 미기입) 분해를 막는다 — 원본만 사라지고 아무것도 안 나오는 사고 방지.
-    const footer=[ B.btn(this.t('hide_disa_label'),spec.length?()=>this.startDisa(inst):null,!spec.length,'go'),
+        : (!spec.length&&this.starterGear(inst))
+          ? B.note(this.en()?'Nothing usable will come out of this.':'분해해도 나오는 재료가 없습니다.','#CCA26E',false)
+          : B.note(spec.length? this.t('hide_disa_confirm') : this.t('hide_disa_none'), spec.length?B.LO:'#CCA26E', !spec.length) ];
+    // 산출 목록이 비면(DisassembleOutputs 미기입) 분해를 막는다 — 원본만 사라지고 아무것도 안 나오는 사고 방지. 최초 지급 장비는 알고 분해하는 것이라 허용.
+    const can=spec.length>0||this.starterGear(inst);
+    const footer=[ B.btn(this.t('hide_disa_label'),can?()=>this.startDisa(inst):null,!can,'go'),
                    B.btn(this.en()?'Cancel':'취소',()=>this.setState({disaSel:null,disaConfirm:false}),false,'no') ];
     return h('div',{style:{...ST.dim}}, B.wrap(body,footer));
   }
   startDisa(inst){
     if(this.disaJob()) return;
-    const spec=this.eng.disassembleSpec(inst); if(!spec.length) return;
+    const spec=this.eng.disassembleSpec(inst); if(!spec.length&&!this.starterGear(inst)) return;
     // 착용 중이면 먼저 해제 — 가방은 gearOff(배낭 내용물을 보관함으로 · 자리가 없으면 거기서 막히고 분해도 취소) ·
     //   그 밖의 장비는 슬롯만 비운다(어차피 사라지니 보관함 자리가 필요 없다). 체력 상한은 다시 계산.
     if(this.isEquipped(inst.uid)){
@@ -9555,9 +9566,10 @@ void main(){
       B.lbl(this.t('hide_disa_label'),right,'lb'),
       (done? h('div',{key:'bar',style:{marginTop:8}}, this.hideBar(job.pct))
            : h('div',{key:'rollbar',style:{marginTop:8}}, this.rollBar(job.left))),
-      B.note(done?this.t('hide_disa_complete'):this.t('hide_disa_running'), done?'#83B289':B.LO) ];
+      B.note(done?((job.drops||[]).length?this.t('hide_disa_complete'):(this.en()?'Nothing usable came out.':'쓸 만한 재료는 나오지 않았다.')):this.t('hide_disa_running'), done?'#83B289':B.LO) ];
     const footer = done
-      ? [B.btn(this.en()?'OK':'확인',()=>{ this.setState({disaRev:true,disaOpen:[],disaFocus:0});
+      ? [B.btn(this.en()?'OK':'확인',()=>{ if(!(job.drops||[]).length){ this.disaStoreAll(); this.openHideFac('workbench'); return; }   // 산출 없음(최초 지급 장비) = 카드 공개 없이 끝
+          this.setState({disaRev:true,disaOpen:[],disaFocus:0});
           this.sfxDealIn(((this.disaJob()||{}).drops||[]).length); this.disaRevealAll(); },false,'ok')]
       : [B.btn(this.t('hide_disa_label'),null,true,'d'), B.btn(this.t('hide_disk_close'),()=>this.openHideFac('workbench'),false,'c')];
     return B.wrap(body,footer);
@@ -10752,7 +10764,7 @@ void main(){
     const tc=String(v.TradeCategories||'').split(',').map(s=>s.trim());
     const catOf=(inst)=>{ const e=this.eng.byId; if(inst.kind==='weapon')return 'Weapon'; if(inst.kind==='armor'){const a=e.armor[inst.id];return a?a.Category:'Body';} if(inst.kind==='artifact')return 'Accessory'; if(inst.kind==='talisman')return 'Talisman'; if(inst.kind==='bag')return 'Bag'; if(e.liquor&&e.liquor[inst.id])return 'Liquor'; if(e.usb&&e.usb[inst.id])return 'USB'; const it=e.item[inst.id]; return it?it.Category:''; };
     const match=(cat)=> tc.includes(cat) || ((cat==='Head'||cat==='Body'||cat==='Hands'||cat==='Feet')&&tc.includes('Armor'));
-    return [...this.gs.vault,...this.gs.bag].filter(inst=>match(catOf(inst)) && this.sellPrice(inst)>0);
+    return [...this.gs.vault,...this.gs.bag].filter(inst=>match(catOf(inst)) && (this.sellPrice(inst)>0 || this.starterGear(inst)));   // 최초 지급 장비는 0원이어도 판다(11-02)
   }
   sellPrice(inst){ const e=this.eng.byId; const it=e.weapon[inst.id]||e.armor[inst.id]||e.artifact[inst.id]||(e.talisman&&e.talisman[inst.id])||(e.liquor&&e.liquor[inst.id])||(e.bag&&e.bag[inst.id])||(e.usb&&e.usb[inst.id])||e.item[inst.id]; return it?this.eng.N(it.SellPrice):0; }
   // 판매 리스트 병합: 스택 가능 아이템은 창고+가방 모든 더미를 종류별 1행으로 합산.
@@ -10781,7 +10793,7 @@ void main(){
     const insts=uids.map(u=>this.eng.instById(this.gs,u)).filter(Boolean); if(!insts.length) return;
     const rep=insts[0];
     if(this.isEquipped(rep.uid)){ this.flash(this.t('equip_worn_nosale')); return; }
-    const price=this.sellPrice(rep); if(price<=0){ this.flash(this.t('shop_no_sale')); return; }
+    const price=this.sellPrice(rep); if(price<=0&&!this.starterGear(rep)){ this.flash(this.t('shop_no_sale')); return; }
     const total=insts.reduce((s,x)=>s+(x.qty||1),0);
     qty=Math.max(1, Math.min(qty||1, total));
     this.gs.sato+=price*qty; this.sfx('got_sato');
