@@ -333,8 +333,8 @@ const ST = {
 };
 // 레이드 진행 중 화면 — 안내 손·무전·튜토리얼 등을 멈추는 판정에 쓴다.
 const RAID_SCREENS = ['combat','sortieLoad','result','lootmanage','returnheal','tap'];
-// 정비대 성능 시험 계측백 아트(11-02) — 색 변형이 나오기 전까지 3종 모두 표준 그림
-const TL_ART = { std:'testbag_std', arm:'testbag_std', eva:'testbag_std' };
+// 정비대 성능 시험 계측백 아트(11-02) — 표준(복합 장갑판) · 장갑(검은 타이어 고무 패드) · 회피(흰 플라스틱 셸) · 같은 구도 참조 편집
+const TL_ART = { std:'testbag_std', arm:'testbag_arm', eva:'testbag_eva' };
 // '#rrggbb' → [r,g,b] 0~1 (WebGL uniform용) · 형식이 틀리면 fb(기본 흰색). 셰이더 연출 6곳이 각자 들고 있던 걸 합침.
 const hex01=(c,fb=[1,1,1])=>{ const m=/^#?([0-9a-f]{6})$/i.exec(String(c||'')); return m? [0,2,4].map(i=>parseInt(m[1].slice(i,i+2),16)/255) : fb; };
 // 카드 뒤집기 3층(회전틀·뒷면·앞면) 스타일 — 캐러셀 5곳(레이드 카드·도주·PvP·전리품 개봉·전리품 정리) 공용. flat = 뒤집기가 끝나 3D를 내린 상태.
@@ -635,7 +635,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 137;
+const TITLE_VER = 138;
 const TITLE_DATE = '1102';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -3541,7 +3541,7 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
       // BODY 214
       h('div',{style:{height:245,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'13px 15px',display:'flex',flexDirection:'column',alignItems:'flex-start'}},
         h('div',{style:{height:21,alignSelf:'stretch',flexShrink:0,display:'flex',alignItems:'center'}}, h('span',{style:{...this.titleF(),fontSize:18,lineHeight:'20.4px',color:HI,whiteSpace:'nowrap'}}, this.ttx(m.name,18,20.4))),   // 몬스터 카드 이름 = 타이틀 폰트 18(2026-10-15)
-        h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},
+        m.maxHp>=1e8? null : h('div',{style:{height:26,alignSelf:'stretch',flexShrink:0,boxSizing:'border-box',padding:'12px 0',display:'flex',flexDirection:'row',gap:10,alignItems:'center'}},   // 성능 시험 계측백(체력 1e9) = 생명력 줄 없음(11-02)
           h('span',{style:{fontFamily:T.mono,fontSize:10,lineHeight:'100%',letterSpacing:'0.8px',color:LO,flexShrink:0}}, this.t('stat_hp')),
           h('div',{style:{height:6,flexGrow:1,borderRadius:999,overflow:'hidden',background:ART}}, h('div',{style:{height:6,borderRadius:999,background:HPC,width:'100%'}})),
           h('span',{style:{width:50,textAlign:'right',fontFamily:T.mono,fontSize:11,lineHeight:'100%',color:MID,flexShrink:0}}, Math.round(m.maxHp))),
