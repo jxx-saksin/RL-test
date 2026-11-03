@@ -637,8 +637,8 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 140;
-const TITLE_DATE = '1102';
+const TITLE_VER = 141;
+const TITLE_DATE = '1104';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -677,6 +677,8 @@ const NPC_BOX_A=0.35;
 // 기준 = 원본(768×1360)에서 머리 꼭대기가 y≈360. 마르타는 y≈92라 1.25배 커 보였다(2026-10-09 실측). 키 = VendorID 또는 VendorID_표정(표정이 우선).
 // 메뉴(평상시)에서는 초상을 띄우지 않는 NPC — 카이토 렌은 문 안쪽에서 나오지 않는 컨셉(퀘스트 대화 때만 등장 · 사용자 2026-10-09). 대사 박스는 그대로.
 const NPC_MENU_HIDE=['vendor_blackmarket'];
+// 송곳니 게임(FANG · 확장_v3 §3.8) — fang.html을 iframe으로 띄운다 · 해금 = 바인더 열림 + 표본 5장 이상 · ★테스트 기간엔 전부 열림
+const FANG_TEST_OPEN=true, FANG_MIN_CARDS=5, FANG_V='1';
 const VALUABLE_SCAN_FRAG = '#version 300 es\nprecision highp float;uniform vec2 iResolution;uniform float iTime,uSpeed,uSweepSpeed,uSweepWidth,uSweepFalloff,uScale,uFrequency,uRipple,uBandDensity,uLineSharpness,uGlow,uColorSpread,uBrightness,uContrast,uSoftness,uVignette,uOpacity,uDirection;uniform vec3 uColor1,uColor2,uColor3;out vec4 fragColor;const float TAU=6.2831853;\nfloat signalField(vec2 p,float t){float w=sin(p.x*1.3+t*0.7);w+=sin(p.y*1.7-t*0.52)*0.8;w+=sin((p.x+p.y)*0.9+t*0.91)*0.6;w+=sin((p.x-p.y)*1.53-t*0.63)*0.42;return w*0.35;}\nvec3 palette(float f){f=clamp(f,0.0,1.0);f=pow(f,uContrast);vec3 c=mix(uColor1,uColor2,smoothstep(0.08,0.6,f));return mix(c,uColor3,smoothstep(0.68,1.0,f));}\nfloat scanBand(float x,float aa,float sharp){float v=mix(0.5,0.5+0.5*cos(x*TAU),aa);return pow(v,sharp);}\nvoid main(){vec2 uv0=(gl_FragCoord.xy*2.0-iResolution.xy)/iResolution.y;vec2 p=uv0/max(uScale,0.001);float t=iTime*uSpeed;float axis;if(uDirection<0.5)axis=p.y;else if(uDirection<1.5)axis=p.x;else axis=(p.x+p.y)*0.70710678;\nfloat sig=signalField(p*uFrequency,t);float coord=axis+sig*uRipple;float phase=coord/max(uSweepWidth,0.05)-t*uSweepSpeed;float sweep=pow(0.5+0.5*cos(phase*TAU),max(uSweepFalloff,0.1));\nfloat lc=coord*uBandDensity;float aa=clamp(1.0/(1.0+uSoftness*fwidth(lc)*3.0),0.0,1.0);float bb=clamp(0.5+0.5*sig,0.0,1.0);float body=bb*bb*uGlow*sweep;float sharp=max(uLineSharpness,0.1);float split=uColorSpread*0.16;\nfloat fr=clamp(scanBand(lc+split,aa,sharp)*sweep+body,0.0,1.0);float fg=clamp(scanBand(lc,aa,sharp)*sweep+body,0.0,1.0);float fb=clamp(scanBand(lc-split,aa,sharp)*sweep+body,0.0,1.0);\nvec3 col=vec3(palette(fr).r,palette(fg).g,palette(fb).b);float inten=(fr+fg+fb)*0.3333333*uBrightness;\ninten*=clamp(1.0-uVignette*smoothstep(0.55,1.65,length(uv0)),0.0,1.0);inten=clamp(inten,0.0,1.0);float a=clamp(inten*uOpacity,0.0,1.0);fragColor=vec4(clamp(col,0.0,1.0)*a,a);}';   // 귀중품 카드 이펙트 Scanner(mountValScan) — 스캔라인·그레인 끔(사용자 값)
 const QUEST_TUNNEL_FRAG = '#version 300 es\nprecision highp float;uniform vec2 uResolution;uniform vec2 uCenter;uniform float uScale;uniform float uRatio;uniform float uTime;uniform float uDrift;uniform vec2 uSteer;uniform float uBend;uniform float uCount;uniform float uSwing;uniform float uWave;uniform float uWidth;uniform float uPulseWidth;uniform float uHead;uniform float uTail;uniform float uChance;uniform float uSpacing;uniform float uPulseSpeed;uniform float uFlow;uniform float uHalo;uniform float uGlow;uniform float uBrightness;uniform float uVariance;uniform float uBody;uniform float uFadeNear;uniform float uFadeFar;uniform vec3 uCable;uniform vec3 uPulse;uniform vec3 uTunnel;uniform float uReveal;uniform float uGrain;uniform float uSeed;uniform float uOpacity;out vec4 outColor;const float TAU=6.2831853;\nfloat hash(float n){return fract(sin(n*127.1+uSeed*311.7)*43758.5453);}\nvec2 bendAt(float depth){float reach=1.0-exp(-max(depth,0.0)*0.55);vec2 wobble=vec2(sin(uDrift*0.37+depth*0.31),cos(uDrift*0.29+depth*0.23))*uBend;return (wobble+uSteer)*reach;}\nvoid main(){vec2 p=(gl_FragCoord.xy-0.5*uResolution-uCenter)/uScale;float depth=-log(max(length(p),1e-5));vec2 q=p;for(int i=0;i<4;i++){q=p-bendAt(depth);depth=-log(max(length(q),1e-5));}\nfloat r=length(q);float px=r*uScale;float turn=atan(q.y,q.x)/TAU;float s=turn-uSwing-uWave*sin(depth*1.2+uDrift*0.5);float cell=floor(s*uCount);float spacing=TAU*px/uCount;float near=smoothstep(0.55,1.25,r);float width=uWidth*(1.0+near*1.2);float soft=uRatio*(0.55+near*0.9);float tight=uRatio*uHalo*(1.0+near);float wide=tight*4.5;\nfloat lines=0.0;float body=0.0;vec3 glow=vec3(0.0);\nfor(int k=-3;k<=3;k++){float i=cell+float(k);float id=mod(i,uCount);float h1=hash(id);float h2=hash(id+17.0);float h3=hash(id+41.0);float h4=hash(id+73.0);float center=(i+0.5+(h1-0.5)*0.55)/uCount;center+=0.12*sin(depth*(0.8+h2*0.9)+uDrift*(0.4+h3*0.5)+h4*TAU)/uCount;float d=abs(s-center)*TAU*px;float shade=1.0+uVariance*(h3-0.5)*0.9;float reach=smoothstep(spacing*2.4,spacing*1.4,d);\nlines+=smoothstep(width+soft,width-soft,d)*shade;body+=exp(-d/max(spacing*0.22,0.001))*shade*reach;\nfloat x=depth*uSpacing+uTime*uPulseSpeed*(0.55+h2*0.6)*uFlow+h4*7.0;float lead=(fract(x)-0.5)/uSpacing*uFlow;float lit=step(hash(id*3.7+floor(x)*13.1),uChance);float limit=0.5/uSpacing;\nfloat head=exp(-pow(max(-lead,0.0)/uHead,2.0))*smoothstep(-limit,-limit*0.8,lead);float tail=exp(-max(lead,0.0)/uTail)*smoothstep(limit,limit*0.55,lead);float pulse=(lead<0.0?head:tail)*lit;float hot=pulse*(lead<0.0?1.0:exp(-max(lead,0.0)/(uTail*0.35)));\nfloat core=uPulseWidth*width+0.35*uRatio;float stroke=smoothstep(core+soft,core-soft,d);float bloom=(exp(-d/tight)*0.7+exp(-d/wide)*0.18)*uGlow*reach;vec3 tint=mix(uPulse,vec3(1.0),hot*0.55);glow+=tint*pulse*(stroke*1.5+bloom)*shade;}\nfloat lod=smoothstep(4.0,1.2,spacing);float average=min(2.0*uWidth/max(spacing,0.001),1.0);lines=mix(lines,average,lod);glow=mix(glow,uPulse*average*0.6*uChance,lod);body=mix(body,1.0,lod)*uBody;\nfloat rr=r*0.25;float fade=smoothstep(0.0,uFadeNear,rr)*smoothstep(uFadeFar,uFadeFar*0.55,rr);fade*=smoothstep(uReveal-0.6,uReveal,depth);\nfloat grain=1.0;if(uGrain>0.0){grain+=(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233))+uTime*7.0)*43758.5453)-0.5)*uGrain*4.0;}\nvec3 light=(uCable*lines*0.12+uTunnel*body*0.35+glow)*uBrightness*fade*grain;vec3 mapped=(1.0-exp(-light*1.4))*uOpacity;outColor=vec4(mapped,max(mapped.r,max(mapped.g,mapped.b)));}';   // 퀘스트 아이템 카드 이펙트(mountQuestTunnel)
 const MEET_AFTER = { monster_spore_gardener:'quest_story_c2_05' };   // 조우 연출 무전의 선행 퀘스트(storyMeetEvent)
@@ -896,8 +898,8 @@ class Component extends DCLogic {
   async componentDidMount(){
     document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
-      const eng = await import('./engine.js?v=val140');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val82');
+      const eng = await import('./engine.js?v=val141');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val83');
       import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
@@ -2549,7 +2551,7 @@ class Component extends DCLogic {
     else if(s==='pass') body=this.passScreen();
     else if(s==='tap') body=this.tapScreen();
     const showNav = s!=='combat' && s!=='result' && s!=='vendor' && s!=='vendorMenu' && s!=='lootmanage' && s!=='sortieLoad' && s!=='returnheal' && s!=='pass' && s!=='tap' && s!=='hideout' && s!=='hideFac' && s!=='disk' && s!=='diskInsert' && s!=='decode' && s!=='binder' && s!=='craft' && s!=='disa' && s!=='rsrep' && s!=='rsmod' && s!=='rsenh' && s!=='testlab' && s!=='quest' && s!=='comms';
-    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null, this.state.statPop?this.statPopSheet():null, this.state.tuto?this.tutoOverlay():null, this.state.wake?this.wakeOverlay():null, this.state.langPick?this.langPickOverlay():null, this.state.prologue?this.prologueOverlay():null, this.storyGuideOverlay(), this.radioOverlay(), this.diaryOverlay());
+    return this.phone(body, this.toastEl(), showNav?this.nav():null, this.state.modalZone?this.zoneModal():null, this.state.sel?this.itemSheet():null, this.state.repairSel?this.repairConfirm():null, this.state.repairResult?this.repairResultModal():null, this.state.combatSheet?this.combatSheet():null, this.state.buySel?this.buySheet():null, this.state.sellSel?this.sellSheet():null, (this.state.apr&&this.state.apr.preview)?this.aprSheet():null, this.state.notice?this.noticeModal():null, this.state.upgFac?this.upgSheet():null, this.state.cardPop?this.cardPopSheet():null, this.state.statPop?this.statPopSheet():null, this.state.tuto?this.tutoOverlay():null, this.state.wake?this.wakeOverlay():null, this.state.langPick?this.langPickOverlay():null, this.state.prologue?this.prologueOverlay():null, this.storyGuideOverlay(), this.radioOverlay(), this.diaryOverlay(), this.state.fang?this.fangLayer():null);
   }
 
   // ---- safehouse ----
@@ -5982,6 +5984,26 @@ void main(){
   // 상점 아트 배경 + 하단 패널. 항목은 Vendor.Services에서 만든다 —
   // 서비스(치료/수리/…) → 거래하기(구매·판매 통합) → 퀘스트(잠금) → 나가기 순.
   repairHeldByStory(){ if(!this.gs||!this.hasStory||!this.hasStory()) return false; const m=this.storyMap(); return !!(m.done['quest_story_c1_04'] && !m.done['quest_story_c1_05'] && !(m.cur&&m.cur.id==='quest_story_c1_05')); }
+  // ===== 송곳니 게임(FANG) — fang.html iframe · 판돈은 입장 때 빼고 지급은 결산 때 넣는다(중간에 나가면 판돈 잃음) =====
+  fangOpen(){ if(FANG_TEST_OPEN) return true; if(!this.storyFacOpen('terminal')||!this.hideCan('terminal','decode')) return false;
+    return Object.keys(this.gs.binder||{}).filter(mid=>this.binderSt(mid)>=2).length>=FANG_MIN_CARDS; }   // 표본 = 처치 이상
+  openFang(v){
+    if(!this._fangL){ this._fangL=e=>this.fangMsg(e); window.addEventListener('message',this._fangL); }
+    this._fangStake=0;
+    this.setState({fang:{host:String(v.ShopID||'').replace(/^shop_/,''), sato:this.eng.N(this.gs.sato,0)}});
+  }
+  fangMsg(e){
+    if(e.origin!==location.origin||!e.data||!e.data.fang||!this.state.fang) return;
+    const m=e.data, amt=Math.max(0,Math.round(this.eng.N(m.amt,0)));
+    if(m.t==='stake'){ if(amt>this.eng.N(this.gs.sato,0)) return; this.gs.sato-=amt; this._fangStake=amt; this.saveGame(); this.forceUpdate(); }
+    else if(m.t==='payout'){ const cap=this._fangStake*6; if(!this._fangStake) return; this.gs.sato+=Math.min(amt,cap); this._fangStake=0; this.saveGame(); this.forceUpdate(); }   // 판돈 없이 온 지급·상한 초과는 무시
+    else if(m.t==='exit'){ this._fangStake=0; this.setState({fang:null}); }
+  }
+  fangLayer(){
+    const f=this.state.fang;
+    const src='fang.html?v='+FANG_V+'&host='+encodeURIComponent(f.host)+'&sato='+f.sato+(this.en()?'&lang=en':'');
+    return h('iframe',{key:'fang',src,title:'FANG',allow:'autoplay',style:{position:'absolute',inset:0,width:'100%',height:'100%',border:'none',zIndex:400,background:'#0A0B0E'}});
+  }
   vendorMenuItems(v){
     const svc=this.services(v), out=[];
     const add=(k,label,locked)=>out.push({k,label,locked:!!locked});
@@ -5992,6 +6014,7 @@ void main(){
     if(svc.includes('Haggle')) add('haggle', this.en()?'Haggle':'흥정하기');   // Buyout은 별도 항목 없이 흥정 화면의 [판매하기]
     const buyRows=this.eng.DATA.shops.filter(r=>r.ShopID===v.ShopID);
     if(buyRows.length||svc.includes('Sell')) add('trade', this.en()?'Trade':'거래하기');
+    if(svc.includes('Fang')) add('fang', this.en()?'Fang Game':'송곳니 게임', !this.fangOpen());
     if(svc.includes('Register')||svc.includes('Claim')) add('auction', this.en()?'Online Auction':'온라인 경매장', true);   // 백로그 — 잠금
     if(svc.includes('Quest')) add('quest', this.t('nav_quest'), !this.storyDailyOpen() || !this.eng.questRows().some(q=>String(q.Type||'')==='daily'&&String(q.GiverVendorID||'')===v.VendorID));   // 일일 퀘스트는 챕터1 5번 보상 뒤에 열린다 · 일일을 내지 않는 상인(암시장 · 2026-10-16)은 잠금
     add('exit', this.en()?'Leave':'나가기');
@@ -6032,7 +6055,7 @@ void main(){
       h('div',{style:{position:'absolute',zIndex:1,left:16,right:16,bottom:24,padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex',flexDirection:'column',gap:16}},
         ...items.map(it=>{ const qc=(it.k==='quest'&&!it.locked)? this.qVendorChip(v.VendorID) : null;
           return h('button',{key:it.k,'data-guide':'svc-'+it.k,disabled:it.locked&&!it.msg,
-          onClick:it.locked?(it.msg?()=>this.flash(it.msg):null):()=>{ if(it.k==='exit') this.go('safehouse'); else if(it.k==='quest') this.openQuest(); else if(it.k==='trade') this.openVendorTab((this.services(v).includes('Buy')||this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID))?'buy':'sell'); else this.openVendorTab(it.k); },
+          onClick:it.locked?(it.msg?()=>this.flash(it.msg):null):()=>{ if(it.k==='exit') this.go('safehouse'); else if(it.k==='quest') this.openQuest(); else if(it.k==='fang') this.openFang(v); else if(it.k==='trade') this.openVendorTab((this.services(v).includes('Buy')||this.eng.DATA.shops.some(r=>r.ShopID===v.ShopID))?'buy':'sell'); else this.openVendorTab(it.k); },
           style:{position:'relative',height:48,boxSizing:'border-box',borderRadius:24,border:'none',background:'#212227',color:it.locked?'#6F7276':'#EAEBEE',fontFamily:T.sans,fontSize:12,fontWeight:400,cursor:it.locked?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
           it.locked? icLock(15,'#6F7276') : null,   // 자물쇠 = 프로젝트 공용 icLock(목업 svg 패스) — 임의 아이콘 금지
           h('span',{key:'l'}, it.label),
