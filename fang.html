@@ -225,8 +225,17 @@ function devify(id,foot,keys){const box=document.getElementById(id),dos=box&&box
  const f=document.createElement('div');f.className='dfoot';f.innerHTML='<span>'+(foot[0]||'&nbsp;')+'</span><span>'+(foot[1]||'')+'</span>';dos.querySelector('.dcrt').appendChild(f);
  box.appendChild(dv);dv._keys=keys||{};devLayout(dv);
  dv.querySelectorAll('.dkey').forEach(el=>{['touchstart','touchend'].forEach(t=>el.addEventListener(t,e=>e.preventDefault(),{passive:false}));   // 연타 = 더블탭 확대 막기
-  el.addEventListener('pointerdown',e=>{e.preventDefault();el.classList.add('on');if(navigator.vibrate)try{navigator.vibrate(8)}catch(_){}const fn=dv._keys[el.dataset.k];if(fn)fn()});
+  el.addEventListener('pointerdown',e=>{e.preventDefault();auKey();el.classList.add('on');if(navigator.vibrate)try{navigator.vibrate(8)}catch(_){}const fn=dv._keys[el.dataset.k];if(fn)fn()});
   ['pointerup','pointerleave','pointercancel'].forEach(t=>el.addEventListener(t,()=>el.classList.remove('on')))})}
+// 단말기 소리 — 본 게임과 같은 파일·같은 음량(SFX_GAIN dev_*) · 첫 터치에 소리 장치를 깨우고 미리 읽는다 · ?snd=0이면 끔(게임 설정 따라감)
+const DEV_GAIN={dev_key1:0.99,dev_key2:1.47,dev_key3:2.42,dev_blip:0.18},AU={c:null,b:{},last:0,off:QS.get('snd')==='0'};
+function auCtx(){if(AU.off)return null;if(!AU.c){try{AU.c=new(window.AudioContext||window.webkitAudioContext)();Object.keys(DEV_GAIN).forEach(k=>fetch('assets/sound/ui/'+k+'.m4a').then(r=>r.arrayBuffer()).then(a=>new Promise((ok,no)=>AU.c.decodeAudioData(a,ok,no))).then(b=>{AU.b[k]=b}).catch(()=>{}))}catch(_){AU.c=null}}
+ if(AU.c&&AU.c.state==='suspended')try{AU.c.resume()}catch(_){}return AU.c}
+function au(k,pitch){const c=auCtx(),b=c&&AU.b[k];if(!b)return;const s=c.createBufferSource();s.buffer=b;if(pitch)s.playbackRate.value=1+(Math.random()*2-1)*pitch;const g=c.createGain();g.gain.value=DEV_GAIN[k]*0.85;s.connect(g);g.connect(c.destination);s.start()}
+function auKey(){let n;do{n=1+Math.floor(Math.random()*3)}while(n===AU.last);AU.last=n;au('dev_key'+n,0.03)}
+const auBlip=()=>au('dev_blip');
+document.addEventListener('pointerdown',()=>auCtx(),{capture:true});
+auCtx();   // 미리 읽어 둔다(첫 버튼부터 소리 · iOS는 멈춘 채로 만들어지고 첫 터치에서 resume)
 const devScroll=(dir)=>{const b=[...document.querySelectorAll('.dev')].pop();const db=b&&b.querySelector('.dbody');if(db)db.scrollTop+=dir*60};
 addEventListener('resize',()=>document.querySelectorAll('.dev').forEach(devLayout));
 addEventListener('keydown',e=>{const k={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',Enter:'ok',Escape:'esc'}[e.key];const dv=[...document.querySelectorAll('.dev')].pop();if(k&&dv&&dv._keys[k]){e.preventDefault();dv._keys[k]()}});
@@ -453,7 +462,7 @@ window.intro=intro;window.introDone=introDone;
 {const t=document.getElementById('infoBtn').parentNode;t.style.cursor='pointer';t.onclick=e=>{e.preventDefault();helpSheet()}};   // 제목+아이콘 묶음 전체가 누르는 범위(본 게임 도움말 아이콘과 같은 방식)
 const BET_MIN=100,BET_MAX=5000;let STAKE=500,WALLET=Math.max(0,parseInt(QS.get('sato'))||0);   // 보유 사토 = 본 게임이 넘겨준 값
 const fmt=n=>Math.round(n).toLocaleString('en-US');
-const STEPS=[100,200,300,500,700,1000,1500,2000,2500,3000,4000,5000];
+const STEPS=[100,500,1000,1500,2000,2500,3000,3500,4000,4500,5000];   // 화살표 = 500씩(11-10 · 최소 100에서 한 칸 올리면 500)
 let LOBA=true;
 function lobby(){const ok=WALLET>=BET_MIN;STAKE=Math.min(STAKE,Math.max(BET_MIN,Math.min(BET_MAX,WALLET)));
  const ln=[];const P=h=>ln.push(h);
@@ -463,7 +472,6 @@ function lobby(){const ok=WALLET>=BET_MIN;STAKE=Math.min(STAKE,Math.max(BET_MIN,
  P('<span style="color:#6E6E6E">C:\\'+HP+'&gt; BET.EXE /MIN:'+BET_MIN+' /MAX:'+BET_MAX+'</span>');
  P('<div style="color:#F2F2F2;margin:12px 0 6px">['+L('판돈','STAKE')+']</div>');
  P('<div class="dbet"><button class="dbk" onclick="stepStake(-1)" '+(STAKE<=BET_MIN?'disabled':'')+'>&lt;</button><div class="dbn">'+fmt(STAKE)+'<small>'+L(' 사토',' SATO')+'</small></div><button class="dbk" onclick="stepStake(1)" '+(STAKE>=Math.min(BET_MAX,WALLET)?'disabled':'')+'>&gt;</button></div>');
- P('<div class="dqk">'+[100,500,1000,2500,5000].map(v=>'<button class="'+(v===STAKE?'on':'')+'" '+(v>WALLET?'disabled':'')+' onclick="setStake('+v+')">'+fmt(v)+'</button>').join('')+'</div>');
  P('<div style="color:#F2F2F2;margin:14px 0 4px">['+L('배당','PAYOUT')+']</div>');
  [1,2,3,4,5].forEach(n=>lead(L(n+'승 차 승리  x'+WINPAY[n],'WIN BY '+n+'  x'+WINPAY[n]),fmt(STAKE*WINPAY[n])));lead(L('비김  x0.5','DRAW  x0.5'),fmt(STAKE*0.5),'#C8C8C8');lead(L('패배','LOSS'),'0','#6E6E6E');
  P('<div style="height:8px"></div>');
@@ -471,9 +479,8 @@ function lobby(){const ok=WALLET>=BET_MIN;STAKE=Math.min(STAKE,Math.max(BET_MIN,
  P('<div style="color:#6E6E6E;margin-top:10px">C:\\'+HP+'&gt; <span style="display:inline-block;width:8px;height:13px;background:#E8E8E8;vertical-align:-2px;animation:dosBl 1s steps(1) infinite"></span></div>');
  const body=ln.map((h,k)=>'<div'+(LOBA?' style="opacity:0;animation:dosIn .01s forwards;animation-delay:'+(k*55)+'ms"':'')+'>'+h+'</div>').join('');LOBA=false;
  document.getElementById('lobby').innerHTML='<div class="dos" style="z-index:100"><div class="dcrt"><div class="dhead">FANG.EXE  /TABLE</div><div class="dbody">'+body+'</div><div class="dmenu" style="gap:8px"><button style="flex:0 0 38%;background:transparent;color:#C8C8C8;box-shadow:inset 0 0 0 1px #6E6E6E" onclick="exitTable()">'+L('[ESC] 나가기','[ESC] EXIT')+'</button><button '+(ok?'':'disabled style="background:#2A2A2A;color:#6B6B6B"')+' onclick="enterTable()">'+(ok?L('[ENTER] 판돈 걸고 입장','[ENTER] PLACE STAKE'):L('[ENTER] 입장 불가','[ENTER] UNAVAILABLE'))+'</button></div></div><div class="droll"></div><div class="dsl"></div><div class="dvg"></div></div>';
- const QK=[100,500,1000,2500,5000].filter(v=>v<=WALLET),qmv=dir=>{const v=dir>0?QK.find(x=>x>STAKE):[...QK].reverse().find(x=>x<STAKE);if(v)setStake(v)};   // ▲▼ = 빠른 선택 칩 사이 이동
- devify('lobby',[L('◀▶ 판돈  ▲▼ 빠른 선택','◀▶ STAKE  ▲▼ QUICK'),ok?L('확인 입장 · 취소 나가기','OK ENTER · CANCEL EXIT'):L('취소 나가기','CANCEL EXIT')],{left:()=>stepStake(-1),right:()=>stepStake(1),up:()=>qmv(-1),down:()=>qmv(1),ok:()=>{if(ok)enterTable()},esc:exitTable})}
-function setStake(v){STAKE=Math.max(BET_MIN,Math.min(BET_MAX,Math.min(v,WALLET)));lobby()}
+ devify('lobby',[L('◀▶ 판돈 500씩','◀▶ STAKE ±500'),ok?L('확인 입장 · 취소 나가기','OK ENTER · CANCEL EXIT'):L('취소 나가기','CANCEL EXIT')],{left:()=>stepStake(-1),right:()=>stepStake(1),up:()=>stepStake(1),down:()=>stepStake(-1),ok:()=>{if(ok)enterTable()},esc:exitTable})}
+function setStake(v){const o=STAKE;STAKE=Math.max(BET_MIN,Math.min(BET_MAX,Math.min(v,WALLET)));if(STAKE!==o)auBlip();lobby()}   // 판돈 숫자가 바뀌면 화면 전자음
 function stepStake(dir){const i=STEPS.findIndex(s=>s>=STAKE);let j=dir>0?(STEPS[i]===STAKE?i+1:i):(i-1);j=Math.max(0,Math.min(STEPS.length-1,j));setStake(STEPS[j])}
 function enterTable(){if(WALLET<STAKE)return;WALLET-=STAKE;POST({t:'stake',amt:STAKE});document.getElementById('lobby').innerHTML='';document.getElementById('stk').textContent=L('판돈 ','STAKE ')+fmt(STAKE);start()}
 function exitTable(){POST({t:'exit'})}
