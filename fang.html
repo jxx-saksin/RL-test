@@ -415,7 +415,7 @@ function intro(pg){pg=pg||0;const p=INTRO[pg],last=pg===INTRO.length-1;
   +'<button class="btn go" style="flex:1" onclick="'+(last?'introDone()':'intro('+(pg+1)+')')+'">'+(last?L('시작','START'):L('다음','NEXT'))+'</button></div></div></div>'}
 function introDone(){try{localStorage.setItem('fc_intro_v1','1')}catch(_){}document.getElementById('ov').innerHTML=''}
 window.intro=intro;window.introDone=introDone;
-document.getElementById('infoBtn').onclick=e=>{e.preventDefault();helpSheet()};
+{const t=document.getElementById('infoBtn').parentNode;t.style.cursor='pointer';t.onclick=e=>{e.preventDefault();helpSheet()}};   // 제목+아이콘 묶음 전체가 누르는 범위(본 게임 도움말 아이콘과 같은 방식)
 const BET_MIN=100,BET_MAX=5000;let STAKE=500,WALLET=Math.max(0,parseInt(QS.get('sato'))||0);   // 보유 사토 = 본 게임이 넘겨준 값
 const fmt=n=>Math.round(n).toLocaleString('en-US');
 const STEPS=[100,200,300,500,700,1000,1500,2000,2500,3000,4000,5000];
