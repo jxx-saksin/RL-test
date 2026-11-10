@@ -30,8 +30,11 @@ html,body{overscroll-behavior:none;touch-action:manipulation}body{margin:0;backg
 .col{position:absolute;left:0;top:0;bottom:0;width:38px;display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:10px;background:linear-gradient(90deg,rgba(17,19,21,.88) 0%,rgba(17,19,21,.6) 75%,rgba(17,19,21,0) 100%)}
 .ic{display:flex;width:16px;height:16px;align-items:center;justify-content:center}
 .ic.r0{width:20px;height:20px}
+.ic.r0.sy{animation:synGlow 2.4s linear infinite}   /* 같은 분류 3장 보너스 = 아이콘 모양·색은 그대로 두고 제 색 후광만 일렁인다(밝기 올리면 무슨 아이콘인지 안 보임 · 11-10) */
+@keyframes synGlow{0%,100%{filter:drop-shadow(0 0 2px color-mix(in srgb,var(--gc) 45%,transparent))}18%{filter:drop-shadow(0 -1px 4px color-mix(in srgb,var(--gc) 80%,transparent))}37%{filter:drop-shadow(1px 0 3px color-mix(in srgb,var(--gc) 55%,transparent))}58%{filter:drop-shadow(0 -1px 6px color-mix(in srgb,var(--gc) 95%,transparent))}79%{filter:drop-shadow(-1px 0 3px color-mix(in srgb,var(--gc) 60%,transparent))}}
 .pw{font:800 22px/1 "Big Shoulders Display",sans-serif;color:#EAEBEE}
 .pw.t0{color:#7E8188}
+.syn{font:800 11px/1 "Big Shoulders Display",sans-serif;color:#9FE0A0;text-shadow:0 0 6px rgba(120,220,130,.55);margin:-4px 0 -6px;display:flex;align-items:center;gap:1px}   /* 같은 분류 3장 보너스 — 파워 숫자 바로 위 */
 .pw.t1{background:linear-gradient(180deg,#FFFFFF 0%,#D5DAE1 50%,#9EA5AF 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .pw.t2{background:linear-gradient(180deg,#FFF1C2 0%,#E3B85A 52%,#A97B26 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .pw.t3{background:linear-gradient(90deg,#F4B3CB,#F3D7A2,#BFEFCB,#A6D9F3,#C8B3F2,#F4B3CB);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:prismMv 3s linear infinite}
@@ -268,7 +271,7 @@ const devScroll=(dir)=>{const b=[...document.querySelectorAll('.dev')].pop();con
 addEventListener('resize',()=>document.querySelectorAll('.dev').forEach(devLayout));
 addEventListener('keydown',e=>{const k={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',Enter:'ok',Escape:'esc'}[e.key];const dv=[...document.querySelectorAll('.dev')].pop();if(k&&dv&&dv._keys[k]){e.preventDefault();dv._keys[k]()}});
 const CAT=EN?{B:'Beast',H:'Human',M:'Machine',I:'Infected'}:{B:'야수',H:'인간',M:'기계',I:'감염체'};const EATS={B:'H',H:'M',M:'I',I:'B'};
-const WINPAY={1:1.5,2:1.7,3:2,4:2.5,5:4};   // 승 차이별 배당(11-03 · 비김 ×0.5 · 패배 0)
+const WINPAY={1:1.5,2:2,3:3,4:5,5:8};   // 승 차이별 배당(11-10 개정 · 11-03 · 비김 ×0.5 · 패배 0)
 const payMult=(w,l)=>w>l?WINPAY[Math.min(5,w-l)]:w===l?0.5:0;
 const spd=v=>v>=1.5?L('빠름','FAST'):(v>=0.8?L('보통','MID'):L('느림','SLOW'));
 const chip=t=>'<span class="plate"><span class="pin">'+t+'</span></span>';
@@ -281,14 +284,33 @@ function gfx(g){return ''}   // 외곽선은 .mc 바깥 판(1px · 사선까지 
 function gfxOld(g){if(g==='C')return '';const c=GCOL[g];if(g==='B')return '<div class="ge" style="animation:rlGoldShimmer 2.2s ease-in-out infinite"></div>';const va={R:.16,U:.3,S:.3}[g];return '<div class="gv" style="box-shadow:inset 0 0 22px 5px '+rgba(c,va)+'"></div><div class="ge" style="box-shadow:inset 0 0 0 1px '+c+',inset 0 0 8px -2px '+c+';animation:rlEdgeFlash .9s ease-out forwards"></div>'}
 const GNAME={C:'COMMON',R:'RARE',U:'UNIQUE',S:'SPECIAL',B:'BOSS'};
 const gchip=g=>{const c=GCOL[g];return '<span class="gt" style="background:'+(g==='C'?'rgba(222,222,222,0.3)':c)+'"><span class="gtb"></span><span class="gtx" style="color:'+c+'">'+GNAME[g]+'</span></span>'};
-function front(k,cls,st){return '<div class="mc '+(cls||'')+'" style="'+(st||'')+'"><div class="art"><img src="assets/art/monsters/'+k.id+'.webp"><div class="fade"></div><div class="col"><span class="ic r0">'+cIcon(k.c)+'</span><span class="ic r1">'+sIcon(k.s)+'</span><span class="pw r2 t'+k.inst+'">'+k.pw+'</span></div><div class="tr">'+chip(spd(k.sp))+'</div><div class="foot"><span class="prow">'+gchip(k.g)+'<span class="pips">'+pips(k.inst)+'</span></span><span class="nm">'+ttx(k.nm,13)+'</span></div></div>'+gfx(k.g)+'</div>'}
+function front(k,cls,st){return '<div class="mc '+(cls||'')+'" style="'+(st||'')+'"><div class="art"><img src="assets/art/monsters/'+k.id+'.webp"><div class="fade"></div><div class="col"><span class="ic r0'+(k.syn?' sy" style="--gc:'+CCOL[k.c]+';--gw:'+CGLO[k.c]:'')+'">'+cIcon(k.c)+'</span><span class="ic r1">'+sIcon(k.s)+'</span>'+(k.syn?'<span class="syn"><svg width="7" height="6" viewBox="0 0 7 6"><path d="M3.5 0L7 6H0z" fill="currentColor"/></svg>'+k.syn+'</span>':'')+'<span class="pw r2 t'+k.inst+'">'+k.pw+'</span></div><div class="tr">'+chip(spd(k.sp))+'</div><div class="foot"><span class="prow">'+gchip(k.g)+'<span class="pips">'+pips(k.inst)+'</span></span><span class="nm">'+ttx(k.nm,13)+'</span></div></div>'+gfx(k.g)+'</div>'}
 function plain(){return '<div class="mc back"><div class="inner"><div class="q" style="left:0">?</div></div></div>'}
 function sIconZ(s,z){return sIcon(s).replace('width="16" height="16"','width="'+z+'" height="'+z+'"')}
 function oppCard(k,st,hide){return '<div class="mc back" style="'+(st||'')+'"><div class="inner">'+(hide?'':'<div class="clue" style="transform:rotate('+(k.tilt||0)+'deg);--d:'+(k.sd||0)+'s"><div class="stk"><div class="ci2"><div class="ct">'+sIconZ(k.s,25)+'</div><div class="cs">'+spd(k.sp)+'</div></div><div class="gl"></div><div class="sh"></div></div></div>')+'</div></div>'}
 function back(k,st,hide){if(hide)return '<div class="mc back" style="'+(st||'')+'"><div class="inner"><div class="q" style="left:0">?</div></div></div>';return '<div class="mc back" style="'+(st||'')+'"><div class="inner"><div class="col"><span class="ic">'+sIcon(k.s)+'</span>'+chip(spd(k.sp))+'</div><div class="q">?</div></div></div>'}
 let HFX=null;import('hitfx.js?v=hfx3').then(m=>{HFX=m;m.init();m.setScale&&m.setScale(1.25)}).catch(()=>{});
 let P,B,w,l,d,bank=0,bet,betUsed,betMul,sel,last,busy;
-function deal(){const a=RAW.map(r=>({id:r[0],nm:EN?r[7]:r[1],c:r[2],sp:r[3],s:r[4],bp:r[5],g:r[6],inst:Math.floor(Math.random()*4),tilt:+((Math.random()*6-3).toFixed(1)),sd:+(Math.random()*9).toFixed(2)}));a.forEach(k=>{k.pw=Math.round(k.bp*IMULT[k.inst])});for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+// 바인더 덱(11-10) — 본 게임이 ?deck=id.인스톨,…로 넘긴다(발견 = 조우 이상 · monster_ 접두 생략). 없으면(단독 미리보기) 옛 무작위 36장.
+const DECK=QS.has('deck')?(QS.get('deck')||'').split(',').filter(Boolean).map(t=>{const i=t.lastIndexOf('.');return {id:'monster_'+t.slice(0,i),inst:Math.max(0,Math.min(3,parseInt(t.slice(i+1))||0))}}).filter(o=>RAW.some(r=>r[0]===o.id)):null;
+const OPP_EDGE=1.05;   // 상대 = 내 손패 파워 합 × 1.05 근처(1.08은 무작위 순서 시뮬 승23~31·패44~51%로 너무 셈)(사용자 11-10 '아주 약간만 강하게' · 무작위는 센 덱이 너무 많다)
+function mk(r,inst){const k={id:r[0],nm:EN?r[7]:r[1],c:r[2],sp:r[3],s:r[4],bp:r[5],g:r[6],inst,tilt:+((Math.random()*6-3).toFixed(1)),sd:+(Math.random()*9).toFixed(2)};k.pw=Math.round(k.bp*IMULT[k.inst]);return k}
+const rowOf=id=>RAW.find(r=>r[0]===id);
+const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const SYN_N=3,SYN_PW=2;   // 같은 분류 3장 이상 = 그 분류 카드 파워 +2(사용자 11-10 · 받을 때 판정·판 끝까지 고정 · 상대도 같음)
+function syn(h){const n={};h.forEach(k=>n[k.c]=(n[k.c]||0)+1);h.forEach(k=>{if(!k.syn&&n[k.c]>=SYN_N){k.syn=SYN_PW;k.pw+=SYN_PW}});return h}
+const synSum=c=>{const n={};c.forEach(o=>n[o.r[2]]=(n[o.r[2]]||0)+1);return c.reduce((x,o)=>x+Math.round(o.r[5]*IMULT[o.inst])+(n[o.r[2]]>=SYN_N?SYN_PW:0),0)};
+function pick5(pool){const a=shuf(pool.slice()),o=a.slice(0,5);while(o.length<5)o.push(pool[Math.floor(Math.random()*pool.length)]);return o}   // 5장 미만 = 중복으로 채움
+function binderDeal(){
+ let pool=DECK.map(o=>({r:rowOf(o.id),inst:o.inst}));
+ if(!pool.length)pool=RAW.filter(r=>r[6]==='C').map(r=>({r,inst:0}));   // 발견 0장(테스트 개방) = 커먼만 ×0.5
+ const mine=syn(pick5(pool).map(o=>mk(o.r,o.inst))),T=mine.reduce((x,k)=>x+k.pw,0)*OPP_EDGE;
+ let best=null,bd=1e9;   // 상대 = 같은 발견 목록에서(안 본 몬스터는 안 나온다) · 인스톨 단계를 골라 파워 합을 T에 맞춘다
+ const mi=mine.map(k=>k.inst);   // 인스톨은 내 손패 단계를 섞어 쓰고 가끔 ±1(완전 무작위면 거의 늘 1단계 이상이 껴서 너무 세다)
+ for(let n=0;n<240;n++){const ii=shuf(mi.slice()),c=pick5(pool).map((o,j)=>({r:o.r,inst:Math.max(0,Math.min(3,ii[j]+(Math.random()<.25?(Math.random()<.5?-1:1):0)))})),sum=synSum(c),dd=Math.abs(sum-T);if(dd<bd){bd=dd;best=c}}
+ return mine.concat(syn(best.map(o=>mk(o.r,o.inst))));
+}
+function deal(){if(DECK)return binderDeal();const a=RAW.map(r=>({id:r[0],nm:EN?r[7]:r[1],c:r[2],sp:r[3],s:r[4],bp:r[5],g:r[6],inst:Math.floor(Math.random()*4),tilt:+((Math.random()*6-3).toFixed(1)),sd:+(Math.random()*9).toFixed(2)}));a.forEach(k=>{k.pw=Math.round(k.bp*IMULT[k.inst])});for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 const AFF={M:{bleed:0,stun:1,pierce:2,rupture:.5,shock:2},H:{bleed:1,stun:2,pierce:1,rupture:1,shock:1},B:{bleed:2,stun:1,pierce:.5,rupture:1,shock:.5},I:{bleed:.5,stun:0,pierce:1,rupture:2,shock:1}};
 const eff=(st,c)=>st==='none'?0:AFF[c][st];const sg=x=>(x>0)-(x<0);
 const rounds=(a,b)=>[EATS[a.c]===b.c?1:EATS[b.c]===a.c?-1:0, sg(eff(a.s,b.c)-eff(b.s,a.c)), sg(a.pw-b.pw)];
@@ -434,7 +456,7 @@ function endSheet(){bgmStop();const pm=payMult(w,l),g=Math.round(STAKE*pm*betMul
  const body='<div'+anim(0)+'>'+head+'</div><div class="rcpt">'+lines.map((h,k)=>'<div'+anim(k+1)+'>'+h+'</div>').join('')+'</div><div'+anim(lines.length+2)+'>'+tailL+'</div>';
  const wk=lines.findIndex(h=>h.indexOf('rcWal')>=0);
  document.getElementById('ov').innerHTML='<div class="dos" style="z-index:100"><div class="dcrt"><div class="dhead">FANG.EXE  /RECEIPT</div><div class="dbody">'+body+'</div><div class="dmenu" style="gap:8px"><button style="flex:0 0 38%;background:transparent;color:#C8C8C8;box-shadow:inset 0 0 0 1px #6E6E6E" onclick="document.getElementById(\'ov\').innerHTML=\'\';exitTable()">'+L('[ESC] 나가기','[ESC] EXIT')+'</button><button onclick="document.getElementById(\'ov\').innerHTML=\'\';LOBA=true;lobby()">'+L('[ENTER] 다시 하기','[ENTER] PLAY AGAIN')+'</button></div></div><div class="droll"></div><div class="dsl"></div><div class="dvg"></div></div>';devify('ov',[L('▲▼ 스크롤','▲▼ SCROLL'),L('확인 다시 하기 · 취소 나가기','OK AGAIN · CANCEL EXIT')],{up:()=>devScroll(-1),down:()=>devScroll(1),ok:()=>{document.getElementById('ov').innerHTML='';LOBA=true;lobby()},esc:()=>{document.getElementById('ov').innerHTML='';exitTable()}});walletRoll(W0,WALLET,(wk+1)*70+350)}
-function start(){const a=deal();P=a.slice(0,5);B=a.slice(5,10);w=l=d=0;HIST=[];bet=false;betUsed=false;betMul=1;sel=null;last=null;busy=false;document.getElementById('ov').innerHTML='';render()}
+function start(){const a=deal();P=syn(a.slice(0,5));B=syn(a.slice(5,10));w=l=d=0;HIST=[];bet=false;betUsed=false;betMul=1;sel=null;last=null;busy=false;document.getElementById('ov').innerHTML='';render()}
 const SCR=()=>EN?(w+'W '+l+'L '+d+'D'):(w+'승 '+l+'패 '+d+'무');
 if(EN){document.body.classList.add('en');document.title='FANG';document.getElementById('ttlTx').textContent='FANG';document.querySelector('.score .pin').textContent='STAKE 100';document.getElementById('play').textContent='PLAY CARD'}
 if(0){const t=document.createElement('a');t.href=EN?'?':'?lang=en';t.textContent=EN?'KR':'EN';t.style.cssText='position:absolute;right:20px;top:46px;font:600 10px/1 ui-monospace,Menlo,monospace;color:#6F7276;text-decoration:none;border:1px solid #36383C;padding:3px 6px;z-index:25';document.querySelector('.head').appendChild(t)}
@@ -467,6 +489,8 @@ function helpSheet(){const st=['bleed','stun','pierce','rupture','shock'],cs=['B
  sec('[3] '+L('파워','POWER'),1);
  P('<span style="color:#8A8A8A">'+L('파워 = 평균 공격력 × 공격속도 × 인스톨 배율','Power = avg attack × attack speed × install')+'</span>');
  lead(L('INSTALL 0  (회색)','INSTALL 0  (gray)'),'x0.5');lead(L('INSTALL 1  (은)','INSTALL 1  (silver)'),'x1.0');lead(L('INSTALL 2  (금)','INSTALL 2  (gold)'),'x1.5');lead(L('INSTALL 3  (프리즘)','INSTALL 3  (prism)'),'x2.0');
+ P('<div style="margin-top:8px;color:#F2F2F2">'+L('분류 보너스','CLASS BONUS')+'</div>');
+ P('<span style="color:#8A8A8A">'+L('손패 5장 중 <b style="color:#F2F2F2">같은 분류가 3장 이상</b>이면 그 카드들만 파워 <span style="color:#9FE0A0">▲2</span> · 판이 끝날 때까지 유지','<b style="color:#F2F2F2">3+ cards of the same class</b> in your 5-card hand get <span style="color:#9FE0A0">▲2</span> power · lasts the whole game')+'</span>');
  sec('[4] '+L('판정','RESULT'));
  P('<span style="color:#8A8A8A">'+L('분류 · 상태이상 · 파워 3번 중 더 많이 이긴 쪽 승 · 같으면 무승부','Win more of the 3 clashes · tie = draw')+'</span>');
  P('<div style="color:#6E6E6E;margin-top:10px">C:\\'+HP+'&gt; <span style="display:inline-block;width:8px;height:13px;background:#E8E8E8;vertical-align:-2px;animation:dosBl 1s steps(1) infinite"></span></div>');
@@ -474,7 +498,7 @@ function helpSheet(){const st=['bleed','stun','pierce','rupture','shock'],cs=['B
  document.getElementById('ov').innerHTML='<div class="dos"><div class="dcrt"><div class="dhead">'+'FANG.EXE  /RULES'+'</div><div class="dbody">'+body+'</div><div class="dmenu"><button onclick="introDone()">'+L('[ESC] 닫기','[ESC] CLOSE')+'</button></div></div><div class="droll"></div><div class="dsl"></div><div class="dvg"></div></div>';devify('ov',[L('▲▼ 스크롤','▲▼ SCROLL'),L('확인 · 취소 닫기','OK · CANCEL CLOSE')],{up:()=>devScroll(-1),down:()=>devScroll(1),ok:introDone,esc:introDone})}
 window.helpSheet=helpSheet;
 const INTRO=[
- [L('상대와 카드 대결','A card duel'),L('서로 5장씩 받고, 한 장씩 <b>동시에</b> 냅니다.<br>5판 중 <b>3승 이상</b>이면 판돈이 불어납니다.','You each get 5 cards and play one at a time, <b>at the same time</b>.<br>Win <b>3 or more</b> of 5 to multiply your stake.'),'3W ×1.5 · 4W ×2.5 · 5W ×5'],
+ [L('상대와 카드 대결','A card duel'),L('서로 5장씩 받고, 한 장씩 <b>동시에</b> 냅니다.<br>5판 중 <b>3승 이상</b>이면 판돈이 불어납니다.','You each get 5 cards and play one at a time, <b>at the same time</b>.<br>Win <b>3 or more</b> of 5 to multiply your stake.'),'1W ×'+WINPAY[1]+' · 3W ×'+WINPAY[3]+' · 5W ×'+WINPAY[5]],
  [L('한 장 = 3번 부딪힘','One card = three clashes'),L('① <b>분류</b> — 먹이사슬, 앞이 뒤를 잡아먹음<br>② <b>상태이상</b> — 상대에게 더 잘 듣는 쪽<br>③ <b>파워</b> — 숫자가 큰 쪽<br>3번 중 더 많이 이기면 승리.','① <b>Class</b> — food chain<br>② <b>Status</b> — whichever hurts the other more<br>③ <b>Power</b> — the higher number<br>Win more of the three.'),L('야수 → 인간 → 기계 → 감염체 → 야수','Beast → Human → Machine → Infected → Beast')],
  [L('상대 분류를 추리하라','Read the hidden class'),L('상대 카드는 <b>상태이상</b>과 <b>공격속도</b>만 보입니다.<br>빠르면 야수일까? 감전이면 기계일까?<br>짐작해서 이길 카드를 고르세요.','Opponent cards show only <b>status</b> and <b>speed</b>.<br>Fast — a beast? Shock — a machine?<br>Guess, then pick your counter.'),L('막히면 [상성표]','Stuck? Tap [RULES]')],
  [L('조작','Controls'),L('<b>탭</b> — 카드 선택 후 [카드 내기]<br><b>위로 끌기</b> — 바로 내기<br><b>길게 누르기</b> — 크게 보기<br><b>승부수</b> — 판당 한 번, 이기면 ×1.5 / 지면 ×0.5','<b>Tap</b> — select, then PLAY CARD<br><b>Drag up</b> — play it right away<br><b>Hold</b> — take a closer look<br><b>Gamble</b> — once per game: win ×1.5 / lose ×0.5'),L('인스톨이 높을수록 파워가 강해집니다','Higher install = stronger power')]];
@@ -521,9 +545,10 @@ function deckInfo(anim){const ln=[];const P=h=>ln.push(h);
  P('<span style="color:#6E6E6E">C:\\'+HP+'&gt; TYPE README.TXT</span>');
  P('<div style="color:#F2F2F2;margin:12px 0 8px">['+L('덱 안내','YOUR DECK')+']</div>');
  [L('내가 발견/수집한 데이터 카드 중 무작위 5장으로 시작합니다.','You start with 5 random cards from the data you have found or collected.'),
-  L('아직 수집/인스톨되지 않은 데이터는 기존보다 약한 파워로 나옵니다.','Data not yet collected or installed comes in with weaker power.'),
+  L('수집되었지만 인스톨되지 않은 데이터는 기존보다 약한 파워로 사용합니다.','Data collected but not yet installed plays with weaker power.'),
   L('발견한 데이터가 5장보다 적으면 중복 카드가 나옵니다.','If you have found fewer than 5, duplicate cards appear.'),
-  L('인스톨을 많이 할수록 그 카드는 강해집니다.','The more you install a card, the stronger it gets.')]
+  L('인스톨 수치에 따라 해당 카드 데이터는 강화됩니다.','Card data is strengthened by its install level.'),
+  L('같은 분류 카드가 3장 이상이면 그 카드들의 파워가 +2 됩니다.','3 or more cards of the same class get +2 power each.')]
   .forEach((t,i)=>P('<div style="display:flex;gap:8px;margin:0 0 8px;line-height:1.6"><span style="color:#6E6E6E">'+(i+1)+'.</span><span>'+t+'</span></div>'));
  P('<div style="height:14px"></div>');
  // 줄 = [플레이 방법](흰 바탕 검정 글자 · 눈에 띄게) · [다시 보지 않기]·[닫기](보통 줄). 고른 줄 = 왼쪽 > + 흰 테두리
