@@ -644,7 +644,7 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 144;
+const TITLE_VER = 145;
 const TITLE_DATE = '1110';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
@@ -688,7 +688,7 @@ const NPC_MENU_HIDE=['vendor_blackmarket'];
 //   top = 원본 y14~56(바깥 테두리 뺌) · mid = y56~1004(화면 칸 x56~712 · 세로로만 늘어남) · bot = y1004~1360 · 버튼 = bot 조각 안 중심 좌표
 const CDEV={W:768,TOP:42,BOT:356,SX:56,KEYS:{up:{x:183,y:92,w:84,h:78},down:{x:183,y:236,w:84,h:78},left:{x:111,y:164,w:78,h:84},right:{x:255,y:164,w:78,h:84},ok:{x:520,y:194,r:62},esc:{x:663,y:128,r:50}}};
 // 송곳니 게임(FANG · 확장_v3 §3.8) — fang.html을 iframe으로 띄운다 · 해금 = 바인더 열림 + 표본 5장 이상 · ★테스트 기간엔 전부 열림
-const FANG_TEST_OPEN=true, FANG_MIN_CARDS=5, FANG_V='6';
+const FANG_TEST_OPEN=true, FANG_MIN_CARDS=5, FANG_V='18';
 const VALUABLE_SCAN_FRAG = '#version 300 es\nprecision highp float;uniform vec2 iResolution;uniform float iTime,uSpeed,uSweepSpeed,uSweepWidth,uSweepFalloff,uScale,uFrequency,uRipple,uBandDensity,uLineSharpness,uGlow,uColorSpread,uBrightness,uContrast,uSoftness,uVignette,uOpacity,uDirection;uniform vec3 uColor1,uColor2,uColor3;out vec4 fragColor;const float TAU=6.2831853;\nfloat signalField(vec2 p,float t){float w=sin(p.x*1.3+t*0.7);w+=sin(p.y*1.7-t*0.52)*0.8;w+=sin((p.x+p.y)*0.9+t*0.91)*0.6;w+=sin((p.x-p.y)*1.53-t*0.63)*0.42;return w*0.35;}\nvec3 palette(float f){f=clamp(f,0.0,1.0);f=pow(f,uContrast);vec3 c=mix(uColor1,uColor2,smoothstep(0.08,0.6,f));return mix(c,uColor3,smoothstep(0.68,1.0,f));}\nfloat scanBand(float x,float aa,float sharp){float v=mix(0.5,0.5+0.5*cos(x*TAU),aa);return pow(v,sharp);}\nvoid main(){vec2 uv0=(gl_FragCoord.xy*2.0-iResolution.xy)/iResolution.y;vec2 p=uv0/max(uScale,0.001);float t=iTime*uSpeed;float axis;if(uDirection<0.5)axis=p.y;else if(uDirection<1.5)axis=p.x;else axis=(p.x+p.y)*0.70710678;\nfloat sig=signalField(p*uFrequency,t);float coord=axis+sig*uRipple;float phase=coord/max(uSweepWidth,0.05)-t*uSweepSpeed;float sweep=pow(0.5+0.5*cos(phase*TAU),max(uSweepFalloff,0.1));\nfloat lc=coord*uBandDensity;float aa=clamp(1.0/(1.0+uSoftness*fwidth(lc)*3.0),0.0,1.0);float bb=clamp(0.5+0.5*sig,0.0,1.0);float body=bb*bb*uGlow*sweep;float sharp=max(uLineSharpness,0.1);float split=uColorSpread*0.16;\nfloat fr=clamp(scanBand(lc+split,aa,sharp)*sweep+body,0.0,1.0);float fg=clamp(scanBand(lc,aa,sharp)*sweep+body,0.0,1.0);float fb=clamp(scanBand(lc-split,aa,sharp)*sweep+body,0.0,1.0);\nvec3 col=vec3(palette(fr).r,palette(fg).g,palette(fb).b);float inten=(fr+fg+fb)*0.3333333*uBrightness;\ninten*=clamp(1.0-uVignette*smoothstep(0.55,1.65,length(uv0)),0.0,1.0);inten=clamp(inten,0.0,1.0);float a=clamp(inten*uOpacity,0.0,1.0);fragColor=vec4(clamp(col,0.0,1.0)*a,a);}';   // 귀중품 카드 이펙트 Scanner(mountValScan) — 스캔라인·그레인 끔(사용자 값)
 const QUEST_TUNNEL_FRAG = '#version 300 es\nprecision highp float;uniform vec2 uResolution;uniform vec2 uCenter;uniform float uScale;uniform float uRatio;uniform float uTime;uniform float uDrift;uniform vec2 uSteer;uniform float uBend;uniform float uCount;uniform float uSwing;uniform float uWave;uniform float uWidth;uniform float uPulseWidth;uniform float uHead;uniform float uTail;uniform float uChance;uniform float uSpacing;uniform float uPulseSpeed;uniform float uFlow;uniform float uHalo;uniform float uGlow;uniform float uBrightness;uniform float uVariance;uniform float uBody;uniform float uFadeNear;uniform float uFadeFar;uniform vec3 uCable;uniform vec3 uPulse;uniform vec3 uTunnel;uniform float uReveal;uniform float uGrain;uniform float uSeed;uniform float uOpacity;out vec4 outColor;const float TAU=6.2831853;\nfloat hash(float n){return fract(sin(n*127.1+uSeed*311.7)*43758.5453);}\nvec2 bendAt(float depth){float reach=1.0-exp(-max(depth,0.0)*0.55);vec2 wobble=vec2(sin(uDrift*0.37+depth*0.31),cos(uDrift*0.29+depth*0.23))*uBend;return (wobble+uSteer)*reach;}\nvoid main(){vec2 p=(gl_FragCoord.xy-0.5*uResolution-uCenter)/uScale;float depth=-log(max(length(p),1e-5));vec2 q=p;for(int i=0;i<4;i++){q=p-bendAt(depth);depth=-log(max(length(q),1e-5));}\nfloat r=length(q);float px=r*uScale;float turn=atan(q.y,q.x)/TAU;float s=turn-uSwing-uWave*sin(depth*1.2+uDrift*0.5);float cell=floor(s*uCount);float spacing=TAU*px/uCount;float near=smoothstep(0.55,1.25,r);float width=uWidth*(1.0+near*1.2);float soft=uRatio*(0.55+near*0.9);float tight=uRatio*uHalo*(1.0+near);float wide=tight*4.5;\nfloat lines=0.0;float body=0.0;vec3 glow=vec3(0.0);\nfor(int k=-3;k<=3;k++){float i=cell+float(k);float id=mod(i,uCount);float h1=hash(id);float h2=hash(id+17.0);float h3=hash(id+41.0);float h4=hash(id+73.0);float center=(i+0.5+(h1-0.5)*0.55)/uCount;center+=0.12*sin(depth*(0.8+h2*0.9)+uDrift*(0.4+h3*0.5)+h4*TAU)/uCount;float d=abs(s-center)*TAU*px;float shade=1.0+uVariance*(h3-0.5)*0.9;float reach=smoothstep(spacing*2.4,spacing*1.4,d);\nlines+=smoothstep(width+soft,width-soft,d)*shade;body+=exp(-d/max(spacing*0.22,0.001))*shade*reach;\nfloat x=depth*uSpacing+uTime*uPulseSpeed*(0.55+h2*0.6)*uFlow+h4*7.0;float lead=(fract(x)-0.5)/uSpacing*uFlow;float lit=step(hash(id*3.7+floor(x)*13.1),uChance);float limit=0.5/uSpacing;\nfloat head=exp(-pow(max(-lead,0.0)/uHead,2.0))*smoothstep(-limit,-limit*0.8,lead);float tail=exp(-max(lead,0.0)/uTail)*smoothstep(limit,limit*0.55,lead);float pulse=(lead<0.0?head:tail)*lit;float hot=pulse*(lead<0.0?1.0:exp(-max(lead,0.0)/(uTail*0.35)));\nfloat core=uPulseWidth*width+0.35*uRatio;float stroke=smoothstep(core+soft,core-soft,d);float bloom=(exp(-d/tight)*0.7+exp(-d/wide)*0.18)*uGlow*reach;vec3 tint=mix(uPulse,vec3(1.0),hot*0.55);glow+=tint*pulse*(stroke*1.5+bloom)*shade;}\nfloat lod=smoothstep(4.0,1.2,spacing);float average=min(2.0*uWidth/max(spacing,0.001),1.0);lines=mix(lines,average,lod);glow=mix(glow,uPulse*average*0.6*uChance,lod);body=mix(body,1.0,lod)*uBody;\nfloat rr=r*0.25;float fade=smoothstep(0.0,uFadeNear,rr)*smoothstep(uFadeFar,uFadeFar*0.55,rr);fade*=smoothstep(uReveal-0.6,uReveal,depth);\nfloat grain=1.0;if(uGrain>0.0){grain+=(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233))+uTime*7.0)*43758.5453)-0.5)*uGrain*4.0;}\nvec3 light=(uCable*lines*0.12+uTunnel*body*0.35+glow)*uBrightness*fade*grain;vec3 mapped=(1.0-exp(-light*1.4))*uOpacity;outColor=vec4(mapped,max(mapped.r,max(mapped.g,mapped.b)));}';   // 퀘스트 아이템 카드 이펙트(mountQuestTunnel)
 const MEET_AFTER = { monster_spore_gardener:'quest_story_c2_05' };   // 조우 연출 무전의 선행 퀘스트(storyMeetEvent)
@@ -728,6 +728,8 @@ const HIT_CS = 1.3, HIT_STOP_CRIT = 130, HIT_STOP_HEAVY = 45, HIT_STOP_KILL = 60
 const TUTO_ART_V = { 'wb_craft1-2':'?v=2', 'rs_rep1-2':'?v=2' };
 
 const PATCH_NOTES = [
+  { ver:145, date:'10/Nov', lines:[
+    ['카드 바인더 덱 게임 업데이트.','Card binder deck game update.'] ] },
   { ver:137, date:'02/Nov', lines:[
     ['성능 시험 스테이션 구현.','Performance Test Station added.'] ] },
   { ver:133, date:'01/Nov', lines:[
@@ -1883,25 +1885,26 @@ class Component extends DCLogic {
   // n종 중 직전(lastKey 필드)과 다른 번호 1~n — 같은 소리 연속 방지(스와이프·플립·교신·클릭·딜 공용).
   sfxPickN(n,lastKey){ let k; do{ k=1+Math.floor(Math.random()*n); }while(k===this[lastKey]); this[lastKey]=k; return k; }
   // ---- 환경음(AMB) ----
-  ambWant(){ return !!(this.state.ready && this.gs && !AMB_OFF.has(this.state.screen) && !this.state.langPick && !this.state.prologue && !(typeof document!=='undefined' && document.hidden)); }   // 언어 고르기·프롤로그 동안은 끈다 — 지구 소리는 눈 뜨는 연출부터(사용자 10-29)
+  ambWant(){ return !!(this.state.ready && this.gs && !AMB_OFF.has(this.state.screen) && !this.state.langPick && !this.state.prologue && !this.state.fang && !(typeof document!=='undefined' && document.hidden)); }   // 언어 고르기·프롤로그 동안은 끈다 — 지구 소리는 눈 뜨는 연출부터(사용자 10-29)
   ambSync(){ const ctx=this._ac; if(!ctx) return;   // 컨텍스트는 첫 제스처에서 생긴다 — 그 전엔 조용히 대기
     if(!this._ambVis && typeof document!=='undefined'){ this._ambVis=true; document.addEventListener('visibilitychange',()=>this.ambSync()); }
-    const want=this.ambWant(); if(want && !this._ambOn) this.ambStart(); else if(!want && this._ambOn) this.ambStop(); }
+    const want=this.ambWant(), fang=!!this.state.fang;   // 팽(송곳니 게임)을 열면 지구 소리를 천천히 끄고(3초) 닫으면 천천히 켠다(3.5초) — 팽은 자기 곡을 판 동안만 튼다(11-10)
+    if(want && !this._ambOn){ this.ambStart(this._ambSlow?3.5:2); this._ambSlow=false; } else if(!want && this._ambOn){ this.ambStop(fang?3:1.5); if(fang) this._ambSlow=true; } }
   ambLoad(){ const ctx=this._ac; if(!ctx||this._ambLoaded) return; this._ambLoaded=true; this._ambBufs={};
     Object.values(AMB).flat().forEach(id=>{ fetch('assets/sound/amb/'+id+'.m4a'+(AMB_V[id]?'?v='+AMB_V[id]:'')).then(r=>r.arrayBuffer())
       .then(a=>new Promise((ok,no)=>ctx.decodeAudioData(a,ok,no))).then(b=>{ this._ambBufs[id]=b; }).catch(()=>{}); }); }
-  ambStart(){ const ctx=this._ac; this.ambLoad(); this._ambOn=true; this._ambGen=(this._ambGen||0)+1; const gen=this._ambGen;
+  ambStart(fi){ fi=fi||2; const ctx=this._ac; this.ambLoad(); this._ambOn=true; this._ambGen=(this._ambGen||0)+1; const gen=this._ambGen;
     try{ if(ctx.state==='suspended'&&ctx.resume) ctx.resume().catch(()=>{}); }catch(_){ }
-    const bus=ctx.createGain(); bus.gain.setValueAtTime(0,ctx.currentTime); bus.gain.linearRampToValueAtTime(AMB_GAIN,ctx.currentTime+2); bus.connect(this._acGain); this._ambBus=bus;
+    const bus=ctx.createGain(); bus.gain.setValueAtTime(0,ctx.currentTime); bus.gain.linearRampToValueAtTime(AMB_GAIN,ctx.currentTime+fi); bus.connect(this._acGain); this._ambBus=bus;
     this._ambSrcs=[]; this._ambTimers=[];
     this.ambBed(gen,'amb_rain_1',1,true); this.ambBed(gen,'amb_rain_2',1.03,true);
     this.ambNext(gen, 3+Math.random()*6);
     this.ambTrackNext(gen, AMB_BED_FIRST[0]+Math.random()*(AMB_BED_FIRST[1]-AMB_BED_FIRST[0])); }
-  ambStop(){ const ctx=this._ac; this._ambOn=false; this._ambGen=(this._ambGen||0)+1;
+  ambStop(fo){ fo=fo||1.5; const ctx=this._ac; this._ambOn=false; this._ambGen=(this._ambGen||0)+1;
     (this._ambTimers||[]).forEach(t=>clearTimeout(t)); this._ambTimers=[];
     const bus=this._ambBus, srcs=this._ambSrcs||[]; this._ambBus=null; this._ambSrcs=[];
-    if(bus&&ctx){ try{ bus.gain.cancelScheduledValues(ctx.currentTime); bus.gain.setValueAtTime(bus.gain.value,ctx.currentTime); bus.gain.linearRampToValueAtTime(0,ctx.currentTime+1.5); }catch(_){ }
-      setTimeout(()=>{ srcs.forEach(x=>{ try{ x.stop(); }catch(_){ } }); try{ bus.disconnect(); }catch(_){ } },1700); } }
+    if(bus&&ctx){ try{ bus.gain.cancelScheduledValues(ctx.currentTime); bus.gain.setValueAtTime(bus.gain.value,ctx.currentTime); bus.gain.linearRampToValueAtTime(0,ctx.currentTime+fo); }catch(_){ }
+      setTimeout(()=>{ srcs.forEach(x=>{ try{ x.stop(); }catch(_){ } }); try{ bus.disconnect(); }catch(_){ } },fo*1000+200); } }
   ambTimer(gen,sec,fn){ const t=setTimeout(()=>{ if(gen===this._ambGen) fn(); }, Math.max(0,sec*1000)); this._ambTimers.push(t); }
   // 바탕 비 — m4a 앞뒤 무음(인코더 지연) 때문에 loop=true 대신 **1.5초씩 겹쳐 이어 붙인다**(빗소리라 겹침이 안 들린다)
   ambBed(gen,id,rate,first){ const ctx=this._ac, buf=this._ambBufs&&this._ambBufs[id];
