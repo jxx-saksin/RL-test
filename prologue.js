@@ -115,8 +115,10 @@ export function mount(el, opt){
   raf = requestAnimationFrame(loop);
 
   // ---- 타이머/대기 ----
-  const sleep = (ms, tappable)=> new Promise(res=>{ const due=performance.now()+ms; const t=setTimeout(()=>{ timers.delete(t); wake=null; const lag=performance.now()-due; if(lag>150) dbg('타이머 늦음 +'+Math.round(lag)+'ms (예정 '+ms+'ms)'); res(); }, ms); timers.add(t);
-    wake = tappable ? ()=>{ clearTimeout(t); timers.delete(t); wake=null; res(); } : null; });
+  const sleep = (ms, tappable)=> new Promise(res=>{ const due=performance.now()+ms; let mine=null; const t=setTimeout(()=>{ timers.delete(t); if(wake===mine) wake=null; const lag=performance.now()-due; if(lag>150) dbg('타이머 늦음 +'+Math.round(lag)+'ms (예정 '+ms+'ms)'); res(); }, ms); timers.add(t);
+    // ★끝난 타이머는 '자기' 탭 처리기만 지운다(11-12) — Promise.race에서 진 대기(sleep 3500·4500)가 뒤늦게 울리며
+    //   그때 떠 있던 자막의 탭 넘김을 지워, 컷마다 몇 초씩 탭이 안 먹었다.
+    mine = tappable ? ()=>{ clearTimeout(t); timers.delete(t); if(wake===mine) wake=null; res(); } : null; wake = mine; });
   const onTap = e=>{ if(e.target.closest && e.target.closest('[data-skip]')) return; const n=performance.now(); if(n-lastTap<380) return; lastTap=n; if(wake) wake(); };
   el.addEventListener('pointerup', onTap);
   skip.addEventListener('click', e=>{ e.stopPropagation(); finish(); });
@@ -326,7 +328,7 @@ export function mount(el, opt){
   async function hideCaption(){ capBox.style.opacity='0'; await sleep(620,false); }
 
   // ===== 7번 → 8번: 켜진 화면으로 확대 → 흰 섬광 → 검정 → 도스 터미널(타이핑) → ENTER↵ 반짝 → 탭 → 글리치 → 어둠 → 다음(눈 뜨는 연출) =====
-  const waitTap = ms => new Promise(res=>{ const t=setTimeout(()=>{ timers.delete(t); wake=null; res(false); },ms); timers.add(t); wake=()=>{ clearTimeout(t); timers.delete(t); wake=null; res(true); }; });
+  const waitTap = ms => new Promise(res=>{ const mine=()=>{ clearTimeout(t); timers.delete(t); if(wake===mine) wake=null; res(true); }; const t=setTimeout(()=>{ timers.delete(t); if(wake===mine) wake=null; res(false); },ms); timers.add(t); wake=mine; });
   async function runTail(built){
     const g=built.scr.geom, bw=el.clientWidth||375, bh=el.clientHeight||812;
     const flashEl=mk('position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;'); el.insertBefore(flashEl,skip);

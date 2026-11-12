@@ -56,7 +56,8 @@ const FETCH_TIMEOUT_MS = 10000;
 async function fetchT(url, opts){
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), FETCH_TIMEOUT_MS);
-  try { return await fetch(url, { ...(opts||{}), signal: ac.signal }); }
+  // ★본문까지 타임아웃 안에서 읽는다(11-12) — 헤더만 오고 본문이 멎으면 r.text()가 영영 안 끝나 부팅·[시트 다시 받기]가 멈췄다.
+  try { const r = await fetch(url, { ...(opts||{}), signal: ac.signal }); const body = await r.text(); return { ok: r.ok, status: r.status, text: async () => body }; }
   finally { clearTimeout(t); }
 }
 
@@ -65,7 +66,7 @@ async function fetchRetry(url, opts){
   let r;
   for (let n = 0; n < 3; n++){
     r = await fetchT(url, opts);
-    if (r.ok || !(r.status === 429 || r.status >= 500)) return r;
+    if (r.ok || !(r.status === 429 || r.status >= 500) || n === 2) return r;   // 마지막 시도 뒤엔 쉬지 않는다
     await new Promise(res => setTimeout(res, 400 * (n + 1) + Math.random() * 400));
   }
   return r;
@@ -74,7 +75,8 @@ async function fetchRetry(url, opts){
 // Discover the name->gid map live (so added/renamed tabs still work); fall back to GIDS.
 export async function fetchGidMap(id = SHEET_ID) {
   try {
-    const r = await fetchT(`https://docs.google.com/spreadsheets/d/${id}/htmlview?_=${Date.now()}`, { mode:'cors', cache:'no-store' });
+    const r = await fetchRetry(`https://docs.google.com/spreadsheets/d/${id}/htmlview?_=${Date.now()}`, { mode:'cors', cache:'no-store' });   // 429면 재시도 — 실패하면 GIDS에 없는 탭 절반이 번들 값으로 떨어진다
+    if (!r.ok) throw new Error('gid map HTTP ' + r.status);
     const t = await r.text();
     const map = {};
     for (const m of t.matchAll(/\{name:\s*"([^"]+)",\s*pageUrl:\s*"([^"]+)"/g)) {
@@ -102,7 +104,10 @@ export async function fetchAllTabs(id = SHEET_ID) {
     try {
       const r = await fetchRetry(tabUrl(id, gid), { mode: 'cors', cache: 'no-store' });
       if (!r.ok) throw new Error(tab + ' HTTP ' + r.status);
-      out[tab] = parseCSV(await r.text());
+      const body = await r.text();
+      // 200인데 표가 아닌 응답(빈 본문 · 로그인/오류 HTML)은 실패로 본다 — 그대로 받으면 그 탭이 빈 채로 '정상'이 되어 캐시까지 덮는다(11-12)
+      if (!body.trim() || /^\s*<(?:!doctype|html)/i.test(body)) throw new Error(tab + ' bad body');
+      out[tab] = parseCSV(body);
     } catch (e) {
       // ⚠️ 선택 탭이라도 '조용히 빈 채로' 두면 안 된다 — UIString 하나가 빠지면
       //    화면 전체가 키 문자열(hide_disk_close…)로 뜬다(2026-09-07 실제 발생).

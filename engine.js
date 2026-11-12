@@ -2,7 +2,7 @@
 // Data source is swappable: starts from the bundled snapshot, can be replaced
 // live via setDATA() (e.g. a fresh Google-Sheets fetch).
 import { DATA as FALLBACK } from './data/game-data.js?v=val76';
-import { buildIndex } from './sheet-loader.js?v=val83';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
+import { buildIndex } from './sheet-loader.js?v=val84';   // ★sheet-loader를 가리키는 곳은 **둘**이다 — 여기와 rl.dc.html의 import().
 //   이 줄이 val11에 멈춰 있어 모듈이 **두 벌**(val11·val20) 받아졌고, val11 쪽은 브라우저 캐시의 옛 파일이라
 //   engine이 **옛 buildIndex**를 쓰고 그 안의 옛 번들까지 또 받았다(2026-09-22 발견). 두 곳을 항상 같이 올릴 것.
 
@@ -28,7 +28,7 @@ export function anyName(id){
     const base = o.ItemID ? 'ItemName' : o.WeaponID ? 'WeaponName' : o.ArmorID ? 'ArmorName' : o.TalismanID ? 'TalismanName' : o.BagID ? 'BagName' : 'AccessoryName';
     return tr(o, base) || id;
   }
-  const u = (DATA.usb || []).find(x => x.USBID === id);
+  const u = rowById(DATA.usb, 'USBID', id);
   if (u) return tr(u, 'Name') || id;
   const lq = byId.liquor && byId.liquor[id];
   if (lq) return tr(lq, 'Name') || id;
@@ -242,7 +242,6 @@ export function invalidateUi(){ _uiById = null; _uiByKr = null; }
 
 // affix name/target resolved lang-aware at display time (instances store affixId)
 export function affixName(af){ if(!af) return ''; const row = (DATA.affixes || []).find(x => x.AffixID === af.affixId); return row ? tr(row, 'AffixName') : (af.name || ''); }
-export function affixTarget(af){ if(!af) return ''; const row = (DATA.affixes || []).find(x => x.AffixID === af.affixId); return row ? tr(row, 'TargetStat') : (af.targetKr || af.target || ''); }
 
 // 장비 재질 — 시트 Material 열은 **한글과 영문이 섞여 있다**(장비는 금속/목재/섬유/합성,
 // 아이템·몬스터는 Metal/Fabric/Organic…). 양쪽을 같은 키로 받아 UIString으로 옮긴다.
@@ -255,6 +254,8 @@ export function materialLabel(v){ const k = MAT_KEY[String(v == null ? '' : v).t
 const N = (v, d = 0) => (v === '' || v == null || isNaN(Number(v)) ? d : Number(v));
 const rand = (a, b) => a + Math.random() * (b - a);
 const randInt = (a, b) => Math.floor(rand(a, b + 1));
+// 장신구 옵션 굴림 — 범위가 정수면 정수, 소수(치명 배율 0.3~0.5 · 타수 0.7~1.3)면 0.1 단위. 예전엔 전부 randInt라 0 아니면 1(범위 밖)만 나왔다(11-12).
+const rollAcc = (lo, hi) => (Number.isInteger(lo) && Number.isInteger(hi)) ? randInt(lo, hi) : Math.round(rand(Math.min(lo, hi), Math.max(lo, hi)) * 10) / 10;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 // a weapon/armor/accessory instance is 'functional' only while it still has durability.
@@ -403,8 +404,8 @@ export function mkInstance(id, qty = 1, opts = {}) {
   if (kind === 'weapon' || kind === 'armor' || kind === 'artifact') { inst.dur = maxDur; inst.maxDur = maxDur; }
 
   if (af) { // 장신구: 소켓·감정 없음. 옵션 롤 + 성장태그 랜덤(감정 없이 항상 공개)
-    inst.stat1 = randInt(N(af.Value1_Low), N(af.Value1_High));
-    if (af.Stat2 && af.Stat2 !== '-') inst.stat2 = randInt(N(af.Value2_Low), N(af.Value2_High));
+    inst.stat1 = rollAcc(N(af.Value1_Low), N(af.Value1_High));
+    if (af.Stat2 && af.Stat2 !== '-') inst.stat2 = rollAcc(N(af.Value2_Low), N(af.Value2_High));
     // 성장태그: 무기·방어구와 완전 동일한 확률(2026-08-25 통일). 예전 accessory_growth_tag_chance는 폐지.
     inst.growthTags = rollGrowthTags(opts.rareZone);
     return inst;
@@ -764,8 +765,6 @@ export function playerProfile(state, staminaZero = false) {
   const handsInst = functional(handsRaw) ? handsRaw : null;
   const feetInst = functional(feetRaw) ? feetRaw : null;
   const armorInsts = [headInst, bodyInst, handsInst, feetInst].filter(Boolean);
-  const head = headInst ? byId.armor[headInst.id] : null;
-  const body = bodyInst ? byId.armor[bodyInst.id] : null;
   // gather bonuses from equipped gear: v3 socket modules (+ legacy affixes for back-compat)
   const primAdd = { str: 0, dex: 0, vit: 0, will: 0 }; const secAdd = {};
   const addStat = (key, val) => { const pk = PRIM[key]; if (pk) primAdd[pk] += N(val); else if (key) secAdd[key] = (secAdd[key] || 0) + N(val); };
@@ -1044,7 +1043,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
   }
   function ruptureMult(actor, now) {
     if (actor.ruptureUntil > now && actor.ruptureStacks > 0) {
-      const per = (0.10 + 0.05 * (actor.ruptureStacks - 1)) * affOf(actor, 'rupture');   // 파열은 맞은 쪽(공격자 본인)의 공격력을 깎는다 → 상성은 그 몬스터 것
+      const rs = byId.status.rupture; const per = (N(rs && rs.Value, 0.10) + N(rs && rs.PerStack, 0.05) * (actor.ruptureStacks - 1)) * affOf(actor, 'rupture');   // 파열은 맞은 쪽(공격자 본인)의 공격력을 깎는다 → 상성은 그 몬스터 것
       return clamp(1 - per, 0.3, 1);
     }
     return 1;
@@ -1098,7 +1097,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
       hitCnt++; nthCrit = TAL.nth.some(n => hitCnt % n === 0);
     }
     const rupM = ruptureMult(actor, t);   // 파열 중이면 < 1 (공격자의 공격력 감소)
-    let dmg = rand(actor.minAtk, Math.max(actor.minAtk, maxAtk)) * rupM * tDealt;
+    let dmg = Math.max(0, rand(actor.minAtk, Math.max(actor.minAtk, maxAtk))) * rupM * tDealt;   // 음수 금지 — 스태미너 0·맨손이면 기본 공격력이 음수라 상대 HP가 차올랐다(11-12)
     const isCrit = opts.forceCrit || nthCrit || Math.random() < critChance(actor.critChance + ccAdd, foe.critResist);
     if (isCrit) { dmg *= clamp(N(C.crit_damage_mult, 1.5) + N(actor.critMultBonus), 1, 4); if (actor.side === 'player') triggers.critsLanded++; if (actor === A && TAL.critSpeed.length) { for (const c of TAL.critSpeed) { critBuffLeft = Math.max(critBuffLeft, c.hits); critBuffMult = Math.max(critBuffMult === 1 ? 0 : critBuffMult, c.mult); } } }
     let pierceFrac = 0;
@@ -1165,7 +1164,7 @@ export function simulateCombat(pProf, mProf, playerHpStart) {
           const s = byId.status.rupture;
           foe.ruptureStacks = Math.min(N(s?.MaxStack, 3), foe.ruptureStacks + 1);
           foe.ruptureUntil = t + durScaled(N(s?.Duration, 3), actor);
-          const mr = statusMsg('status_rupture_msg', 'status_rupture_tail', { Target: fnm, Stacks: foe.ruptureStacks, Pct: Math.round(Math.min(70, (0.10 + 0.05 * (foe.ruptureStacks - 1)) * am * 100)) }, fl);
+          const mr = statusMsg('status_rupture_msg', 'status_rupture_tail', { Target: fnm, Stacks: foe.ruptureStacks, Pct: Math.round(Math.min(70, (N(s?.Value, 0.10) + N(s?.PerStack, 0.05) * (foe.ruptureStacks - 1)) * am * 100)) }, fl);
           push(actor.side, 'status', mr.text, { status: 'rupture', stacks: foe.ruptureStacks, dur: +(foe.ruptureUntil - t).toFixed(2), tail: mr.tail, aff: am > 1 ? 'weak' : (am < 1 ? 'resist' : undefined) });
         } else if (eff === 'shock') {
           // 감전(10-28 · 확장 상태이상 5번째) — 지속 상태 없이 그 자리에서 추가 피해 한 번. 시전자 평균 한 방 × Value × 상성.
@@ -1588,16 +1587,6 @@ export function consumeItems(state, id, qty){
   dec(state.bag); dec(state.vault);
   return left <= 0;
 }
-// GrantValue: 1.0 = 스탯 1레벨분. 정수부는 레벨, 소수부는 성장 포인트로 환산해 영구 적용.
-export function applyUsbGrant(state, grantStat, value){
-  const key = PRIM[grantStat]; if (!key) return null;
-  const g = state.growth[key]; const before = g.level;
-  const v = N(value, 1); const whole = Math.floor(v); const frac = v - whole;
-  g.level += whole;
-  if (frac > 0){ g.points += frac * growthReq(g.level); while (g.points >= growthReq(g.level)){ g.points -= growthReq(g.level); g.level++; } }
-  state.primary[key] = g.level;
-  return { stat: key, grantStat, from: before, to: g.level };
-}
 
 const STAT_KR_FALLBACK = { stat_str: '힘', stat_dex: '민첩', stat_vit: '체력', stat_will: '의지' };
 // USB 부여 효과 — Grants JSON 열(개수 자유)이 정본. 없으면 옛 GrantStat/GrantValue 한 쌍으로 폴백한다.
@@ -1614,10 +1603,13 @@ export function usbGrants(u){
 // USB.Install1~3 = 회차별 효과(JSON · Grants와 같은 {stat,v} · stat = stat_* 또는 sec_*). 열이 없는 옛 데이터는 1회차 = Grants.
 // 세이브엔 몬스터별 기록 { m: 조우 1 · k: 처치 수 · i: 인스톨 0~3 }만 둔다 — 효과는 늘 시트에서 다시 계산한다(랭킹 검증 대비).
 const parseFx = s => { try { const a = JSON.parse(String(s)); return Array.isArray(a) ? a.filter(x => x && x.stat).map(x => ({ stat: x.stat, v: N(x.v, 0) })) : []; } catch(_) { return []; } };
+const _usbIns = new WeakMap();   // 행 → 회차별 효과 · playerProfile(렌더 경로)이 도감 전체를 돌 때마다 다시 parse 하던 것(11-12) · 읽기 전용으로 쓴다
 export function usbInstalls(u){
   if (!u) return [[], [], []];
+  const hit = _usbIns.get(u); if (hit) return hit;
   const has = [u.Install1, u.Install2, u.Install3].some(x => x && x !== '-');
-  return has ? [parseFx(u.Install1), parseFx(u.Install2), parseFx(u.Install3)] : [usbGrants(u), [], []];
+  const out = has ? [parseFx(u.Install1), parseFx(u.Install2), parseFx(u.Install3)] : [usbGrants(u), [], []];
+  _usbIns.set(u, out); return out;
 }
 let _usbMonSrc = null, _usbMon = {};
 export function usbOfMonster(mid){
@@ -1676,7 +1668,7 @@ export function substUsbTokens(s, u){
 }
 
 // ---------- ColdData (비대칭 PvP · DEV_HANDOFF §6-6) ----------
-const midVal = (a, b) => Math.round((N(a) + N(b)) / 2);
+const midVal = (a, b) => { const m = (N(a) + N(b)) / 2; return (Number.isInteger(N(a)) && Number.isInteger(N(b))) ? Math.round(m) : Math.round(m * 10) / 10; };   // 소수 범위(장신구 치명 배율 등)는 0.1 단위 — 반올림하면 0이 됐다(11-12)
 // 장비 인스턴스 토큰: "베이스 / 접두 / 접미 / 현재내구 / 최대내구" ('-' = 빈 값)
 export function parseGearToken(token){
   const parts = String(token == null ? '' : token).split('/').map(s => s.trim());
@@ -1705,9 +1697,14 @@ export function coldGear(bot){
   return { weapon: parseGearToken(bot.Weapon), head: parseGearToken(bot.Helmet), body: parseGearToken(bot.Armor), hands: parseGearToken(bot.Hands), feet: parseGearToken(bot.Feet), artifact1: parseGearToken(bot.Artifact1), artifact2: parseGearToken(bot.Artifact2) };
 }
 export function coldEquippedList(bot){ return Object.values(coldGear(bot)).filter(Boolean); }
+// PvP 상품 — 봇 장비(토큰 모양: rolls·소켓·성장 태그 없음)를 플레이어용 정식 인스턴스로 새로 만든다(11-12).
+//   예전엔 토큰 모양 그대로 넘겨 장착해도 공격력·방어가 0이었고, 다음 로드의 복구(rebuild)가 통째로 새 물건으로 바꿨다.
+//   내구도만 봇이 쓰던 값을 잇고(새 최대치 안에서), 장신구는 봇이 차던 수치를 그대로 둔다.
 export function cloneGearInstance(inst){
-  const c = { ...inst, uid: 'u' + (_uid++) };
-  if (inst.affixes) c.affixes = inst.affixes.map(x => ({ ...x }));
+  if (!inst || !(byId.weapon[inst.id] || byId.armor[inst.id] || byId.artifact[inst.id])) return { ...inst, uid: nextUid() };
+  const c = mkInstance(inst.id, 1, {});
+  if (c.maxDur > 0 && inst.maxDur > 0) c.dur = Math.max(1, Math.min(c.maxDur, Math.round(c.maxDur * N(inst.dur, inst.maxDur) / inst.maxDur)));
+  if (c.kind === 'artifact'){ if (inst.stat1 != null) c.stat1 = inst.stat1; if (inst.stat2 != null) c.stat2 = inst.stat2; }
   return c;
 }
 // ColdData 봇의 전투 프로필 — playerProfile과 동일한 파생 경로 (1차 스탯 + 장비 + 접사 + 아티팩트)
@@ -1878,9 +1875,15 @@ function questJson(raw){
   try { const o = JSON.parse(t); return (o && typeof o === 'object') ? o : null; } catch(_){ return null; }
 }
 export function questRows(){ return DATA.quests || []; }
-export function questRow(id){ return (DATA.quests || []).find(q => q.QuestID === id) || null; }
+export function questRow(id){ return rowById(DATA.quests, 'QuestID', id); }
 // {kind, targets:[{id|filter, count}], ...조건 플래그}. 목표가 하나도 없으면 null — 호출부가 "표시 안 함"으로 다룬다.
+const _qObj = new WeakMap();   // 행 → {raw, o} · 렌더 한 번에 수백 번 불려 매번 JSON.parse 하던 것(11-12)
 export function questObjective(q){
+  if (!q || typeof q !== 'object') return null;
+  const hit = _qObj.get(q); if (hit && hit.raw === q.Objective) return hit.o;
+  const o = questObjective0(q); _qObj.set(q, { raw: q.Objective, o }); return o;
+}
+function questObjective0(q){
   const o = questJson(q && q.Objective); if (!o || !o.kind) return null;
   let ts = Array.isArray(o.targets) ? o.targets : null;
   if (!ts) ts = [{ id: o.target, filter: o.filter, count: o.count }];      // 구형 폴백
@@ -1914,7 +1917,15 @@ export function storyRows(){
     _srOut = Object.freeze(src.slice().sort((a, b) => (N(a.Chapter, 0) - N(b.Chapter, 0)) || (N(a.Order, 0) - N(b.Order, 0)))); }
   return _srOut;
 }
-export function storyRow(id){ return (DATA.storyQuests || []).find(q => q.QuestID === id) || null; }
+// 표(배열) → {ID: 첫 행} 색인 — 표가 새로 오면(setDATA) 배열이 바뀌어 저절로 다시 만든다. find와 같게 '첫 행'을 준다.
+const _rowIdx = new WeakMap();
+function rowById(list, key, id){
+  if (!list || id == null) return null;
+  let m = _rowIdx.get(list);
+  if (!m || m.n !== list.length){ m = { n: list.length, by: Object.create(null) }; for (const r of list){ const k = r && r[key]; if (k != null && !(k in m.by)) m.by[k] = r; } _rowIdx.set(list, m); }
+  return m.by[id] || null;
+}
+export function storyRow(id){ return rowById(DATA.storyQuests, 'QuestID', id); }
 // 퀘스트 대사(QuestDialogue) — QuestID + Stage(start/done/radio)
 export function storyLines(qid, stage){
   return (DATA.questDialogue || []).filter(r => r.QuestID === qid && String(r.Stage || '') === stage);
@@ -1922,11 +1933,16 @@ export function storyLines(qid, stage){
 // 리셋 주기 — 오늘 quest_reset_anchor_hour시 정각을 기준점으로 잡고 quest_reset_minutes 간격으로 칸을 나눈다.
 // 30분이면 05:00·05:30·06:00…, 1440분이면 매일 05:00 한 번. 같은 식으로 둘 다 돈다.
 export function questResetMinutes(){ return Math.max(1, N(C.quest_reset_minutes, 1440)); }
-export function questPeriod(now){
-  const t = now == null ? Date.now() : now;
-  const d = new Date(t); const anchor = new Date(d.getFullYear(), d.getMonth(), d.getDate(), N(C.quest_reset_anchor_hour, 5), 0, 0, 0);
-  return Math.floor((t - anchor.getTime()) / (questResetMinutes() * 60000));
+// ★번호는 누적이다(11-12 수정). 예전엔 '오늘 기준점부터 몇 칸째'라 날짜가 바뀌어도 같은 번호가 나왔다 →
+//   매일 같은 시간대에만 접속하면 일일 퀘스트가 영영 안 풀리고, 셔플 백도 하루치 카드만 되풀이했다.
+//   기준 시각(05시)을 하루의 시작으로 본다 — 00~05시는 전날의 마지막 칸. 칸 경계는 questResetLeft와 같은 계산을 쓴다.
+function questSlot(now){
+  const t = now == null ? Date.now() : now, step = questResetMinutes() * 60000, DAY = 86400000;
+  const tl = t - new Date(t).getTimezoneOffset() * 60000 - N(C.quest_reset_anchor_hour, 5) * 3600000;   // 기준 시각이 0시가 되도록 민 현지 시각
+  const day = Math.floor(tl / DAY), inDay = tl - day * DAY, k = Math.floor(inDay / step);
+  return { period: day * Math.ceil(DAY / step) + k, left: Math.min((k + 1) * step, DAY) - inDay };
 }
+export function questPeriod(now){ return questSlot(now).period; }
 // 다음 리셋까지 남은 ms
 // ===== 일일 퀘스트 로테이션 (셔플 백) =====
 // 덱을 섞어 위에서부터 뽑고, 다 쓰면 다음 사이클 시드로 다시 섞는다.
@@ -1990,12 +2006,6 @@ export function questTodayIds(period, avail){
   return s;
 }
 
-export function questResetLeft(now){
-  const t = now == null ? Date.now() : now;
-  const step = questResetMinutes() * 60000;
-  const d = new Date(t); const anchor = new Date(d.getFullYear(), d.getMonth(), d.getDate(), N(C.quest_reset_anchor_hour, 5), 0, 0, 0).getTime();
-  const passed = t - anchor;
-  return step - ((passed % step) + step) % step;
-}
+export function questResetLeft(now){ return questSlot(now).left; }
 
 export { N, C };

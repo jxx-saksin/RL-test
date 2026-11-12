@@ -74,14 +74,9 @@
   @keyframes rlQuake{0%{transform:translate(0,0)}8%{transform:translate(calc(var(--sa)*-6px),calc(var(--sa)*4px))}20%{transform:translate(calc(var(--sa)*6px),calc(var(--sa)*-4px))}34%{transform:translate(calc(var(--sa)*-5px),calc(var(--sa)*3px))}50%{transform:translate(calc(var(--sa)*4px),calc(var(--sa)*-2px))}70%{transform:translate(calc(var(--sa)*-2px),calc(var(--sa)*1px))}100%{transform:translate(0,0)}}
   @keyframes rlQuakeL{0%{transform:translate(0,0)}5%{transform:translate(calc(var(--sa)*-6px),calc(var(--sa)*4px))}12%{transform:translate(calc(var(--sa)*6px),calc(var(--sa)*-4px))}20%{transform:translate(calc(var(--sa)*-5px),calc(var(--sa)*3px))}30%{transform:translate(calc(var(--sa)*4.5px),calc(var(--sa)*-2.5px))}42%{transform:translate(calc(var(--sa)*-3.5px),calc(var(--sa)*2px))}55%{transform:translate(calc(var(--sa)*2.5px),calc(var(--sa)*-1px))}70%{transform:translate(calc(var(--sa)*-1.5px),calc(var(--sa)*1px))}85%{transform:translate(calc(var(--sa)*.8px),0)}100%{transform:translate(0,0)}}
   @keyframes rlFlashS{0%{opacity:0}6%{opacity:var(--fp,.8)}100%{opacity:0}}
-  @keyframes rlSlam{0%{opacity:0;transform:translate(-50%,-10px) scale(2.3)}16%{opacity:1;transform:translate(-50%,0) scale(1.05)}36%{opacity:1;transform:translate(-50%,-8px) scale(1.12)}100%{opacity:0;transform:translate(-50%,-44px) scale(1)}}
-  @keyframes rlSlamL{0%{opacity:0;transform:translate(-50%,-10px) scale(2.4)}9%{opacity:1;transform:translate(-50%,0) scale(1.05)}20%{opacity:1;transform:translate(-50%,-6px) scale(1.14)}55%{opacity:1;transform:translate(-50%,-14px) scale(1.06)}100%{opacity:0;transform:translate(-50%,-48px) scale(1)}}
   @keyframes rlSweep{0%{background-position:130% 0}100%{background-position:-30% 0}}
-  @keyframes rlRingG{0%{opacity:.95;transform:translate(-50%,-50%) scale(.2)}100%{opacity:0;transform:translate(-50%,-50%) scale(2.2)}}
-  @keyframes rlGhost{from{width:var(--gf)}to{width:var(--gt)}}
   @keyframes rlRp{0%,100%{opacity:calc(var(--ro,.6)*.7)}50%{opacity:var(--ro,.6)}}
   @keyframes rlBleedWave{0%,100%{opacity:calc(var(--bo,.5)*.3);background-position:0% 0%,100% 100%}50%{opacity:var(--bo,.5);background-position:60% 45%,40% 55%}}
-  @keyframes rlBNum{0%{opacity:0;transform:translate(-50%,-6px) scale(.8)}18%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,34px) scale(.9)}}
   @keyframes rlLunge{0%{transform:translateY(0)}38%{transform:translateY(var(--lg,0px))}100%{transform:translateY(0)}}
   @keyframes rlPunch{0%,84%{transform:scale(1)}92%{transform:scale(1.22)}100%{transform:scale(1)}}
   @keyframes rlSpin{to{transform:rotate(360deg)}}
@@ -103,11 +98,8 @@
   @keyframes rlShakeScreen{0%{transform:translate(0,0)}14%{transform:translate(-6px,4px)}28%{transform:translate(6px,-4px)}42%{transform:translate(-5px,3px)}58%{transform:translate(4px,-2px)}74%{transform:translate(-2px,1px)}100%{transform:translate(0,0)}}
   @keyframes rlVignette{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
   /* --- PvP 패배: 아이템 강탈 — 붉은 비네트 + Silk 잠식은 JS/WebGL(mountLossFx)로 구동 --- */
-  @keyframes rlDmgFloat{0%{opacity:0;transform:translate(-50%,8px) scale(.6)}14%{opacity:1;transform:translate(-50%,-2px) scale(1.15)}32%{opacity:1;transform:translate(-50%,-9px) scale(1)}100%{opacity:0;transform:translate(-50%,-36px) scale(1)}}
-  @keyframes rlCritPop{0%{opacity:0;transform:translate(-50%,6px) scale(.4)}14%{opacity:1;transform:translate(-50%,-5px) scale(1.55)}34%{opacity:1;transform:translate(-50%,-13px) scale(1.15)}100%{opacity:0;transform:translate(-50%,-46px) scale(1.05)}}
   @keyframes rlMiss{0%{opacity:0;transform:translate(-50%,5px)}22%{opacity:1;transform:translate(-50%,-4px)}78%{opacity:.9;transform:translate(-50%,-11px)}100%{opacity:0;transform:translate(-50%,-18px)}}
   @keyframes rlHpGlow{0%{filter:brightness(1);box-shadow:0 0 0 0 rgba(255,120,105,0)}16%{filter:brightness(2.2);box-shadow:0 0 9px 2px rgba(255,130,110,.95)}100%{filter:brightness(1);box-shadow:0 0 0 0 rgba(255,120,105,0)}}
-  @keyframes rlNumShake{0%,100%{transform:translateX(0)}14%{transform:translateX(-4px)}30%{transform:translateX(4px)}46%{transform:translateX(-3px)}62%{transform:translateX(3px)}78%{transform:translateX(-2px)}}
   @keyframes rlBorderFlash{0%{opacity:0}10%{opacity:1}52%{opacity:1}100%{opacity:0}}
   @keyframes rlBounceDn{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
   /* ★타이틀 전용 — 손가락으로 아래로 끌어내릴 수 있게 만든다.
@@ -134,7 +126,6 @@
   @keyframes rlEyeOpen{0%,11%{height:0}24%{height:22%}33%{height:0}49%{height:40%}56%{height:36%}62%,68%{height:0}100%{height:250%}}
   @keyframes rlWakeBlur{0%{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);background:rgba(0,0,0,.45)}70%{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);background:rgba(0,0,0,.2)}100%{backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);background:rgba(0,0,0,0)}}
   /* 퀘스트 대화 하단 박스 — 선택지·[확인]이 필요할 때만 떠오른다 */
-  @keyframes rlTalkPanelIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:none}}
   /* 다음 행선지 안내 — 글자가 빨갛게 숨 쉰다(소지품 화면의 [보관함] 탭 · 아이템 시트의 [착용]) */
   @keyframes rlHintGlow{0%,100%{color:#EAEBEE;text-shadow:none}50%{color:#E0625A;text-shadow:0 0 8px rgba(224,98,90,.8)}}
   /* 손 안내 — 대상 쪽으로 톡톡 두드리듯(아래쪽 대상은 180° 뒤집혀 있어 방향을 반대로) */
@@ -153,7 +144,6 @@
   @keyframes rlCommsDot{0%,8.33%,16.67%,25%,33.33%{opacity:1;box-shadow:0 0 6px 1px rgba(47,191,113,.9)}4.17%,12.5%,20.83%,29.17%,37.5%{opacity:.25;box-shadow:none}100%{opacity:1;box-shadow:none}}
   @keyframes rlCommsBlink{0%,8.33%,16.67%,25%,33.33%{color:#2FBF71;filter:drop-shadow(0 0 4px rgba(47,191,113,.85))}4.17%,12.5%,20.83%,29.17%,37.5%,100%{color:var(--nb);filter:none}}
   @keyframes rlBossTell{0%,100%{box-shadow:inset 0 0 30px 4px rgba(196,60,50,0)}50%{box-shadow:inset 0 0 34px 7px rgba(196,60,50,.16)}}
-  @keyframes rlBossEdge{0%,100%{box-shadow:inset 0 0 0 1px rgba(196,60,50,.25),0 0 16px rgba(150,20,16,.12)}50%{box-shadow:inset 0 0 0 1.5px rgba(230,80,68,.48),0 0 26px rgba(180,26,20,.28)}}
   /* 보스 카드 금색 일렁이는 테두리 (#D89B00) */
   @keyframes rlGoldShimmer{0%,100%{box-shadow:inset 0 0 0 0.5px rgba(216,155,0,.5),0 0 4px -2px rgba(216,155,0,.4)}50%{box-shadow:inset 0 0 0 1px rgba(216,155,0,1),0 0 11px -1px rgba(216,155,0,.85)}}
   /* 보스 조우 화면 전체 붉은 테두리 글로우 — 숨쉬듯 맥동 */
@@ -170,17 +160,9 @@
   @keyframes rlEdgeFlash{0%{opacity:0}14%{opacity:1}44%{opacity:.32}100%{opacity:.32}}
   /* 타이틀 "TAP TO START" — 천천히 숨쉬는 표현(글리치 삭제) */
   @keyframes rlBreath{0%,100%{opacity:.32}50%{opacity:1}}
-  /* 보스 확률 MAX — 이너글로우+아웃글로우가 같이 숨쉰다. 테두리 링도 알파가 함께 오르내린다.
-     ★링을 실제 border로 그리면 안 된다 — 알약에 고정 높이(27)만 있고 고정 폭이 없어서
-     border-box가 세로만 흡수하고 가로는 2px 늘어나 좌우 여백만 벌어진다. inset shadow는 크기 불변. */
-  @keyframes rlBossMax{
-    0%,100%{box-shadow:inset 0 0 0 1px rgba(229,100,91,.30),inset 0 0 8px 1px rgba(229,100,91,.16),0 0 6px 1px rgba(229,100,91,.13)}
-    50%{box-shadow:inset 0 0 0 1px rgba(229,100,91,.62),inset 0 0 13px 2px rgba(229,100,91,.34),0 0 13px 3px rgba(229,100,91,.28)}
-  }
   /* 타이틀 아트 — 아주 느린 확대(켄번즈). 기준점을 바닥으로 잡아야 프레임 아래에 틈이 안 생긴다. */
   @keyframes rlDangerUp{0%{filter:brightness(1.9) drop-shadow(0 0 6px rgba(255,255,255,.45))}100%{filter:brightness(1) drop-shadow(0 0 0 rgba(255,255,255,0))}}   /* 위험도 칩 단계 상승 1회(10-30) */
   @keyframes rlBossMaxF{0%,100%{filter:drop-shadow(0 0 3px rgba(229,100,91,.25))}50%{filter:drop-shadow(0 0 8px rgba(229,100,91,.6))}}   /* 깎인 판용 MAX 숨쉬기(10-18) */
-  @keyframes rlTitleZoom{from{transform:scale(1)}to{transform:scale(1.08)}}
   /* 태그 단말 LED — 대기=붉게 숨쉬기 / 인증=초록 빠른 점멸 */
   @keyframes rlLedBreath{0%,100%{opacity:.45}50%{opacity:1}}
   @keyframes rlLedBlink{0%,44%{opacity:1}50%,94%{opacity:.18}100%{opacity:1}}
@@ -195,7 +177,6 @@
   @property --rlA{syntax:'<angle>';inherits:false;initial-value:0deg}
   @keyframes rlEnhSpin{to{--rlA:360deg}}
   .rlEnhRing{position:absolute;inset:0;border-radius:7px;padding:1px;pointer-events:none;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
-  .rlEnhTRing{position:absolute;inset:0;border-radius:4px;padding:1px;pointer-events:none;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
   .rlEnhSpin1{background:conic-gradient(from var(--rlA),rgba(204,162,110,0) 0deg,rgba(204,162,110,0) 250deg,rgba(255,214,150,.95) 330deg,rgba(204,162,110,0) 360deg);animation:rlEnhSpin 3.2s linear infinite}
   .rlEnhSpinR{background:conic-gradient(from var(--rlA),rgba(196,103,93,0) 0deg,rgba(255,140,120,1) 40deg,rgba(196,103,93,0) 90deg,rgba(196,103,93,0) 180deg,rgba(255,140,120,1) 220deg,rgba(196,103,93,0) 270deg);animation:rlEnhSpin 2.4s linear infinite}
   .rlEnhPrism{background:conic-gradient(from var(--rlA),#F4B3CB,#F3D7A2,#BFEFCB,#A6D9F3,#C8B3F2,#F4B3CB);animation:rlEnhSpin 3s linear infinite}
@@ -208,7 +189,6 @@
   /* [+N] 태그 교체 글리치 — 옛 값이 떨리며 사라지고 새 값이 겹쳐 자리 잡는다(1회) */
   @keyframes rlEnhGOut{0%{opacity:1;transform:none}10%{transform:translateX(-3px);text-shadow:2px 0 rgba(196,103,93,.8),-2px 0 rgba(124,165,187,.8)}20%{opacity:.4;transform:translateX(2px)}35%{opacity:.9;transform:translateX(-1px)}50%{opacity:.2;transform:translateX(3px)}65%{opacity:.6}80%,100%{opacity:0}}
   @keyframes rlEnhGIn{0%{opacity:0}10%{opacity:.5;transform:translateX(3px);text-shadow:-2px 0 rgba(196,103,93,.8),2px 0 rgba(124,165,187,.8)}25%{opacity:.1}40%{opacity:.8;transform:translateX(-2px)}55%{opacity:.3;transform:translateX(1px)}70%{opacity:1;transform:translateX(-1px)}85%,100%{opacity:1;transform:none;text-shadow:none}}
-  @keyframes rlEnhScan{from{top:-60px}to{top:100%}}
   .rlGlitch{position:relative;display:inline-block;animation:rlGJit 6.2s steps(1) infinite}
   .rlGlitch::before,.rlGlitch::after{content:attr(data-t);position:absolute;left:0;top:0;width:100%;overflow:hidden;white-space:inherit;pointer-events:none;clip-path:inset(0 0 100% 0)}
   .rlGlitch::before{color:rgba(196,103,93,.8);animation:rlGSlA 5.3s steps(1) infinite;animation-delay:inherit}
@@ -345,6 +325,16 @@ const flipBackS=(flat,flipped,img)=>{ const art=img?{background:T.s2,backgroundI
   return flat?{position:'absolute',inset:0,...art}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'translateZ(-1px)',visibility:flipped?'hidden':'visible',transition:'visibility 0s linear .275s',...art}; };
 const flipFrontS=(flat,flipped,exFlat,ex3d)=>flat?{position:'absolute',inset:0,background:'#18191d',borderRadius:8,overflow:'hidden',...(exFlat||{})}:{position:'absolute',inset:0,backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',transform:'rotateY(180deg) translateZ(1px)',visibility:flipped?'visible':'hidden',transition:'visibility 0s linear .275s',background:'#18191d',borderRadius:8,overflow:'hidden',...(ex3d||exFlat||{})};
 // 셰이더 컴파일+링크 → program(실패 시 null) · attr0 = 0번 attribute로 묶을 이름(선택). WebGL 연출 10곳 공용.
+// 대기 중(프레임 루프가 멈춘) 캔버스 지킴이 — 화면에서 빠졌는지 2초마다 보고, 빠졌으면 WebGL 컨텍스트를 돌려준다(11-12).
+//   회수 코드는 frame() 안에 있는데 대기 중엔 frame이 안 돌아, 강화 연출을 닫을 때마다 컨텍스트가 2~3개씩 남았다(브라우저 상한 ≈16).
+const glIdleWatch=(canvas,gl,idleKey)=>{
+  if(canvas._idleW) return;
+  canvas._idleW=setInterval(()=>{
+    if(canvas.isConnected && canvas[idleKey]) return;   // 아직 화면에 있고 쉬는 중 — 계속 지켜본다
+    clearInterval(canvas._idleW); canvas._idleW=0;
+    if(!canvas.isConnected){ try{ const e=gl.getExtension('WEBGL_lose_context'); if(e) e.loseContext(); }catch(_){} }
+  }, 2000);
+};
 const glProgram=(gl,vert,frag,attr0)=>{ const sh=(t,src)=>{ const o=gl.createShader(t); gl.shaderSource(o,src); gl.compileShader(o); return o; };
   const p=gl.createProgram(); gl.attachShader(p,sh(gl.VERTEX_SHADER,vert)); gl.attachShader(p,sh(gl.FRAGMENT_SHADER,frag)); if(attr0) gl.bindAttribLocation(p,0,attr0); gl.linkProgram(p);
   return gl.getProgramParameter(p,gl.LINK_STATUS)?p:null; };
@@ -367,25 +357,6 @@ const PRISM='linear-gradient(100deg,#e7d3a8,#a9d6e0 35%,#c9b5ea 65%,#e9c3a4)';
 const ATTR = { bleed:{kr:'출혈',c:T.bleed}, stun:{kr:'기절',c:T.stun}, pierce:{kr:'관통',c:T.pierce}, rupture:{kr:'파열',c:T.rupture}, shock:{kr:'감전',c:T.shock}, sever:{kr:'절단',c:T.mid} };
 // safe lookup — items/monsters may carry an Attribute like "none" or a value absent from the map
 const AT = (x)=> (x && ATTR[x]) ? ATTR[x] : null;
-// 장비 박스 슬롯 표시 순서(gs.equip 키 ↔ 카테고리 라벨). 미착용도 자리를 지킨다.
-// 캐릭터 화면 장비 슬롯 아이콘 — svg/screen_character_icon.svg에서 32x32 셀 기준으로 추출(2026-08-26).
-// 각 항목 = [패스 d, evenodd 여부]. 색은 gearIcon()이 착용 여부로 정한다.
-const GEAR_ICONS = {
-  weapon:[["M 23 8.52 L 22.28 11.18 C 21.69 11.37 20.85 11.62 20.77 12.36 C 20.75 12.62 20.89 13.21 20.78 13.36 C 20.72 13.45 19.83 13.51 19.55 13.83 C 19.13 14.31 19.52 14.91 19.36 15.14 C 19.29 15.24 18.42 15.26 18.1 15.67 C 17.8 16.06 18.02 16.4 17.92 16.81 C 17.21 16.91 16.72 17.27 16.23 17.77 C 16.14 17.87 16.18 18.02 15.99 17.91 C 15.76 17.79 15.4 17.24 15.15 17.07 L 16.69 15.42 C 16.76 15.19 16.61 15.14 16.44 15.28 C 16.1 15.56 15.38 16.35 15.07 16.7 C 15.02 16.75 14.98 16.81 14.98 16.87 C 14.63 16.64 14.35 16.31 14.04 16 C 14.99 15.17 15.87 14.25 16.65 13.26 C 17.19 12.58 17.65 11.84 18.22 11.19 C 19.46 9.75 21.03 8.6 23 8.52 Z"],["M 12.58 15.43 C 12.82 15.37 13.04 15.43 13.23 15.58 L 16.52 18.78 C 16.92 19.21 16.42 19.93 15.88 19.59 L 12.31 16.18 C 12.17 15.92 12.27 15.5 12.58 15.43 L 12.58 15.43 Z"],["M 13.01 17.21 L 14.93 19.03 C 14.81 19.11 14.65 19.37 14.54 19.43 C 14.4 19.5 13.86 18.93 13.7 18.81 C 13.52 18.67 12.54 18.06 12.51 18 C 12.4 17.83 12.93 17.39 13.01 17.21 L 13.01 17.21 Z"],["M 12.3 18.17 C 12.5 18.12 14.1 19.39 14.32 19.65 C 14.13 19.77 13.81 20.31 13.6 20.21 C 13.04 19.69 12.4 19.27 11.76 18.86 L 12.3 18.17 Z"],["M 11.63 19.07 L 13.46 20.35 C 13.51 20.41 13.48 20.46 13.46 20.52 C 13.42 20.61 12.91 21.1 12.82 21.05 C 12.59 20.94 12.18 20.51 11.92 20.33 C 11.8 20.25 11.1 19.87 11.09 19.81 L 11.63 19.07 V 19.07 Z"],["M 12.7 21.19 C 12.73 21.27 12.68 21.29 12.65 21.33 C 12.59 21.42 12.02 21.98 11.96 21.97 C 11.84 21.71 10.41 20.82 10.43 20.72 C 10.44 20.66 10.9 20.01 11 20.02 L 12.7 21.19 L 12.7 21.19 Z"],["M 9.91 20.98 C 10.35 20.91 10.94 21.41 11.28 21.7 C 11.69 22.04 12.08 22.23 11.86 22.83 C 11.49 23.85 10.26 23.46 9.57 23.03 C 8.62 22.44 8.94 21.14 9.91 20.98 L 9.91 20.98 Z"]],
-  body:[["M 15.91 14.72 C 15.9 14.77 15.82 14.8 15.77 14.81 C 15.48 14.86 14.78 14.82 14.44 14.81 C 13.88 14.79 12.51 14.75 12.03 14.56 C 11.5 14.36 11.58 13.45 11.33 13.01 C 11.08 13.23 11.5 14.29 11.42 14.4 C 11.13 14.3 9.89 13.86 9.81 13.61 C 9.38 12.16 11.91 10.6 13.11 10.46 C 13.27 10.61 13.28 10.83 13.44 11 C 13.81 11.44 14.89 11.65 15.45 11.67 C 14.98 11.19 13.94 11.38 13.55 10.72 C 13.23 10.17 13.29 9.19 13.85 8.82 C 14.6 8.32 16.9 8.33 17.76 8.56 C 18.42 8.74 18.7 9.36 18.68 10.01 C 18.66 10.78 18.24 11.07 17.57 11.28 C 17.52 11.3 16.44 11.48 16.66 11.67 C 17.21 11.66 18.24 11.43 18.61 11 C 18.77 10.81 18.78 10.57 18.94 10.41 C 19.93 10.71 21.01 11.16 21.68 11.99 C 21.95 12.33 22.36 13.1 22.23 13.53 C 22.13 13.84 20.93 14.32 20.61 14.4 C 20.41 14.44 20.7 13.93 20.7 13.85 V 13.01 C 20.59 13.02 20.6 13.12 20.57 13.2 C 20.45 13.59 20.42 14.41 19.98 14.58 C 18.74 14.82 17.46 14.8 16.2 14.81 V 10.42 C 16.2 9.99 17.87 9.75 17.87 9.38 C 17.87 9.11 16.96 9.02 16.75 9 C 16.33 8.97 14.35 8.97 14.15 9.35 C 14.08 9.48 14.23 9.54 14.32 9.59 C 14.69 9.84 15.66 9.98 15.81 10.35 C 15.83 10.39 15.91 10.75 15.91 10.77 V 14.72 L 15.91 14.72 Z"],["M 11.3 17.36 C 10.79 17.33 9.23 16.85 8.98 16.42 C 8.61 15.77 9.15 14.32 9.72 13.88 C 10.28 14.3 10.95 14.46 11.56 14.75 C 11.24 15.6 11.04 16.46 11.3 17.36 Z"],["M 20.7 17.36 C 20.91 16.62 20.8 16 20.61 15.27 C 20.57 15.12 20.39 14.83 20.47 14.7 C 20.5 14.66 21.18 14.47 21.31 14.41 C 21.65 14.27 21.97 14.08 22.28 13.88 C 22.87 14.31 23.39 15.78 23.02 16.42 C 22.76 16.85 21.22 17.33 20.7 17.36 Z"],["M 15.91 17.86 C 15.9 17.91 15.82 17.93 15.77 17.94 C 15.52 17.99 14.95 17.95 14.67 17.95 C 14.12 17.93 13.43 17.89 12.89 17.83 C 12.63 17.8 11.85 17.68 11.7 17.5 C 11.25 16.95 11.44 15.35 11.92 14.81 C 12.54 14.91 13.18 15.01 13.81 15.04 C 14.44 15.07 15.14 14.97 15.72 15.04 C 15.77 15.04 15.91 15.06 15.91 15.13 V 17.86 L 15.91 17.86 Z"],["M 16.2 17.94 V 15.04 C 17.5 15.04 18.81 15.09 20.09 14.82 C 20.55 15.39 20.83 17.27 20.06 17.62 C 19.85 17.72 19.41 17.79 19.16 17.82 C 18.21 17.94 17.17 17.92 16.2 17.94 Z"],["M 11.35 17.66 C 11.43 17.75 11.13 18.51 11.1 18.7 C 10.99 19.21 11.03 19.63 11.07 20.15 C 10.37 20.07 9.16 19.92 8.59 19.48 C 8.03 19.04 8.29 17.92 8.54 17.34 C 8.63 17.16 8.79 16.71 9.05 16.81 C 9.3 16.91 9.59 17.13 9.89 17.25 C 10.36 17.44 10.86 17.55 11.35 17.66 V 17.66 Z"],["M 23.03 16.73 C 23.67 17.39 24.17 19.06 23.18 19.6 C 22.85 19.78 21.2 20.28 20.92 20.12 C 20.86 19.86 20.99 19.57 20.99 19.31 C 20.98 18.76 20.72 18.24 20.6 17.71 C 21.43 17.44 22.35 17.31 23.03 16.73 L 23.03 16.73 Z"],["M 16.2 20.96 V 18.18 C 17.27 18.18 18.34 18.2 19.39 18.05 C 19.56 18.03 20.14 17.84 20.21 17.85 C 20.49 17.88 20.7 19.11 20.7 19.37 C 20.71 20.67 19.96 20.73 18.88 20.85 C 18 20.94 17.09 20.92 16.2 20.96 H 16.2 Z"],["M 15.91 20.88 C 15.89 20.95 15.78 20.96 15.71 20.97 C 15.32 21.01 14.25 20.94 13.81 20.9 C 13.38 20.87 11.88 20.73 11.61 20.48 C 11.38 20.27 11.29 19.61 11.3 19.31 C 11.31 19.05 11.5 17.97 11.74 17.89 C 11.82 17.87 13 18.1 13.23 18.12 C 14.04 18.19 14.96 18.08 15.71 18.17 C 15.77 18.18 15.91 18.2 15.91 18.26 V 20.88 H 15.91 Z"],["M 10.77 22.34 C 10.56 22.56 9.74 22.45 9.44 22.41 C 8.75 22.32 8.15 22.25 8.03 21.44 C 7.94 20.77 8.07 20.22 8.36 19.63 C 8.71 19.8 9.04 19.99 9.41 20.11 C 9.69 20.19 11.11 20.42 11.16 20.5 C 11.21 20.57 11.18 20.66 11.17 20.74 C 11.15 20.95 10.85 22.25 10.77 22.34 Z"],["M 23.64 19.63 C 24.03 20.37 24.32 21.89 23.32 22.24 C 22.97 22.37 21.95 22.52 21.59 22.47 C 21.16 22.42 21.12 22.06 21.03 21.71 C 20.97 21.51 20.76 20.62 20.84 20.5 C 20.89 20.42 22.31 20.19 22.59 20.11 C 22.97 19.98 23.28 19.81 23.64 19.63 V 19.63 Z"],["M 15.91 21.19 V 23.49 C 15.91 23.55 15.77 23.57 15.71 23.58 C 15.35 23.62 14.61 23.55 14.21 23.52 C 13.64 23.47 11.99 23.3 11.61 22.92 C 11.23 22.53 11.21 20.88 11.63 20.8 C 11.67 20.79 12.29 20.98 12.44 21 C 13.58 21.18 14.76 21.2 15.91 21.19 Z"],["M 16.2 23.57 V 21.19 C 17.6 21.2 19.03 21.19 20.38 20.81 C 20.85 21.36 20.82 22.73 20.12 23.08 C 19.97 23.16 19.72 23.21 19.54 23.26 C 18.47 23.52 17.3 23.52 16.2 23.57 Z"],["M 10.49 22.65 C 10.65 23.62 9.57 23.47 8.95 23.31 C 8.4 23.16 8.54 22.99 8.53 22.47 C 9.17 22.58 9.86 22.8 10.49 22.65 Z"],["M 23.46 22.47 C 23.59 23.23 23.22 23.33 22.56 23.39 C 21.96 23.45 21.43 23.48 21.5 22.7 C 22.16 22.74 22.82 22.61 23.46 22.47 V 22.47 Z"]],
-  head:[["M 19.51 11.13 C 19.14 11.04 18.77 10.94 18.4 10.86 C 18.29 10.84 17.95 10.88 17.99 10.7 C 18.09 10.24 19.69 10.44 19.51 11.13 Z"],["M 11.49 16.99 C 11.59 15.59 11.98 14.05 12.85 12.92 C 13.95 11.49 15.91 10.88 17.67 11.01 C 17.92 11.03 18.66 11.15 18.85 11.25 C 19.25 11.45 19.82 12.42 19.99 12.83 C 20.59 14.3 20.61 16.78 20.3 18.33 C 20.29 18.39 20.28 18.44 20.21 18.47 C 17.5 17.44 14.41 15.86 11.49 16.99 V 16.99 Z"],["M 23.85 18.97 C 23.65 19.17 21.7 18.87 21.32 18.79 C 21.06 18.73 20.8 18.69 20.56 18.59 C 20.5 18.51 20.75 17 20.76 16.74 C 20.85 14.92 20.66 12.71 19.34 11.36 C 19.72 11.37 20.13 11.52 20.49 11.65 C 23.36 12.76 24.14 15.18 23.98 18.11 C 23.97 18.23 23.89 18.93 23.85 18.97 H 23.85 Z"],["M 8.44 19.55 C 8.67 19.23 9.01 19 9.32 18.76 C 11.8 16.89 12.82 16.45 15.98 17.22 C 17.34 17.55 18.49 18.14 19.78 18.63 C 20.14 18.76 20.52 18.85 20.87 19.01 C 19.84 20.1 18.28 21.46 16.72 21.55 C 15.3 21.63 14.06 20.39 12.85 19.81 C 11.46 19.13 9.88 18.87 8.44 19.55 L 8.44 19.55 Z"],["M 11.49 19.67 C 10.68 20.11 9.4 21.15 8.44 20.95 C 7.92 20.84 7.87 20.35 8.24 20.01 C 8.81 19.47 10.04 19.38 10.78 19.44 C 10.86 19.45 11.56 19.56 11.49 19.67 H 11.49 Z"]],
-  artifact1:[["M 18.8 9.78 C 18.46 10.19 17.6 9.62 17.96 9.12 C 18.33 8.6 19.25 9.25 18.8 9.78 Z"],["M 13.33 8.96 C 14.09 8.79 14.19 9.82 13.48 9.9 C 12.8 9.99 12.8 9.08 13.33 8.96 Z"],["M 17.64 9.12 C 17.65 9.15 17.7 9.59 17.68 9.62 C 17.66 9.66 17.1 10.12 17.06 10.13 C 16.82 10.18 15.07 10.18 14.83 10.13 C 14.71 10.11 14.16 9.63 14.15 9.54 C 14.15 9.51 14.18 9.14 14.19 9.12 C 14.2 9.1 14.34 9.07 14.38 9.07 C 15.08 8.98 16.62 9 17.34 9.06 C 17.41 9.06 17.62 9.08 17.64 9.12 Z"],["M 14 9.8 C 14.15 9.76 14.46 10.19 14.62 10.28 C 14.55 10.77 14.77 12.42 14.58 12.75 C 14.54 12.83 14 13.34 13.94 13.33 C 13.81 13.19 13.34 13.2 13.3 13.08 C 13.37 12.2 13.18 11.12 13.29 10.27 C 13.32 9.97 13.5 10.13 13.72 10.03 C 13.83 9.99 13.92 9.82 14 9.8 V 9.8 Z"],["M 18.54 10.07 C 18.46 10.45 18.65 13.06 18.54 13.17 C 18.53 13.18 18.31 13.16 18.2 13.19 C 18.11 13.22 17.96 13.39 17.9 13.38 C 17.84 13.38 17.3 12.78 17.21 12.68 L 17.2 10.33 C 17.22 10.26 17.69 9.81 17.74 9.8 C 17.88 9.76 18.24 10.24 18.54 10.07 Z"],["M 13.06 12.27 C 13.13 12.32 13.14 12.97 13.12 13.08 C 13.09 13.26 12.79 13.39 12.74 13.72 C 12.72 13.9 12.84 14.18 12.81 14.24 C 12.79 14.3 11.95 14.77 11.79 14.89 C 9.42 16.68 9.81 19.37 12.23 20.85 C 14.07 21.97 16.44 22.17 18.47 21.51 C 21.93 20.4 23.22 16.86 19.86 14.63 C 19.72 14.54 19.13 14.27 19.11 14.23 C 19.05 14.14 19.3 13.74 18.99 13.37 C 18.93 13.29 18.79 13.23 18.78 13.21 C 18.74 13.14 18.75 12.39 18.81 12.3 C 18.92 12.15 19.48 12.44 19.62 12.5 C 23.09 14.03 24.27 18.49 21.34 21.19 C 18.65 23.67 13.62 23.69 10.86 21.33 C 7.44 18.4 9.06 13.47 13.06 12.27 H 13.06 Z"],["M 17.7 14.01 H 14.19 C 14.22 13.88 14.12 13.71 14.13 13.59 C 14.13 13.52 14.7 12.87 14.78 12.84 L 17 12.83 C 17.09 12.85 17.7 13.43 17.73 13.51 C 17.8 13.66 17.67 13.85 17.7 14.01 H 17.7 Z"],["M 18.36 13.35 C 19.11 13.21 19.13 14.35 18.4 14.35 C 17.79 14.35 17.75 13.47 18.36 13.35 Z"],["M 13.45 14.36 C 13.73 14.36 13.96 14.13 13.96 13.85 C 13.96 13.56 13.73 13.34 13.45 13.34 C 13.17 13.34 12.95 13.56 12.95 13.85 C 12.95 14.13 13.17 14.36 13.45 14.36 Z"],["M 18.65 14.47 C 18.64 14.79 18.41 14.89 18.13 14.92 C 16.72 15.05 15.13 14.82 13.71 14.92 C 13.47 14.89 13.22 14.75 13.18 14.49 C 13.56 14.56 13.82 14.51 14.1 14.24 C 15.21 14.36 16.61 14.09 17.68 14.24 C 17.97 14.28 18.27 14.71 18.65 14.46 V 14.47 Z"]],
-  artifact2:[["M 20.46 8.69 L 19.11 10.43 L 12.85 10.41 C 12.34 9.88 11.88 9.3 11.47 8.69 H 20.46 Z"],["M 11 8.77 L 12.48 10.69 L 11.07 12.27 C 10.85 12 9.18 10.98 9.16 10.78 L 11 8.77 V 8.77 Z"],["M 20.82 12.27 C 20.76 11.99 19.43 10.79 19.45 10.64 L 20.93 8.77 L 22.85 10.78 L 20.82 12.27 Z"],["M 12.9 10.97 L 19.05 10.96 C 19.57 11.41 19.99 12.01 20.5 12.5 L 20.53 19.39 C 20.46 19.82 19.37 20.62 19.08 21.01 L 13.03 21.04 C 12.46 20.65 12.01 20.06 11.5 19.58 L 11.47 12.61 C 11.5 12.44 12.74 11.02 12.89 10.97 H 12.9 Z"],["M 23 11.25 L 22.89 20.82 L 21.04 19.45 L 21.06 12.58 C 21.31 12.46 22.88 11.16 23 11.25 Z"],["M 9 20.9 V 11.25 L 10.4 12.21 L 10.94 12.69 V 19.38 C 10.37 19.96 9.67 20.44 9 20.9 H 9 Z"],["M 11.17 19.8 C 11.25 20.17 12.47 21.04 12.48 21.3 C 12.49 21.45 12.24 21.71 12.15 21.84 C 11.91 22.18 11.44 22.84 11.16 23.11 C 11.12 23.16 11.1 23.26 11 23.23 L 9.29 21.45 L 9.21 21.23 L 11.17 19.8 Z"],["M 22.78 21.19 C 22.81 21.3 22.75 21.31 22.71 21.37 C 22.62 21.51 22.3 21.85 22.17 21.99 C 22.03 22.14 21.08 23.14 21 23.16 C 20.81 23.19 19.63 21.56 19.46 21.3 L 20.86 19.82 L 22.78 21.19 L 22.78 21.19 Z"],["M 20.46 23.31 H 11.54 L 12.82 21.55 C 13.86 21.54 14.89 21.56 15.93 21.56 C 16.69 21.55 17.47 21.57 18.25 21.56 C 18.53 21.55 18.79 21.39 19.08 21.52 C 19.18 21.56 20.06 22.69 20.2 22.88 C 20.3 23 20.45 23.15 20.46 23.31 V 23.31 Z"]],
-  bag:[["M 18.13 8.67 C 18.1 8.7 17.45 8.6 17.41 8.58 C 17.34 8.54 17.27 8.29 17.2 8.19 C 16.57 7.35 14.82 7.47 14.6 8.6 C 14.44 8.56 13.85 8.74 13.83 8.58 C 13.82 8.49 14.03 8 14.09 7.89 C 14.95 6.25 18.04 6.66 18.13 8.67 V 8.67 Z"],["M 21.6 24.39 C 21.69 24.11 21.8 23.81 21.83 23.51 C 22.05 21.51 21.72 18.36 21.54 16.29 C 21.19 12.4 20.71 9.97 16.25 9.81 C 12.67 9.68 10.92 10.92 10.37 14.49 C 10.04 16.61 9.82 19.14 9.75 21.29 C 9.73 22.23 9.68 23.31 9.94 24.21 C 9.87 24.28 9.52 23.88 9.47 23.81 C 9.14 23.31 9.14 22.65 9.16 22.07 C 9.2 20.55 9.49 18.96 9.58 17.43 C 9.62 17.13 9.39 17.1 9.28 16.89 C 9.67 14.23 9.59 11.18 12.07 9.52 C 13.48 8.58 16.33 8.62 17.97 8.86 C 22.02 9.46 22.19 13.34 22.5 16.65 C 22.62 17.96 22.71 19.32 22.74 20.62 C 22.77 21.87 23.01 23.88 21.6 24.39 Z"],["M 21.6 21.95 C 21.57 19.77 21.38 17.13 21.12 14.97 C 20.64 11.02 19.02 9.85 15.07 10.13 C 11.64 10.38 10.95 12.19 10.55 15.28 C 10.25 17.53 9.93 20.62 10 22.86 C 10.01 23.53 10.11 24.42 10.79 24.71 C 11.72 25.12 14.49 25.12 15.59 25.12 C 16.71 25.12 19.84 25.13 20.76 24.73 C 21.71 24.3 21.62 22.85 21.6 21.95 V 21.95 Z M 14.6 13.15 L 14.68 12.7 C 14.7 12.54 14.84 12.43 15 12.43 H 16.68 C 16.84 12.43 16.97 12.54 17 12.7 L 17.07 13.15 C 17.1 13.35 16.95 13.53 16.75 13.53 H 14.92 C 14.72 13.53 14.57 13.35 14.6 13.15 H 14.6 Z M 20.34 22.43 C 20.16 23.37 19.46 23.68 18.58 23.73 C 17.03 23.83 14.49 23.86 12.96 23.73 C 12.27 23.67 11.59 23.4 11.37 22.68 C 11.13 21.89 11.2 19 11.32 18.1 C 11.43 17.27 12.06 17.01 12.8 16.94 C 14.39 16.79 17.14 16.81 18.76 16.92 C 20.55 17.05 20.28 17.97 20.34 19.37 C 20.38 20.31 20.51 21.49 20.34 22.43 V 22.43 Z"],["M 8.92 22.46 C 8.3 22.34 8.07 21.69 8.02 21.11 C 7.95 20.25 8.01 18.08 8.65 17.46 C 8.85 17.27 9.24 17.06 9.34 17.44 L 8.92 22.46 L 8.92 22.46 Z"],["M 11.64 19.27 H 20.01 C 20.17 19.27 20.05 18.96 20.04 18.88 C 20.02 17.96 20.06 17.35 18.94 17.22 C 16.94 17.33 14.81 17.09 12.83 17.22 C 12.25 17.26 11.77 17.43 11.63 18.05 C 11.58 18.25 11.46 19.22 11.64 19.27 V 19.27 Z"],["M 23.03 22.47 L 22.8 17.23 C 23.23 17.2 23.57 17.72 23.7 18.09 C 24 18.86 24.11 20.87 23.88 21.66 C 23.75 22.09 23.48 22.37 23.04 22.47 H 23.03 Z"],["M 20.01 19.57 H 13.05 V 20.81 C 13.05 21.06 12.21 21.11 12.21 20.87 V 19.57 C 12.06 19.6 11.62 19.49 11.56 19.67 C 11.7 21.09 10.92 23.27 12.95 23.43 C 14.83 23.58 16.91 23.32 18.81 23.42 C 19.32 23.36 19.82 23.16 19.99 22.62 C 20.02 22.53 20.1 22.14 20.1 22.07 V 19.67 C 20.1 19.66 20.02 19.57 20.01 19.57 V 19.57 Z"]]
-};
-// 장비 슬롯 칩 — svg/screen_character_icon.svg 실측: 외곽 34x34 r7(1px 보더) · 내부 32x32 r6 · 40px 피치(gap 6).
-// 착용 = 테두리·아이콘 #83B289 + 배경 #18191D / 미착용 = #36383C · #6F7276 + 배경 #212327.
-const gearIcon=(slot,on)=>{
-  const line=on?'#83B289':'#36383C', bg=on?'#18191D':'#212327', ic=on?'#83B289':'#6F7276';
-  return h('div',{style:{width:34,height:34,boxSizing:'border-box',border:'1px solid '+line,borderRadius:7,background:bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}},
-    h('svg',{width:32,height:32,viewBox:'0 0 32 32',fill:ic,style:{display:'block'}},
-      ...(GEAR_ICONS[slot]||[]).map((p,i)=>h('path',{key:i,d:p[0],fillRule:p[1]?'evenodd':undefined,clipRule:p[1]?'evenodd':undefined}))));
-};
 // 장착 칸 전체 — 장갑 hands·신발 feet 추가(2026-10-21). 칸 UI는 캐릭터 화면 charGear()가 그린다(소지품 화면엔 장비 섹션이 없다).
 // 가방별 '열린 모습' 그림(assets/art/ui/bagview/<BagID>.webp) — 칸 수가 클수록 그림도 커진다. 이 값은 그림의 기하(시트 수치가 아님)라 그림 옆에 둔다.
 //   ar = 높이/폭 · rect = 슬롯이 놓일 입구 안쪽 영역(그림 전체 대비 비율 [좌,우,위,아래]).
@@ -644,8 +615,8 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 147;
-const TITLE_DATE = '1110';
+const TITLE_VER = 148;
+const TITLE_DATE = '1112';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -689,7 +660,7 @@ const NPC_MENU_HIDE=['vendor_blackmarket'];
 const CDEV={W:768,TOP:42,BOT:356,SX:56,KEYS:{up:{x:183,y:92,w:84,h:78},down:{x:183,y:236,w:84,h:78},left:{x:111,y:164,w:78,h:84},right:{x:255,y:164,w:78,h:84},ok:{x:520,y:194,r:62},esc:{x:663,y:128,r:50}}};
 // 송곳니 게임(FANG · 확장_v3 §3.8) — fang.html을 iframe으로 띄운다 · 해금 = 바인더 열림 + 표본 5장 이상 · ★테스트 기간엔 전부 열림
 const CD_FACE=new Set(['vendor_tavern','vendor_clinic','vendor_hardware','vendor_canteen','vendor_blackmarket','vendor_pawnshop','vendor_auction']);   // 무전기 초상이 구워진 NPC(assets/art/npc_dither)
-const FANG_TEST_OPEN=true, FANG_MIN_CARDS=5, FANG_V='29';
+const FANG_TEST_OPEN=true, FANG_MIN_CARDS=5, FANG_V='30';
 const VALUABLE_SCAN_FRAG = '#version 300 es\nprecision highp float;uniform vec2 iResolution;uniform float iTime,uSpeed,uSweepSpeed,uSweepWidth,uSweepFalloff,uScale,uFrequency,uRipple,uBandDensity,uLineSharpness,uGlow,uColorSpread,uBrightness,uContrast,uSoftness,uVignette,uOpacity,uDirection;uniform vec3 uColor1,uColor2,uColor3;out vec4 fragColor;const float TAU=6.2831853;\nfloat signalField(vec2 p,float t){float w=sin(p.x*1.3+t*0.7);w+=sin(p.y*1.7-t*0.52)*0.8;w+=sin((p.x+p.y)*0.9+t*0.91)*0.6;w+=sin((p.x-p.y)*1.53-t*0.63)*0.42;return w*0.35;}\nvec3 palette(float f){f=clamp(f,0.0,1.0);f=pow(f,uContrast);vec3 c=mix(uColor1,uColor2,smoothstep(0.08,0.6,f));return mix(c,uColor3,smoothstep(0.68,1.0,f));}\nfloat scanBand(float x,float aa,float sharp){float v=mix(0.5,0.5+0.5*cos(x*TAU),aa);return pow(v,sharp);}\nvoid main(){vec2 uv0=(gl_FragCoord.xy*2.0-iResolution.xy)/iResolution.y;vec2 p=uv0/max(uScale,0.001);float t=iTime*uSpeed;float axis;if(uDirection<0.5)axis=p.y;else if(uDirection<1.5)axis=p.x;else axis=(p.x+p.y)*0.70710678;\nfloat sig=signalField(p*uFrequency,t);float coord=axis+sig*uRipple;float phase=coord/max(uSweepWidth,0.05)-t*uSweepSpeed;float sweep=pow(0.5+0.5*cos(phase*TAU),max(uSweepFalloff,0.1));\nfloat lc=coord*uBandDensity;float aa=clamp(1.0/(1.0+uSoftness*fwidth(lc)*3.0),0.0,1.0);float bb=clamp(0.5+0.5*sig,0.0,1.0);float body=bb*bb*uGlow*sweep;float sharp=max(uLineSharpness,0.1);float split=uColorSpread*0.16;\nfloat fr=clamp(scanBand(lc+split,aa,sharp)*sweep+body,0.0,1.0);float fg=clamp(scanBand(lc,aa,sharp)*sweep+body,0.0,1.0);float fb=clamp(scanBand(lc-split,aa,sharp)*sweep+body,0.0,1.0);\nvec3 col=vec3(palette(fr).r,palette(fg).g,palette(fb).b);float inten=(fr+fg+fb)*0.3333333*uBrightness;\ninten*=clamp(1.0-uVignette*smoothstep(0.55,1.65,length(uv0)),0.0,1.0);inten=clamp(inten,0.0,1.0);float a=clamp(inten*uOpacity,0.0,1.0);fragColor=vec4(clamp(col,0.0,1.0)*a,a);}';   // 귀중품 카드 이펙트 Scanner(mountValScan) — 스캔라인·그레인 끔(사용자 값)
 const QUEST_TUNNEL_FRAG = '#version 300 es\nprecision highp float;uniform vec2 uResolution;uniform vec2 uCenter;uniform float uScale;uniform float uRatio;uniform float uTime;uniform float uDrift;uniform vec2 uSteer;uniform float uBend;uniform float uCount;uniform float uSwing;uniform float uWave;uniform float uWidth;uniform float uPulseWidth;uniform float uHead;uniform float uTail;uniform float uChance;uniform float uSpacing;uniform float uPulseSpeed;uniform float uFlow;uniform float uHalo;uniform float uGlow;uniform float uBrightness;uniform float uVariance;uniform float uBody;uniform float uFadeNear;uniform float uFadeFar;uniform vec3 uCable;uniform vec3 uPulse;uniform vec3 uTunnel;uniform float uReveal;uniform float uGrain;uniform float uSeed;uniform float uOpacity;out vec4 outColor;const float TAU=6.2831853;\nfloat hash(float n){return fract(sin(n*127.1+uSeed*311.7)*43758.5453);}\nvec2 bendAt(float depth){float reach=1.0-exp(-max(depth,0.0)*0.55);vec2 wobble=vec2(sin(uDrift*0.37+depth*0.31),cos(uDrift*0.29+depth*0.23))*uBend;return (wobble+uSteer)*reach;}\nvoid main(){vec2 p=(gl_FragCoord.xy-0.5*uResolution-uCenter)/uScale;float depth=-log(max(length(p),1e-5));vec2 q=p;for(int i=0;i<4;i++){q=p-bendAt(depth);depth=-log(max(length(q),1e-5));}\nfloat r=length(q);float px=r*uScale;float turn=atan(q.y,q.x)/TAU;float s=turn-uSwing-uWave*sin(depth*1.2+uDrift*0.5);float cell=floor(s*uCount);float spacing=TAU*px/uCount;float near=smoothstep(0.55,1.25,r);float width=uWidth*(1.0+near*1.2);float soft=uRatio*(0.55+near*0.9);float tight=uRatio*uHalo*(1.0+near);float wide=tight*4.5;\nfloat lines=0.0;float body=0.0;vec3 glow=vec3(0.0);\nfor(int k=-3;k<=3;k++){float i=cell+float(k);float id=mod(i,uCount);float h1=hash(id);float h2=hash(id+17.0);float h3=hash(id+41.0);float h4=hash(id+73.0);float center=(i+0.5+(h1-0.5)*0.55)/uCount;center+=0.12*sin(depth*(0.8+h2*0.9)+uDrift*(0.4+h3*0.5)+h4*TAU)/uCount;float d=abs(s-center)*TAU*px;float shade=1.0+uVariance*(h3-0.5)*0.9;float reach=smoothstep(spacing*2.4,spacing*1.4,d);\nlines+=smoothstep(width+soft,width-soft,d)*shade;body+=exp(-d/max(spacing*0.22,0.001))*shade*reach;\nfloat x=depth*uSpacing+uTime*uPulseSpeed*(0.55+h2*0.6)*uFlow+h4*7.0;float lead=(fract(x)-0.5)/uSpacing*uFlow;float lit=step(hash(id*3.7+floor(x)*13.1),uChance);float limit=0.5/uSpacing;\nfloat head=exp(-pow(max(-lead,0.0)/uHead,2.0))*smoothstep(-limit,-limit*0.8,lead);float tail=exp(-max(lead,0.0)/uTail)*smoothstep(limit,limit*0.55,lead);float pulse=(lead<0.0?head:tail)*lit;float hot=pulse*(lead<0.0?1.0:exp(-max(lead,0.0)/(uTail*0.35)));\nfloat core=uPulseWidth*width+0.35*uRatio;float stroke=smoothstep(core+soft,core-soft,d);float bloom=(exp(-d/tight)*0.7+exp(-d/wide)*0.18)*uGlow*reach;vec3 tint=mix(uPulse,vec3(1.0),hot*0.55);glow+=tint*pulse*(stroke*1.5+bloom)*shade;}\nfloat lod=smoothstep(4.0,1.2,spacing);float average=min(2.0*uWidth/max(spacing,0.001),1.0);lines=mix(lines,average,lod);glow=mix(glow,uPulse*average*0.6*uChance,lod);body=mix(body,1.0,lod)*uBody;\nfloat rr=r*0.25;float fade=smoothstep(0.0,uFadeNear,rr)*smoothstep(uFadeFar,uFadeFar*0.55,rr);fade*=smoothstep(uReveal-0.6,uReveal,depth);\nfloat grain=1.0;if(uGrain>0.0){grain+=(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233))+uTime*7.0)*43758.5453)-0.5)*uGrain*4.0;}\nvec3 light=(uCable*lines*0.12+uTunnel*body*0.35+glow)*uBrightness*fade*grain;vec3 mapped=(1.0-exp(-light*1.4))*uOpacity;outColor=vec4(mapped,max(mapped.r,max(mapped.g,mapped.b)));}';   // 퀘스트 아이템 카드 이펙트(mountQuestTunnel)
 const MEET_AFTER = { monster_spore_gardener:'quest_story_c2_05' };   // 조우 연출 무전의 선행 퀘스트(storyMeetEvent)
@@ -911,9 +882,9 @@ class Component extends DCLogic {
   async componentDidMount(){
     document.addEventListener('contextmenu',e=>{ const t=e.target; if(!(t&&t.closest&&t.closest('textarea,input'))) e.preventDefault(); });   // 길게 누르기 메뉴(안드로이드·우클릭) 금지 — 입력칸 제외
     try{
-      const eng = await import('./engine.js?v=val141');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
-      const loader = await import('./sheet-loader.js?v=val83');
-      import('./hitfx.js?v=hfx3').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
+      const eng = await import('./engine.js?v=val142');       // engine.js 고칠 때마다 올릴 것 — 안 올리면 브라우저가 옛 모듈을 캐시에서 씀
+      const loader = await import('./sheet-loader.js?v=val84');
+      import('./hitfx.js?v=hfx4').then(m=>{ this.hfx=m; m.init(); }).catch(()=>{});   // 타격 파티클 레이어 — 없어도 전투는 그대로(배포 때 ?v= 함께 올릴 것)
       this.eng = eng; this.loader = loader; this.dataSrc = 'bundled';
       let savedLang='kr'; try{ savedLang=localStorage.getItem('rl_lang')||'kr'; }catch(_){}
       eng.setLang(savedLang); this.lang=savedLang;
@@ -983,12 +954,16 @@ class Component extends DCLogic {
     try{ const c=localStorage.getItem('rl_sheet_cache_v2'); if(c){ this.eng.setDATA(this.loader.shape(JSON.parse(c))); this.dataSrc='cache'; return 'cache'; } }catch(_){}
     this.dataSrc='bundled'; return 'bundled';   // 번들은 engine.js가 이미 기본값으로 물고 있다
   }
-  bootRetry(){ this.setState({bootStuck:false}); this._dataPromise=this.loadData();
-    this._bootWatch=setTimeout(()=>{ if(!this._bootReady) this.setState({bootStuck:true}); }, 12000); }
-  bootOffline(){ this.useFallbackData(); if(this._bootGo) this._bootGo('fallback'); this.setState({bootStuck:false}); }
+  bootRetry(){ this.setState({bootStuck:false}); const p=this._dataPromise=this.loadData();
+    p.then(()=>{ if(this._dataPromise===p && this._bootGo) this._bootGo('retry'); });   // 부팅은 처음 약속만 기다리고 있다 — 다시 시도가 끝나면 직접 깨운다(11-12)
+    clearTimeout(this._bootWatch); this._bootWatch=setTimeout(()=>{ if(!this._bootReady) this.setState({bootStuck:true}); }, 12000); }
+  bootOffline(){ this._loadGen=(this._loadGen||0)+1;   // 아직 돌고 있는 불러오기가 게임 도중 데이터를 갈아 끼우지 못하게
+    if(this.dataSrc!=='live' && this.dataSrc!=='live-partial') this.useFallbackData(); if(this._bootGo) this._bootGo('fallback'); this.setState({bootStuck:false}); }
   async loadData(){
+    const gen=this._loadGen=(this._loadGen||0)+1;   // 가장 최근 호출만 데이터를 건드린다 — 늦게 끝난 옛 호출이 새 데이터를 캐시로 덮던 것(11-12)
     try{
       const rows = await this.loader.fetchAllTabs();
+      if(gen!==this._loadGen) return this.dataSrc;
       const data = this.loader.shape(rows);
       this.eng.setDATA(data);
       // ⚠️ 일부 탭만 실패했을 땐 캐시를 갱신하지 않는다 — 반쪽 데이터를 캐시에 굳히면
@@ -1003,8 +978,8 @@ class Component extends DCLogic {
       this.dataSrc = this._skippedTabs.length ? 'live-partial' : 'live'; return 'live';
     }catch(e){
       console.warn('live sheet fetch failed, falling back', e);
-      try{ const c = localStorage.getItem('rl_sheet_cache_v2'); if(c){ this.eng.setDATA(this.loader.shape(JSON.parse(c))); this.dataSrc='cache'; return 'cache'; } }catch(_){}
-      this.dataSrc = 'bundled'; return 'bundled';
+      if(gen!==this._loadGen) return this.dataSrc;
+      return this.useFallbackData();
     }
   }
   clearCache(){ let n=0; try{ if(localStorage.getItem('rl_sheet_cache_v2')!=null){ localStorage.removeItem('rl_sheet_cache_v2'); n++; } }catch(_){}
@@ -1012,6 +987,7 @@ class Component extends DCLogic {
   async reloadSheet(){
     this.flash(this.t('data_sheet_loading'));
     const src = await this.loadData();
+    this._qAvail=null; this._qAvailSig=null; this._qToday=null; this._gotWatch=null;   // 옛 표로 만든 캐시
     const sv = this.readSave();
     if(sv) this.applySave(sv); else this.newRun(true);
     this.combat=null; this.go('safehouse');
@@ -1019,7 +995,7 @@ class Component extends DCLogic {
   }
   componentWillUnmount(){ if(this._t) clearInterval(this._t); if(this._hideT) clearInterval(this._hideT); if(this._crT) clearInterval(this._crT); if(this._cuT) clearInterval(this._cuT); if(this._daRT) clearInterval(this._daRT); if(this._daT) clearTimeout(this._daT); if(this._mdT) clearInterval(this._mdT); if(this._diskAnimT) clearTimeout(this._diskAnimT); }
   // ---------- save system (localStorage rl_save_v1 · 프로토콜 지구 기준점만 저장) ----------
-  saveObj(){ this.gs.epoch=this.saveEpoch(); return { v:1, savedAt:Date.now(), uidCounter:this.eng.getUidCounter(), gs:this.gs }; }
+  saveObj(){ this.gs.epoch=Math.max(this.eng.N(this.gs.epoch,0), this.saveEpoch()); return { v:1, savedAt:Date.now(), uidCounter:this.eng.getUidCounter(), gs:this.gs }; }
   inSortie(){ return !!this.combat; }
   writeSave(){ try{ localStorage.setItem('rl_save_v1', JSON.stringify(this.saveObj())); }catch(_){ } }   // 실제 기록 한 곳(saveGame·saveNow·이어쓰기 공용)
   saveGame(){
@@ -1053,12 +1029,19 @@ class Component extends DCLogic {
     // 무기 롤을 현재 범위로 다시 굴리고 HP는 비율을 보존한다. 옛 세이브에는 필드가 없으므로 1(개편 이전)로 본다.
     // ⚠️ 시트를 못 받아 '캐시'로 부팅한 날(구글 429)엔 판정하지 않는다 — 캐시는 전 탭이 성공할 때만 갱신돼 리워크 이전 것이 남아 있을 수 있고,
     // 그 데이터엔 balance_ver·Bonus 열이 없어 "버전이 내려갔다"로 오판 → 방어구 Bonus가 {}로 덮이고 무기 롤이 옛 범위로 재시드된 채 저장된다(2026-10-13).
-    const trusted=this.dataSrc!=='cache';
+    const trusted=this.dataSrc!=='cache' && this.dataSrc!=='bundled';   // 번들도 옛 데이터다 — 버전이 내려간 것으로 오판한다(11-12)
     const curVer=eng.balanceVer(), verChanged=trusted && eng.N(gs.balanceVer,1)!==curVer;
     const prevMaxHp=eng.N(gs.maxHp,0), prevHp=eng.N(gs.hp,prevMaxHp);
     // 방어: 현재 시트에 없는 id 인스턴스 제거 → 빈 장착 슬롯 null
     const known=(inst)=> !!(inst && inst.id && (eng.anyItem(inst.id) || (eng.byId.liquor&&eng.byId.liquor[inst.id]) || (eng.byId.module&&eng.byId.module[inst.id]) || (eng.byId.usb&&eng.byId.usb[inst.id])));
-    gs.bag=(gs.bag||[]).filter(known); gs.vault=(gs.vault||[]).filter(known);
+    // ★'모르는 id'는 시트를 온전히 받은 부팅(live)에서만 버린다(11-12). 캐시·번들·일부 탭 누락 부팅에선 그 id가
+    //   '그 사이 시트에 추가된 새 아이템'일 수 있다 — 예전엔 그대로 지워 저장했다(429 한 번에 새 장비 소실).
+    //   그런 날은 gs.limbo에 따로 두었다가, 다음 온전한 부팅에서 아는 것만 보관함으로 되돌린다(착용은 풀린 채).
+    { const limbo=Array.isArray(gs.limbo)?gs.limbo:[];
+      if(this.dataSrc==='live'){ limbo.filter(known).forEach(x=>{ delete x.loc; (gs.vault=gs.vault||[]).push(x); }); delete gs.limbo;
+        gs.bag=(gs.bag||[]).filter(known); gs.vault=(gs.vault||[]).filter(known); }
+      else { const keep=x=>{ if(known(x)) return true; if(x&&x.id) limbo.push(x); return false; };
+        gs.bag=(gs.bag||[]).filter(keep); gs.vault=(gs.vault||[]).filter(keep); if(limbo.length) gs.limbo=limbo; } }
     // 공용 재료·강화 재료 통합(2026-11-01 · 12·13번) — 옛 낱개(Item.VariantOf가 걸린 변형 행 ID) → 공용 ID + 그림 변형 v. 레시피·강화는 공용 ID만 센다.
     //   시트에 VariantOf가 없으면(옛 데이터·폴백) 아무것도 안 바뀐다. 진행 중인 스토리가 옛 낱개를 요구하던 경우(1-4 가죽·2-4 회로 기판)는 새 퀘스트 아이템으로 다시 줍는다.
     { const vmig=x=>{ const r=x&&eng.byId.item[x.id], p=r&&String(r.VariantOf||'').trim(); if(p&&p!=='-'&&eng.byId.item[p]){ x.v=x.id; x.id=p; } }; gs.bag.forEach(vmig); gs.vault.forEach(vmig); }
@@ -1126,6 +1109,7 @@ class Component extends DCLogic {
       disks:Array.isArray(H.disks)?H.disks:[], decode:Array.isArray(H.decode)?H.decode:[],
       craft:Array.isArray(H.craft)?H.craft:[], disa:(H.disa&&typeof H.disa==='object'&&H.disa.id)?H.disa:null,
       lv:Object.assign({storage:1,repair:1,workbench:1,terminal:1}, H.lv||{}),
+      ...(Array.isArray(H.tests)? {tests:H.tests.slice(-20)} : {}),   // 시험장 기록 — 빠뜨려서 앱을 다시 켤 때마다 사라졌다(11-12)
       ...(H.storTbl!=null? {storTbl:H.storTbl} : {}) };   // ★보관함 표 기준(6번) — 빠뜨리면 다음 로드 때 새 표 Lv2를 옛 Lv2로 오인해 Lv5로 옮긴다(11-01 배포 점검에서 발견)
     if(eng.storageTableSync) eng.storageTableSync(gs);   // 재구성한 뒤에도 한 번 더(옛 세이브에 storTbl이 없으면 여기서 기록)
     // shopStockAt 기본 0 — 옛 세이브는 재고가 영영 안 돌아오던 상태라, 다음 복귀에 바로 한 번 리셋되게 둔다
@@ -1192,8 +1176,7 @@ class Component extends DCLogic {
     EQ_SLOTS.forEach(s=>{ if(gs.equip[s]) this.moveToBag(gs.equip[s]); });
   }
   moveToBag(uid){ const i=this.gs.vault.findIndex(x=>x.uid===uid); if(i>=0){ const [it]=this.gs.vault.splice(i,1); this.gs.bag.push(it); } }
-  rest(){ const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=full.maxHp; this.gs.sta=this.staMax; this.saveGame(); }
-  go(screen){ if(this._t){clearInterval(this._t); this._t=null;} if(this._qT){clearInterval(this._qT); this._qT=null;} this._lastScroll=0; this._titleLock=false; clearTimeout(this._titleLockT); if(screen==='settings') this.requestGyroPerm(); this.setState({ screen, modalZone:null, sel:null, titleHidden:false }); if(screen==='safehouse') this.saveGame();
+  go(screen){ this._tutoSeg=null; if(this._t){clearInterval(this._t); this._t=null;} if(this._qT){clearInterval(this._qT); this._qT=null;} this._lastScroll=0; this._titleLock=false; clearTimeout(this._titleLockT); if(screen==='settings') this.requestGyroPerm(); this.setState({ screen, modalZone:null, sel:null, titleHidden:false }); if(screen==='safehouse') this.saveGame();
   }
   // 위치는 flash 시점(DOM이 안정된 상태)에 재둔다 — 렌더 중에 재면 시트가 아직 높이 0이라 빗나간다.
   flash(msg,warn){ this._toastAnc=this.toastAnchor(); clearTimeout(this._ft); clearTimeout(this._ftOut);
@@ -1213,14 +1196,6 @@ class Component extends DCLogic {
   hideToast(){ if(!this.state.toast) return; clearTimeout(this._ft); clearTimeout(this._ftOut); this.setState({toast:null,toastOut:false}); }
 
   // ---------- sortie / combat ----------
-  zonePool(zoneId){
-    const direct=this.eng.DATA.monsters.filter(m=>String(m.SpawnZones||'').split(',').map(s=>s.trim()).includes(zoneId));
-    if(direct.length) return direct;
-    // no explicit pool (e.g. hidden zone) -> auto-populate from the same city's monsters
-    const z=this.eng.byId.zone[zoneId];
-    if(z){ const pool=this.eng.DATA.monsters.filter(m=>String(m.SpawnZones||'').split(',').some(s=>{ const zz=this.eng.byId.zone[s.trim()]; return zz&&zz.CityID===z.CityID; })); if(pool.length) return pool; }
-    return this.eng.DATA.monsters;
-  }
   hasItem(id){ return this.gs.vault.some(x=>x.id===id)||this.gs.bag.some(x=>x.id===id); }
   itemQty(id){ const n=(a)=>a.reduce((s,x)=>s+(x.id===id?(x.qty||1):0),0); return n(this.gs.bag)+n(this.gs.vault); }
   consumeItem(id){ const dec=(arr)=>{ const i=arr.findIndex(x=>x.id===id); if(i<0) return false; if(arr[i].qty>1) arr[i].qty--; else arr.splice(i,1); return true; }; return dec(this.gs.bag)||dec(this.gs.vault); }
@@ -1333,7 +1308,8 @@ class Component extends DCLogic {
     n.style.cssText='position:absolute;left:'+x+'px;top:'+y+'px;white-space:nowrap;line-height:1;font-family:"Jacquarda Bastarda 9",'+T.mono+';font-weight:800;opacity:0;will-change:transform,opacity;font-size:'+sz+'px;color:'+col;
     n.style.textShadow=this.numOutline(sz,fx.dot?'#FF6E62':'#FFFFFF')+(fx.dot?',0 0 8px rgba(255,72,60,.95),0 0 18px rgba(255,40,40,.55)':'')+(fx.crit?',0 0 12px rgba(255,210,74,.95),0 0 26px rgba(255,170,40,.6)':'')+(fx.expo&&!fx.crit?',0 0 8px #7CA5BB':'')+',0 0 6px rgba(0,0,0,.85),0 0 16px rgba(0,0,0,.6),0 4px 10px rgba(0,0,0,.75)';   // 흰 외곽선 2p(출혈 = 밝은 빨강 외곽선 + 붉은 빛 · 10-28) · 2px + 어두운 번짐(밝은·붉은 그림 위에서도 뜨게)
     L.appendChild(n); const a=this.numAnim(fx,target==='player'); const an=n.animate(a.fr,{duration:a.D,fill:'forwards'});
-    if(fx.dot) n.animate([{color:'#FFFFFF',offset:0},{color:'#FFFFFF',offset:.5},{color:'#E0473F',offset:.5},{color:'#E0473F',offset:1}],{duration:200,iterations:Math.ceil(a.D/200)});   // 출혈 = 흰↔빨강 반짝임(0.1초씩 · 10-28) · 테두리는 밝은 빨강 고정 an.onfinish=()=>n.remove(); setTimeout(()=>{ if(n.isConnected) n.remove(); },a.D+400);
+    if(fx.dot) n.animate([{color:'#FFFFFF',offset:0},{color:'#FFFFFF',offset:.5},{color:'#E0473F',offset:.5},{color:'#E0473F',offset:1}],{duration:200,iterations:Math.ceil(a.D/200)});   // 출혈 = 흰↔빨강 반짝임(0.1초씩 · 10-28) · 테두리는 밝은 빨강 고정
+    an.onfinish=()=>n.remove(); setTimeout(()=>{ if(n.isConnected) n.remove(); },a.D+400);   // ★한 줄 위 주석 뒤에 붙어 실행되지 않던 것(11-12) — 숫자 노드가 전투 내내 쌓였다
   }catch(e){} }
   // 감전 숫자(10-28 확정) — 글자 #79D684 · 테두리 먹색 #0B0D0C · 처음 35%(0.45초)는 툭툭 끊기는 글리치(좌우·세로·기울기) + 흰/초록 잔상이 가로 띠로 찢김 → 위로 떠오르며 사라짐.
   shockPop(L,x,y,sz,fx){ const D=1300, GL=.35, steps=14, txt='-'+Math.round(fx.dmg);
@@ -1394,6 +1370,7 @@ class Component extends DCLogic {
     // 파열: 맞은 쪽(공격력 깎인 쪽) 카드에 보라 덮개·테두리 맥동(스택=진하기), 순간 보라 번쩍임+흔들림, 공속 게이지 보라. 아트는 건드리지 않는다.
     // 관통(약점 노출): 노출된 카드에 청회색 덮개·테두리 맥동(스택=진하기), 발동 순간 푸른 번쩍임. 노출 중인 카드를 때리면 숫자에 푸른 빛 + 카드 테두리 번쩍. (조준선 아이콘 없음)
     // 스택형 디버프(파열 → c.ruptures · 관통 → c.pierces) — 대상·지속(재생 배속 반영)·스택을 기록하고 끝날 때 다시 그린다. 둘 다 같은 규칙.
+    if(ln && ln.type==='status' && ln.aff==='immune') return;   // 무효(상성 0)로 막힌 줄 — 로그 한 줄만, 카드 연출·덮개는 없다(11-12 · 기계에 출혈 상처가 그려지던 것)
     if(ln && ln.type==='status' && (ln.status==='rupture'||ln.status==='pierce')){
       const tg=ln.who==='player'?'monster':'player', key=ln.status==='rupture'?'ruptures':'pierces';
       const sc=this.eng.N(this.eng.DATA.config.combat_playback_scale,0), ms=(ln.dur||3)*1000*(sc>0?sc:0.5);
@@ -1643,14 +1620,14 @@ class Component extends DCLogic {
   goAfterRaid(){ this.go('inventory'); this.setState({seg:'bag',filter:'전체'}); }
   // 귀환 실패(사망) 뒤 착지 = 보건소 치료. 가방이 통째로 사라진 뒤라 소지품을 보여줄 이유가 없고,
   // 다음 레이드 전에 반드시 거쳐야 하는 곳으로 바로 보낸다.
-  toClinicHeal(){ const r=this.endSortie(); this.combat=null;
+  toClinicHeal(){ const r=this.endSortie(); this.combat=null; this.saveNow();   // ★레이드 결과 확정 저장(11-12) — 예전엔 다음 저장 계기 전에 앱을 닫으면 레이드 전으로 돌아갔다
     if(this._t){ clearInterval(this._t); this._t=null; }
     this._healDone=false; this._feedDone=false;
     this.setState({screen:'vendor', vendor:'vendor_clinic', vtab:'heal', sel:null, repairSel:null, repairMode:null, modalZone:null, apr:null, mod:null});
     if(r) this.flashRestock(); }
   // 귀환 성공 → 회복 스테이션(S5-3). 배너에 쓸 존 ID를 combat 정리 전에 챙겨둔다.
-  toReturnHeal(){ { const sq=this.storyDirectReport(); if(sq){ const r=this.endSortie(); this.combat=null; this.openVendor(String(sq.GiverVendorID)); if(r) this.flashRestock(); return; } }   // 3번: 회복 스테이션 없이 보건소 완료 대화로
-    const r=this.endSortie(); this._retZoneId=(this.combat&&this.combat.zoneId)||null; this.combat=null; this._retHealing=false; this.go('returnheal'); if(r) this.flashRestock(); }
+  toReturnHeal(){ { const sq=this.storyDirectReport(); if(sq){ const r=this.endSortie(); this.combat=null; this.saveNow(); this.openVendor(String(sq.GiverVendorID)); if(r) this.flashRestock(); return; } }   // 3번: 회복 스테이션 없이 보건소 완료 대화로
+    const r=this.endSortie(); this._retZoneId=(this.combat&&this.combat.zoneId)||null; this.combat=null; this.saveNow(); this._retHealing=false; this.go('returnheal'); if(r) this.flashRestock(); }
 
   // ---------- inventory ----------
   medicineMax(){ return this.eng.N(this.eng.DATA.config.medicine_slot_default,5); }
@@ -1676,13 +1653,10 @@ class Component extends DCLogic {
     if(inV>=0){ const it=this.gs.vault[inV];
       // 스택 아이템이고 소지품에 같은 더미가 있으면 거기 병합(새 칸 안 먹음)
       const hasDump=this.maxStack(it.id)>1 && this.gs.bag.some(x=>x.id===it.id && !this.isEquipped(x.uid));
-      if(hasDump){ this.gs.vault.splice(inV,1); this.stackAdd(this.gs.bag,it.id,it.qty||1,{unappraisedMult:it.unappraisedMult, rareZone:it.rareZone}); }
+      if(hasDump){ if(!this.moveStack(uid, it.qty||1, true)) return; }   // 같은 더미에 합치기 — 남는 수량이 새 칸을 먹으면 자리 확인(moveStack과 같은 규칙)
       else {
         // 새 칸 필요: 배낭(착용 가방 용량) 우선 → 없으면 주머니 2칸 → 둘 다 가득이면 거부.
-        const bagCap=this.eng.equippedBagCapacity?this.eng.equippedBagCapacity(this.gs):0;
-        const bagUsed=this.gs.bag.filter(x=>!this.isEquipped(x.uid)&&x.loc!=='pocket').length;
-        const pkUsed=this.gs.bag.filter(x=>!this.isEquipped(x.uid)&&x.loc==='pocket').length;
-        const loc = bagUsed<bagCap ? 'bag' : ((pkUsed<2 && this.canPocket(it)) ? 'pocket' : null);
+        const loc=this.bagNewLoc(it);
         if(!loc){ this.flash(this.canPocket(it) ? (this.en()?'Bag & pocket full':'가방·주머니 가득 참') : this.noPocketMsg()); return; }
         this.gs.vault.splice(inV,1); it.loc=loc; this.gs.bag.push(it);
       } }
@@ -1691,27 +1665,45 @@ class Component extends DCLogic {
       // equip.bag이 금고 안 인스턴스를 계속 가리켜(유령 착용) 배낭 용량이 살아 있고 사망 시 소멸도 안 된다.
       if(this.gs.bag[inB].kind==='bag' && this.isEquipped(uid)){ this.gearOff(this.gs.bag[inB]); return; }
       // 착용 중인 장비는 금고로 보낼 수 없다 — 옮기면 자동 해제
-      if(this.isEquipped(uid)){ const e=this.gs.equip; EQ_GEAR.forEach(s=>{ if(e[s]===uid) e[s]=null; }); const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp); }
-      // 금고 자리 확인 — 스택으로 합쳐지면 칸을 안 먹으므로 그때만 통과시킨다.
+      // 금고 자리 확인 — 스택으로 합쳐지면 칸을 안 먹으므로 그때만 통과시킨다. ★착용 해제보다 먼저(11-12 — 가득 차 거부됐는데 장비만 벗겨지던 것)
       if(this.vaultSlotsForInsts([this.gs.bag[inB]]) > this.vaultRoom()){ this.vaultFullMsg(); return; }
+      if(this.isEquipped(uid)){ const e=this.gs.equip; EQ_GEAR.forEach(s=>{ if(e[s]===uid) e[s]=null; }); const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp); }
       const [it]=this.gs.bag.splice(inB,1); if(!merge(this.gs.vault,it)) this.gs.vault.push(it);
     } }
     this.saveGame();
     this.forceUpdate();
   }
   // ---------- move / vendor helpers ----------
-  moveStack(uid, n){
+  // 보관함 → 소지품에 새 칸이 필요할 때 들어갈 곳: 배낭 우선 → 주머니 2칸 → 없으면 null
+  bagNewLoc(it){
+    const bagCap=this.eng.equippedBagCapacity(this.gs);
+    const bagUsed=this.gs.bag.filter(x=>!this.isEquipped(x.uid)&&x.loc!=='pocket').length;
+    const pkUsed=this.gs.bag.filter(x=>!this.isEquipped(x.uid)&&x.loc==='pocket').length;
+    return bagUsed<bagCap ? 'bag' : ((pkUsed<2 && this.canPocket(it)) ? 'pocket' : null);
+  }
+  // n개 옮기기(whole = 더미 전체를 합치러 온 moveItem 경로). 옮겼으면 true.
+  // ★자리 확인(11-12): 예전엔 일부 이동·합치기가 칸 수를 안 봐서 가방 9/8·보관함 41/40이 됐다.
+  moveStack(uid, n, whole){
     const inVault=this.gs.vault.some(x=>x.uid===uid);
     const src=inVault?this.gs.vault:this.gs.bag, dst=inVault?this.gs.bag:this.gs.vault;
     const i=src.findIndex(x=>x.uid===uid); if(i<0) return;
     const inst=src[i]; const total=inst.qty||1;
     n=Math.max(1,Math.min(n||total,total));
     if(inVault){ const cap=this.slotRoomFor(inst); if(cap){ if(cap.room<=0){ this.flash(cap.label+(this.en()?(' slots full ('+cap.max+')'):(' 소지 한도 '+cap.max+'개'))); return; } n=Math.min(n,cap.room); } }
-    if(n>=total){ this.moveItem(uid); return; }
-    inst.qty-=n;
-    this.stackAdd(dst, inst.id, n, {unappraisedMult:inst.unappraisedMult, rareZone:inst.rareZone});
+    if(n>=total && !whole){ this.moveItem(uid); return; }
+    let loc=null;
+    if(inVault){   // 소지품 쪽: 기존 더미의 빈자리로 모자라면 새 칸 1개 — 없으면 들어가는 만큼만
+      const m=this.maxStack(inst.id), free=this.gs.bag.filter(x=>x.id===inst.id&&!this.isEquipped(x.uid)).reduce((s,x)=>s+Math.max(0,m-(x.qty||1)),0);
+      if(n>free){ loc=this.bagNewLoc(inst); if(!loc){ if(free<=0){ this.flash(this.canPocket(inst) ? (this.en()?'Bag & pocket full':'가방·주머니 가득 참') : this.noPocketMsg()); return false; } n=free; } }
+    } else if(this.vaultSlotsNeeded(inst.id,n) > this.vaultRoom()){ this.vaultFullMsg(); return false; }
+    const had=new Set(dst);
+    if(n>=total) src.splice(i,1); else inst.qty-=n;
+    const made=this.stackAdd(dst, inst.id, n, {unappraisedMult:inst.unappraisedMult, rareZone:inst.rareZone, v:inst.v});
+    if(loc==='pocket') made.forEach(x=>{ if(!had.has(x)) x.loc='pocket'; });
+    if(whole) return true;   // moveItem이 저장·다시 그리기를 맡는다
     this.saveGame();
     this.forceUpdate();
+    return true;
   }
   services(v){ const list=String((v&&(v.Services_EN||v.Services))||'').split(',').map(s=>s.trim()).filter(Boolean); if(v&&v.ShopID==='shop_canteen'&&!list.includes('Feed')&&!list.includes('Distribute')) list.push('Feed'); return list; }
   tx(row,base){ return this.eng?this.eng.tr(row,base):''; }
@@ -1842,7 +1834,7 @@ class Component extends DCLogic {
     if(!ctx||!buf||this._sfxOff) return;
     // ★suspended인 채로 start()하면 시계가 안 돌아 소리가 묻힌다. 제스처 직후 첫 소리가 여기 걸린다
     //   — resume()은 Promise라 touchstart에서 걸어도 몇 ms 뒤 재생 시점엔 아직 안 끝났을 수 있다.
-    if(ctx.state==='suspended' && ctx.resume){
+    if(ctx.state!=='running' && ctx.state!=='closed' && ctx.resume){   // suspended + iOS 'interrupted'(전화·시리 뒤)
       try{ ctx.resume().then(()=>this.sfxFire(name,o,buf)).catch(()=>{}); }catch(_){ }
       return; }
     this.sfxFire(name,o,buf); }
@@ -1858,7 +1850,7 @@ class Component extends DCLogic {
   // 루프 한 줄 — 손잡이 {set(gain,rate,cut), stop(ms)} 반환. 버퍼가 없거나 소리 꺼짐이면 null(호출부는 조용히 생략).
   //   loopStart/End로 파일 양끝 50ms를 피한다(인코더 앞뒤 패딩이 이음매에 끼지 않게). cut = 로우패스 주파수(Hz · 음색이 점점 열린다).
   sfxLoop(name,o){ o=o||{}; const ctx=this._ac, buf=this._sfxBufs&&this._sfxBufs[name]; if(!ctx||!buf||this._sfxOff) return null;
-    try{ if(ctx.state==='suspended'&&ctx.resume) ctx.resume();
+    try{ if(ctx.state!=='running'&&ctx.state!=='closed'&&ctx.resume) ctx.resume();
       const src=ctx.createBufferSource(); src.buffer=buf; src.loop=true; src.loopStart=Math.min(.05,buf.duration*.1); src.loopEnd=Math.max(src.loopStart+.1,buf.duration-.05);
       const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=o.cut||1200; f.Q.value=.7;
       const g=ctx.createGain(), base=SFX_GAIN[name]||1; g.gain.value=0;
@@ -1895,7 +1887,7 @@ class Component extends DCLogic {
     Object.values(AMB).flat().forEach(id=>{ fetch('assets/sound/amb/'+id+'.m4a'+(AMB_V[id]?'?v='+AMB_V[id]:'')).then(r=>r.arrayBuffer())
       .then(a=>new Promise((ok,no)=>ctx.decodeAudioData(a,ok,no))).then(b=>{ this._ambBufs[id]=b; }).catch(()=>{}); }); }
   ambStart(fi){ fi=fi||2; const ctx=this._ac; this.ambLoad(); this._ambOn=true; this._ambGen=(this._ambGen||0)+1; const gen=this._ambGen;
-    try{ if(ctx.state==='suspended'&&ctx.resume) ctx.resume().catch(()=>{}); }catch(_){ }
+    try{ if(ctx.state!=='running'&&ctx.state!=='closed'&&ctx.resume) ctx.resume().catch(()=>{}); }catch(_){ }
     const bus=ctx.createGain(); bus.gain.setValueAtTime(0,ctx.currentTime); bus.gain.linearRampToValueAtTime(AMB_GAIN,ctx.currentTime+fi); bus.connect(this._acGain); this._ambBus=bus;
     this._ambSrcs=[]; this._ambTimers=[];
     this.ambBed(gen,'amb_rain_1',1,true); this.ambBed(gen,'amb_rain_2',1.03,true);
@@ -1979,7 +1971,7 @@ class Component extends DCLogic {
       .then(b=>{ this._sfxBufs[name]=b; }).catch(()=>{}); }
   sfxUnlock(){ if(this._sfxReady) return; this._sfxReady=true;
     const ctx=this.audioCtx(); if(!ctx) return;
-    try{ if(ctx.state==='suspended' && ctx.resume) ctx.resume(); }catch(_){ }
+    try{ if(ctx.state!=='running' && ctx.state!=='closed' && ctx.resume) ctx.resume(); }catch(_){ }
     // iOS는 제스처 안에서 '실제로' 한 번 재생해야 풀린다 — 1샘플 무음 버퍼면 충분하다.
     try{ const b=ctx.createBuffer(1,1,22050); const s0=ctx.createBufferSource();
       s0.buffer=b; s0.connect(ctx.destination); s0.start(0); }catch(_){ }
@@ -2296,7 +2288,6 @@ class Component extends DCLogic {
   zoneLine(z){ return this.eng.pick(z,'Tagline') || this.eng.pick(z,'LootFocus'); }
   catChip(txt,on){ const f=CAT_FAM[txt]||'#8E9196';   // on(착용 칸) 표시는 착용중 판(eqTag)이 맡는다 — 분류 판은 늘 같은 모양
     return plate({bd:'linear-gradient(90deg,'+f+' 0 3px,#34373d 3px)',bg:'linear-gradient(90deg,'+f+' 0 2px,#202227 2px)',pad:'0 6px 0 8px'}, this.eng.t(txt)); }
-  subTag(txt){ return plate({}, this.eng.t(txt)); }
   brkTag(){ return plate({bd:'#C4675D',bg:'#C4675D',fg:'#fff',w:600}, this.t('item_destroyed')); }
   attrTag(k){ const c=(ATTR[k]&&ATTR[k].c)||T.mid; return plate({bd:'color-mix(in srgb,'+c+' 70%,transparent)',bg:'#16171b',fg:c,pad:'0 5px 0 5px'}, h('span',{style:{width:5,height:5,transform:'rotate(45deg)',background:c,flex:'0 0 auto'}}), this.t('status_'+k)); }
   groTag(label,n){ return plate({bd:PRISM,bg:'#1b1c21',fg:'#EEE7D7',pad:'0 6px'}, label, n>1?h('span',{style:{display:'inline-flex',gap:2,marginLeft:1}}, ...Array.from({length:n},(_,i)=>h('i',{key:i,style:{width:3,height:3,transform:'rotate(45deg)',background:'#E2C28F'}}))):null); }
@@ -2740,7 +2731,7 @@ class Component extends DCLogic {
     if(!attr||!ATTR[attr]) return [];
     const lines=c.res.log.slice(0,c.revealed); if(!lines.length) return [];
     const nowT = lines[lines.length-1].t||0;
-    const apps = lines.filter(ln=>ln.who===applier && ln.type==='status');
+    const apps = lines.filter(ln=>ln.who===applier && ln.type==='status' && ln.aff!=='immune');   // 무효로 막힌 줄은 스택이 아니다
     if(!apps.length) return [];
     if(attr==='bleed'||attr==='rupture'||(attr==='pierce'&&(this.eng.byId.status.pierce||{}).EffectType==='damage_taken_up')){
       const dur = this.eng.N((this.eng.byId.status[attr]||{}).Duration, attr==='bleed'?4:3);
@@ -2750,7 +2741,7 @@ class Component extends DCLogic {
     }
     // 기절·관통 등 순간 효과: 부여된 바로 그 줄에서만 표시(플래시)
     const last=lines[lines.length-1];
-    return (last.who===applier && last.type==='status')?[{key:attr,count:1}]:[];
+    return (last.who===applier && last.type==='status' && last.aff!=='immune')?[{key:attr,count:1}]:[];
   }
   statusChip(key){ const col=(ATTR[key]&&ATTR[key].c)||T.mid; return this.cutChip(this.eng.t('status_'+key),col); }
   plainChip(label,col,anim){ return h('span',{style:{display:'inline-flex',animation:anim||'none'}}, this.cutChip(label,col)); }
@@ -3239,7 +3230,7 @@ class Component extends DCLogic {
       S.dust=S.dust.filter(d=>now-d.t0<d.life); S.dust.forEach(d=>{ const k=(now-d.t0)/d.life; if(k<0) return; const t=(now-d.t0)/1000, dr=(1-Math.exp(-d.drag*t))/d.drag, x=d.x+d.vx*dr, y=d.y+d.vy*dr-d.rise*t*t*40, a=d.a*Math.min(1,k*10)*Math.pow(1-k,1.4); ctx.fillStyle='rgba('+d.c+','+a+')'; ctx.fillRect(x-d.s/2,y-d.s/2,d.s,d.s); });
       ctx.restore(); };
     rot.style.transition='none';
-    const step=(now)=>{ if(this.combat!==c||!rot.isConnected){ return; } const e=now-t0; let a=0,L=0,rz=0,sq=1,jx=0,jy=0;
+    const step=(now)=>{ if(this.combat!==c) return; if(!rot.isConnected){ c.flipAnim=false; return; } const e=now-t0; let a=0,L=0,rz=0,sq=1,jx=0,jy=0;
       if(e<D1){ const k=e/D1; a=-5*Math.sin(k*Math.PI/2); L=.8*(1-Math.pow(1-k,3)); if(GG.ten){ const amp=GG.ten*.3*k, fq=e/30; jx=noise(fq,1.3)*amp; jy=noise(fq,4.1)*amp*.7; rz=noise(fq,7.7)*amp*.5; } }
       else if(e<D1+HD){ const k=(e-D1)/Math.max(1,HD); a=-5; L=.8+.12*Math.sin(k*Math.PI/2); if(GG.ten){ const amp=GG.ten*(.3+.7*Math.pow(k,1.4)), fq=e/(26-10*k); jx=noise(fq,1.3)*amp; jy=noise(fq,4.1)*amp*.75; rz=noise(fq,7.7)*amp*.55; } }
       else if(e<D1+HD+D2){ const k=(e-D1-HD)/D2; a=-5+185*ease(k); L=.92+.08*Math.sin(k*Math.PI); if(GG.ten&&k<.15){ const amp=GG.ten*(1-k/.15), fq=e/16; jx=noise(fq,1.3)*amp; jy=noise(fq,4.1)*amp*.75; } if(!snd&&a>=90){ snd=true; this.sfxFlip(); } }
@@ -3849,8 +3840,9 @@ float midPoint=0.20;float aa=smoothstep(midPoint-uBlend*0.5,midPoint+uBlend*0.5,
   setupPvpFlee(){
     const c=this.combat;
     const eqUids=EQ_GEAR.map(s=>this.gs.equip[s]).filter(Boolean);
-    const nCards=Math.max(1,Math.round(1/this.eng.N(this.eng.DATA.config.pvp_flee_fail_rate,0.33)));
-    const lossUid=eqUids.length?eqUids[Math.floor(Math.random()*eqUids.length)]:null;
+    const failRate=this.eng.N(this.eng.DATA.config.pvp_flee_fail_rate,0.33);
+    const nCards=failRate>0? Math.min(10,Math.max(1,Math.round(1/failRate))) : 3;   // 0이면 1/0 = 무한 장 → 화면이 깨진다(11-12). 0 = 잃는 카드 없음
+    const lossUid=(eqUids.length&&failRate>0)?eqUids[Math.floor(Math.random()*eqUids.length)]:null;
     this.sfxDealIn(nCards);
     c.pvpCards={ kind:'flee', n:nCards, hit:lossUid?Math.floor(Math.random()*nCards):-1, lossUid, picked:null, got:null, lost:null }; c.pvpFocus=Math.floor(nCards/2);
   }
@@ -4062,6 +4054,7 @@ void main(){
     this.gs.sato-=fee; liqs.forEach(l=>this.consumeInst(l.uid));   // 제출한 술은 병째 소모
     this.storyAct('appraise',this.state.vendor);
     const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp);
+    this.saveNow();   // ★결과 확정 즉시 저장(강화와 같은 규칙 · 11-12) — 연출이 수치를 되감기 전에 찍는다
     this.flipSettled(this,'apr',false);   // 직전 감정의 '평면 복귀' 표시를 지운다 — 안 지우면 2회차 플립이 3D로 안 돈다
     this.setState({apr:{itemUid:a.itemUid,liq:[],phase:'card',results:changes,proof:total,flipped:false}});
   }
@@ -4155,7 +4148,10 @@ void main(){
   hgVendorName(){ const v=this.eng.byId.vendor['vendor_pawnshop']; return (v&&this.tx(v,'VendorName'))||'마르타 콜'; }
   hgSel(){ const g=this.state.hg||{}; const list=this.valuablesOwned(); return list[Math.min(g.focus||0, Math.max(0,list.length-1))]||null; }
   hgFocus(i){ const list=this.valuablesOwned(); const g=this.state.hg||{}; const v=Math.max(0,Math.min(list.length-1,i));
-    if(v!==this.eng.N(g.focus,0)) this.sfxSwipe();
+    const moved=v!==this.eng.N(g.focus,0); if(moved) this.sfxSwipe();
+    // ★앞면(방금 굴린 값이 pend에 있는 상태)에서 옆으로 넘기면 먼저 그 카드 값을 확정하고 목록 상태로 돌린다(11-12).
+    //   예전엔 pend가 남은 채 초점만 바뀌어, 판매·뒤로가기 때 굴린 값이 '옆 카드'에 찍혔다(비싼 카드 값으로 싼 카드 판매).
+    if(moved && g.phase==='front'){ this.hgSettle(); this.setState({hg:{focus:v,phase:'list'}}); return; }
     this.setState({hg:Object.assign({},g,{focus:v})}); }
   // 위로 올려 흥정 — 카드 리프트 → 대사 → 뒷면 하강
   hgStart(){
@@ -5055,7 +5051,7 @@ void main(){
           lm.focus=pi>=0?pi:0; this._lmPulled=null;
           if(isField){ const gi=this.storyLootFocus(lm); if(gi>=0) lm.focus=gi; }   // 4번 손 안내 — 가방을 열면 방금 넣은 카드부터
           this.forceUpdate(); },'data-guide':'lm-view',style:{flex:1,height:48,borderRadius:999,border:'none',background:'#212227',color:T.mid,fontFamily:T.sans,fontSize:13,cursor:'pointer'}}, isField?(this.en()?'Bag':'가방'):(this.en()?'Loot':'전리품')),
-        h('button',{'data-guide':'lm-done',disabled:this.storyLootBlock(),onClick:()=>{ if(this.storyLootBlock()) return; if(lm.fromCombat){ this.commitLootDraw(); } else { lm.field=this.lmSample().field; lm.view='field'; lm.focus=0; this.flash(this.en()?'Next fight — new loot':'다음 전투 — 새 전리품'); this.forceUpdate(); } },style:{flex:1,height:48,borderRadius:999,border:'none',background:'#212227',color:T.hi,fontFamily:T.sans,fontSize:13,fontWeight:400,cursor:'pointer'}}, lm.fromCombat?(this.en()?'Done':'완료'):(this.en()?'Proceed':'진행하기'))));
+        h('button',{'data-guide':'lm-done',disabled:this.storyLootBlock(),onClick:()=>{ if(this.storyLootBlock()||this._lmBusy) return; if(lm.fromCombat){ this.commitLootDraw(); } else { lm.field=this.lmSample().field; lm.view='field'; lm.focus=0; this.flash(this.en()?'Next fight — new loot':'다음 전투 — 새 전리품'); this.forceUpdate(); } },style:{flex:1,height:48,borderRadius:999,border:'none',background:'#212227',color:T.hi,fontFamily:T.sans,fontSize:13,fontWeight:400,cursor:'pointer'}}, lm.fromCombat?(this.en()?'Done':'완료'):(this.en()?'Proceed':'진행하기'))));
   }
 
   // ===== 금고 물건정리 — 같은 id의 낱개 묶음을 MaxStack까지 합친다 =====
@@ -5196,7 +5192,7 @@ void main(){
       if(!hit) continue;
       const rows=groups[k].slice().sort((a,b)=>this.eng.N(a.Seq,0)-this.eng.N(b.Seq,0));
       c.radio=Object.assign({},fired,{[k]:1}); this.saveGame();
-      setTimeout(()=>{ if(this.state.tuto){ if(c.radio) delete c.radio[k]; return; }   // 같은 틱에 튜토리얼이 먼저 떴으면 무전은 그 뒤로 미룬다(다시 걸린다)
+      setTimeout(()=>{ if(this.state.tuto||this.radio||this.talk){ if(c.radio) delete c.radio[k]; return; }   // 같은 틱에 튜토리얼이 먼저 떴으면 무전은 그 뒤로 미룬다(다시 걸린다)
         this.radioOpen(String(q.GiverVendorID||''),rows); },0); return; } } }
   // 출발 경고(카드 삽입 화면 진입) — 체력·스태미너가 50% 이하면 유리/아미라 무전 · 막지는 않는다(사용자 2026-10-10) · 대사 = NpcDialogue Flow=warn Stage=hp|sta
   raidWarnRows(){ const g=this.gs; if(!g||!this.eng) return []; const all=(this.eng.DATA.npcDialogue||[]), out=[];
@@ -5495,10 +5491,11 @@ void main(){
       ghost.style.left=Math.max(4, Math.min(ev.clientX-offX, maxX))+'px';
       ghost.style.top=(ev.clientY-offY)+'px';
       const el=document.elementFromPoint(ev.clientX,ev.clientY); const t=el?el.closest('[data-invslot]'):null; setOver(t&&t!==slotEl?t:null); };
-    const up=(ev)=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); if(ghost.parentNode)ghost.remove(); setOver(null); slotEl.style.opacity=''; slotEl.style.transform='';
+    const up=(ev)=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up); if(ghost.parentNode)ghost.remove(); setOver(null); slotEl.style.opacity=''; slotEl.style.transform='';
+      if(ev.type==='pointercancel'){ this.forceUpdate(); return; }   // 터치가 끊긴 것 — 옮기지 않고 정리만
       const el=document.elementFromPoint(ev.clientX,ev.clientY); const t=el?el.closest('[data-invslot]'):null;
       if(t&&t!==slotEl){ this.invDrop(uid, t.getAttribute('data-sec'), t.getAttribute('data-uid')||''); } else this.forceUpdate(); };
-    window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); move(e);
+    window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up); move(e);
   }
   invDrop(uid,tsec,tuid){
     const it=this.gs.bag.find(x=>x.uid===uid); if(!it){ this.forceUpdate(); return; }
@@ -5879,8 +5876,6 @@ void main(){
   // ---- repair (S9 · 철물점) ----
   // 미감정 장비는 수리 대상에서 제외한다 — 최대 내구도를 모르는 물건은 수리량·비용을 산정할 수 없다(감정 후 가능).
   repairables(){ return [...this.gs.bag, ...this.gs.vault].filter(i=>(i.kind==='weapon'||i.kind==='armor'||i.kind==='artifact') && this.eng.N(i.maxDur)>0 && !this.eng.isHidden(i,'maxDur') && (this.eng.N(i.maxDur)-this.eng.N(i.dur))>0).sort((a,b)=>((this.isEquipped(b.uid)?1:0)-(this.isEquipped(a.uid)?1:0)) || ((b.maxDur-b.dur)-(a.maxDur-a.dur))); }   // 착용 중이 항상 위(11-02) · 그 안에서 닳은 만큼 많은 순
-  durBar(inst){ const pct=inst.maxDur>0?Math.max(0,Math.min(100,(inst.dur/inst.maxDur)*100)):0; const st=this.eng.itemState(inst); const col=st==='destroyed'?T.danger:st==='broken'?T.warn:(pct<35?T.warn:T.dur);
-    return h('div',{style:{height:5,background:T.s3,borderRadius:1,overflow:'hidden',marginTop:6}}, h('div',{style:{width:pct+'%',height:'100%',background:col}})); }
   doRepair(inst){ if(this._rcvAnim) return; const fromDur=this.eng.N(inst.dur);
     const hide=this.state.repairMode==='hideout';
     let mats=[];
@@ -6006,7 +6001,11 @@ void main(){
   openFang(v){
     if(!this._fangL){ this._fangL=e=>this.fangMsg(e); window.addEventListener('message',this._fangL); }
     this._fangStake=0;
-    this.setState({fang:{host:String(v.ShopID||'').replace(/^shop_/,''), sato:this.eng.N(this.gs.sato,0)}});
+    const fr=document.querySelector('.rl-frame'), sat=fr? Math.round(parseFloat(getComputedStyle(fr).paddingTop)||0) : 0;   // 상태바 높이 — iframe 안에선 env()가 0이라 넘겨 준다
+    const host=String(v.ShopID||'').replace(/^shop_/,''), sato=this.eng.N(this.gs.sato,0);
+    // ★주소는 여기서 한 번만 만든다(11-12) — 렌더마다 만들면 화면 회전·설정 변경으로 값이 바뀌는 순간 iframe이 새로 떠 걸어 둔 판돈이 날아간다.
+    const src='fang.html?v='+FANG_V+'&host='+encodeURIComponent(host)+'&sato='+sato+'&sat='+sat+'&deck='+this.fangDeck()+(this._sfxOff?'&snd=0':'')+(this.en()?'&lang=en':'');
+    this.setState({fang:{host, sato, src}});
   }
   fangMsg(e){
     if(e.origin!==location.origin||!e.data||!e.data.fang||!this.state.fang) return;
@@ -6017,9 +6016,7 @@ void main(){
   }
   fangDeck(){ return Object.keys(this.gs.binder||{}).filter(mid=>/^monster_/.test(mid)&&this.binderSt(mid)>=1).map(mid=>mid.slice(8)+'.'+this.binderInst(mid)).join(','); }   // 팽 덱 = 발견(조우 이상) 카드 · 인스톨 0~3(0 = ×0.5) · 11-10
   fangLayer(){
-    const f=this.state.fang;
-    const fr=document.querySelector('.rl-frame'), sat=fr? Math.round(parseFloat(getComputedStyle(fr).paddingTop)||0) : 0;   // 상태바 높이 — iframe 안에선 env()가 0이라 넘겨 준다
-    const src='fang.html?v='+FANG_V+'&host='+encodeURIComponent(f.host)+'&sato='+f.sato+'&sat='+sat+'&deck='+this.fangDeck()+(this._sfxOff?'&snd=0':'')+(this.en()?'&lang=en':'');
+    const src=this.state.fang.src;
     return h('iframe',{key:'fang',src,title:'FANG',allow:'autoplay',style:{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none',zIndex:400,background:'#0A0B0E'}});   // 맨 위부터 덮고 상태바 높이는 ?sat=로 — 팽이 대전 화면 머리를 그만큼 내리고 단말기는 케이스를 상태바 뒤까지 깐다(11-10)
   }
   vendorMenuItems(v){
@@ -6400,7 +6397,6 @@ void main(){
   //   grip(손잡이로 주머니↔가방) → vault(오른쪽으로 밀어 보관함) → out(보관함에서 왼쪽으로 밀어 꺼내기) → end
   //   상태 gs.story.tidy = {st, uid, from, said} · 대사 = NpcDialogue NPC=vendor_clinic Flow=tidy Stage=intro|grip|vault|out|end
   tidyGripUid(){ const m=this.gs&&this.storyMap(), T=m&&m.tidy; return (T&&T.st==='grip'&&T.said&&this.tidyActive())? T.uid : null; }
-  tidyPending(){ if(!this.gs||!this.eng||!this.eng.storyRows||!this.eng.storyRows().length) return false; const m=this.storyMap(); return !(m.tidy&&m.tidy.st==='done') && !m.done['quest_story_c2_01'] && !(m.cur&&String(m.cur.id).indexOf('quest_story_c2_')===0); }
   tidyActive(){ if(!this.gs||!this.eng||!this.eng.storyRows) return false; const m=this.storyMap();
     if(!m.done['quest_story_c1_05']||m.done['quest_story_c2_01']||m.cur||(m.called&&m.called['quest_story_c2_01'])) return false;
     return !(m.tidy&&m.tidy.st==='done'); }
@@ -6475,7 +6471,7 @@ void main(){
     { const c=this.storyMap().cur, q=c&&c.s==='rw'&&this.eng.storyRow(c.id); if(q){ const vid=String(q.GiverVendorID||''); return ((s==='vendorMenu'||s==='vendor')&&this.state.vendor===vid)? null : this.storyGuideToVendor(vid); } }   /* M7(11-01) — 보상 카드를 안 받고 앱을 닫았으면 그 상점으로 */
     { const fg=this.facGuide(); if(fg!==undefined) return fg; }   /* 조립대 분해 안내(챕터3) */
     if(this.storyGuide()){ if(s==='inventory') return this.state.seg==='vault'? null : 'vault-tab'; if(s==='vendorMenu'||s==='vendor') return this.shopExitG(); return 'nav-inventory'; }   /* 상점 안엔 하단 내비가 없다 → 먼저 나가기(10-29) */
-    if(this.storyReport()){ if(s==='comms') return this.state.commsTab==='news'? null : 'comms-move'; if(s==='character') return 'comms-btn'; if(s==='vendorMenu') return null; return 'nav-character'; }
+    if(this.storyReport()){ if(s==='comms') return (this.state.commsTab==='news'||this.state.commsOpen)? null : 'comms-move'; if(s==='character') return 'comms-btn'; if(s==='vendorMenu') return null; return 'nav-character'; }
     // 3번 레이드 — 존까지 안내 · 전투 뒤엔 누를 수 있는 버튼 · 휴식은 카드(위로 올려 사용) → [완료]
     { const sr=this.storyRaid(); if(sr){ const c=this.combat;
         if(s==='lootmanage') return this.storyLootGuide(sr);
@@ -6503,7 +6499,7 @@ void main(){
       if(p){ const gv=String(p.GiverVendorID);
         if(this.storyCallRows(p).length&&this.storyCallId(p)==='nav'){ const cm=this.storyMap().called; return (cm&&cm[p.QuestID])? this.storyGuideToVendor(gv) : null; }   /* 5번: 화면 옮기면 맥 호출 → 철물점으로 손 */
         if(this.storyCallRows(p).length){   // 5번: 캐릭터 → 무전기 → (맥 호출) → 이동 줄 → 철물점
-          if(s==='comms') return this.state.commsTab==='news'? null : 'comms-move'; if(s==='character') return 'comms-btn';
+          if(s==='comms') return (this.state.commsTab==='news'||this.state.commsOpen)? null : 'comms-move'; if(s==='character') return 'comms-btn';
           if(RAID_SCREENS.indexOf(s)>=0) return null;
           if(s==='vendorMenu'||s==='vendor') return this.state.vendor===gv? null : this.shopExitG();
           return 'nav-character'; }
@@ -6553,7 +6549,7 @@ void main(){
       if(el){ if(this._proBox!==el){ this._proBox=el; this.prologueMount(el); } }
       else { if(this._proH){ try{ this._proH.destroy(); }catch(_){} this._proH=null; } this._proBox=null; } }; }
     return this._proRef; }
-  prologueMod(){ return this._proMod||(this._proMod=import('./prologue.js?v=pro29')); }   // prologue.js 고칠 때마다 ?v= 올릴 것
+  prologueMod(){ return this._proMod||(this._proMod=import('./prologue.js?v=pro30')); }   // prologue.js 고칠 때마다 ?v= 올릴 것
   prologueMount(el){ const dbg=this._proDbg;
     this.prologueMod().then(m=>{ if(this._proBox!==el) return;
       this._proH=m.mount(el,{ t:k=>this.t(k), en:this.en(), cut:dbg&&dbg.cut, skipChev:SKIP_CHEV_D, onDone:()=>this.prologueEnd() }); })
@@ -6574,7 +6570,7 @@ void main(){
   // this.talk = { vid, qid, stage, steps, si(현재 단계), wait:'read'|'choose'|'end' } — 인스턴스에 두고 forceUpdate(타자기 setState와 분리)
   talkBegin(vid,q,stage){ if(stage==='done'&&this._diaryShown!==q.QuestID){ const o0=this.eng.questObjective(q); if(o0&&o0.diary){
         if(o0.diary.pre&&this._diaryPre!==q.QuestID&&this.storySteps(q.QuestID,'predone').length){ this._diaryPre=q.QuestID; stage='predone'; }   /* 글 보기 전 한마디(카이토 "바로 열어 보겠습니다") → talkFinish가 글로 넘긴다 */
-        else { this.diaryBegin(vid,q); return; } } }   /* 다이어리 읽기(프로토콜의 진실1) — 먼저 전체 화면 글, 끝나면 평소 퀘스트 완료 대화(_diaryShown) */
+        else if(this.diaryBegin(vid,q)) return; } }   /* 다이어리 읽기(프로토콜의 진실1) — 먼저 전체 화면 글, 끝나면 평소 퀘스트 완료 대화(_diaryShown) */
     this.talk={vid,qid:q.QuestID,stage,steps:this.storySteps(q.QuestID,stage),si:-1,wait:'read'};
     if(this._talkHold){ this.setState({npcLine:null}); return; } this.talkNext(); }
   talkSay(row,full){ this._talkFullAt=0; const t=this.talk;
@@ -6631,10 +6627,10 @@ void main(){
   //   Objective.diary=true · 글 = QuestDialogue Stage=diary(Seq 순 · 기록 하나씩) · 마르타 반응 = Stage=done 줄들 — 평소 퀘스트 대화 화면(사용자 2026-10-16: 교신 화면 아님)
   //   ⚠️ 물건 회수·보상은 완료 대화가 끝난 뒤(talkFinish done) — 중간에 새로고침해도 다이어리를 잃지 않고 처음부터 다시 본다
   // kind = 'diary'(전자 다이어리 · 진실1) / 'scene'(장면 그림 + 글 · 「팔에 적힌 이름 1」 창고) — 글 = QuestDialogue Stage=<kind> · 장면 그림 = Objective.scene.art(assets/art/ui/<art>.webp)
-  diaryBegin(vid,q,kind){ if(this._diaryRun) return; const k=kind||'diary'; const rows=this.eng.storyLines(q.QuestID,k).slice().sort((a,b)=>this.eng.N(a.Seq,0)-this.eng.N(b.Seq,0));
-    if(!rows.length) return; const o=this.eng.questObjective(q), dArt=(k==='diary'&&o&&o.diary&&typeof o.diary==='object'&&o.diary.art)?String(o.diary.art):'';
+  diaryBegin(vid,q,kind){ if(this._diaryRun) return true; const k=kind||'diary'; const rows=this.eng.storyLines(q.QuestID,k).slice().sort((a,b)=>this.eng.N(a.Seq,0)-this.eng.N(b.Seq,0));
+    if(!rows.length) return false; const o=this.eng.questObjective(q), dArt=(k==='diary'&&o&&o.diary&&typeof o.diary==='object'&&o.diary.art)?String(o.diary.art):'';
     const art=k==='scene'? 'assets/art/ui/'+String((o&&o.scene&&o.scene.art)||'scene')+'.webp' : dArt? 'assets/art/ui/'+dArt+'.webp' : 'assets/art/ui/diary_screen.webp';
-    this._diaryRun=true; try{ new Image().src=art; }catch(_){ } this._diary={vid,qid:q.QuestID,rows,i:0,shown:0,kind:k,art,look:dArt?'scene':k,mono:!!dArt,cctv:!!dArt,ts:{}}; if(dArt){ if(this._cctvT) clearInterval(this._cctvT); this._cctvT=setInterval(()=>{ if(this._diary) this.forceUpdate(); },100); } this.diaryType(); this.forceUpdate(); }   /* cctv = 해독 기록을 감시 카메라 프로그램 화면처럼(시각·REC·로그 줄이 찍힘 · 10-21) */   /* look=scene = 그림 배경 화면(해독 기록은 mono 글자) */
+    this._diaryRun=true; try{ new Image().src=art; }catch(_){ } this._diary={vid,qid:q.QuestID,rows,i:0,shown:0,kind:k,art,look:dArt?'scene':k,mono:!!dArt,cctv:!!dArt,ts:{}}; if(dArt){ if(this._cctvT) clearInterval(this._cctvT); this._cctvT=setInterval(()=>{ if(this._diary) this.forceUpdate(); },100); } this.diaryType(); this.forceUpdate(); return true; }   /* cctv = 해독 기록을 감시 카메라 프로그램 화면처럼(시각·REC·로그 줄이 찍힘 · 10-21) */   /* look=scene = 그림 배경 화면(해독 기록은 mono 글자) */
   diaryLen(){ const d=this._diary; if(!d) return 0; const r=d.rows[d.i]; return Array.from(this.tx(r,'Line')||r.Line_KR||'').length; }
   diaryTyping(){ const d=this._diary; return !!d && d.shown<this.diaryLen(); }
   diaryType(){ if(this._diaryTw){ clearInterval(this._diaryTw); this._diaryTw=null; } if(this._diaryAuto){ clearTimeout(this._diaryAuto); this._diaryAuto=null; }
@@ -6848,9 +6844,6 @@ void main(){
     { const m=this.storyMap(), pq=this.storyMainPending(); if(pq && m.called && m.called[pq.QuestID]) return true;
       if(m.called && this.storyGenAll().some(q=>m.called[q.QuestID])) return true; }   /* 호출받고 아직 안 받은 임무(챕터2 1번 마르타) — 받으러 갈 때까지 */
     return false; }
-  // 탭 라벨 + 알림 점(무전기 점과 같은 5px #2FBF71 · 같은 깜빡임) — 글자 오른쪽 위에 붙는다. 점은 레이아웃 폭에 안 들어간다(absolute).
-  commsTabLabel(key,on){ return h('span',{style:{position:'relative',display:'inline-block'}}, this.ttx(this.t(key),16),
-      on? h('span',{key:'d',style:{position:'absolute',right:-8,top:-2,width:5,height:5,borderRadius:'50%',background:'#2FBF71',animation:'rlCommsDot 2.4s ease-in-out infinite'}}) : null); }
   commsBtn(){
     return h('button',{key:'comms','data-guide':'comms-btn',onClick:()=>this.openComms(),'aria-label':this.t('comms_title'),
       style:{position:'absolute',right:25.4,top:23,width:44,height:44,padding:0,border:'none',background:'none',cursor:'pointer'}},
@@ -6859,7 +6852,7 @@ void main(){
       this.commsPending()? h('span',{key:'d',style:{position:'absolute',left:38.4,top:1,width:5,height:5,borderRadius:'50%',background:'#2FBF71',animation:'rlCommsDot 2.4s ease-in-out infinite'}}) : null);
   }
   // 기본 탭 = 임무(열 때마다).
-  openComms(){ this.go('comms'); this.setState({commsTab:'mission',commsPick:null,commsOpen:null,commsSecOpen:null,commsSel:null,commsQ:null}); }
+  openComms(){ this.go('comms'); this.setState({commsTab:'mission',commsPick:null,commsOpen:null,commsSecOpen:null,commsSel:null,commsQ:null,cdKey:null}); }
   // 레이아웃 실측(screen-comms-story-empty · screen-comms-news): 헤더 90 · 탭 y90~137 · ● 라벨은 탭/앞 행 아래 29.5 ·
   //   라벨→첫 행 5.5 · 임무 카드 x18~384 y190~262 r8. 행은 상점 행(shopRow)을 그대로 쓴다 — **기존 화면 우선**(사용자 2026-10-08).
   //   하단 닫기 박스도 목업(좌우 10.5·테두리) 대신 퀘스트 화면의 하단 박스와 같은 규격.
@@ -7100,28 +7093,6 @@ void main(){
     if(kind==='vendor') return toV(id);
     if(kind==='zone'){ const z=this.eng.byId.zone[id]||{}; return {label:this.tx(z,'ZoneName')||id, go:()=>this.go('zone')}; }
     return null; }
-  commsMission(){
-    const m=this.commsStory(), chs=(m&&Array.isArray(m.chapters))?m.chapters.filter(c=>c&&c.quests&&c.quests.length):[];
-    const cur=chs.find(c=>c.done<c.quests.length);
-    const past=chs.filter(c=>c.done>=c.quests.length).reverse();
-    const out=[this.commsSec('csec',this.t('comms_sec_story'))];
-    out.push(cur? this.commsStoryCard(cur,'cur',false,8)
-                : this.commsEmpty('cem',this.t('comms_story_empty'),this.t('comms_story_empty_sub'),8));
-    const gall=this.commsGeneral(), gl=gall.filter(x=>!x.done), gdone=gall.filter(x=>x.done);
-    if(gl.length) out.push(this.commsSec('cgen',this.t('comms_sec_general')), ...gl.map(x=>this.commsGeneralRow(x)));   /* 일반 임무(시설 · 챕터3) — 진행 중만. 끝난 건 아래 '지난 임무' */
-    // 지난 스토리·지난 임무 = 아코디언(기본 접힘). 구역 제목을 눌러 펼친다.
-    const so=this.state.commsSecOpen||{}, tog=(k)=>()=>this.setState({commsSecOpen:Object.assign({},so,{[k]:!so[k]})});
-    if(past.length){
-      out.push(this.commsSecAcc('cpast',this.t('comms_sec_story_past'),past.length,!!so.story,tog('story')));
-      if(so.story){ const open=this.state.commsOpen;
-        past.forEach((c,i)=>out.push(open===c.no? this.commsStoryCard(c,'p'+c.no,true,i?12:8) : this.commsPastRow(c,i?12:8))); }
-    }
-    if(gdone.length){
-      out.push(this.commsSecAcc('cpastm',this.tOr('comms_sec_missions_past',this.en()?'Past Missions':'지난 임무'),gdone.length,!!so.mis,tog('mis')));
-      if(so.mis) out.push(...gdone.map(x=>this.commsGeneralRow(x)));
-    }
-    return out;
-  }
   // 일반 임무 = 시설 복원 뒤 임무(FAC_RESTORE.task) · 진행 중이 위 · 행 = 일일 행(shopRow)과 같은 모양 · 누르면 그 시설로
   commsGeneral(){ const out=[];
     if(this.facStoryOn()){ const fac=this.storyMap().fac||{};
@@ -7136,73 +7107,7 @@ void main(){
         const done=!!m.done[q.QuestID], run=!!m.gen[q.QuestID], call=avail.indexOf(q)>=0&&this.storyCallRows(q).length>0;   /* 호출 없는 일반 임무는 받기 전에 안 보인다(기버 상점에 들어갈 때 시작 · 스포일러 방지) */
         if(!(done||run||call)) return; const key=this.eng.N(q.Chapter,0)>=100? 'ch'+q.Chapter : q.QuestID; if(seen[key]) return; seen[key]=1; out.push({sq:q,done}); }); }
     return out.sort((a,b)=>(a.done?1:0)-(b.done?1:0)); }
-  // 스토리 일반 임무 행 — 진행 중이면 목표 한 줄 · 끝나면 사정 문단 · 누르면 기버 상점/목적지로
-  commsStoryGeneralRow(x){ const q=x.sq, v=this.eng.byId.vendor[String(q.GiverVendorID||'')]||{}, run=!!this.storyC(q.QuestID);
-    const o=this.eng.questObjective(q), need=o?o.targets.reduce((a,t)=>a+t.count,0):1, pr=x.done?[need]:this.storyProg(q), cnt=(x.done?need:Math.min(need,(pr||[]).reduce((a,n)=>a+n,0)))+'/'+need;
-    const desc=x.done? this.storyDoneDesc(q) : (run? this.storySummary(q) : this.tx(q,'Description')), dest=x.done?null:this.storyDest(q);
-    return this.shopRow({key:'gen_'+q.QuestID, cat:this.shopName(v.ShopID,v), name:this.tx(q,'Name'), desc,
-      right:x.done? this.commsChip(this.t('quest_chip_done'),'#85B3C5') : this.commsChip(cnt,'#757575'), onClick:()=>this.setState({commsQ:q.QuestID,commsQAll:false})}); }   /* 9번(11-01) — 이동은 상세의 [이동] 버튼으로 */
-  commsGeneralRow(x){ if(x.sq) return this.commsStoryGeneralRow(x); const v=this.eng.byId.vendor[FAC_RESTORE[x.f].npc]||{};
-    // 복원 = 목표는 재료별 보유/필요 · 칩은 재료 합계(넘친 건 안 셈)
-    const cnt=x.restore? x.mats.reduce((a,m)=>a+Math.min(m.have,m.need),0)+'/'+x.mats.reduce((a,m)=>a+m.need,0) : '0/1';
-    const desc=x.restore? x.mats.map(m=>m.label+' '+(x.done?m.need:Math.min(m.have,m.need))+'/'+m.need).join(' · ') : this.t(x.tk.obj);
-    return this.shopRow({key:'gen_'+x.f+(x.restore?'_r':''), cat:this.shopName(v.ShopID,v), name:this.t(x.restore?'quest_gen_restore_'+x.f:x.tk.name), desc,
-      right:x.done? this.commsChip(this.t('quest_chip_done'),'#85B3C5') : this.commsChip(cnt,'#757575'), onClick:()=>{ this.go('hideout'); this.openHideFac(x.f); }}); }
-  // 챕터 칩 — readyChip(h22 · mono 9.5 · bg #212327) · 진행 중=흰 테두리 / 지난=회색
-  commsChapterChip(c,past){ return this.readyChip(this.t('comms_chapter').replace('{N}',c.no), past?'#6F7276':'#EAEBEE',{bg:'#212327',pad:'5px 9px',solid:true}); }
-  commsChapterHead(c,past,right,onClick){
-    return h('div',{key:'hd',onClick:onClick||null,style:{display:'flex',alignItems:'center',gap:7.5,height:22,cursor:onClick?'pointer':'default'}},
-      this.commsChapterChip(c,past),
-      h('span',{key:'n',style:{flex:1,minWidth:0,fontFamily:T.mono,fontSize:10,color:'#A9ABAF',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}, c.name),
-      right);
-  }
-  // 지난 스토리(접힘) — h54 · 우측 「완료」. 누르면 진행 중 카드와 같은 모양으로 펼친다.
-  commsPastRow(c,mt){
-    return h('div',{key:'pr'+c.no,onClick:()=>this.setState({commsOpen:c.no}),style:{margin:mt+'px 18px 0',background:'#18191D',border:'1px solid #36383C',borderRadius:8,padding:'15px 16px',cursor:'pointer'}},
-      this.commsChapterHead(c,true,h('span',{key:'r',style:{flex:'0 0 auto',fontFamily:T.sans,fontSize:11,color:'#A9ABAF'}}, this.t('quest_chip_done'))));
-  }
-  // 스토리 카드 — 실측: 외곽 x18~384 · 본문 y190~412(위 r8, 테두리) + 이동 줄 y412~444(아래 r8, #454545).
-  //   본문 = 챕터줄 h22 → 18 → 퀘스트명 sans14 → 8.5 → 목표 mono10 + 카운터 → 18 → 진행바 h4 → 16 → 사정 mono10/13.
-  // ★진행바 칸 = 퀘스트 선택기. 끝난 칸·지금 칸을 누르면 그 퀘스트로 카드 내용이 바뀐다 · 아직 안 한 칸은 무반응.
-  //   기본 선택 = 진행 중 챕터는 지금 퀘스트 / 지난 챕터는 마지막 퀘스트. 직접 고른 동안만 나머지 칸을 흐리게 해서 어디를 보는지 알린다.
-  commsStoryCard(c,key,past,mt){
-    // reach(스토리 실데이터) = 볼 수 있는 마지막 칸 — 없으면 옛 규칙(완료 수)
-    const n=c.quests.length, lim=Math.min(c.reach!=null?c.reach:c.done,n-1), def=past? n-1 : lim;
-    const pk=(this.state.commsPick||{})[key], sel=(pk!=null&&pk<=lim)? pk : def;
-    const q=c.quests[sel]||{}, qDone=sel<c.done, need=this.eng.N(q.need,0), cur=qDone? need : Math.min(this.eng.N(q.cur,0),need);
-    const pick=(i)=>this.setState({commsPick:Object.assign({},this.state.commsPick||{},{[key]:i})});
-    const mono=(fs,col)=>({fontFamily:T.mono,fontSize:fs,lineHeight:fs+'px',color:col});
-    const move=(!past && !qDone && q.dest)? q.dest : null;
-    const body=h('div',{key:'b',onClick:q.id?()=>this.setState({commsQ:q.id,commsQAll:false}):null,style:{background:'#18191D',border:'1px solid #36383C',borderRadius:move?'8px 8px 0 0':8,padding:'15px 16px 16px',cursor:q.id?'pointer':'default'}},   /* 9번(11-01) — 누르면 퀘스트 상세(의뢰인·대화·지금 할 일) */
-      this.commsChapterHead(c,past, h('span',{key:'r',style:Object.assign({flex:'0 0 auto'},mono(11,'#A9ABAF'))}, c.done+'/'+n),
-        past? (ev)=>{ if(ev&&ev.stopPropagation) ev.stopPropagation(); this.setState({commsOpen:null}); } : null),
-      h('div',{key:'qn',style:{marginTop:18,fontFamily:T.sans,fontSize:14,lineHeight:'14px',color:'#EAEBEE'}}, q.name||''),
-      // 목표 = 한 줄(일일·기본) 또는 여러 줄(objs — 스토리 착용 목표는 아이템마다)
-      ...((Array.isArray(q.objs)&&q.objs.length)? q.objs : [{text:q.obj||'',cur,need}]).map((ob,oi)=>
-        h('div',{key:'ob'+oi,style:{marginTop:oi?6:8.5,display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}},
-          h('span',{key:'t',style:Object.assign({minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'},mono(10,'#6F7276'))}, ob.text||''),
-          h('span',{key:'c',style:Object.assign({flex:'0 0 auto'},mono(10,ob.cur>=ob.need&&ob.need>0?'#83B289':'#6F7276'))}, ob.cur+'/'+ob.need))),
-      // 칸 h4 · 폭 균등 · 간격 13.8(목업 6칸 = 44×6 + 13.8×5 = 333). 터치 영역은 위아래 8씩 넓힌다.
-      h('div',{key:'bar',style:{marginTop:18,display:'flex',gap:13.8}},
-        ...c.quests.map((_,i)=>{ const can=i<=lim;
-          return h('div',{key:i,onClick:can?(ev)=>{ ev.stopPropagation(); pick(i); }:null,style:{flex:1,height:20,margin:'-8px 0',display:'flex',alignItems:'center',cursor:can?'pointer':'default'}},
-            h('div',{style:{flex:1,height:4,borderRadius:2,background:i<c.done?'#83B289':'#6F7276',opacity:(pk!=null&&i!==sel)?0.4:1,transition:'opacity .15s'}})); })),
-      q.desc? h('div',{key:'ds',style:Object.assign({marginTop:16,whiteSpace:'pre-line',wordBreak:'keep-all'},mono(10,'#A9ABAF'),{lineHeight:'13px'})}, q.desc) : null);
-    return h('div',{key:'sc'+key,style:{margin:mt+'px 18px 0'}},
-      body,
-      move? h('div',{key:'mv','data-guide':(!past&&key==='cur')?'comms-move':null,onClick:()=>move.go&&move.go(),style:{height:32,background:'#454545',borderRadius:'0 0 8px 8px',padding:'0 20px 0 16px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}},
-        h('span',{key:'l',style:mono(10,'#A9ABAF')}, move.label),
-        // 갈매기 — 목업 패스 그대로(viewBox로 잘라 쓴다)
-        h('svg',{key:'i',width:6.2,height:12.8,viewBox:'357.5 421.5 6.2 12.8',fill:'none',style:{display:'block',flex:'0 0 auto'}},
-          h('path',{fillRule:'evenodd',clipRule:'evenodd',fill:'#A9ABAF',d:'M357.809 421.744C358.061 421.528 358.44 421.558 358.655 421.809L363.455 427.409C363.648 427.634 363.648 427.965 363.455 428.19L358.655 433.79C358.44 434.042 358.061 434.071 357.809 433.855C357.558 433.64 357.528 433.261 357.744 433.009L362.209 427.8L357.744 422.59C357.528 422.338 357.558 421.96 357.809 421.744Z'}))) : null);
-  }
   // ===== 9번(11-01) 퀘스트 상세 — 교신 임무 탭에서 퀘스트를 누르면. 의뢰인(초상·이름·상점) · 대화(시작·받은 무전·완료) · 지금 할 일(+이동) =====
-  //   데이터는 전부 기존 것(StoryQuest·QuestDialogue·진행 기록) — 새 시트 열 없음. 얼굴 = 무전과 같은 초상 크롭(NPC_COMMS_CROP).
-  commsFace(vid,size,face){ const cr=NPC_COMMS_CROP[vid]; if(!cr) return h('div',{style:{width:size,height:size,borderRadius:8,background:'#212227',flex:'0 0 auto'}});
-    const sc=size/(cr[2]-cr[0]), hh=Math.round((cr[3]-cr[1])*sc);
-    return h('div',{style:{position:'relative',width:size,height:hh,overflow:'hidden',borderRadius:8,background:'#0F1013',flex:'0 0 auto'}},
-      h('img',{src:'assets/art/npc/'+vid+'_'+this.npcFaceKey(face)+'.webp',alt:'',draggable:false,onError:ev=>{ ev.target.src='assets/art/npc/'+vid+'_neutral.webp'; },
-        style:{position:'absolute',left:-cr[0]*sc,top:-cr[1]*sc,width:768*sc,height:1360*sc,maxWidth:'none',pointerEvents:'none'}})); }
   // 지금 할 일 한 줄 + 부연 + 이동 — 손 안내와 같은 목적지(storyDest)로 보낸다
   josaRo(w){ const c=String(w||'').trim().slice(-1).charCodeAt(0)-0xAC00; return (c>=0&&c<11172&&c%28&&c%28!==8)?'으로':'로'; }   // 받침 있으면 '으로'(ㄹ 받침 제외)
   storyNextStep(q){ const e=this.eng, m=this.storyMap(), id=q.QuestID, c=this.storyC(id), en=this.en();
@@ -7231,58 +7136,6 @@ void main(){
     if(c&&c.radio){ const f=c.radio; push(radio.filter(r=>f[String(r.Trigger||'').trim()]&&trig(r).on!=='call'),'radio'); }
     if(m.done[id]) push(L('done'),'talk');
     return out.filter(x=>x.text); }
-  commsQuestDetail(qid){ const e=this.eng, q=e.storyRow&&e.storyRow(qid); if(!q) return null;
-    const en=this.en(), B=this.craftSheetBits(), vid=String(q.GiverVendorID||''), v=e.byId.vendor[vid]||{};
-    const close=()=>this.setState({commsQ:null,commsQAll:false});
-    const ns=this.storyNextStep(q), log=this.storyTalkLog(q), all=!!this.state.commsQAll, shown=all? log : log.slice(-2);
-    const m=this.storyMap(), c0=this.storyC(qid), run=!!(c0&&c0.s==='run'), done=!!m.done[qid];   /* 보상 대기(rw)엔 목표 줄을 안 보인다 */
-    // 목표 줄(진행도) — 진행 중일 때만
-    const o=e.questObjective(q); let objs=run&&o? ((this.storyObjLines(q,true,false))||[{text:this.storySummary(q),cur:Math.min(o.targets.reduce((a,t)=>a+t.count,0),(this.storyProg(q)||[]).reduce((a,n)=>a+n,0)),need:o.targets.reduce((a,t)=>a+t.count,0)}]) : [];
-    if(objs.length&&o){ const ids=(o.what==='equip')? o.targets.flatMap(t=>t.ids||[]) : o.targets.map(t=>(t.ids||[])[0]); objs=objs.map((ob,i)=>Object.assign({},ob,{id:ids[objs.length===1?0:i]||null})); }   /* 아이템 목표 = (?) 카드 팝업 */
-    const isItem=id=>!!(id&&e.anyItem(id));
-    const ch=e.N(q.Chapter,0), chLbl=(ch>0&&ch<100)? this.t('comms_chapter').replace('{N}',ch)+' · '+this.t('story_ch'+String(ch).padStart(2,'0')) : (en?'Mission':'일반 임무');
-    const mono=(fs,col)=>({fontFamily:T.mono,fontSize:fs,color:col});
-    const body=[ B.kicker(chLbl),
-      h('div',{key:'qn',style:{marginTop:8,fontFamily:T.sans,fontSize:17,fontWeight:500,color:B.HI}}, this.tx(q,'Name')),
-      // 의뢰인
-      h('div',{key:'gv',style:{marginTop:16,display:'flex',alignItems:'center',gap:12}},
-        this.commsFace(vid,56,'neutral'),
-        h('div',{style:{minWidth:0,display:'flex',flexDirection:'column',gap:4}},
-          h('span',{style:{fontFamily:T.mono,fontSize:10,letterSpacing:'.1em',color:B.MUT}}, en?'CLIENT':'의뢰인'),
-          h('span',{style:{fontFamily:T.sans,fontSize:14,color:B.HI}}, this.tx(v,'VendorName')||''),
-          h('span',{style:{fontFamily:T.sans,fontSize:11,color:B.LO}}, this.shopName(v.ShopID,v)||''))),
-      // 대화
-      log.length? h('div',{key:'tk',style:{marginTop:14,display:'flex',flexDirection:'column',gap:8,maxHeight:all?220:'none',overflowY:all?'auto':'visible'}},
-        ...shown.map((ln,i)=>h('div',{key:'l'+i,style:{display:'flex',gap:8,alignItems:'flex-start'}},
-          this.commsFace(vid,28,ln.face),
-          h('div',{style:{flex:1,minWidth:0,padding:'8px 10px',borderRadius:'2px 10px 10px 10px',background:'#212227',fontFamily:T.sans,fontSize:12,lineHeight:1.5,color:'#D9DADE',wordBreak:'keep-all'}},
-            ln.kind==='radio'? h('span',{style:{...mono(9,'#85B3C5'),marginRight:6,letterSpacing:'.08em'}}, en?'RADIO':'무전') : null, ln.text)))) : null,
-      (log.length>2)? h('div',{key:'more',onClick:()=>this.setState({commsQAll:!all}),style:{marginTop:8,textAlign:'right',fontFamily:T.sans,fontSize:11,color:B.MID,cursor:'pointer'}}, all?(en?'Show less':'접기'):(en?'Full conversation ›':'대화 전체 보기 ›')) : null,
-      // 지금 할 일
-      h('div',{key:'nx',style:{marginTop:16,padding:'12px 14px',borderRadius:12,background:done?'#1A1B21':'#1F2A24',border:'1px solid '+(done?'#2A2C31':'#36503F')}},
-        h('div',{style:{...mono(10,done?B.MUT:'#83B289'),letterSpacing:'.1em'}}, done?(en?'RESULT':'결과'):(en?'NEXT':'지금 할 일')),
-        // 메인 = 목표 줄(진행도) — 아이템이면 (?) 눌러 카드 · 목표가 없을 때(호출·보고·보상)만 안내 문장이 메인 (사용자 11-01)
-        ...(objs.length? objs : [{text:ns.title,cur:null,need:null}]).map((ob,i)=>{ const ts={fontFamily:T.sans,fontSize:14,fontWeight:500,color:B.HI,wordBreak:'keep-all'};
-          return h('div',{key:'ob'+i,style:{marginTop:i?8:6,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}},
-            isItem(ob.id)? this.matName(ob.id, ob.text||'', ts) : h('span',{style:ts}, ob.text||''),
-            ob.need!=null? h('span',{style:mono(12,ob.cur>=ob.need&&ob.need>0?'#83B289':'#A9ABAF')}, ob.cur+'/'+ob.need) : null); }),
-        (objs.length&&ns.title&&!(objs.length===1&&objs[0].text===ns.title))? h('div',{key:'nt',style:{marginTop:6,fontFamily:T.sans,fontSize:11,color:B.LO,wordBreak:'keep-all'}}, ns.title) : null,   /* 어디서·누구에게 — 작게 */
-        (done&&ns.sub)? h('div',{style:{marginTop:6,fontFamily:T.sans,fontSize:11,lineHeight:1.5,color:B.LO,whiteSpace:'pre-line',wordBreak:'keep-all'}}, ns.sub) : null) ];
-    const goLbl=ns.dest? (en?'Quick Travel':'빠른 이동') : null;   /* 목적지는 '지금 할 일' 안내 문장에 있다(사용자 11-01) */
-    const footer=[ ns.dest? B.btn(goLbl, ns.dest.go, false, 'qgo') : null, B.btn(en?'Close':'닫기', close, false, 'qclose') ].filter(Boolean);
-    return h('div',{key:'cqd',onClick:close,style:{...ST.dim}},
-      h('div',{onClick:ev=>ev.stopPropagation(),style:{marginTop:'auto',maxHeight:'100%',overflowY:'auto'}}, B.wrap(body,footer))); }
-  // 소식 탭 = 알림(최신 1건) → 일일 → 주간. 비어 있는 구역은 라벨째 숨기고, 전부 비면 빈 상태 카드 하나.
-  commsNews(){
-    const al=this.commsAlerts()[0], out=[];
-    if(al) out.push(this.commsSec('sa',this.t('comms_sec_alert')), this.commsAlertRow(al));
-    for(const [type,key] of [['daily','comms_sec_daily'],['weekly','comms_sec_weekly']]){
-      const list=this.commsQuests(type);
-      if(list.length) out.push(this.commsSec('s'+type,this.t(key)), ...list.map(x=>this.commsQuestRow(x.q,x.st)));
-    }
-    if(!out.length) out.push(this.commsEmpty('cen',this.t('comms_news_empty'),this.t('comms_news_empty_sub'),29.5));
-    return out;
-  }
   // 알림 = 내 아지트 시간형 완료 4종(제작·설치·업그레이드·해독) 중 **아직 수령 안 한 것**.
   //   실패한 제작은 넣지 않는다(시작 3초 뒤 눈앞에서 판정된다). 수령하면 슬롯이 비면서 자연히 빠지고 다음 건이 올라온다.
   //   at = 완료 시각(endAt) — 최신순 정렬.
@@ -7301,14 +7154,6 @@ void main(){
     if(m<60) return this.t('comms_time_min').replace('{N}',m);
     const hr=Math.floor(m/60);
     return hr<24? this.t('comms_time_hour').replace('{N}',hr) : this.t('comms_time_day').replace('{N}',Math.floor(hr/24)); }
-  // 상태칩 — 상점 리스트 퀘스트 칩과 같은 꼴(h20 · bg #0A0B0E). 회색=수락만(진행 0) · 초록=하나라도 진행 · 블루=완료.
-  commsChip(label,col){ return this.readyChip(label,col,{bg:'#0A0B0E',pad:'4px 9px',solid:true}); }
-  commsAlertRow(a){
-    return this.shopRow({key:'al', cat:this.hideFacName(a.fac),
-      name:this.t('comms_alert_'+a.k).replace('{Name}',a.name).replace('{N}',a.n),
-      desc:this.commsAgo(a.at), right:this.commsChip(this.t('quest_chip_done'),'#85B3C5'),
-      onClick:()=>this.commsGoAlert(a)});
-  }
   // 알림 행 → 해당 시설 화면(수령하는 자리). 뒤로가기는 그 시설 메뉴로 돌아간다.
   commsGoAlert(a){
     this.openHideFac(a.fac);
@@ -7318,51 +7163,14 @@ void main(){
     else if(a.k==='decode') this.setState({decodeSlot:a.slot});
   }
   // 받은 퀘스트 = **수락한 것만**(기록 있음 · 포기/수령완료 제외). 일일은 오늘 편성분만. 정렬 = 완료 > 진행.
-  commsQuests(type){ this.qSync();
+  commsQuests(type){ this.qSync(); const today=this.qToday();
     return this.eng.questRows()
-      .filter(q=>String(q.Type||'')===type && this.qRec(q.QuestID) && this.qInToday(q))
+      .filter(q=>String(q.Type||'')===type && this.qRec(q.QuestID) && this.qInToday(q,today))
       .map((q,i)=>({q,i,st:this.qState(q)})).filter(x=>x.st==='run'||x.st==='done')
       .sort((a,b)=>((a.st==='done'?0:1)-(b.st==='done'?0:1))||(a.i-b.i)); }
-  commsQuestRow(q,st){
-    let chip;
-    if(st==='done') chip=this.commsChip(this.t('quest_chip_done'),'#85B3C5');
-    else { const o=this.eng.questObjective(q), t=o&&o.targets[0], need=t?t.count:0, cur=Math.min(this.qProg(q)[0]||0,need);
-      chip=this.commsChip(cur+'/'+need, cur>0?'#83B289':'#757575'); }
-    const v=this.eng.byId.vendor[q.GiverVendorID]||{};
-    return this.shopRow({key:q.QuestID, cat:this.shopName(v.ShopID,v), name:this.eng.tr(q,'Name'), desc:this.qSummary(q),
-      right:chip, onClick:()=>this.commsGoQuest(q)});
-  }
   // 퀘스트 행 → 기버 상점의 퀘스트 시트(수락·제출·완료하는 자리).
   commsGoQuest(q){ const vid=String(q.GiverVendorID||''); if(!this.eng.byId.vendor[vid]) return;
     this.openVendor(vid); this.openQuest(); this.openQuestSheet(q.QuestID); }
-  // ● 구역 라벨 — 점 x18~23 #A9ABAF · 글자 x27.5 sans10 #6F7276 · 줄 높이 10 · 위 29.5 / 아래 5.5
-  //   ⚠️아래 5.5는 margin이 아니라 padding — 다음 카드의 margin-top과 **겹쳐서(collapse)** 간격이 5px 줄었었다.
-  // 아코디언 구역 라벨 — commsSec와 같은 모양 + 우측 개수 · 갈매기(storyDest의 목업 패스를 돌려 쓴다: 접힘=아래, 펼침=위)
-  commsSecAcc(key,txt,n,open,onClick){
-    return h('div',{key:key,onClick,style:{display:'flex',alignItems:'center',gap:4.5,height:10,padding:'0 0 5.5px',boxSizing:'content-box',margin:'29.5px 18px 0',cursor:'pointer'}},
-      h('span',{key:'d',style:{flex:'0 0 auto',width:5,height:5,borderRadius:'50%',background:'#A9ABAF'}}),
-      h('span',{key:'t',style:{fontFamily:T.sans,fontSize:10,lineHeight:'10px',color:'#6F7276'}}, txt),
-      h('span',{key:'n',style:{flex:1,fontFamily:T.mono,fontSize:10,lineHeight:'10px',color:'#6F7276'}}, n),
-      h('svg',{key:'i',width:6.2,height:12.8,viewBox:'357.5 421.5 6.2 12.8',fill:'none',style:{display:'block',flex:'0 0 auto',transform:open?'rotate(-90deg)':'rotate(90deg)',transition:'transform .18s'}},
-        h('path',{fillRule:'evenodd',clipRule:'evenodd',fill:'#A9ABAF',d:'M357.809 421.744C358.061 421.528 358.44 421.558 358.655 421.809L363.455 427.409C363.648 427.634 363.648 427.965 363.455 428.19L358.655 433.79C358.44 434.042 358.061 434.071 357.809 433.855C357.558 433.64 357.528 433.261 357.744 433.009L362.209 427.8L357.744 422.59C357.528 422.338 357.558 421.96 357.809 421.744Z'})));
-  }
-  commsSec(key,txt){
-    return h('div',{key:key,style:{display:'flex',alignItems:'center',gap:4.5,height:10,padding:'0 0 5.5px',boxSizing:'content-box',margin:'29.5px 18px 0'}},
-      h('span',{key:'d',style:{flex:'0 0 auto',width:5,height:5,borderRadius:'50%',background:'#A9ABAF'}}),
-      h('span',{key:'t',style:{fontFamily:T.sans,fontSize:10,lineHeight:'10px',color:'#6F7276'}}, txt));
-  }
-  // 빈 상태 카드 — h72 · 제목 sans14 #EAEBEE / 보조 sans10 #6F7276
-  commsEmpty(key,title,sub,mt){
-    return h('div',{key:key,style:{margin:mt+'px 18px 0',background:'#18191D',border:'1px solid #36383C',borderRadius:8,
-        padding:'19.5px 16px 17.5px',display:'flex',flexDirection:'column',gap:9}},
-      h('div',{key:'a',style:{fontFamily:T.sans,fontSize:14,lineHeight:'14px',color:'#EAEBEE'}}, title),
-      h('div',{key:'b',style:{fontFamily:T.sans,fontSize:10,lineHeight:'10px',color:'#6F7276'}}, sub));
-  }
-  // 하단 닫기 — 퀘스트 화면 하단 박스와 같은 규격(margin 0 16 24 · padding 24/18 · r24 · 무테).
-  commsCloseBox(){
-    return h('div',{style:{flex:'0 0 auto',margin:'0 16px 24px',padding:'24px 18px',boxSizing:'border-box',borderRadius:24,background:'#18191D',display:'flex'}},
-      h('button',{onClick:()=>this.go('character'),style:{...ST.btn}}, this.t('quest_btn_close')));
-  }
 
   qMap(){ if(!this.gs.quests||typeof this.gs.quests!=='object') this.gs.quests={}; return this.gs.quests; }
   // 리셋 = 주기 인덱스가 바뀌면 기록을 통째로 버린다. 포기(gave)·수령완료(clr)도 여기서 함께 풀린다.
@@ -7411,8 +7219,8 @@ void main(){
     const ok=zs.size? (q)=>{ const o=eng.questObjective(q); if(!o||!Array.isArray(o.targets)) return true; return o.targets.every(t=>tgtOk(o.kind,t)); } : null;
     this._qAvailSig=sig; this._qAvail={sig,ok}; return this._qAvail; }
   // 일일만 로테이션 대상(주간·스토리는 그대로). ★수령 대기 보상(rw)은 오늘 편성에서 빠져도 계속 보여야 한다.
-  qInToday(q){ if(String(q.Type||'')!=='daily') return true;
-    if(this.qToday().has(q.QuestID)) return true;
+  qInToday(q,today){ if(String(q.Type||'')!=='daily') return true;   // today = 호출부가 한 번 구해 넘긴 오늘 목록(행마다 다시 구하면 허브 렌더 한 번에 수백 번 계산했다 · 11-12)
+    if((today||this.qToday()).has(q.QuestID)) return true;
     const r=this.qRec(q.QuestID); return !!r; }   // 이번 주기에 기록이 있는 건(수락·진행·수령 대기·포기) 편성이 바뀌어도 계속 다룬다 — 상태 숨김은 qState가 한다
   qRec(id){ return this.qMap()[id]||null; }
   qSet(id,patch){ const m=this.qMap();
@@ -7443,9 +7251,9 @@ void main(){
     if(r.s==='rw') return 'done';
     return this.qAllDone(q)?'done':'run'; }
   // 정렬 = 완료 > 진행중 > 신규(사용자 규칙). 같은 등급 안에서는 시트 순서를 지킨다.
-  qList(tab){ this.qSync(); const vid=this.state.vendor, ord={done:0,run:1,new:2};
+  qList(tab){ this.qSync(); const vid=this.state.vendor, ord={done:0,run:1,new:2}, today=this.qToday();
     return this.eng.questRows()
-      .filter(q=>String(q.Type||'')===tab && (!vid || String(q.GiverVendorID||'')===vid) && this.qInToday(q))
+      .filter(q=>String(q.Type||'')===tab && (!vid || String(q.GiverVendorID||'')===vid) && this.qInToday(q,today))
       .map((q,i)=>({q,i,st:this.qState(q)})).filter(x=>x.st!=='hide')
       .sort((a,b)=>(ord[a.st]-ord[b.st])||(a.i-b.i)); }
   // 칩 우선순위 — 완료가 하나라도 있으면 완료, 없으면 진행중, 없으면 신규, 그것도 없으면 표시 안 함
@@ -7460,9 +7268,9 @@ void main(){
   //          폭 신규 47 / 진행중 56 / 완료 47 — padding '4px 9px'로 자연폭이 48/57/48이 되어 ±1로 맞는다.
   // ★0이면 색을 죽인다(#757575). 칸은 그대로 남아서 "없다"는 것 자체가 정보가 된다.
   qVendorCounts(vid){ this.qSync();
-    const c={new:0,run:0,done:0};
+    const c={new:0,run:0,done:0}, today=this.qToday();
     for(const q of this.eng.questRows()){
-      if(String(q.Type||'')!=='daily' || String(q.GiverVendorID||'')!==vid || !this.qInToday(q)) continue;
+      if(String(q.Type||'')!=='daily' || String(q.GiverVendorID||'')!==vid || !this.qInToday(q,today)) continue;
       const st=this.qState(q); if(st!=='hide' && c[st]!=null) c[st]++;
     }
     return c;
@@ -7482,8 +7290,8 @@ void main(){
         fontFamily:"'IBM Plex Sans KR',system-ui,sans-serif",fontSize:9,fontWeight:600,lineHeight:1,whiteSpace:'nowrap',clipPath:'polygon(0 0,100% 0,calc(100% - 4px) 100%,0 100%)'}}, label),
       h('span',{style:{position:'relative',alignSelf:'center',padding:'0 7px 0 4px',fontFamily:T.mono,fontSize:10,fontWeight:600,lineHeight:1,color:z?'#6F7276':'#EAEBEE'}}, String(n)));
   }
-  qVendorChip(vid){ this.qSync();
-    return this.qPick(this.eng.questRows().filter(q=>String(q.Type||'')==='daily'&&String(q.GiverVendorID||'')===vid&&this.qInToday(q))
+  qVendorChip(vid){ this.qSync(); const today=this.qToday();
+    return this.qPick(this.eng.questRows().filter(q=>String(q.Type||'')==='daily'&&String(q.GiverVendorID||'')===vid&&this.qInToday(q,today))
       .map(q=>this.qState(q)).filter(st=>st!=='hide')); }
   // 배너형(대상이 존) vs 리스트형(대상이 아이템·몬스터 — 목표가 2개 이상 생길 수 있어 행으로 나눈다)
   qIsBanner(kind){ return kind==='visit'||kind==='depth'; }
@@ -7802,7 +7610,6 @@ void main(){
     return true;
   }
   qComplete(q){
-    if(!this.qConsumeSubmit(q)){ this.flash(this.t('quest_short'), true); return; }
     const rw=this.eng.questReward(q);
     // ★보상을 먼저 굴리고 나서 지급한다. LootGroupItem 탭을 못 받아 그룹 풀이 비면
     //   완료를 막는다 — 안 그러면 퀘스트만 소멸하고 아이템은 0장이 된다.
@@ -7816,6 +7623,8 @@ void main(){
       let n=Math.min(pool.length, lo+Math.floor(Math.random()*(hi-lo+1)));
       for(;n>0;n--){ const i=Math.floor(Math.random()*pool.length); ids.push(pool.splice(i,1)[0]); }
     }
+    // ★제출 재료는 보상이 굴려진 뒤에 가져간다(11-12) — 예전엔 먼저 소모해서, 그룹 풀이 비어 완료가 막히면 재료만 사라졌다.
+    if(!this.qConsumeSubmit(q)){ this.flash(this.t('quest_short'), true); return; }
     if(rw.sato) this.gs.sato=this.eng.N(this.gs.sato,0)+rw.sato;
     if(rw.pass){ const cap=this.passCap();
       this.gs.pass=Math.min(cap, this.eng.N(this.gs.pass,0)+rw.pass); this.savePass(); }
@@ -7878,7 +7687,7 @@ void main(){
     if(this._qcT){ clearTimeout(this._qcT); this._qcT=null; }
     const id=this.state.qRew, insts=this.qRewInsts();
     if(this.vaultSlotsForInsts(insts) > this.vaultRoom()){ this.vaultFullMsg(); return; }
-    insts.forEach(inst=>{ if(this.maxStack(inst.id)>1) this.stackAdd(this.gs.vault,inst.id,inst.qty||1,{}); else this.gs.vault.push(inst); });
+    insts.forEach(inst=>{ if(this.maxStack(inst.id)>1) this.stackAdd(this.gs.vault,inst.id,inst.qty||1,{v:inst.v}); else this.gs.vault.push(inst); });
     const r=this.qRec(id);
     if(r&&r.carry){ delete this.qMap()[id]; this.saveGame(); }   // 지난 판에서 넘어온 보상 — 받고 나면 이번 판 퀘스트로 새로 뜬다
     else this.qSet(id,{s:'clr', rw:[]});
@@ -8822,7 +8631,7 @@ void main(){
         gl.uniform1f(U.uChaos,o.chaos*(1+.9*bo)); gl.uniform1f(U.uSpread,o.spread*(1+1.4*bo)); gl.uniform1f(U.uFlicker,Math.min(1,o.flicker+.5*bo)); gl.uniform1f(U.uInk,0);
         gl.uniform4fv(U.uArcEnds,arcEnds); gl.uniform4fv(U.uArcShape,arcShape);
         gl.bindVertexArray(vao); gl.drawArrays(gl.TRIANGLES,0,3); }
-      if(on||power>0.002||sparks.length) raf=requestAnimationFrame(frame); else { canvas._ebIdle=true; } };
+      if(on||power>0.002||sparks.length) raf=requestAnimationFrame(frame); else { canvas._ebIdle=true; glIdleWatch(canvas,gl,'_ebIdle'); } };
     canvas._ebWake=()=>{ if(raf) return; canvas._ebIdle=false; last=performance.now(); raf=requestAnimationFrame(frame); };
     resize(); canvas._ebWake();
   }
@@ -8869,7 +8678,7 @@ void main(){
         gl.uniform1f(U.uZoom,P.zoom||1); gl.uniform1f(U.uRayWidth,P.rayWidth||1); gl.uniform1f(U.uTwist,P.twist||0); gl.uniform1f(U.uFlow,S.flow); gl.uniform1f(U.uCenterFade,P.centerFade||1);
         gl.uniform4fv(U.uPulses,pd); gl.uniform3f(U.uIntro,(rise*(reach+0.6))/0.7,(P.introLift==null?1.6:P.introLift)*(1-S.intro),S.intro<1?1:0); gl.uniform1f(U.uOpacity,op);
         gl.drawArrays(gl.TRIANGLES,0,3); }
-      if(P.on||op>0.003) raf=requestAnimationFrame(frame); else { last=0; canvas._pbIdle=true; } };
+      if(P.on||op>0.003) raf=requestAnimationFrame(frame); else { last=0; canvas._pbIdle=true; glIdleWatch(canvas,gl,'_pbIdle'); } };
     canvas._pbWake=()=>{ if(raf) return; canvas._pbIdle=false; raf=requestAnimationFrame(frame); };
     canvas._pbWake();
   }
@@ -8914,7 +8723,7 @@ void main(){
         gl.uniform1f(U.uGlow,P.glow==null?0.6:P.glow); gl.uniform1f(U.uHaze,P.haze==null?0.25:P.haze); gl.uniform1f(U.uAtmosphere,P.atmosphere==null?1:P.atmosphere); gl.uniform1f(U.uIntensity,P.intensity==null?1:P.intensity);
         gl.uniform4fv(U.uPulses,pd); gl.uniform2f(U.uIntro,eased*2.6,smoother(opening/0.5)); gl.uniform1f(U.uOpacity,op);
         gl.drawArrays(gl.TRIANGLES,0,3); }
-      if(P.on||op>0.003||pulses.length) raf=requestAnimationFrame(frame); else { last=0; canvas._lrIdle=true; } };
+      if(P.on||op>0.003||pulses.length) raf=requestAnimationFrame(frame); else { last=0; canvas._lrIdle=true; glIdleWatch(canvas,gl,'_lrIdle'); } };
     canvas._lrWake=()=>{ if(raf) return; canvas._lrIdle=false; last=performance.now(); raf=requestAnimationFrame(frame); };
     canvas._lrWake();
   }
@@ -8965,7 +8774,7 @@ void main(){
         gl.uniform3fv(U.uCable,rgb(P.cable)); gl.uniform3fv(U.uPulse,rgb(P.pulse)); gl.uniform3fv(U.uTunnel,rgb(P.tunnel||P.pulse));
         gl.uniform3f(U.uSurge,surgeDepth,surgeLevel,0.22); gl.uniform1f(U.uReveal,1.7-eased*3.6); gl.uniform1f(U.uGrain,0.05); gl.uniform1f(U.uSeed,seed); gl.uniform1f(U.uLight,0); gl.uniform1f(U.uOpacity,op);
         gl.drawArrays(gl.TRIANGLES,0,3); }
-      if(P.on||op>0.003||surgeAge<2.4) raf=requestAnimationFrame(frame); else { last=0; canvas._ltIdle=true; } };
+      if(P.on||op>0.003||surgeAge<2.4) raf=requestAnimationFrame(frame); else { last=0; canvas._ltIdle=true; glIdleWatch(canvas,gl,'_ltIdle'); } };
     canvas._ltWake=()=>{ if(raf) return; canvas._ltIdle=false; raf=requestAnimationFrame(frame); };
     canvas._ltWake();
   }
@@ -9901,7 +9710,7 @@ void main(){
     const job=this.disaJob(); if(!job) return;
     const drops=job.drops||[];
     if(this.vaultSlotsForInsts(drops) > this.vaultRoom()){ this.vaultFullMsg(); return; }
-    drops.forEach(inst=>{ if(this.maxStack(inst.id)>1) this.stackAdd(this.gs.vault,inst.id,inst.qty||1,{}); else this.gs.vault.push(inst); });
+    drops.forEach(inst=>{ if(this.maxStack(inst.id)>1) this.stackAdd(this.gs.vault,inst.id,inst.qty||1,{v:inst.v}); else this.gs.vault.push(inst); });
     this.gs.hideout.disa=null; this.saveGame();
     this.setState({disaRev:false,disaOpen:[],disaFocus:0,disaSel:null}); this.facTaskDone('disa');
   }
@@ -10159,8 +9968,8 @@ void main(){
     // 표본 바인더(10-29) — 성장 레벨에 굳히지 않고 인스톨 횟수만 올린다. 효과는 playerProfile이 시트(Install1~3)에서 매번 다시 더한다.
     // 회차(n)가 없는 옛 작업은 '지금 횟수 + 1'로 본다 · 3회 상한
     const rec=this.eng.binderRec(this.gs,row.MonsterID), before=Math.min(3,this.eng.N(rec.i,0));
-    const n=Math.min(3,Math.max(before+1,this.eng.N(j.n,before+1)));
-    rec.m=1; rec.k=Math.max(this.eng.N(rec.k,0),1); rec.i=Math.max(before,n);
+    const n=Math.min(3,before+1);   // ★수령 1번 = 1회차(11-12) — 작업에 적힌 회차(j.n)를 믿으면 2회차 칸을 먼저 받고 1회차 칸을 받을 때 3회가 됐다(데이터 2개로 3회)
+    rec.m=1; rec.k=Math.max(this.eng.N(rec.k,0),1); rec.i=n;
     const gainTxt=rec.i>before ? (this.eng.usbInstalls(row)[n-1]||[]).map(g=>this.eng.fxLabel(g.stat,g.v)).join(', ') : '';
     const full=this.eng.playerProfile(this.gs,false); this.gs.maxHp=full.maxHp; this.gs.hp=Math.min(this.gs.hp,this.gs.maxHp);
     const arr=this.decodeJobs().slice(); arr[slot]=null; this.gs.hideout.decode=arr;
@@ -10186,7 +9995,6 @@ void main(){
   // ===== 표본 바인더 · 데이터 인스톨(10-29) — 몬스터당 3회 · 회차 = 인스톨 횟수 + 진행 중인 같은 몬스터 작업 수 + 1 =====
   binderInst(mid){ const r=this.gs.binder&&this.gs.binder[mid]; return Math.min(3,this.eng.N(r&&r.i,0)); }
   installPending(mid,skipSlot){ return this.decodeJobs().filter((j,i)=>j&&j.id&&i!==skipSlot&&(this.eng.byId.usb[j.id]||{}).MonsterID===mid).length; }
-  installNext(row){ return this.eng.binderNext(this.gs,row.MonsterID,this.installPending(row.MonsterID)); }
   // 인스톨 칸 3개(카드 모양) — 한 칸 = 1회 · 흰 = 끝남
   instPips(n,w,hh){ return h('div',{style:{display:'flex',gap:3,flex:'0 0 auto'}}, ...[0,1,2].map(i=>h('div',{key:i,style:{width:w||9,height:hh||10,clipPath:PIP_CUT,background:i<n?'#EAEBEE':'#4B4D52'}}))); }
   doneTag(){ const c='#85B3C5'; return plate({key:'done',bd:'color-mix(in srgb,'+c+' 70%,transparent)',bg:'#16171b',fg:c,pad:'0 6px'}, this.t('usb_install_done')); }   // 완성 = 아지트 완료 파랑
@@ -10301,7 +10109,7 @@ void main(){
   // 원통 캐러셀 — 회전은 다시 그리지 않고 직접 스타일만 바꾼다(존이 바뀌면 key로 원통을 새로 만든다 · DC 노드 재사용 함정 회피)
   binderRing(list,zkey){
     const B=this._bnd||(this._bnd={}); const n=list.length, CW=272, CH=366, step=360/Math.max(1,n), R=Math.max(270,(CW+16)/(2*Math.sin(Math.PI/Math.max(3,n))));
-    if(B.zkey!==zkey){ B.zkey=zkey; B.ang=B.tgt=-(this.eng.N(this.state.binderAct,0))*step; B.vel=0; B.act=-1; B.sent=null; }
+    if(B.zkey!==zkey){ if(B.raf){ cancelAnimationFrame(B.raf); B.raf=0; } B.last=0; B.drag=null; B.zkey=zkey; B.ang=B.tgt=-(this.eng.N(this.state.binderAct,0))*step; B.vel=0; B.act=-1; B.sent=null; }
     B.n=n; B.step=step; B.R=R; B.list=list;
     // 바깥에서 binderAct를 바꿨을 때만 그 카드로 돈다 — 원통이 스스로 보낸 값(B.sent)은 무시한다.
     // ★회전 중 setState가 반영되기 전에 다른 이유로 다시 그려지면 옛 값이 '바깥 변경'처럼 보여 원통이 되돌아갔다(10-29 버그)
@@ -10994,7 +10802,7 @@ void main(){
   }
   // 판매: 행 클릭 → 상세카드+수량박스 모달 (즉시판매 금지)
   openSell(g){
-    if(g.price<=0){ this.flash(this.t('shop_no_sale')); return; }
+    if(g.price<=0 && !this.starterGear(g.rep)){ this.flash(this.t('shop_no_sale')); return; }   // 최초 지급 장비는 0원이어도 판다(11-02 규칙 — 여기만 빠져 있었다)
     if(this.isEquipped(g.rep.uid)){ this.flash(this.t('equip_worn_nosale')); return; }
     this.setState({sellSel:{uids:g.uids.slice(), id:g.rep.id}, sellQty:1});
   }
@@ -11405,7 +11213,7 @@ void main(){
     const cost=this.healCost()+this.feedCost();
     const lack=Math.max(0,Math.round(g.maxHp-g.hp)), lackSta=Math.max(0,Math.round(staMax-g.sta));
     const busy=!!this._retHealing;
-    const aff=g.sato>=cost, need=(lack>0||lackSta>0);
+    const aff=busy||g.sato>=cost, need=(lack>0||lackSta>0);
     const can=aff&&need&&!busy;
     const zone=this._retZoneId;
     const pct=(v,m)=>m>0?Math.max(0,Math.min(100,v/m*100)):0;

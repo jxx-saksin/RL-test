@@ -57,7 +57,7 @@ export function init(){
 function ensureCanvas(){
   if(cv) return true; if(typeof document==='undefined'||!document.body) return false;
   cv=document.createElement('canvas'); cv.setAttribute('aria-hidden','true');
-  cv.style.cssText='position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:45;';
+  cv.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:45;';   // 100vh는 사파리 주소창이 보일 때 실제 화면보다 커서 입자가 아래로 밀렸다(11-12)
   document.body.appendChild(cv); cx=cv.getContext('2d'); fit();
   window.addEventListener('resize',fit);
   return !!cx;
