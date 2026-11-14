@@ -615,8 +615,8 @@ const TITLE_LOGO=[
 'M49.9199 112L40.6055 148.831V170.195H124.273L133.582 133.364V112H49.9199ZM74.0612 126.123H63.7495L66.494 127.513V162.907H59.6212V127.393C59.6212 126.746 59.0946 126.201 58.4237 126.123H52.0587V119.292H74.0612V126.123ZM98.0999 159.499C98.0999 161.374 96.5529 162.907 94.6611 162.907H91.2224V141.645H80.2211L82.9656 143.058V159.503C82.9656 161.378 81.4186 162.912 79.5268 162.912H76.0881V119.292H82.9609V134.833H91.2177V119.292H98.0906V159.503L98.0999 159.499ZM122.134 126.123H108.388C107.633 126.123 107.004 126.728 107.004 127.471V134.828H118.695V141.64H104.255L107 143.053V156.095H122.129V162.907H100.127V122.696C100.127 120.839 101.674 119.288 103.566 119.288H122.134V126.118V126.123Z'];
 // 타이틀 버전 표기 "ver A0.0001 (-MMDD)". 배포할 때마다 TITLE_VER +1, TITLE_DATE=배포 월일.
 const SPL_PULL = 160;   // 타이틀 위쪽 여유(px) — 이만큼 아래로 당길 수 있다
-const TITLE_VER = 148;
-const TITLE_DATE = '1112';
+const TITLE_VER = 149;
+const TITLE_DATE = '1114';
 // 업데이트 공지(screen-update-notice.svg) — 부팅 로딩 종료 후 1회 표시.
 // 배포할 때마다 TITLE_VER와 세트로 맨 앞에 새 블록 추가. 이모지 금지, 한 항목 = KR 한 줄 + EN 한 줄.
 // ver = 그 빌드의 TITLE_VER. PATCH_NOTES[0].ver 가 localStorage 'rl_notice_seen' 보다 크면 공지가 뜬다.
@@ -6405,11 +6405,19 @@ void main(){
   tidyItems(){ const g=this.gs, free=g.bag.filter(x=>!this.isEquipped(x.uid)); return {pocket:free.filter(x=>x.loc==='pocket'), bag:free.filter(x=>x.loc!=='pocket'), cap:this.eng.equippedBagCapacity?this.eng.equippedBagCapacity(g):0}; }
   tidyPick(st){ const T=this.storyMap().tidy, it=this.tidyItems();
     if(st==='grip'){ if(!it.cap) return null;   /* M2(11-01) — 가방이 없으면(사망 분실·여분 없음) 끌 곳이 없다 → 이 단계는 건너뛴다(보관함 단계는 주머니로 된다) */
-      const pl=it.pocket.find(x=>x.id===TIDY_KEEP)||it.pocket[0]; if(pl) return {uid:pl.uid,from:'pocket'};   /* 주머니 → 배낭(반창고 우선) */
-      const up=it.bag.find(x=>this.canPocket(x)); return up?{uid:up.uid,from:'bag'}:null; }
-    if(st==='vault'){ const x=it.pocket[0]||it.bag[0]; return x?{uid:x.uid,id:x.id}:null; }   /* 가방·주머니를 전부 비운다(하나씩) */
+      // ★옮길 자리가 있는 방향만 고른다(11-14) — 배낭이 꽉 찼는데 주머니→배낭을 시키거나, 주머니 2칸이 찼는데 배낭→주머니를 시키면 손 안내가 영영 안 풀렸다
+      if(it.bag.length<it.cap){ const pl=it.pocket.find(x=>x.id===TIDY_KEEP)||it.pocket[0]; if(pl) return {uid:pl.uid,from:'pocket'}; }   /* 주머니 → 배낭(반창고 우선) */
+      if(it.pocket.length<2){ const up=it.bag.find(x=>this.canPocket(x)); if(up) return {uid:up.uid,from:'bag'}; }
+      return null; }   /* 양쪽 다 막혔으면 이 단계는 건너뛴다 */
+    if(st==='vault'){ const x=[...it.pocket,...it.bag].find(y=>this.vaultSlotsForInsts([y])<=this.vaultRoom()); return x?{uid:x.uid,id:x.id}:null; }   /* 가방·주머니를 전부 비운다(하나씩) · 보관함에 자리 없는 물건은 건너뛴다 */
     if(st==='out'){ const x=this.gs.vault.find(v=>v.id===TIDY_KEEP)||(T.id&&this.gs.vault.find(v=>v.id===T.id))||this.gs.vault.find(v=>v.kind!=='bag'); return x?{uid:x.uid,id:x.id,have:this.tidyQty(x.id)}:null; }   /* 반창고만 다시 챙긴다 */   /* 쌓이는 물건은 보관함에서 합쳐져 uid가 바뀐다 → id·수량으로 본다 */
     return null; }
+  // 꺼내기(out) 단계 — 반창고가 들어갈 자리가 없으면(가방을 팔았거나 벗어서 주머니 2칸이 이미 참) 먼저 비울 물건 uid. 자리가 있으면 null(11-14)
+  //   자리 = 같은 물건 더미의 빈자리 · 배낭 빈칸 · 주머니 빈칸(bagNewLoc). 비울 물건 = 보관함에 들어갈 수 있는 주머니 물건 → 배낭 물건 순.
+  tidyOutBlock(){ const T=this.storyMap().tidy||{}; const vx=this.gs.vault.find(v=>v.id===T.id); if(!vx) return null;
+    const ms=this.maxStack(vx.id), merge=ms>1&&this.gs.bag.some(x=>x.id===vx.id&&!this.isEquipped(x.uid)&&(x.qty||1)<ms);
+    if(merge||this.bagNewLoc(vx)) return null;
+    const it=this.tidyItems(), x=[...it.pocket,...it.bag].find(y=>this.vaultSlotsForInsts([y])<=this.vaultRoom()); return x? x.uid : null; }
   tidyQty(id){ return this.gs.bag.filter(x=>x.id===id&&!this.isEquipped(x.uid)).reduce((a,x)=>a+Math.max(1,this.eng.N(x.qty,1)),0); }
   // 소지품(가방·주머니·보관함)에 반창고가 하나도 없을 때만 1개 지급(다 써 버린 상태에서 막히던 문제 · 사용자 2026-10-10) — 주머니 자리가 있으면 주머니(첫 단계 = 주머니→배낭 끌기)
   tidyGrantKeep(){ const g=this.gs; if(g.bag.some(x=>x.id===TIDY_KEEP&&!this.isEquipped(x.uid))||g.vault.some(v=>v.id===TIDY_KEEP)) return;
@@ -6427,17 +6435,23 @@ void main(){
     if(T.st==='grip'){ if(!this.tidyItems().cap){ this.tidyGo('vault'); return; }   /* M2 — 진행 중에 가방을 잃었으면 다음 단계로 */
       const x=this.gs.bag.find(i=>i.uid===T.uid); if(!x){ this.tidyGo('grip'); return; }
       if(((x.loc==='pocket')?'pocket':'bag')!==T.from){ this.tidyGo('vault'); return; }
+      { const it=this.tidyItems(), ok=T.from==='pocket'? it.bag.length<it.cap : (it.pocket.length<2&&this.canPocket(x));   /* 진행 중에 자리가 막혔으면(가방 교체·물건 이동) 다른 물건·방향으로 · 없으면 건너뛴다(대사는 다시 하지 않는다) */
+        if(!ok){ const pk=this.tidyPick('grip'); if(pk){ Object.assign(T,pk); this.saveGame(); setTimeout(()=>this.forceUpdate(),0); } else this.tidyGo('vault'); return; } }
       if(!T.said&&inv&&seg==='bag') say('grip'); return; }
-    if(T.st==='vault'){ if(!this.gs.bag.some(i=>i.uid===T.uid)){ const nx=this.tidyPick('vault'); if(nx){ Object.assign(T,nx); this.saveGame(); setTimeout(()=>this.forceUpdate(),0); } else this.tidyGo('out'); return; }   /* 남은 게 있으면 다음 줄로 손만 옮긴다 */   /* 소지품에서 빠졌으면 = 보관함으로 갔다(합쳐졌을 수 있음) */
+    if(T.st==='vault'){ if(this.gs.bag.some(i=>i.uid===T.uid)&&this.vaultSlotsForInsts([this.gs.bag.find(i=>i.uid===T.uid)])>this.vaultRoom()){ const nx=this.tidyPick('vault'); if(nx){ Object.assign(T,nx); this.saveGame(); setTimeout(()=>this.forceUpdate(),0); } else this.tidyGo('out'); return; }   /* 보관함에 자리가 없는 물건이면 다른 물건 · 없으면 다음 단계 */
+      if(!this.gs.bag.some(i=>i.uid===T.uid)){ const nx=this.tidyPick('vault'); if(nx){ Object.assign(T,nx); this.saveGame(); setTimeout(()=>this.forceUpdate(),0); } else this.tidyGo('out'); return; }   /* 남은 게 있으면 다음 줄로 손만 옮긴다 */   /* 소지품에서 빠졌으면 = 보관함으로 갔다(합쳐졌을 수 있음) */
       if(!T.said&&inv&&seg==='bag') say('vault'); return; }
     if(T.st==='out'){ if(this.tidyQty(T.id)>this.eng.N(T.have,0)){ this.tidyGo('end'); return; } const vx=this.gs.vault.find(v=>v.id===T.id); if(!vx){ this.tidyGo('out'); return; } if(vx.uid!==T.uid){ T.uid=vx.uid; }
-      if(!T.said&&inv) say('out'); return; }
+      if(!T.said&&inv) say('out');
+      { const bl=T.said&&this.tidyOutBlock(); if(bl&&inv&&this._tidyBlockMsg!==bl){ this._tidyBlockMsg=bl; setTimeout(()=>this.flash(this.en()?'Your pockets are full. Swipe one item right into storage first.':'주머니가 가득 찼어요. 먼저 물건 하나를 오른쪽으로 밀어 보관함에 넣으세요.',true),0); } if(!bl) this._tidyBlockMsg=null; }
+      return; }
     if(T.st==='end'){ if(!T.said){ say('end',()=>{ T.st='done'; this.saveGame(); this.forceUpdate(); }); } return; } }
   tidyGuide(){ const T=this.storyMap().tidy||{}, s=this.state.screen, seg=this.state.seg||'bag';
     if(!T.said||T.st==='intro'||T.st==='end') { if(T.st==='grip'||T.st==='vault'||T.st==='out'){ /* 아직 말 안 함 = 소지품으로 데려가기 */ } else return null; }
     if(RAID_SCREENS.indexOf(s)>=0) return null;
     if(s==='vendorMenu'||s==='vendor') return this.shopExitG();
     if(s!=='inventory') return 'nav-inventory';
+    if(T.st==='out'&&T.said){ const bl=this.tidyOutBlock(); if(bl){ if(seg!=='bag') return 'bag-tab'; return 'invrow-'+bl+'|right'; } }   /* 반창고 자리가 없으면 먼저 하나 비우게(11-14) */
     if(T.st==='out'){ if(seg!=='vault') return 'vault-tab'; if(!T.said) return null;
       if(this.state.filter!=='약품') return 'vcat-약품';   /* 약품 칩을 눌러 정렬한 뒤 */
       return 'invrow-'+T.uid+'|left'; }
